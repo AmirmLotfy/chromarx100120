@@ -25,9 +25,11 @@ function App() {
     if (chrome?.sidePanel) {
       setIsVisible(!isVisible);
       if (isVisible) {
-        chrome.sidePanel.close();
+        // Use setOptions to control visibility
+        chrome.sidePanel.setOptions({ enabled: false });
       } else {
-        chrome.sidePanel.open();
+        // Open with required path parameter
+        chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
       }
     }
   };
