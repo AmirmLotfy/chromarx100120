@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChromeBookmark } from "@/types/bookmark";
 import { cn } from "@/lib/utils";
 import { Move, Trash2 } from "lucide-react";
-import BookmarkContent from "./BookmarkContent";
+import BookmarkContentDisplay from "./BookmarkContentDisplay";
 import BookmarkShare from "./BookmarkShare";
 import { Checkbox } from "./ui/checkbox";
 
@@ -59,7 +59,7 @@ const DraggableBookmark = ({
         >
           <Move className="h-4 w-4" />
         </button>
-        <BookmarkContent title={bookmark.title} url={bookmark.url} />
+        <BookmarkContentDisplay title={bookmark.title} url={bookmark.url} />
         <BookmarkShare bookmark={bookmark} />
       </div>
       {bookmark.url && (
