@@ -31,7 +31,7 @@ const Header = () => {
             <img 
               src="/lovable-uploads/beb46658-15c1-4b7f-88fa-ef04d641652b.png" 
               alt="ChroMarx" 
-              className="h-10 md:h-12" 
+              className="h-8 md:h-10" 
             />
           </Link>
         </div>
