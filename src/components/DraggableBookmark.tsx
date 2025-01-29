@@ -6,6 +6,7 @@ import { Move, Trash2 } from "lucide-react";
 import BookmarkContentDisplay from "./BookmarkContentDisplay";
 import BookmarkShare from "./BookmarkShare";
 import { Checkbox } from "./ui/checkbox";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DraggableBookmarkProps {
   bookmark: ChromeBookmark;
@@ -29,6 +30,7 @@ const DraggableBookmark = ({
     transform,
     transition,
   } = useSortable({ id: bookmark.id });
+  const isMobile = useIsMobile();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -40,7 +42,7 @@ const DraggableBookmark = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex flex-col p-4 rounded-lg group animate-fade-in transition-colors relative",
+        "flex flex-col p-3 sm:p-4 rounded-lg group animate-fade-in transition-colors relative touch-manipulation",
         selected ? "bg-primary/10" : "bg-accent hover:bg-accent/80"
       )}
     >
@@ -52,21 +54,18 @@ const DraggableBookmark = ({
         />
       </div>
       <div className="flex items-center gap-2 mb-2 ml-8">
-        <button
-          className="p-2 text-muted-foreground hover:text-primary transition-colors cursor-move"
-          {...attributes}
-          {...listeners}
-        >
-          <Move className="h-4 w-4" />
-        </button>
+        {!isMobile && (
+          <button
+            className="p-2 text-muted-foreground hover:text-primary transition-colors cursor-move touch-none"
+            {...attributes}
+            {...listeners}
+          >
+            <Move className="h-4 w-4" />
+          </button>
+        )}
         <BookmarkContentDisplay title={bookmark.title} url={bookmark.url} />
         <BookmarkShare bookmark={bookmark} />
       </div>
-      {bookmark.url && (
-        <p className="text-sm text-muted-foreground truncate ml-8">
-          {bookmark.url}
-        </p>
-      )}
       {bookmark.dateAdded && (
         <p className="text-xs text-muted-foreground ml-8">
           Added: {formatDate(bookmark.dateAdded)}

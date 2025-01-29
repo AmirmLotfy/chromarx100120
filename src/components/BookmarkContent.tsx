@@ -3,10 +3,12 @@ import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
 import BookmarkCleanup from "./BookmarkCleanup";
 import BookmarkList from "./BookmarkList";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "./ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Filter } from "lucide-react";
 
 interface BookmarkContentProps {
-  title?: string;
-  url?: string;
   categories: { name: string; count: number }[];
   domains: { domain: string; count: number }[];
   selectedCategory: string | null;
@@ -45,25 +47,50 @@ const BookmarkContent = ({
   loading,
   filteredBookmarks,
 }: BookmarkContentProps) => {
+  const isMobile = useIsMobile();
+
+  const FilterPanel = () => (
+    <div className="space-y-6">
+      <BookmarkCategories
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={onSelectCategory}
+      />
+      <BookmarkDomains
+        domains={domains}
+        selectedDomain={selectedDomain}
+        onSelectDomain={onSelectDomain}
+      />
+      <BookmarkCleanup
+        bookmarks={bookmarks}
+        onDelete={onBulkDelete}
+        onRefresh={onRefresh}
+      />
+    </div>
+  );
+
   return (
-    <div className="grid gap-6 md:grid-cols-[250px_1fr]">
-      <div className="space-y-6">
-        <BookmarkCategories
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={onSelectCategory}
-        />
-        <BookmarkDomains
-          domains={domains}
-          selectedDomain={selectedDomain}
-          onSelectDomain={onSelectDomain}
-        />
-        <BookmarkCleanup
-          bookmarks={bookmarks}
-          onDelete={onBulkDelete}
-          onRefresh={onRefresh}
-        />
-      </div>
+    <div className="space-y-6">
+      {isMobile ? (
+        <div className="flex justify-end">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <FilterPanel />
+            </SheetContent>
+          </Sheet>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-[250px_1fr]">
+          <FilterPanel />
+          <div />
+        </div>
+      )}
 
       <div className="space-y-6">
         {loading ? (
