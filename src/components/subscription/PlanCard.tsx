@@ -34,7 +34,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
       const order = await actions.order.capture();
       
       // Call your Firebase function to handle the successful payment
-      const response = await fetch('https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/handleSubscription', {
+      const response = await fetch('https://us-central1-chromarx-215c8.cloudfunctions.net/handleSubscription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
           </Button>
         ) : (
           <PayPalScriptProvider options={{ 
-            clientId: "PAYPAL_CLIENT_ID_FROM_FIREBASE_CONFIG",
+            clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID || "",
             currency: "USD",
             intent: "capture"
           }}>
