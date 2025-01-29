@@ -66,46 +66,47 @@ const SettingsPage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto px-4 py-6 space-y-8">
-        <div className="space-y-2">
+      <div className="container max-w-4xl mx-auto px-4 py-6 h-[calc(100vh-8rem)] flex flex-col">
+        <div className="space-y-2 flex-shrink-0">
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">
             Manage your preferences and customize your experience
           </p>
         </div>
 
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab} 
-          className="space-y-6"
-        >
-          {isMobile ? (
-            <Select value={activeTab} onValueChange={setActiveTab}>
-              <SelectTrigger className="w-full mb-4">
-                <SelectValue placeholder="Select section" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg">
+        <div className="flex-1 overflow-hidden mt-6">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="h-full flex flex-col"
+          >
+            {isMobile ? (
+              <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger className="w-full mb-4">
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-2 shadow-lg">
+                  {tabs.map((tab) => (
+                    <SelectItem key={tab.value} value={tab.value}>
+                      <div className="flex items-center gap-2">
+                        <tab.icon className="h-4 w-4" />
+                        <span>{tab.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-4">
                 {tabs.map((tab) => (
-                  <SelectItem key={tab.value} value={tab.value}>
-                    <div className="flex items-center gap-2">
-                      <tab.icon className="h-4 w-4" />
-                      <span>{tab.label}</span>
-                    </div>
-                  </SelectItem>
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
                 ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          )}
+              </TabsList>
+            )}
 
-          <div className="overflow-y-auto max-h-[calc(100vh-16rem)]">
+            <div className="flex-1 overflow-y-auto">
             <TabsContent value="appearance" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -332,8 +333,9 @@ const SettingsPage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-          </div>
-        </Tabs>
+            </div>
+          </Tabs>
+        </div>
       </div>
     </Layout>
   );
