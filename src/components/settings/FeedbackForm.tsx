@@ -9,8 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, HelpCircle } from "lucide-react";
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
@@ -35,11 +41,23 @@ const FeedbackForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="type">Feedback Type</Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="type">Feedback Type</Label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Choose the type of feedback you'd like to share</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <Select value={type} onValueChange={setType}>
-          <SelectTrigger id="type">
+          <SelectTrigger id="type" className="h-12 md:h-10">
             <SelectValue placeholder="Select feedback type" />
           </SelectTrigger>
           <SelectContent>
@@ -57,7 +75,7 @@ const FeedbackForm = () => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Share your thoughts..."
-          className="min-h-[150px]"
+          className="min-h-[150px] text-base md:text-sm"
         />
       </div>
 
