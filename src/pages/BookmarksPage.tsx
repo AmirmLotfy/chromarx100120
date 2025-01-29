@@ -234,6 +234,22 @@ const BookmarksPage = () => {
     loadBookmarks().finally(() => setLoading(false));
   };
 
+  const handleReorderBookmarks = async (newBookmarks: ChromeBookmark[]) => {
+    try {
+      if (chrome.bookmarks) {
+        // Update the order in Chrome bookmarks
+        for (let i = 0; i < newBookmarks.length; i++) {
+          await chrome.bookmarks.move(newBookmarks[i].id, { index: i });
+        }
+      }
+      setBookmarks(newBookmarks);
+      toast.success("Bookmarks reordered successfully");
+    } catch (error) {
+      console.error("Error reordering bookmarks:", error);
+      toast.error("Failed to reorder bookmarks");
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6 pb-16">
@@ -286,7 +302,7 @@ const BookmarksPage = () => {
             </SelectContent>
           </Select>
         </div>
-
+        
         <div className="grid gap-6 md:grid-cols-[300px_1fr]">
           <div className="space-y-6">
             <BookmarkCategories
@@ -323,6 +339,7 @@ const BookmarksPage = () => {
                 onDelete={handleDelete}
                 formatDate={formatDate}
                 view={view}
+                onReorder={handleReorderBookmarks}
               />
             )}
           </div>
