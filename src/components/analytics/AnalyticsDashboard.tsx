@@ -60,8 +60,8 @@ const AnalyticsDashboard = () => {
           )}
         </Card>
 
-        <div className="flex-1">
-          <ScrollArea className="h-full max-h-[calc(100vh-16rem)]">
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-16rem)]">
             <div className="space-y-4 pr-4 pb-8">
               <TabsContent value="overview" className="mt-0 space-y-4">
                 <ProductivityScore />
