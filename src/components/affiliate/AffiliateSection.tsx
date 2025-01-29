@@ -47,11 +47,6 @@ const SAMPLE_PRODUCTS = [
 ];
 
 const AffiliateSection = ({ showAll = false }) => {
-  // Log affiliate link clicks for analytics
-  const handleAffiliateClick = (productId: string) => {
-    console.log(`Affiliate link clicked: ${productId}`);
-  };
-
   const products = showAll ? SAMPLE_PRODUCTS : [FEATURED_PRODUCT];
 
   return (
@@ -63,7 +58,7 @@ const AffiliateSection = ({ showAll = false }) => {
         <Info className="h-6 w-6 text-muted-foreground" />
       </div>
       
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-accent/50 to-background">
         <div className="mb-6">
           <p className="text-sm text-muted-foreground">
             {showAll 
@@ -90,8 +85,10 @@ const AffiliateSection = ({ showAll = false }) => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
+            <div className="hidden sm:block">
+              <CarouselPrevious className="left-2" />
+              <CarouselNext className="right-2" />
+            </div>
           </Carousel>
         ) : (
           <div className="max-w-md mx-auto">
@@ -103,7 +100,7 @@ const AffiliateSection = ({ showAll = false }) => {
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Want to see more recommended services? 
-              <a href="/suggested-services" className="text-primary hover:text-primary/80 ml-1">
+              <a href="/suggested-services" className="text-primary hover:text-primary/80 ml-1 font-medium">
                 View all suggestions
               </a>
             </p>
