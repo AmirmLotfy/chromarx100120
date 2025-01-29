@@ -117,10 +117,18 @@ const BookmarkList = ({
     const allSelected = bookmarks.length === selectedBookmarks.size;
     if (allSelected) {
       // Deselect all
-      setSelectedBookmarks(new Set());
+      bookmarks.forEach(bookmark => {
+        if (selectedBookmarks.has(bookmark.id)) {
+          onToggleSelect(bookmark.id);
+        }
+      });
     } else {
       // Select all
-      setSelectedBookmarks(new Set(bookmarks.map(b => b.id)));
+      bookmarks.forEach(bookmark => {
+        if (!selectedBookmarks.has(bookmark.id)) {
+          onToggleSelect(bookmark.id);
+        }
+      });
     }
   };
 
