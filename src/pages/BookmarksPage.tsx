@@ -29,63 +29,63 @@ const BookmarksPage = () => {
     new Set()
   );
 
-  useEffect(() => {
-    const loadBookmarks = async () => {
-      try {
-        if (chrome.bookmarks) {
-          const results = await chrome.bookmarks.getRecent(100);
-          
-          const categorizedResults = await Promise.all(
-            results.map(async (bookmark): Promise<ChromeBookmark> => {
-              const chromeBookmark: ChromeBookmark = {
-                ...bookmark,
-                category: undefined
-              };
-              
-              if (!chromeBookmark.category && chromeBookmark.url) {
-                chromeBookmark.category = await suggestBookmarkCategory(
-                  chromeBookmark.title,
-                  chromeBookmark.url
-                );
-              }
-              return chromeBookmark;
-            })
-          );
-          
-          setBookmarks(categorizedResults);
-        } else {
-          setBookmarks([
-            {
-              id: "1",
-              title: "React Documentation",
-              url: "https://react.dev",
-              dateAdded: Date.now() - 86400000,
-              category: "Development",
-            },
-            {
-              id: "2",
-              title: "TypeScript Handbook",
-              url: "https://www.typescriptlang.org/docs/",
-              dateAdded: Date.now() - 172800000,
-              category: "Development",
-            },
-            {
-              id: "3",
-              title: "Tailwind CSS",
-              url: "https://tailwindcss.com",
-              dateAdded: Date.now() - 259200000,
-              category: "Design",
-            },
-          ]);
-        }
-      } catch (error) {
-        console.error("Error loading bookmarks:", error);
-        toast.error("Failed to load bookmarks");
-      } finally {
-        setLoading(false);
+  const loadBookmarks = async () => {
+    try {
+      if (chrome.bookmarks) {
+        const results = await chrome.bookmarks.getRecent(100);
+        
+        const categorizedResults = await Promise.all(
+          results.map(async (bookmark): Promise<ChromeBookmark> => {
+            const chromeBookmark: ChromeBookmark = {
+              ...bookmark,
+              category: undefined
+            };
+            
+            if (!chromeBookmark.category && chromeBookmark.url) {
+              chromeBookmark.category = await suggestBookmarkCategory(
+                chromeBookmark.title,
+                chromeBookmark.url
+              );
+            }
+            return chromeBookmark;
+          })
+        );
+        
+        setBookmarks(categorizedResults);
+      } else {
+        setBookmarks([
+          {
+            id: "1",
+            title: "React Documentation",
+            url: "https://react.dev",
+            dateAdded: Date.now() - 86400000,
+            category: "Development",
+          },
+          {
+            id: "2",
+            title: "TypeScript Handbook",
+            url: "https://www.typescriptlang.org/docs/",
+            dateAdded: Date.now() - 172800000,
+            category: "Development",
+          },
+          {
+            id: "3",
+            title: "Tailwind CSS",
+            url: "https://tailwindcss.com",
+            dateAdded: Date.now() - 259200000,
+            category: "Design",
+          },
+        ]);
       }
-    };
+    } catch (error) {
+      console.error("Error loading bookmarks:", error);
+      toast.error("Failed to load bookmarks");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadBookmarks();
   }, []);
 
