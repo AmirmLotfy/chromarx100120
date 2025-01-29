@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   BookmarkIcon,
@@ -18,6 +18,9 @@ const FeatureGrid = () => {
   const { user } = useFirebase();
 
   const handleNavigation = (path: string) => {
+    console.log('Navigation attempted to:', path);
+    console.log('User state:', user ? 'Logged in' : 'Not logged in');
+    
     if (!user) {
       toast.error("Please sign in to access this feature");
       return;
