@@ -32,8 +32,8 @@ const TimeManagement = () => {
   ];
 
   const renderContent = () => (
-    <ScrollArea className="h-[calc(100vh-16rem)] md:h-[calc(100vh-14rem)] px-4 pb-20">
-      <div className="space-y-6">
+    <ScrollArea className="h-[calc(100vh-20rem)] md:h-[calc(100vh-18rem)] px-4">
+      <div className="space-y-6 pb-6">
         {activeTab === "custom" && (
           <div className="space-y-4">
             <AITimerSuggestions onSuggestion={handleAISuggestion} />
@@ -48,9 +48,9 @@ const TimeManagement = () => {
   );
 
   return (
-    <div className="space-y-4 pb-16">
+    <div className="space-y-4">
       {isMobile ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Select value={activeTab} onValueChange={setActiveTab}>
             <SelectTrigger className="w-full bg-background border-input">
               <SelectValue placeholder="Select timer type" />
@@ -68,7 +68,7 @@ const TimeManagement = () => {
             </SelectContent>
           </Select>
 
-          <div className="pt-2">
+          <div>
             {renderContent()}
           </div>
         </div>
@@ -82,7 +82,7 @@ const TimeManagement = () => {
             ))}
           </TabsList>
           
-          <div className="mt-4">
+          <div>
             {renderContent()}
           </div>
         </Tabs>
