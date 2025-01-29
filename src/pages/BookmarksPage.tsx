@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import Layout from "../components/Layout";
 import { ChromeBookmark } from "@/types/bookmark";
-import { groupByDomain } from "@/utils/domainUtils";
+import { groupByDomain, extractDomain } from "@/utils/domainUtils";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkControls from "@/components/BookmarkControls";
 import BookmarkContent from "@/components/BookmarkContent";
