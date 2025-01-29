@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { Bookmark, Search, Trash2 } from "lucide-react";
+import { Bookmark, Search, Trash2, Upload, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,6 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import BookmarkCategories from "@/components/BookmarkCategories";
 import BookmarkDomains from "@/components/BookmarkDomains";
 import BookmarkList from "@/components/BookmarkList";
@@ -252,96 +258,133 @@ const BookmarksPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 pb-16">
+      <div className="space-y-8 pb-16">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Bookmark className="h-6 w-6" />
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+              <Bookmark className="h-8 w-8 text-primary" />
               Bookmarks
             </h1>
-            <p className="text-muted-foreground">Manage your Chrome bookmarks</p>
+            <p className="text-muted-foreground">
+              Manage and organize your Chrome bookmarks
+            </p>
           </div>
           <div className="flex items-center gap-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10">
+                    <Upload className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Import bookmarks</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10">
+                    <Share2 className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Share bookmarks</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <ViewToggle view={view} onViewChange={setView} />
             {selectedBookmarks.size > 0 && (
-              <Button
-                variant="destructive"
-                onClick={handleDeleteSelected}
-                className="animate-fade-in"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Selected ({selectedBookmarks.size})
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteSelected}
+                      className="animate-fade-in"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Selected ({selectedBookmarks.size})
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete selected bookmarks</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </div>
 
-        <div className="flex gap-4 items-center">
-          <div className="flex-1">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-[300px] space-y-6">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search bookmarks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
+                className="pl-9"
               />
             </div>
-          </div>
-          <Select
-            value={sortBy}
-            onValueChange={(value) => setSortBy(value as "title" | "dateAdded" | "url")}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dateAdded">Date Added</SelectItem>
-              <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="url">URL</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="grid gap-6 md:grid-cols-[300px_1fr]">
-          <div className="space-y-6">
-            <BookmarkCategories
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-            <BookmarkDomains
-              domains={domains}
-              selectedDomain={selectedDomain}
-              onSelectDomain={setSelectedDomain}
-            />
-            <BookmarkCleanup
-              bookmarks={bookmarks}
-              onDelete={handleBulkDelete}
-              onRefresh={refreshBookmarks}
-            />
+            <Select
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as "title" | "dateAdded" | "url")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dateAdded">Date Added</SelectItem>
+                <SelectItem value="title">Title</SelectItem>
+                <SelectItem value="url">URL</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="space-y-6">
-            {loading ? (
-              <div className="text-center py-8">Loading bookmarks...</div>
-            ) : filteredBookmarks.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchQuery
-                  ? "No bookmarks found matching your search"
-                  : "No bookmarks found"}
+          <div className="flex-1 space-y-8">
+            <div className="grid gap-6 md:grid-cols-[250px_1fr]">
+              <div className="space-y-6">
+                <BookmarkCategories
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                />
+                <BookmarkDomains
+                  domains={domains}
+                  selectedDomain={selectedDomain}
+                  onSelectDomain={setSelectedDomain}
+                />
+                <BookmarkCleanup
+                  bookmarks={bookmarks}
+                  onDelete={handleBulkDelete}
+                  onRefresh={refreshBookmarks}
+                />
               </div>
-            ) : (
-              <BookmarkList
-                bookmarks={filteredBookmarks}
-                selectedBookmarks={selectedBookmarks}
-                onToggleSelect={toggleBookmarkSelection}
-                onDelete={handleDelete}
-                formatDate={formatDate}
-                view={view}
-                onReorder={handleReorderBookmarks}
-              />
-            )}
+
+              <div className="space-y-6">
+                {loading ? (
+                  <div className="text-center py-8">Loading bookmarks...</div>
+                ) : filteredBookmarks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {searchQuery
+                      ? "No bookmarks found matching your search"
+                      : "No bookmarks found"}
+                  </div>
+                ) : (
+                  <BookmarkList
+                    bookmarks={filteredBookmarks}
+                    selectedBookmarks={selectedBookmarks}
+                    onToggleSelect={toggleBookmarkSelection}
+                    onDelete={handleDelete}
+                    formatDate={formatDate}
+                    view={view}
+                    onReorder={handleReorderBookmarks}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
