@@ -8,17 +8,17 @@ import Routes from "./Routes";
 
 function App() {
   return (
-    <FirebaseProvider>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <OnboardingProvider>
-          <Router>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <Router>
+        <FirebaseProvider>
+          <OnboardingProvider>
             <Routes />
             <OnboardingOverlay />
             <Toaster />
-          </Router>
-        </OnboardingProvider>
-      </ThemeProvider>
-    </FirebaseProvider>
+          </OnboardingProvider>
+        </FirebaseProvider>
+      </Router>
+    </ThemeProvider>
   );
 }
 
