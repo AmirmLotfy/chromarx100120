@@ -1,31 +1,13 @@
 import { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import { Bookmark, Search, Trash2, Upload, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import BookmarkCategories from "@/components/BookmarkCategories";
-import BookmarkDomains from "@/components/BookmarkDomains";
-import BookmarkList from "@/components/BookmarkList";
-import BookmarkCleanup from "@/components/BookmarkCleanup";
+import Layout from "../components/Layout";
 import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
-import { groupByDomain, extractDomain } from "@/utils/domainUtils";
-import ViewToggle from "@/components/ViewToggle";
+import { groupByDomain } from "@/utils/domainUtils";
 import SearchBar from "@/components/SearchBar";
+import BookmarkHeader from "@/components/BookmarkHeader";
+import BookmarkControls from "@/components/BookmarkControls";
+import BookmarkContent from "@/components/BookmarkContent";
 
 const BookmarksPage = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -41,7 +23,6 @@ const BookmarksPage = () => {
     try {
       if (chrome.bookmarks) {
         const results = await chrome.bookmarks.getRecent(100);
-        
         const previousCount = bookmarks.length;
         
         const categorizedResults = await Promise.all(
@@ -236,15 +217,9 @@ const BookmarksPage = () => {
     }
   };
 
-  const refreshBookmarks = () => {
-    setLoading(true);
-    loadBookmarks().finally(() => setLoading(false));
-  };
-
   const handleReorderBookmarks = async (newBookmarks: ChromeBookmark[]) => {
     try {
       if (chrome.bookmarks) {
-        // Update the order in Chrome bookmarks
         for (let i = 0; i < newBookmarks.length; i++) {
           await chrome.bookmarks.move(newBookmarks[i].id, { index: i });
         }
@@ -257,150 +232,57 @@ const BookmarksPage = () => {
     }
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-  };
-
-  const handleSelectBookmark = (bookmark: ChromeBookmark) => {
-    // Scroll to the bookmark in the list
-    const element = document.getElementById(`bookmark-${bookmark.id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
-      element.classList.add("animate-highlight");
-      setTimeout(() => {
-        element.classList.remove("animate-highlight");
-      }, 2000);
-    }
-  };
-
   return (
     <Layout>
       <div className="space-y-8 pb-16">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Bookmark className="h-8 w-8 text-primary" />
-              Bookmarks
-            </h1>
-            <p className="text-muted-foreground">
-              Manage and organize your Chrome bookmarks
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10">
-                    <Upload className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Import bookmarks</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-10 w-10">
-                    <Share2 className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Share bookmarks</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <ViewToggle view={view} onViewChange={setView} />
-            {selectedBookmarks.size > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteSelected}
-                      className="animate-fade-in"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Selected ({selectedBookmarks.size})
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete selected bookmarks</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        </div>
+        <BookmarkHeader
+          selectedBookmarksCount={selectedBookmarks.size}
+          view={view}
+          onViewChange={setView}
+          onDeleteSelected={handleDeleteSelected}
+        />
 
         <SearchBar
           searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
+          onSearchChange={setSearchQuery}
           bookmarks={bookmarks}
-          onSelectBookmark={handleSelectBookmark}
+          onSelectBookmark={(bookmark) => {
+            const element = document.getElementById(`bookmark-${bookmark.id}`);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+              element.classList.add("animate-highlight");
+              setTimeout(() => {
+                element.classList.remove("animate-highlight");
+              }, 2000);
+            }
+          }}
         />
 
         <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-[300px] space-y-6">
-            <Select
-              value={sortBy}
-              onValueChange={(value) => setSortBy(value as "title" | "dateAdded" | "url")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dateAdded">Date Added</SelectItem>
-                <SelectItem value="title">Title</SelectItem>
-                <SelectItem value="url">URL</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <BookmarkControls
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
 
-          <div className="flex-1 space-y-8">
-            <div className="grid gap-6 md:grid-cols-[250px_1fr]">
-              <div className="space-y-6">
-                <BookmarkCategories
-                  categories={categories}
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
-                />
-                <BookmarkDomains
-                  domains={domains}
-                  selectedDomain={selectedDomain}
-                  onSelectDomain={setSelectedDomain}
-                />
-                <BookmarkCleanup
-                  bookmarks={bookmarks}
-                  onDelete={handleBulkDelete}
-                  onRefresh={refreshBookmarks}
-                />
-              </div>
-
-              <div className="space-y-6">
-                {loading ? (
-                  <div className="text-center py-8">Loading bookmarks...</div>
-                ) : filteredBookmarks.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {searchQuery
-                      ? "No bookmarks found matching your search"
-                      : "No bookmarks found"}
-                  </div>
-                ) : (
-                  <BookmarkList
-                    bookmarks={filteredBookmarks}
-                    selectedBookmarks={selectedBookmarks}
-                    onToggleSelect={toggleBookmarkSelection}
-                    onDelete={handleDelete}
-                    formatDate={formatDate}
-                    view={view}
-                    onReorder={handleReorderBookmarks}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
+          <BookmarkContent
+            categories={categories}
+            domains={domains}
+            selectedCategory={selectedCategory}
+            selectedDomain={selectedDomain}
+            onSelectCategory={setSelectedCategory}
+            onSelectDomain={setSelectedDomain}
+            bookmarks={bookmarks}
+            selectedBookmarks={selectedBookmarks}
+            onToggleSelect={toggleBookmarkSelection}
+            onDelete={handleDelete}
+            formatDate={formatDate}
+            view={view}
+            onReorder={handleReorderBookmarks}
+            onBulkDelete={handleBulkDelete}
+            onRefresh={loadBookmarks}
+            loading={loading}
+            filteredBookmarks={filteredBookmarks}
+          />
         </div>
       </div>
     </Layout>
