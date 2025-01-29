@@ -8,6 +8,7 @@ import {
   BarChart,
   Timer,
   CheckSquare,
+  StickyNote,
 } from "lucide-react";
 
 const FeatureGrid = () => {
@@ -80,6 +81,16 @@ const FeatureGrid = () => {
         >
           <CheckSquare className="h-6 w-6" />
           <span>Tasks</span>
+        </Button>
+      </Link>
+
+      <Link to="/notes">
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2"
+        >
+          <StickyNote className="h-6 w-6" />
+          <span>Notes</span>
         </Button>
       </Link>
     </div>
