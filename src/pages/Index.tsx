@@ -1,5 +1,6 @@
 import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
+import WelcomeCard from "../components/WelcomeCard";
 
 const Index = () => {
   return (
@@ -11,6 +12,7 @@ const Index = () => {
             Access your favorite features below
           </p>
         </div>
+        <WelcomeCard />
         <FeatureGrid />
       </div>
     </Layout>
