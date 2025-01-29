@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "./onboarding/OnboardingProvider";
 import { ArrowRight } from "lucide-react";
+import { useFirebase } from "@/contexts/FirebaseContext";
 
 const WelcomeCard = () => {
   const { isOnboardingComplete, startOnboarding } = useOnboarding();
+  const { user } = useFirebase();
 
-  if (isOnboardingComplete) return null;
+  if (isOnboardingComplete || user) return null;
 
   return (
     <div className="bg-accent rounded-lg p-4 mb-4 animate-fade-in">
