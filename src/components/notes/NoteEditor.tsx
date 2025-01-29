@@ -90,7 +90,7 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-background">
+    <div className="space-y-4 p-4 h-full flex flex-col">
       <Input
         placeholder="Note title"
         value={title}
@@ -140,24 +140,25 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
         placeholder="Write your note here..."
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="min-h-[200px]"
+        className="flex-1 min-h-0 resize-none"
       />
 
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
         <div className="flex gap-2">
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="flex-1 sm:flex-none">
             Save Note
           </Button>
           <Button
             variant="outline"
             onClick={() => setLinkedTaskId(prompt("Enter task ID") || "")}
+            className="flex-1 sm:flex-none"
           >
             <Link className="h-4 w-4 mr-2" />
             Link Task
           </Button>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-end mt-2 sm:mt-0">
           <Button
             variant="outline"
             size="icon"

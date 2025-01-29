@@ -31,8 +31,8 @@ const NoteList = ({
   );
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <div className="relative flex-shrink-0">
+    <div className="flex flex-col h-full p-4">
+      <div className="relative flex-shrink-0 mb-4">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search notes..."
@@ -42,8 +42,8 @@ const NoteList = ({
         />
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="space-y-2 pr-4">
+      <ScrollArea className="flex-1 w-full">
+        <div className="space-y-3 pr-2">
           {filteredNotes.length === 0 ? (
             <p className="text-center text-muted-foreground p-4">
               No notes found
@@ -52,37 +52,37 @@ const NoteList = ({
             filteredNotes.map((note) => (
               <div
                 key={note.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                   selectedNote?.id === note.id
                     ? "bg-accent"
                     : "hover:bg-accent/50"
                 }`}
                 onClick={() => onSelectNote(note)}
               >
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-medium line-clamp-1">{note.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                       {note.content}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         {note.category}
                       </span>
                       {note.tags?.map(tag => (
-                        <span key={tag} className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full">
+                        <span key={tag} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
                           {tag}
                         </span>
                       ))}
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground block mt-2">
                       {new Date(note.updatedAt).toLocaleDateString()}
                     </span>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteNote(note.id);
