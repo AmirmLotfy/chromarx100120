@@ -10,21 +10,68 @@ interface BookmarkItem {
 }
 
 const BookmarksList = () => {
-  const [bookmarks, setBookmarks] = React.useState<BookmarkItem[]>([]);
-
-  React.useEffect(() => {
-    // Placeholder for Chrome bookmarks API integration
-    // Will be implemented when extension APIs are available
-    const demoBookmarks = [
-      {
-        id: "1",
-        title: "Example Bookmark",
-        url: "https://example.com",
-        dateAdded: Date.now(),
-      },
-    ];
-    setBookmarks(demoBookmarks);
-  }, []);
+  const [bookmarks, setBookmarks] = React.useState<BookmarkItem[]>([
+    {
+      id: "1",
+      title: "GitHub - Your Development Platform",
+      url: "https://github.com",
+      dateAdded: Date.now() - 1000000000,
+    },
+    {
+      id: "2",
+      title: "Stack Overflow - Developer Community",
+      url: "https://stackoverflow.com",
+      dateAdded: Date.now() - 2000000000,
+    },
+    {
+      id: "3",
+      title: "MDN Web Docs",
+      url: "https://developer.mozilla.org",
+      dateAdded: Date.now() - 3000000000,
+    },
+    {
+      id: "4",
+      title: "React - A JavaScript library for building user interfaces",
+      url: "https://reactjs.org",
+      dateAdded: Date.now() - 4000000000,
+    },
+    {
+      id: "5",
+      title: "TypeScript - JavaScript with syntax for types",
+      url: "https://www.typescriptlang.org",
+      dateAdded: Date.now() - 5000000000,
+    },
+    {
+      id: "6",
+      title: "Tailwind CSS - Rapidly build modern websites",
+      url: "https://tailwindcss.com",
+      dateAdded: Date.now() - 6000000000,
+    },
+    {
+      id: "7",
+      title: "VS Code - Code Editing. Redefined",
+      url: "https://code.visualstudio.com",
+      dateAdded: Date.now() - 7000000000,
+    },
+    {
+      id: "8",
+      title: "Next.js - The React Framework",
+      url: "https://nextjs.org",
+      dateAdded: Date.now() - 8000000000,
+    },
+    {
+      id: "9",
+      title: "Vercel - Develop. Preview. Ship.",
+      url: "https://vercel.com",
+      dateAdded: Date.now() - 9000000000,
+    },
+    {
+      id: "10",
+      title: "Node.js - JavaScript runtime",
+      url: "https://nodejs.org",
+      dateAdded: Date.now() - 10000000000,
+    },
+  ]);
 
   const handleDeleteBookmark = (id: string) => {
     setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
