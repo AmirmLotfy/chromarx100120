@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { summarizeContent, translateContent } from "@/utils/geminiUtils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import SummaryHistory from "./SummaryHistory";
 
 interface BookmarkContentProps {
   title: string;
@@ -16,18 +17,35 @@ const BookmarkContent = ({ title, url }: BookmarkContentProps) => {
   const [targetLanguage, setTargetLanguage] = useState<string>("Spanish");
   const [isLoading, setIsLoading] = useState(false);
 
+  const saveSummaryToHistory = (content: string, language: string = "English") => {
+    const summaryItem = {
+      id: Date.now().toString(),
+      title,
+      content,
+      date: new Date().toLocaleDateString(),
+      language,
+      isStarred: false,
+      url,
+    };
+
+    const saved = localStorage.getItem("summaryHistory");
+    const history = saved ? JSON.parse(saved) : [];
+    const updated = [summaryItem, ...history].slice(0, 50); // Keep last 50 summaries
+    localStorage.setItem("summaryHistory", JSON.stringify(updated));
+  };
+
   const handleSummarize = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(url);
       const html = await response.text();
-      // Extract text content from HTML
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
       const text = tempDiv.textContent || tempDiv.innerText;
       
       const result = await summarizeContent(text);
       setSummary(result);
+      saveSummaryToHistory(result);
       toast.success("Summary generated successfully");
     } catch (error) {
       console.error('Error fetching content:', error);
@@ -47,6 +65,7 @@ const BookmarkContent = ({ title, url }: BookmarkContentProps) => {
     try {
       const result = await translateContent(summary, targetLanguage);
       setTranslation(result);
+      saveSummaryToHistory(result, targetLanguage);
       toast.success("Translation generated successfully");
     } catch (error) {
       console.error('Error translating:', error);
@@ -58,42 +77,45 @@ const BookmarkContent = ({ title, url }: BookmarkContentProps) => {
 
   return (
     <div className="space-y-4 mt-2">
-      <div className="flex items-center gap-2">
-        <Button 
-          onClick={handleSummarize} 
-          disabled={isLoading}
-          variant="outline"
-          size="sm"
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Summarize
-        </Button>
-        
-        <Select
-          value={targetLanguage}
-          onValueChange={setTargetLanguage}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select language" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Spanish">Spanish</SelectItem>
-            <SelectItem value="French">French</SelectItem>
-            <SelectItem value="German">German</SelectItem>
-            <SelectItem value="Italian">Italian</SelectItem>
-            <SelectItem value="Portuguese">Portuguese</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Button 
-          onClick={handleTranslate} 
-          disabled={isLoading || !summary}
-          variant="outline"
-          size="sm"
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Translate
-        </Button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={handleSummarize} 
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Summarize
+          </Button>
+          
+          <Select
+            value={targetLanguage}
+            onValueChange={setTargetLanguage}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select language" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Spanish">Spanish</SelectItem>
+              <SelectItem value="French">French</SelectItem>
+              <SelectItem value="German">German</SelectItem>
+              <SelectItem value="Italian">Italian</SelectItem>
+              <SelectItem value="Portuguese">Portuguese</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button 
+            onClick={handleTranslate} 
+            disabled={isLoading || !summary}
+            variant="outline"
+            size="sm"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Translate
+          </Button>
+        </div>
+        <SummaryHistory />
       </div>
 
       {summary && (
