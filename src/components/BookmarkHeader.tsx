@@ -120,6 +120,11 @@ const BookmarkHeader = ({
   };
 
   const handleCleanup = async () => {
+    if (selectedBookmarks.length === 0) {
+      toast.error("Please select bookmarks to clean up");
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const duplicates = findDuplicateBookmarks(selectedBookmarks);
@@ -132,13 +137,8 @@ const BookmarkHeader = ({
         return;
       }
 
-      const idsToDelete = [
-        ...brokenBookmarks.map(b => b.id),
-        ...duplicates.byUrl.flatMap(d => d.bookmarks.slice(1).map(b => b.id)),
-      ];
-
       await onDeleteSelected();
-      toast.success(`Cleaned up ${idsToDelete.length} bookmarks`);
+      toast.success("Cleanup completed successfully");
     } catch (error) {
       toast.error("Failed to clean up bookmarks");
     } finally {
