@@ -34,12 +34,16 @@ const AnalyticsDashboard = () => {
         <Card className="mb-4 p-1">
           {isMobile ? (
             <Select value={activeTab} onValueChange={setActiveTab}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full bg-background border-input">
                 <SelectValue placeholder="Select view" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-2 shadow-lg">
                 {tabs.map((tab) => (
-                  <SelectItem key={tab.value} value={tab.value}>
+                  <SelectItem 
+                    key={tab.value} 
+                    value={tab.value}
+                    className="hover:bg-accent focus:bg-accent"
+                  >
                     {tab.label}
                   </SelectItem>
                 ))}
