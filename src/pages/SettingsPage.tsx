@@ -69,7 +69,7 @@ const SettingsPage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto h-full flex flex-col">
+      <div className="container mx-auto px-4 h-full flex flex-col">
         <div className="space-y-2 flex-shrink-0">
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">
@@ -88,7 +88,7 @@ const SettingsPage = () => {
                 <SelectTrigger className="w-full mb-4">
                   <SelectValue placeholder="Select section" />
                 </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md">
+                <SelectContent className="bg-background border shadow-md w-[280px]">
                   {tabs.map((tab) => (
                     <SelectItem key={tab.value} value={tab.value}>
                       <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ const SettingsPage = () => {
               </TabsList>
             )}
 
-            <div className="flex-1 overflow-y-auto pb-16">
+            <div className="flex-1 overflow-y-auto pb-16 max-w-[1400px] mx-auto w-full">
               <TabsContent value="appearance" className="space-y-4">
                 <Card>
                   <CardHeader>
