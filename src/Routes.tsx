@@ -8,6 +8,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import TimerPage from "./pages/TimerPage";
 import TaskPage from "./pages/TaskPage";
 import NotesPage from "./pages/NotesPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const Routes = () => {
   return (
@@ -20,6 +21,7 @@ const Routes = () => {
       <Route path="/timer" element={<TimerPage />} />
       <Route path="/tasks" element={<TaskPage />} />
       <Route path="/notes" element={<NotesPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );

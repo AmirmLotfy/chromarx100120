@@ -1,4 +1,4 @@
-import { Home, Search, User } from "lucide-react";
+import { Home, Search, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const Navigation = () => {
@@ -33,15 +33,15 @@ const Navigation = () => {
             <span className="text-xs">Search</span>
           </Link>
           <Link
-            to="/profile"
+            to="/settings"
             className={`flex flex-col items-center space-y-1 transition-colors ${
-              isActive("/profile")
+              isActive("/settings")
                 ? "text-primary"
                 : "text-muted-foreground hover:text-primary"
             }`}
           >
-            <User className="h-6 w-6" />
-            <span className="text-xs">Profile</span>
+            <Settings className="h-6 w-6" />
+            <span className="text-xs">Settings</span>
           </Link>
         </div>
       </div>
