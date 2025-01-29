@@ -33,3 +33,22 @@ export async function translateContent(text: string, targetLanguage: string): Pr
     return 'Failed to translate content';
   }
 }
+
+export async function suggestBookmarkCategory(title: string, url: string): Promise<string> {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    
+    const prompt = `Suggest a single category for this bookmark based on its title and URL. 
+    Respond with just the category name, no explanation.
+    Title: ${title}
+    URL: ${url}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('Error suggesting category:', error);
+    return 'Uncategorized';
+  }
+}
