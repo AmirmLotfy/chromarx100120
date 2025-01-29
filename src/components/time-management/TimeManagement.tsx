@@ -4,8 +4,15 @@ import CustomTimer from "./CustomTimer";
 import PomodoroTimer from "./PomodoroTimer";
 import FocusMode from "./FocusMode";
 import TimeAnalytics from "./TimeAnalytics";
+import AITimerSuggestions from "./AITimerSuggestions";
 
 const TimeManagement = () => {
+  const [suggestedDuration, setSuggestedDuration] = useState<number | null>(null);
+
+  const handleAISuggestion = (duration: number) => {
+    setSuggestedDuration(duration);
+  };
+
   return (
     <Tabs defaultValue="custom" className="space-y-4">
       <TabsList className="grid w-full grid-cols-4">
@@ -16,7 +23,8 @@ const TimeManagement = () => {
       </TabsList>
       
       <TabsContent value="custom" className="space-y-4">
-        <CustomTimer />
+        <AITimerSuggestions onSuggestion={handleAISuggestion} />
+        <CustomTimer initialMinutes={suggestedDuration} />
       </TabsContent>
       
       <TabsContent value="pomodoro" className="space-y-4">

@@ -3,14 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Timer, Pause, Play, RefreshCw } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
-const CustomTimer = () => {
-  const [minutes, setMinutes] = useState(25);
+interface CustomTimerProps {
+  initialMinutes?: number | null;
+}
+
+const CustomTimer = ({ initialMinutes }: CustomTimerProps) => {
+  const [minutes, setMinutes] = useState(initialMinutes || 25);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (initialMinutes) {
+      setMinutes(initialMinutes);
+      setSeconds(0);
+    }
+  }, [initialMinutes]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -62,7 +73,7 @@ const CustomTimer = () => {
   const resetTimer = () => {
     setIsActive(false);
     setIsPaused(false);
-    setMinutes(25);
+    setMinutes(initialMinutes || 25);
     setSeconds(0);
   };
 
