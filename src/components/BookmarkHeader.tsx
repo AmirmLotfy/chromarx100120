@@ -109,7 +109,7 @@ const BookmarkHeader = ({
 
   return (
     <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-2">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex items-center justify-between gap-1 sm:gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Bookmarks</h1>
@@ -120,7 +120,7 @@ const BookmarkHeader = ({
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -173,7 +173,7 @@ const BookmarkHeader = ({
               </SheetContent>
             </Sheet>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <AIActionButtons 
                 selectedBookmarks={selectedBookmarks}
                 onUpdateCategories={onUpdateCategories}

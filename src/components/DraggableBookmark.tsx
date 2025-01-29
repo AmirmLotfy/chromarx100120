@@ -29,7 +29,6 @@ const DraggableBookmark = ({
 
   const bind = useLongPress(() => {
     onToggleSelect(bookmark.id);
-    // Provide haptic feedback if available
     if (window.navigator.vibrate) {
       window.navigator.vibrate(50);
     }
@@ -65,11 +64,9 @@ const DraggableBookmark = ({
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // For desktop, handle Ctrl/Cmd + Click for multi-select
     if (e.ctrlKey || e.metaKey) {
       onToggleSelect(bookmark.id);
     } else {
-      // Single click without modifier keys selects only this bookmark
       onToggleSelect(bookmark.id);
     }
   };
@@ -77,7 +74,7 @@ const DraggableBookmark = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full max-w-full relative select-none cursor-pointer mx-1",
+        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full relative select-none cursor-pointer mx-0 sm:mx-1",
         selected && "ring-2 ring-primary bg-accent/50",
         isPressed && "scale-[0.98]",
         view === "list" && "flex items-center"
@@ -120,39 +117,39 @@ const DraggableBookmark = ({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 ml-4 shrink-0">
+        <div className="flex items-center gap-1 ml-2 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 sm:h-8 sm:w-8"
+            className="h-8 w-8"
             onClick={(e) => {
               e.stopPropagation();
               window.open(bookmark.url, "_blank");
             }}
           >
-            <ExternalLink className="h-5 w-5 sm:h-4 sm:w-4" />
+            <ExternalLink className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 sm:h-8 sm:w-8"
+            className="h-8 w-8"
             onClick={(e) => {
               e.stopPropagation();
               handleShare();
             }}
           >
-            <Share2 className="h-5 w-5 sm:h-4 sm:w-4" />
+            <Share2 className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 sm:h-8 sm:w-8"
+            className="h-8 w-8"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(bookmark.id);
             }}
           >
-            <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>
