@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { Bookmark, Search, SortAsc, Trash2 } from "lucide-react";
+import { Bookmark, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,7 @@ import BookmarkCleanup from "@/components/BookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { groupByDomain, extractDomain } from "@/utils/domainUtils";
+import ViewToggle from "@/components/ViewToggle";
 
 const BookmarksPage = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -27,13 +28,13 @@ const BookmarksPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"grid" | "list">("list");
 
   const loadBookmarks = async () => {
     try {
       if (chrome.bookmarks) {
         const results = await chrome.bookmarks.getRecent(100);
         
-        // Store the current bookmarks count for comparison
         const previousCount = bookmarks.length;
         
         const categorizedResults = await Promise.all(
@@ -55,7 +56,6 @@ const BookmarksPage = () => {
         
         setBookmarks(categorizedResults);
 
-        // Check for new bookmarks and notify
         if (previousCount < categorizedResults.length) {
           const newBookmarks = categorizedResults.slice(0, categorizedResults.length - previousCount);
           notifyNewBookmarks(newBookmarks);
@@ -118,7 +118,6 @@ const BookmarksPage = () => {
     }
   };
 
-  // Set up bookmark change listener
   useEffect(() => {
     if (chrome.bookmarks) {
       chrome.bookmarks.onCreated.addListener(() => {
@@ -246,16 +245,19 @@ const BookmarksPage = () => {
             </h1>
             <p className="text-muted-foreground">Manage your Chrome bookmarks</p>
           </div>
-          {selectedBookmarks.size > 0 && (
-            <Button
-              variant="destructive"
-              onClick={handleDeleteSelected}
-              className="animate-fade-in"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedBookmarks.size})
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            <ViewToggle view={view} onViewChange={setView} />
+            {selectedBookmarks.size > 0 && (
+              <Button
+                variant="destructive"
+                onClick={handleDeleteSelected}
+                className="animate-fade-in"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedBookmarks.size})
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-4 items-center">
@@ -275,7 +277,6 @@ const BookmarksPage = () => {
             onValueChange={(value) => setSortBy(value as "title" | "dateAdded" | "url")}
           >
             <SelectTrigger className="w-[180px]">
-              <SortAsc className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -321,6 +322,7 @@ const BookmarksPage = () => {
                 onToggleSelect={toggleBookmarkSelection}
                 onDelete={handleDelete}
                 formatDate={formatDate}
+                view={view}
               />
             )}
           </div>

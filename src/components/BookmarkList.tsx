@@ -2,6 +2,7 @@ import { ExternalLink, Trash2 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkContent from "./BookmarkContent";
 import BookmarkShare from "./BookmarkShare";
+import { cn } from "@/lib/utils";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -9,6 +10,7 @@ interface BookmarkListProps {
   onToggleSelect: (id: string) => void;
   onDelete: (id: string) => void;
   formatDate: (timestamp?: number) => string;
+  view: "grid" | "list";
 }
 
 const BookmarkList = ({
@@ -17,17 +19,24 @@ const BookmarkList = ({
   onToggleSelect,
   onDelete,
   formatDate,
+  view,
 }: BookmarkListProps) => {
   return (
-    <div className="grid gap-4">
+    <div
+      className={cn(
+        "gap-4",
+        view === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid"
+      )}
+    >
       {bookmarks.map((bookmark) => (
         <div
           key={bookmark.id}
-          className={`flex flex-col p-4 rounded-lg group animate-fade-in ${
+          className={cn(
+            "flex flex-col p-4 rounded-lg group animate-fade-in transition-colors",
             selectedBookmarks.has(bookmark.id)
               ? "bg-primary/10"
               : "bg-accent hover:bg-accent/80"
-          }`}
+          )}
         >
           <div 
             className="flex items-center justify-between"
