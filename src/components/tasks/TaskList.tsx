@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import TaskForm from "./TaskForm";
+import { cn } from "@/lib/utils";
 
 interface TaskListProps {
   tasks: Task[];
