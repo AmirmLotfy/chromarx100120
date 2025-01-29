@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, LogIn } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,10 +94,12 @@ const Header = () => {
           ) : (
             <Button 
               onClick={signInWithGoogle}
-              size="sm"
-              className="h-7 md:h-8 px-2 md:px-3 text-xs md:text-sm bg-primary hover:bg-primary/90 transition-colors"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-accent"
             >
-              Sign in
+              <LogIn className="h-4 w-4" />
+              <span className="sr-only">Sign in</span>
             </Button>
           )}
         </div>
