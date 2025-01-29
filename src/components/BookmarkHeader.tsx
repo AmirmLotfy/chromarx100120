@@ -1,4 +1,5 @@
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles, Broom, FileText } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,13 @@ import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -47,8 +55,15 @@ const BookmarkHeader = ({
 }: BookmarkHeaderProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleGenerateSummaries = async () => {
+    if (selectedBookmarks.length === 0) {
+      toast.error("Please select bookmarks to summarize");
+      return;
+    }
+
+    setIsProcessing(true);
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
@@ -75,10 +90,18 @@ const BookmarkHeader = ({
       navigate("/summaries");
     } catch (error) {
       toast.error("Failed to generate summaries");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleSuggestCategories = async () => {
+    if (selectedBookmarks.length === 0) {
+      toast.error("Please select bookmarks to categorize");
+      return;
+    }
+
+    setIsProcessing(true);
     try {
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
@@ -91,101 +114,95 @@ const BookmarkHeader = ({
       toast.success("Categories suggested successfully!");
     } catch (error) {
       toast.error("Failed to suggest categories");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const ActionButtons = () => (
-    <div className="flex items-center gap-2">
-      {selectedBookmarksCount > 0 && (
-        <div className="flex items-center gap-2 animate-fade-in">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateSummaries}
-            className="gap-2"
-          >
-            <Sparkles className="h-4 w-4" />
-            Summarize
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSuggestCategories}
-            className="gap-2"
-          >
-            <Sparkles className="h-4 w-4" />
-            Categorize
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: "Shared Bookmarks",
-                  text: selectedBookmarks.map(b => `${b.title}: ${b.url}`).join("\n"),
-                });
-              }
-            }}
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={onDeleteSelected}
-            className="h-9 w-9 animate-fade-in"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+  const handleCleanup = async () => {
+    setIsProcessing(true);
+    try {
+      const duplicates = findDuplicateBookmarks(selectedBookmarks);
+      const brokenBookmarks = await findBrokenBookmarks(selectedBookmarks);
       
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="h-9 w-9">
-            <FolderPlus className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={onImport}>
-            <Import className="h-4 w-4 mr-2" />
-            Import Bookmarks
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onCreateFolder}>
-            <FolderPlus className="h-4 w-4 mr-2" />
-            New Folder
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      const totalIssues = duplicates.byUrl.length + duplicates.byTitle.length + brokenBookmarks.length;
+      
+      if (totalIssues === 0) {
+        toast.info("No issues found in selected bookmarks");
+        return;
+      }
 
-      {!isMobile && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onViewChange("list")}
-            className={cn(
-              "h-9 w-9",
-              view === "list" && "text-primary"
-            )}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onViewChange("grid")}
-            className={cn(
-              "h-9 w-9",
-              view === "grid" && "text-primary"
-            )}
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
-        </>
-      )}
+      const idsToDelete = [
+        ...brokenBookmarks.map(b => b.id),
+        ...duplicates.byUrl.flatMap(d => d.bookmarks.slice(1).map(b => b.id)),
+      ];
+
+      await onDeleteSelected();
+      toast.success(`Cleaned up ${idsToDelete.length} bookmarks`);
+    } catch (error) {
+      toast.error("Failed to clean up bookmarks");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const AIActionButtons = () => (
+    <div className="flex items-center gap-2">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCleanup}
+              disabled={isProcessing || selectedBookmarks.length === 0}
+              className="gap-2"
+            >
+              <Broom className="h-4 w-4" />
+              Cleanup
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Find and remove duplicate or broken bookmarks
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateSummaries}
+              disabled={isProcessing || selectedBookmarks.length === 0}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Summarize
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Generate summaries for selected bookmarks
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSuggestCategories}
+              disabled={isProcessing || selectedBookmarks.length === 0}
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Categorize
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Suggest categories for selected bookmarks
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 
@@ -212,12 +229,12 @@ const BookmarkHeader = ({
             <SheetContent>
               <div className="space-y-4">
                 <h2 className="font-medium">Actions</h2>
-                <ActionButtons />
+                <AIActionButtons />
               </div>
             </SheetContent>
           </Sheet>
         ) : (
-          <ActionButtons />
+          <AIActionButtons />
         )}
       </div>
 
