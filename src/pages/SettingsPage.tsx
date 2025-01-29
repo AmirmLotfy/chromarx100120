@@ -1,29 +1,55 @@
 import { useTheme } from "next-themes";
-import { useState } from "react";
-import { toast } from "sonner";
 import Layout from "@/components/Layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSettings } from "@/stores/settingsStore";
+import { toast } from "sonner";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, Moon, Sun, Shield, MessageSquare } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Sun,
+  Moon,
+  Shield,
+  MessageSquare,
+  User,
+  Settings2,
+  RefreshCw,
+  HelpCircle,
+} from "lucide-react";
+import FeedbackForm from "@/components/settings/FeedbackForm";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
-  const [dataCollection, setDataCollection] = useState(true);
-  const [notifications, setNotifications] = useState(true);
-  const [feedback, setFeedback] = useState("");
+  const settings = useSettings();
 
-  const handleFeedbackSubmit = () => {
-    if (feedback.trim()) {
-      // Here you would typically send the feedback to your backend
-      toast.success("Thank you for your feedback!");
-      setFeedback("");
-    } else {
-      toast.error("Please enter your feedback before submitting");
-    }
+  const handleReset = () => {
+    settings.resetSettings();
+    toast.success("Settings have been reset to default");
   };
 
   return (
@@ -37,10 +63,12 @@ const SettingsPage = () => {
         </div>
 
         <Tabs defaultValue="appearance" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
 
           <TabsContent value="appearance" className="space-y-4">
@@ -51,25 +79,60 @@ const SettingsPage = () => {
                   Customize how ChroMarx looks on your device
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Dark Mode</Label>
+                    <Label>Theme Mode</Label>
                     <p className="text-sm text-muted-foreground">
-                      Switch between light and dark themes
+                      Choose between light and dark themes
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  <Select
+                    value={theme}
+                    onValueChange={(value) => setTheme(value)}
                   >
-                    {theme === "dark" ? (
-                      <Sun className="h-5 w-5" />
-                    ) : (
-                      <Moon className="h-5 w-5" />
-                    )}
-                  </Button>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">
+                        <div className="flex items-center">
+                          <Sun className="mr-2 h-4 w-4" />
+                          Light
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        <div className="flex items-center">
+                          <Moon className="mr-2 h-4 w-4" />
+                          Dark
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Color Scheme</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Select your preferred color scheme
+                    </p>
+                  </div>
+                  <Select
+                    value={settings.colorScheme}
+                    onValueChange={settings.setColorScheme}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select scheme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Default</SelectItem>
+                      <SelectItem value="purple">Purple</SelectItem>
+                      <SelectItem value="blue">Blue</SelectItem>
+                      <SelectItem value="green">Green</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -84,33 +147,63 @@ const SettingsPage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Data Collection</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Allow anonymous usage data collection to improve the extension
-                    </p>
+                <TooltipProvider>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>Data Collection</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Allow anonymous usage data collection
+                      </p>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Switch
+                          checked={settings.dataCollection}
+                          onCheckedChange={settings.setDataCollection}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Help improve ChroMarx by sharing anonymous usage data</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
-                  <Switch
-                    checked={dataCollection}
-                    onCheckedChange={setDataCollection}
-                    aria-label="Toggle data collection"
-                  />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive notifications about important updates
-                    </p>
+                  <div className="space-y-4">
+                    <Label>Notification Settings</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="bookmarks">Bookmark Updates</Label>
+                        <Switch
+                          id="bookmarks"
+                          checked={settings.notifications.bookmarks}
+                          onCheckedChange={(checked) =>
+                            settings.setNotifications("bookmarks", checked)
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="updates">Extension Updates</Label>
+                        <Switch
+                          id="updates"
+                          checked={settings.notifications.updates}
+                          onCheckedChange={(checked) =>
+                            settings.setNotifications("updates", checked)
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="reminders">Reminders</Label>
+                        <Switch
+                          id="reminders"
+                          checked={settings.notifications.reminders}
+                          onCheckedChange={(checked) =>
+                            settings.setNotifications("reminders", checked)
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <Switch
-                    checked={notifications}
-                    onCheckedChange={setNotifications}
-                    aria-label="Toggle notifications"
-                  />
-                </div>
+                </TooltipProvider>
               </CardContent>
             </Card>
           </TabsContent>
@@ -123,14 +216,84 @@ const SettingsPage = () => {
                   Help us improve ChroMarx by sharing your thoughts
                 </CardDescription>
               </CardHeader>
+              <CardContent>
+                <FeedbackForm />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Help Center</CardTitle>
+                <CardDescription>
+                  Find answers to common questions and learn how to use ChroMarx
+                </CardDescription>
+              </CardHeader>
               <CardContent className="space-y-4">
-                <Textarea
-                  placeholder="Share your suggestions, report bugs, or ask questions..."
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  className="min-h-[150px]"
-                />
-                <Button onClick={handleFeedbackSubmit}>Submit Feedback</Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => window.open("https://docs.chromarx.com", "_blank")}
+                >
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Visit Help Center
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="account" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Settings</CardTitle>
+                <CardDescription>
+                  Manage your account and subscription
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => toast.info("Coming soon!")}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Sign In to Sync Settings
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="advanced" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Settings</CardTitle>
+                <CardDescription>
+                  Configure advanced features and options
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label>Experimental Features</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable experimental features and options
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.experimentalFeatures}
+                    onCheckedChange={settings.setExperimentalFeatures}
+                  />
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button
+                    variant="destructive"
+                    onClick={handleReset}
+                    className="w-full"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset All Settings
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
