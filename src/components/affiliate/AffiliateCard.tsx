@@ -19,10 +19,12 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
+    // Set up auto-flip interval
     const flipInterval = setInterval(() => {
       setIsFlipped((prev) => !prev);
-    }, 5000);
+    }, 5000); // Flip every 5 seconds
 
+    // Cleanup interval on component unmount
     return () => clearInterval(flipInterval);
   }, []);
 
