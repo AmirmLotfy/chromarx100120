@@ -3,6 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ProductivityScore from "./ProductivityScore";
 import DomainStats from "./DomainStats";
 import TimeDistribution from "./TimeDistribution";
@@ -13,42 +20,40 @@ const AnalyticsDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const isMobile = useIsMobile();
 
+  const tabs = [
+    { value: "overview", label: "Overview" },
+    { value: "domains", label: "Domains" },
+    { value: "time", label: "Time" },
+    { value: "trends", label: "Trends" },
+    { value: "tips", label: "AI Tips" },
+  ];
+
   return (
     <div className="h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         <Card className="mb-4 p-1">
-          <TabsList className={`w-full ${isMobile ? 'flex flex-wrap gap-1' : 'justify-start'}`}>
-            <TabsTrigger 
-              value="overview" 
-              className={`${isMobile ? 'flex-1 min-w-[calc(50%-0.125rem)]' : ''}`}
-            >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger 
-              value="domains"
-              className={`${isMobile ? 'flex-1 min-w-[calc(50%-0.125rem)]' : ''}`}
-            >
-              Domains
-            </TabsTrigger>
-            <TabsTrigger 
-              value="time"
-              className={`${isMobile ? 'flex-1 min-w-[calc(50%-0.125rem)]' : ''}`}
-            >
-              Time
-            </TabsTrigger>
-            <TabsTrigger 
-              value="trends"
-              className={`${isMobile ? 'flex-1 min-w-[calc(50%-0.125rem)]' : ''}`}
-            >
-              Trends
-            </TabsTrigger>
-            <TabsTrigger 
-              value="tips"
-              className={`${isMobile ? 'flex-1 min-w-[calc(50%-0.125rem)]' : ''}`}
-            >
-              AI Tips
-            </TabsTrigger>
-          </TabsList>
+          {isMobile ? (
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select view" />
+              </SelectTrigger>
+              <SelectContent>
+                {tabs.map((tab) => (
+                  <SelectItem key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <TabsList className="w-full justify-start">
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          )}
         </Card>
 
         <div className="flex-1 overflow-hidden">
