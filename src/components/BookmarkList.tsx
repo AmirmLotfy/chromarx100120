@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
+import { useGemini } from "@/contexts/GeminiContext";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -56,6 +57,7 @@ const BookmarkList = ({
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+  const { apiKey } = useGemini();
 
   useEffect(() => {
     setItems(bookmarks);
@@ -228,6 +230,11 @@ const BookmarkList = ({
   };
 
   const handleGenerateSummaries = async () => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to summarize");
       return;
@@ -241,7 +248,7 @@ const BookmarkList = ({
 
       const summaries = await Promise.all(
         selectedBookmarksArray.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`, apiKey);
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -270,6 +277,11 @@ const BookmarkList = ({
   };
 
   const handleSuggestCategories = async () => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to categorize");
       return;
@@ -284,7 +296,7 @@ const BookmarkList = ({
       const updatedBookmarks = await Promise.all(
         selectedBookmarksArray.map(async (bookmark) => ({
           ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", apiKey),
         }))
       );
 

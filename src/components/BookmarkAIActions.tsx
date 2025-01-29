@@ -10,6 +10,7 @@ import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
+import { useGemini } from "@/contexts/GeminiContext";
 
 interface BookmarkAIActionsProps {
   selectedBookmarks: ChromeBookmark[];
@@ -21,12 +22,18 @@ const BookmarkAIActions = ({
   onUpdateCategories,
 }: BookmarkAIActionsProps) => {
   const navigate = useNavigate();
+  const { apiKey } = useGemini();
 
   const handleGenerateSummaries = async () => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`, apiKey);
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -53,11 +60,16 @@ const BookmarkAIActions = ({
   };
 
   const handleSuggestCategories = async () => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     try {
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
           ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", apiKey),
         }))
       );
 
