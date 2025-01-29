@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useBookmarkState } from "./BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
 import { searchWebResults } from "@/utils/searchUtils";
-import { getContextFromHistory, generateChatPrompt } from "@/utils/chatContextUtils";
+import { getContextFromHistory, generateChatPrompt, extractTopicsFromMessages } from "@/utils/chatContextUtils";
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { Message } from "@/types/chat";
@@ -15,21 +15,22 @@ const ChatInterface = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  const searchBookmarks = (query: string) => {
+  const searchBookmarks = useCallback((query: string) => {
     return bookmarks.filter((bookmark) => {
       const titleMatch = bookmark.title.toLowerCase().includes(query.toLowerCase());
       const urlMatch = bookmark.url?.toLowerCase().includes(query.toLowerCase());
-      return titleMatch || urlMatch;
+      const categoryMatch = bookmark.category?.toLowerCase().includes(query.toLowerCase());
+      return titleMatch || urlMatch || categoryMatch;
     });
-  };
+  }, [bookmarks]);
 
   const processQuery = async (query: string) => {
     try {
@@ -100,7 +101,7 @@ const ChatInterface = () => {
     }
   };
 
-  const generateSuggestions = (query: string) => {
+  const generateSuggestions = useCallback((query: string) => {
     if (query.length < 2) return [];
     
     const bookmarkSuggestions = bookmarks
@@ -113,15 +114,12 @@ const ChatInterface = () => {
       .map(m => m.content)
       .slice(0, 2);
 
-    const recentTopics = messages
-      .filter(m => m.sender === "assistant")
-      .flatMap(m => m.content.split(" "))
-      .filter(word => word.length > 4)
-      .filter(word => word.toLowerCase().includes(query.toLowerCase()))
+    const topics = extractTopicsFromMessages(messages)
+      .filter(topic => topic.includes(query.toLowerCase()))
       .slice(0, 2);
 
-    return [...new Set([...bookmarkSuggestions, ...previousQueries, ...recentTopics])];
-  };
+    return [...new Set([...bookmarkSuggestions, ...previousQueries, ...topics])];
+  }, [bookmarks, messages]);
 
   useEffect(() => {
     const handleSuggestions = (query: string) => {
@@ -139,7 +137,7 @@ const ChatInterface = () => {
     }, 300);
 
     return () => clearTimeout(debounce);
-  }, [messages, bookmarks]);
+  }, [messages, generateSuggestions]);
 
   return (
     <div className="flex flex-col h-[600px] bg-background border rounded-lg shadow-sm">
