@@ -108,7 +108,7 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="space-y-1 sm:space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-2">
+    <div className="space-y-1 sm:space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-4">
       <div className="flex items-center justify-between gap-1 sm:gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
@@ -183,7 +183,7 @@ const BookmarkHeader = ({
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative mt-4">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={searchQuery}
