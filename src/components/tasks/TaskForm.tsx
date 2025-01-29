@@ -42,13 +42,21 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!dueDate) {
+      toast({
+        title: "Due date required",
+        description: "Please select a due date for the task.",
+      });
+      return;
+    }
     onSubmit({
       title,
       description,
       priority,
       category,
-      dueDate: dueDate?.toISOString() || new Date().toISOString(),
+      dueDate: dueDate.toISOString(),
       completed: initialData?.completed || false,
+      timeSpent: initialData?.timeSpent || 0,
     });
     if (!initialData) {
       setTitle("");
@@ -89,20 +97,23 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        placeholder="Task title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-        className="w-full"
-      />
-      <Textarea
-        placeholder="Task description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="w-full min-h-[100px] resize-none"
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="space-y-2">
+        <Input
+          placeholder="Task title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          className="w-full"
+        />
+        <Textarea
+          placeholder="Task description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full min-h-[100px] resize-none"
+        />
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select value={priority} onValueChange={(value: Task["priority"]) => setPriority(value)}>
           <SelectTrigger>
             <SelectValue placeholder="Priority" />
@@ -113,34 +124,37 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
             <SelectItem value="high">High</SelectItem>
           </SelectContent>
         </Select>
+        
         <Input
           placeholder="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         />
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dueDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dueDate ? format(dueDate, "PPP") : <span>Due date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={dueDate}
-              onSelect={setDueDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
       </div>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !dueDate && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {dueDate ? format(dueDate, "PPP") : <span>Due date</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={dueDate}
+            onSelect={setDueDate}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+
       <div className="flex flex-col sm:flex-row gap-2">
         <Button type="submit" className="w-full sm:w-auto">
           {initialData ? "Update" : "Add"} Task

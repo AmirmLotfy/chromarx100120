@@ -7,21 +7,15 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CustomTimerProps {
   initialMinutes?: number | null;
+  onComplete?: () => void;
 }
 
-const CustomTimer = ({ initialMinutes }: CustomTimerProps) => {
+const CustomTimer = ({ initialMinutes, onComplete }: CustomTimerProps) => {
   const [minutes, setMinutes] = useState(initialMinutes || 25);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (initialMinutes) {
-      setMinutes(initialMinutes);
-      setSeconds(0);
-    }
-  }, [initialMinutes]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -33,6 +27,7 @@ const CustomTimer = ({ initialMinutes }: CustomTimerProps) => {
             clearInterval(interval);
             setIsActive(false);
             playNotification();
+            onComplete?.();
             return;
           }
           setMinutes(minutes - 1);
@@ -46,7 +41,7 @@ const CustomTimer = ({ initialMinutes }: CustomTimerProps) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, isPaused, minutes, seconds]);
+  }, [isActive, isPaused, minutes, seconds, onComplete]);
 
   const playNotification = () => {
     const audio = new Audio("/notification.mp3");
