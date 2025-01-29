@@ -5,6 +5,8 @@ import { useSettings } from "@/stores/settingsStore";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFirebase } from "@/contexts/FirebaseContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import {
   Tabs,
   TabsContent,
