@@ -94,7 +94,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete, onStartTimer }: T
               <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border shadow-lg">
                 <SelectItem value="all">All Priorities</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
@@ -105,7 +105,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete, onStartTimer }: T
               <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border shadow-lg">
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
