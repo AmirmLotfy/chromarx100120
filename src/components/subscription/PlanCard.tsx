@@ -99,7 +99,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
           </Button>
         ) : (
           <PayPalScriptProvider options={{ 
-            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+            clientId: "PAYPAL_CLIENT_ID_FROM_FIREBASE_CONFIG",
             currency: "USD",
             intent: "capture"
           }}>
