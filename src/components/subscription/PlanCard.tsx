@@ -10,6 +10,7 @@ import {
 import { Check } from "lucide-react";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { toast } from "sonner";
+import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 
 interface PlanFeature {
   name: string;
@@ -28,30 +29,32 @@ interface PlanProps {
 const PlanCard = ({ id, name, price, description, features, isPopular }: PlanProps) => {
   const { user } = useFirebase();
 
-  const handleSubscribe = async () => {
-    if (!user) {
-      toast.error("Please sign in to subscribe");
-      return;
-    }
-
+  const handlePayPalApprove = async (data: any, actions: any) => {
     try {
-      // Call Stripe checkout endpoint
-      const response = await fetch('/api/create-checkout-session', {
+      const order = await actions.order.capture();
+      
+      // Call your Firebase function to handle the successful payment
+      const response = await fetch('/api/handle-subscription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getIdToken()}`,
+          'Authorization': `Bearer ${await user?.getIdToken()}`,
         },
         body: JSON.stringify({
-          priceId: id,
+          orderId: order.id,
+          planId: id,
+          paymentDetails: order,
         }),
       });
 
-      const { url } = await response.json();
-      window.location.href = url;
+      if (!response.ok) {
+        throw new Error('Failed to process subscription');
+      }
+
+      toast.success("Successfully subscribed to " + name);
     } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error("Failed to process subscription");
+      console.error('Payment processing error:', error);
+      toast.error("Failed to process payment");
     }
   };
 
@@ -90,13 +93,36 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
         </ul>
       </CardContent>
       <CardFooter>
-        <Button
-          className="w-full"
-          variant={price === 0 ? "outline" : "default"}
-          onClick={handleSubscribe}
-        >
-          {price === 0 ? "Get Started" : "Subscribe"}
-        </Button>
+        {price === 0 ? (
+          <Button className="w-full" variant="outline">
+            Get Started
+          </Button>
+        ) : (
+          <PayPalScriptProvider options={{ 
+            "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+            currency: "USD",
+            intent: "subscription"
+          }}>
+            <PayPalButtons
+              style={{ layout: "horizontal" }}
+              createOrder={(data, actions) => {
+                return actions.order.create({
+                  purchase_units: [{
+                    amount: {
+                      value: price.toString(),
+                      currency_code: "USD"
+                    },
+                    description: `${name} Subscription`
+                  }]
+                });
+              }}
+              onApprove={handlePayPalApprove}
+              onError={() => {
+                toast.error("PayPal payment failed");
+              }}
+            />
+          </PayPalScriptProvider>
+        )}
       </CardFooter>
     </Card>
   );

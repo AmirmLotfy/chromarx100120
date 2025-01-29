@@ -1,9 +1,10 @@
 import Layout from "@/components/Layout";
 import PlanCard from "@/components/subscription/PlanCard";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 
 const plans = [
   {
-    id: "price_basic",
+    id: "basic",
     name: "Basic",
     price: 0,
     description: "Essential features for getting started",
@@ -17,7 +18,7 @@ const plans = [
     ],
   },
   {
-    id: "price_pro",
+    id: "pro",
     name: "Pro",
     price: 9.99,
     description: "Perfect for power users",
@@ -32,7 +33,7 @@ const plans = [
     isPopular: true,
   },
   {
-    id: "price_premium",
+    id: "premium",
     name: "Premium",
     price: 19.99,
     description: "Ultimate productivity suite",
