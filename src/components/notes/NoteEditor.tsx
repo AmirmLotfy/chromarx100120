@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Share2, Copy, MessageSquare } from "lucide-react";
+import { Share2, Copy, MessageSquare, Tags, Link } from "lucide-react";
 import { toast } from "sonner";
 
 interface NoteEditorProps {
@@ -22,16 +22,22 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.content || "");
   const [category, setCategory] = useState(note?.category || "");
+  const [tags, setTags] = useState<string[]>(note?.tags || []);
+  const [linkedTaskId, setLinkedTaskId] = useState(note?.linkedTaskId || "");
 
   useEffect(() => {
     if (note) {
       setTitle(note.title);
       setContent(note.content);
       setCategory(note.category);
+      setTags(note.tags || []);
+      setLinkedTaskId(note.linkedTaskId || "");
     } else {
       setTitle("");
       setContent("");
       setCategory("");
+      setTags([]);
+      setLinkedTaskId("");
     }
   }, [note]);
 
@@ -46,14 +52,14 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
       title,
       content,
       category,
+      tags,
+      linkedTaskId,
       createdAt: note?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     onSave(updatedNote);
-    setTitle("");
-    setContent("");
-    setCategory("");
+    toast.success("Note saved successfully");
   };
 
   const handleShare = async (type: 'copy' | 'whatsapp' | 'email') => {
@@ -71,6 +77,16 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
         window.open(`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(content)}`);
         break;
     }
+  };
+
+  const handleAddTag = (tag: string) => {
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   return (
@@ -93,6 +109,33 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
         </SelectContent>
       </Select>
 
+      <div className="flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="px-2 py-1 bg-accent text-accent-foreground rounded-full text-sm flex items-center gap-1"
+          >
+            {tag}
+            <button
+              onClick={() => handleRemoveTag(tag)}
+              className="hover:text-destructive"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <Input
+          placeholder="Add tag..."
+          className="w-32"
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleAddTag((e.target as HTMLInputElement).value);
+              (e.target as HTMLInputElement).value = '';
+            }
+          }}
+        />
+      </div>
+
       <Textarea
         placeholder="Write your note here..."
         value={content}
@@ -101,9 +144,18 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
       />
 
       <div className="flex justify-between items-center">
-        <Button onClick={handleSave}>
-          Save Note
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleSave}>
+            Save Note
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLinkedTaskId(prompt("Enter task ID") || "")}
+          >
+            <Link className="h-4 w-4 mr-2" />
+            Link Task
+          </Button>
+        </div>
         
         <div className="flex gap-2">
           <Button

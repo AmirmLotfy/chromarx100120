@@ -2,7 +2,7 @@ import { Note } from "@/types/note";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Trash2 } from "lucide-react";
+import { Trash2, Search } from "lucide-react";
 import { useState } from "react";
 
 interface NoteListProps {
@@ -24,16 +24,23 @@ const NoteList = ({
     (note) =>
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.category.toLowerCase().includes(searchQuery.toLowerCase())
+      note.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.tags?.some(tag => 
+        tag.toLowerCase().includes(searchQuery.toLowerCase())
+      )
   );
 
   return (
     <div className="space-y-4">
-      <Input
-        placeholder="Search notes..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search notes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
       
       <ScrollArea className="h-[calc(100vh-12rem)]">
         <div className="space-y-2">
@@ -58,14 +65,19 @@ const NoteList = ({
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {note.content}
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                         {note.category}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(note.updatedAt).toLocaleDateString()}
-                      </span>
+                      {note.tags?.map(tag => (
+                        <span key={tag} className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full">
+                          {tag}
+                        </span>
+                      ))}
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(note.updatedAt).toLocaleDateString()}
+                    </span>
                   </div>
                   <Button
                     variant="ghost"

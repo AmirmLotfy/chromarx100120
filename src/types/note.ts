@@ -3,6 +3,7 @@ export interface Note {
   title: string;
   content: string;
   category: string;
+  tags?: string[];
   createdAt: string;
   updatedAt: string;
   isEncrypted?: boolean;
