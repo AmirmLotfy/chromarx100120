@@ -7,4 +7,5 @@ export interface Task {
   category: string;
   completed: boolean;
   createdAt: string;
+  timeSpent?: number; // in seconds
 }
