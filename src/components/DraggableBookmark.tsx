@@ -29,10 +29,6 @@ const DraggableBookmark = ({
 
   const bind = useLongPress(() => {
     onToggleSelect(bookmark.id);
-    // Provide haptic feedback if available
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
   }, {
     onStart: () => setIsPressed(true),
     onFinish: () => setIsPressed(false),
@@ -67,7 +63,7 @@ const DraggableBookmark = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation",
+        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full max-w-full",
         selected && "ring-2 ring-primary",
         isPressed && "scale-[0.98]",
         view === "list" && "flex items-center"
@@ -76,17 +72,17 @@ const DraggableBookmark = ({
     >
       <CardContent
         className={cn(
-          "p-4",
+          "p-4 w-full",
           view === "list" && "flex-1 flex items-center justify-between gap-4"
         )}
       >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-start justify-between gap-2 flex-wrap">
             <div className="space-y-1 flex-1 min-w-0">
-              <h3 className="font-medium line-clamp-1 text-base sm:text-lg">
+              <h3 className="font-medium line-clamp-1 text-base sm:text-lg break-words">
                 {bookmark.title}
               </h3>
-              <p className="text-sm text-muted-foreground line-clamp-1">
+              <p className="text-sm text-muted-foreground line-clamp-1 break-words">
                 {bookmark.url}
               </p>
             </div>

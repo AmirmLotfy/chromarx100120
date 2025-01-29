@@ -15,12 +15,15 @@ const BookmarkDomains = ({
 }: BookmarkDomainsProps) => {
   return (
     <ScrollArea className="w-full">
-      <div className="flex items-center gap-2 p-2 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 p-2">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onSelectDomain(null)}
-          className={cn(selectedDomain === null && "bg-primary text-primary-foreground")}
+          className={cn(
+            "whitespace-nowrap",
+            selectedDomain === null && "bg-primary text-primary-foreground"
+          )}
         >
           All
         </Button>
@@ -31,6 +34,7 @@ const BookmarkDomains = ({
             size="sm"
             onClick={() => onSelectDomain(domain)}
             className={cn(
+              "whitespace-nowrap",
               selectedDomain === domain && "bg-primary text-primary-foreground"
             )}
           >

@@ -20,12 +20,15 @@ const BookmarkCategories = ({
 }: BookmarkCategoriesProps) => {
   return (
     <ScrollArea className="w-full">
-      <div className="flex items-center gap-2 p-2 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 p-2">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onSelectCategory(null)}
-          className={cn(selectedCategory === null && "bg-primary text-primary-foreground")}
+          className={cn(
+            "whitespace-nowrap",
+            selectedCategory === null && "bg-primary text-primary-foreground"
+          )}
         >
           All
         </Button>
@@ -36,6 +39,7 @@ const BookmarkCategories = ({
             size="sm"
             onClick={() => onSelectCategory(category.name)}
             className={cn(
+              "whitespace-nowrap",
               selectedCategory === category.name && "bg-primary text-primary-foreground"
             )}
           >

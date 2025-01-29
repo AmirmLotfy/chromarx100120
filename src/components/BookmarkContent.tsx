@@ -50,7 +50,7 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
       <div className="space-y-2">
         <h2 className="text-sm font-medium">Categories</h2>
         <BookmarkCategories
@@ -76,7 +76,7 @@ const BookmarkContent = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full">
       {isMobile ? (
         <Sheet>
           <SheetTrigger asChild>
@@ -85,7 +85,7 @@ const BookmarkContent = ({
               Filters & Tools
             </Button>
           </SheetTrigger>
-          <SheetContent>
+          <SheetContent side="left" className="w-[280px] sm:w-[320px]">
             <FilterPanel />
           </SheetContent>
         </Sheet>
@@ -93,7 +93,7 @@ const BookmarkContent = ({
         <FilterPanel />
       )}
 
-      <div className="min-h-[200px]">
+      <div className="min-h-[200px] w-full max-w-full overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-[200px] text-muted-foreground">
             Loading bookmarks...
