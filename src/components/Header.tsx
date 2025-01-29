@@ -47,17 +47,17 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="flex items-center -ml-2">
+      <div className="container flex h-14 items-center justify-between">
+        <div className="flex items-center -ml-3">
           <Link to="/" className="flex items-center">
             <img 
               src="/lovable-uploads/beb46658-15c1-4b7f-88fa-ef04d641652b.png" 
               alt="ChroMarx" 
-              className="h-6 md:h-8" 
+              className="h-8 md:h-10" // Increased size from h-6/h-8 to h-8/h-10
             />
           </Link>
         </div>
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-8">
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {user && (
             <>
               <Link to="/bookmarks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
@@ -72,7 +72,7 @@ const Header = () => {
             </>
           )}
         </nav>
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="ml-auto mr-2"> {/* Added mr-2 to move sign-in button more right */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -116,7 +116,7 @@ const Header = () => {
               onClick={handleSignIn}
               variant="ghost"
               size="sm"
-              className="flex items-center space-x-2 hover:bg-accent px-3"
+              className="flex items-center space-x-1" // Reduced from space-x-2 to space-x-1
             >
               <LogIn className="h-4 w-4" />
               <span>Sign in</span>
