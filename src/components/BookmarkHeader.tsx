@@ -66,7 +66,6 @@ const BookmarkHeader = ({
 
     try {
       const bookmarks = await chrome.bookmarks.getTree();
-      // Process the bookmarks tree
       onImport();
       toast.success("Bookmarks imported successfully!");
     } catch (error) {
@@ -88,11 +87,9 @@ const BookmarkHeader = ({
         category: bookmark.category
       }));
 
-      // Create a Blob with the bookmarks data
       const blob = new Blob([JSON.stringify(bookmarksData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
-      // Create a download link and trigger it
       const a = document.createElement('a');
       a.href = url;
       a.download = 'bookmarks-export.json';
@@ -137,19 +134,35 @@ const BookmarkHeader = ({
             </Tooltip>
 
             {selectedBookmarksCount > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleExportBookmarks}
-                    className="h-8 w-8"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Export selected bookmarks</TooltipContent>
-              </Tooltip>
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleExportBookmarks}
+                      className="h-8 w-8"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Export selected bookmarks</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={onDeleteSelected}
+                      className="h-8 w-8"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete selected bookmarks</TooltipContent>
+                </Tooltip>
+              </>
             )}
           </TooltipProvider>
 
@@ -180,6 +193,19 @@ const BookmarkHeader = ({
               />
             </div>
           )}
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onViewChange(view === "grid" ? "list" : "grid")}
+            className="h-8 w-8"
+          >
+            {view === "grid" ? (
+              <List className="h-4 w-4" />
+            ) : (
+              <Grid className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </div>
 
