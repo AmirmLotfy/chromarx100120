@@ -6,6 +6,7 @@ import BookmarkList from "./BookmarkList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { SlidersHorizontal } from "lucide-react";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -49,17 +50,23 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div>
-      <BookmarkCategories
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onSelectCategory={onSelectCategory}
-      />
-      <BookmarkDomains
-        domains={domains}
-        selectedDomain={selectedDomain}
-        onSelectDomain={onSelectDomain}
-      />
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-sm font-medium">Categories</h2>
+        <BookmarkCategories
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={onSelectCategory}
+        />
+      </div>
+      <div className="space-y-2">
+        <h2 className="text-sm font-medium">Domains</h2>
+        <BookmarkDomains
+          domains={domains}
+          selectedDomain={selectedDomain}
+          onSelectDomain={onSelectDomain}
+        />
+      </div>
       <BookmarkCleanup
         bookmarks={bookmarks}
         onDelete={onBulkDelete}
@@ -69,12 +76,13 @@ const BookmarkContent = ({
   );
 
   return (
-    <div>
+    <div className="space-y-6">
       {isMobile ? (
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              Filters
+            <Button variant="outline" size="sm" className="w-full">
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              Filters & Tools
             </Button>
           </SheetTrigger>
           <SheetContent>
@@ -85,11 +93,15 @@ const BookmarkContent = ({
         <FilterPanel />
       )}
 
-      <div>
+      <div className="min-h-[200px]">
         {loading ? (
-          <div>Loading bookmarks...</div>
+          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+            Loading bookmarks...
+          </div>
         ) : filteredBookmarks.length === 0 ? (
-          <div>No bookmarks found</div>
+          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+            No bookmarks found
+          </div>
         ) : (
           <BookmarkList
             bookmarks={filteredBookmarks}

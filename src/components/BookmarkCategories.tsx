@@ -1,3 +1,7 @@
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
+import { cn } from "@/lib/utils";
+
 interface BookmarkCategory {
   name: string;
   count: number;
@@ -15,17 +19,31 @@ const BookmarkCategories = ({
   onSelectCategory,
 }: BookmarkCategoriesProps) => {
   return (
-    <div>
-      <button onClick={() => onSelectCategory(null)}>All</button>
-      {categories.map((category) => (
-        <button
-          key={category.name}
-          onClick={() => onSelectCategory(category.name)}
+    <ScrollArea className="w-full">
+      <div className="flex items-center gap-2 p-2 overflow-x-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onSelectCategory(null)}
+          className={cn(selectedCategory === null && "bg-primary text-primary-foreground")}
         >
-          {category.name} ({category.count})
-        </button>
-      ))}
-    </div>
+          All
+        </Button>
+        {categories.map((category) => (
+          <Button
+            key={category.name}
+            variant="outline"
+            size="sm"
+            onClick={() => onSelectCategory(category.name)}
+            className={cn(
+              selectedCategory === category.name && "bg-primary text-primary-foreground"
+            )}
+          >
+            {category.name} ({category.count})
+          </Button>
+        ))}
+      </div>
+    </ScrollArea>
   );
 };
 
