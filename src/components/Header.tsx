@@ -53,7 +53,7 @@ const Header = () => {
             <img 
               src="/lovable-uploads/beb46658-15c1-4b7f-88fa-ef04d641652b.png" 
               alt="ChroMarx" 
-              className="h-8 md:h-10" // Increased size from h-6/h-8 to h-8/h-10
+              className="h-7 md:h-9" // Decreased size from h-8/h-10 to h-7/h-9
             />
           </Link>
         </div>
@@ -72,7 +72,7 @@ const Header = () => {
             </>
           )}
         </nav>
-        <div className="ml-auto mr-2"> {/* Added mr-2 to move sign-in button more right */}
+        <div className="ml-auto mr-4"> {/* Increased mr-2 to mr-4 to move sign-in button more right */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -116,7 +116,7 @@ const Header = () => {
               onClick={handleSignIn}
               variant="ghost"
               size="sm"
-              className="flex items-center space-x-1" // Reduced from space-x-2 to space-x-1
+              className="flex items-center space-x-1"
             >
               <LogIn className="h-4 w-4" />
               <span>Sign in</span>
