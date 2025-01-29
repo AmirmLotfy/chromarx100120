@@ -34,7 +34,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
       const order = await actions.order.capture();
       
       // Call your Firebase function to handle the successful payment
-      const response = await fetch('/api/handle-subscription', {
+      const response = await fetch('https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net/handleSubscription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
