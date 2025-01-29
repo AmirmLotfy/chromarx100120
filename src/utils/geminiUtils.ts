@@ -1,33 +1,35 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-export async function suggestBookmarkCategory(title: string, url: string): Promise<string> {
+export async function summarizeContent(text: string): Promise<string> {
   try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
-    const prompt = `Analyze this bookmark and suggest a single category that best describes it.
-    Title: ${title}
-    URL: ${url}
-    
-    Respond with just the category name, choosing from these options:
-    - Development
-    - Design
-    - Business
-    - Education
-    - Entertainment
-    - News
-    - Technology
-    - Personal
-    - Other`;
+    const prompt = `Summarize this content concisely in 2-3 sentences:
+    ${text}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const category = response.text().trim();
-    
-    return category;
+    return response.text().trim();
   } catch (error) {
-    console.error('Error suggesting category:', error);
-    return 'Other';
+    console.error('Error summarizing content:', error);
+    return 'Failed to generate summary';
+  }
+}
+
+export async function translateContent(text: string, targetLanguage: string): Promise<string> {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    
+    const prompt = `Translate this text to ${targetLanguage}:
+    ${text}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('Error translating content:', error);
+    return 'Failed to translate content';
   }
 }
