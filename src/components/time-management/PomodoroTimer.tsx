@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Timer, Pause, Play, RefreshCw, Coffee } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const PomodoroTimer = () => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -10,6 +10,7 @@ const PomodoroTimer = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [totalWorkTime, setTotalWorkTime] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -22,6 +23,9 @@ const PomodoroTimer = () => {
             clearInterval(interval);
             handleSessionComplete();
             return isBreak ? 25 * 60 : 5 * 60;
+          }
+          if (!isBreak) {
+            setTotalWorkTime(prev => prev + 1);
           }
           return timeLeft - 1;
         });
@@ -76,6 +80,12 @@ const PomodoroTimer = () => {
     setIsBreak(false);
   };
 
+  const formatTotalTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  };
+
   return (
     <Card className="p-6">
       <div className="space-y-6">
@@ -83,9 +93,10 @@ const PomodoroTimer = () => {
           <h3 className="text-lg font-medium">
             {isBreak ? "Break Time" : "Focus Time"}
           </h3>
-          <p className="text-sm text-muted-foreground">
-            Sessions completed: {sessionsCompleted}
-          </p>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>Sessions completed: {sessionsCompleted}</p>
+            <p>Total work time: {formatTotalTime(totalWorkTime)}</p>
+          </div>
         </div>
 
         <div className="flex justify-center">
@@ -111,6 +122,12 @@ const PomodoroTimer = () => {
             Reset
           </Button>
         </div>
+
+        {isBreak && (
+          <div className="flex justify-center">
+            <Coffee className="text-muted-foreground animate-bounce" />
+          </div>
+        )}
       </div>
     </Card>
   );
