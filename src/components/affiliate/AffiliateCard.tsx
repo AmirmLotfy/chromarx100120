@@ -41,8 +41,8 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
         }`}
       >
         {/* Front of card */}
-        <Card className="absolute w-full h-full backface-hidden bg-gradient-to-br from-accent to-primary/10">
-          <div className="p-6 h-full flex flex-col">
+        <Card className="absolute w-full h-full backface-hidden bg-gradient-to-br from-accent to-primary/10 p-6">
+          <div className="h-full flex flex-col">
             <div className="relative h-48 sm:h-56 mb-4 overflow-hidden rounded-lg">
               <img
                 src={product.imageUrl}
@@ -52,17 +52,17 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="absolute top-2 right-2 bg-background/90 p-1.5 rounded-full shadow-lg hover:bg-background/95 transition-colors">
+                    <button className="absolute top-2 right-2 bg-background/90 p-1.5 rounded-full shadow-lg hover:bg-background/95 transition-colors">
                       <Info className="h-4 w-4 text-primary" />
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Wait to see more details</p>
+                    <p>Card will flip to show more details</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <h3 className="font-semibold text-xl mb-2 text-foreground">{product.title}</h3>
+            <h3 className="font-semibold text-xl mb-2 text-foreground line-clamp-2">{product.title}</h3>
             <div className="mt-auto">
               <p className="text-primary font-bold text-lg">{product.price}</p>
             </div>
@@ -70,9 +70,9 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
         </Card>
 
         {/* Back of card */}
-        <Card className="absolute w-full h-full backface-hidden rotate-x-180 bg-gradient-to-br from-primary/5 to-accent">
-          <div className="p-6 h-full flex flex-col">
-            <h3 className="font-semibold text-xl mb-4 text-foreground">{product.title}</h3>
+        <Card className="absolute w-full h-full backface-hidden rotate-x-180 bg-gradient-to-br from-primary/5 to-accent p-6">
+          <div className="h-full flex flex-col">
+            <h3 className="font-semibold text-xl mb-4 text-foreground line-clamp-2">{product.title}</h3>
             <p className="text-muted-foreground text-base flex-grow overflow-auto">
               {product.description}
             </p>
@@ -81,7 +81,7 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
                 href={product.affiliateUrl}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
-                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium bg-accent/50 px-4 py-2 rounded-lg transition-colors hover:bg-accent"
+                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium bg-accent/50 px-4 py-2 rounded-lg transition-colors hover:bg-accent w-full justify-center"
                 onClick={() => {
                   console.log(`Affiliate link clicked: ${product.id}`);
                 }}

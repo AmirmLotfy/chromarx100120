@@ -58,7 +58,7 @@ const AffiliateSection = ({ showAll = false }) => {
         <Info className="h-6 w-6 text-muted-foreground" />
       </div>
       
-      <Card className="p-4 sm:p-6 bg-gradient-to-br from-accent/50 to-background">
+      <Card className="p-4 sm:p-6 bg-gradient-to-br from-accent/50 to-background overflow-hidden">
         <div className="mb-6">
           <p className="text-sm text-muted-foreground">
             {showAll 
@@ -86,8 +86,8 @@ const AffiliateSection = ({ showAll = false }) => {
               ))}
             </CarouselContent>
             <div className="hidden sm:block">
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
+              <CarouselPrevious />
+              <CarouselNext />
             </div>
           </Carousel>
         ) : (
