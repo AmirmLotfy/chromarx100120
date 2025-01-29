@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useBookmarkState } from "./BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
 import { searchWebResults } from "@/utils/searchUtils";
+import { getContextFromHistory, generateChatPrompt } from "@/utils/chatContextUtils";
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { Message } from "@/types/chat";
@@ -41,10 +42,8 @@ const ChatInterface = () => {
         .map((b) => `${b.title} (${b.url})`)
         .join("\n");
 
-      const prompt = `Based on this query: "${query}"
-        Here are relevant bookmarks:\n${bookmarkContext}\n
-        Please provide a helpful response that includes relevant information from these bookmarks.
-        If no bookmarks are relevant, suggest some search terms.`;
+      const chatContext = getContextFromHistory(messages, query);
+      const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
 
       const response = await summarizeContent(prompt);
 
@@ -64,6 +63,11 @@ const ChatInterface = () => {
   };
 
   const handleSendMessage = async (inputValue: string) => {
+    if (!inputValue.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
@@ -96,7 +100,6 @@ const ChatInterface = () => {
     }
   };
 
-  // Generate suggestions based on bookmark titles and previous queries
   const generateSuggestions = (query: string) => {
     if (query.length < 2) return [];
     
@@ -110,7 +113,14 @@ const ChatInterface = () => {
       .map(m => m.content)
       .slice(0, 2);
 
-    return [...new Set([...bookmarkSuggestions, ...previousQueries])];
+    const recentTopics = messages
+      .filter(m => m.sender === "assistant")
+      .flatMap(m => m.content.split(" "))
+      .filter(word => word.length > 4)
+      .filter(word => word.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 2);
+
+    return [...new Set([...bookmarkSuggestions, ...previousQueries, ...recentTopics])];
   };
 
   useEffect(() => {
