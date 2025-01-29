@@ -25,7 +25,7 @@ const DraggableBookmark = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md",
+        "transition-all duration-200 hover:shadow-md touch-manipulation",
         selected && "ring-2 ring-primary",
         view === "list" && "flex items-center"
       )}
@@ -63,6 +63,7 @@ const DraggableBookmark = ({
           <Button
             variant="ghost"
             size="icon"
+            className="h-8 w-8"
             onClick={() => window.open(bookmark.url, "_blank")}
           >
             <ExternalLink className="h-4 w-4" />
@@ -70,6 +71,7 @@ const DraggableBookmark = ({
           <Button
             variant="ghost"
             size="icon"
+            className="h-8 w-8"
             onClick={() => onDelete(bookmark.id)}
           >
             <Trash2 className="h-4 w-4" />

@@ -21,7 +21,7 @@ const BookmarkHeader = ({
   onSearchChange,
 }: BookmarkHeaderProps) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
@@ -37,7 +37,10 @@ const BookmarkHeader = ({
             variant="ghost"
             size="icon"
             onClick={() => onViewChange("list")}
-            className={cn(view === "list" && "text-primary")}
+            className={cn(
+              "hidden md:inline-flex",
+              view === "list" && "text-primary"
+            )}
           >
             <List className="h-4 w-4" />
           </Button>
@@ -45,7 +48,10 @@ const BookmarkHeader = ({
             variant="ghost"
             size="icon"
             onClick={() => onViewChange("grid")}
-            className={cn(view === "grid" && "text-primary")}
+            className={cn(
+              "hidden md:inline-flex",
+              view === "grid" && "text-primary"
+            )}
           >
             <Grid className="h-4 w-4" />
           </Button>
@@ -54,6 +60,7 @@ const BookmarkHeader = ({
               variant="destructive"
               size="icon"
               onClick={onDeleteSelected}
+              className="animate-fade-in"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -61,12 +68,12 @@ const BookmarkHeader = ({
         </div>
       </div>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
-          className="pl-9"
+          className="pl-9 w-full"
         />
       </div>
     </div>
