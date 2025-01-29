@@ -56,19 +56,8 @@ const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
   const isMobile = useIsMobile();
-  const { user } = useFirebase();
+  const { user, isAdmin } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
-  const [isAdmin, setIsAdmin] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        setIsAdmin(userDoc.data()?.isAdmin || false);
-      }
-    };
-    checkAdminStatus();
-  }, [user]);
 
   const handleReset = () => {
     settings.resetSettings();
@@ -84,7 +73,7 @@ const SettingsPage = () => {
     { value: "advanced", label: "Advanced", icon: Settings2 },
   ];
 
-  // Add affiliate management tab for admin users
+  // Only add affiliate tab if user is admin
   if (isAdmin) {
     tabs.push({ value: "affiliate", label: "Affiliate", icon: Store });
   }
