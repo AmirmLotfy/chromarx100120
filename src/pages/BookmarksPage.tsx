@@ -4,7 +4,6 @@ import Layout from "../components/Layout";
 import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { groupByDomain, extractDomain } from "@/utils/domainUtils";
-import SearchBar from "@/components/SearchBar";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkControls from "@/components/BookmarkControls";
 import BookmarkContent from "@/components/BookmarkContent";
@@ -109,10 +108,12 @@ const BookmarksPage = () => {
   };
 
   useEffect(() => {
+    loadBookmarks();
     if (chrome.bookmarks) {
-      chrome.bookmarks.onCreated.addListener(() => {
-        loadBookmarks();
-      });
+      chrome.bookmarks.onCreated.addListener(loadBookmarks);
+      return () => {
+        chrome.bookmarks.onCreated.removeListener(loadBookmarks);
+      };
     }
   }, []);
 
@@ -236,8 +237,8 @@ const BookmarksPage = () => {
             onDelete={handleDelete}
             formatDate={formatDate}
             view={view}
-            onReorder={handleReorderBookmarks}
-            onBulkDelete={handleBulkDelete}
+            onReorder={loadBookmarks}
+            onBulkDelete={handleDeleteSelected}
             onRefresh={loadBookmarks}
             loading={loading}
             filteredBookmarks={filteredBookmarks}
