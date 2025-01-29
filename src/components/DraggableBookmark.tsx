@@ -1,7 +1,7 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { Card, CardContent } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { ExternalLink, Trash2, Share2 } from "lucide-react";
+import { ExternalLink, Trash2, Share2, CheckSquare } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useLongPress } from "use-long-press";
@@ -29,6 +29,10 @@ const DraggableBookmark = ({
 
   const bind = useLongPress(() => {
     onToggleSelect(bookmark.id);
+    // Provide haptic feedback if available
+    if (window.navigator.vibrate) {
+      window.navigator.vibrate(50);
+    }
   }, {
     onStart: () => setIsPressed(true),
     onFinish: () => setIsPressed(false),
@@ -63,17 +67,24 @@ const DraggableBookmark = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full max-w-full",
-        selected && "ring-2 ring-primary",
+        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full max-w-full relative",
+        selected && "ring-2 ring-primary bg-accent/50",
         isPressed && "scale-[0.98]",
         view === "list" && "flex items-center"
       )}
       {...bind()}
+      onClick={() => onToggleSelect(bookmark.id)}
     >
+      {selected && (
+        <div className="absolute top-2 left-2 text-primary animate-scale-in">
+          <CheckSquare className="h-5 w-5" />
+        </div>
+      )}
       <CardContent
         className={cn(
           "p-4 w-full",
-          view === "list" && "flex-1 flex items-center justify-between gap-4"
+          view === "list" && "flex-1 flex items-center justify-between gap-4",
+          selected && "pl-9"
         )}
       >
         <div className="flex-1 min-w-0 overflow-hidden">
