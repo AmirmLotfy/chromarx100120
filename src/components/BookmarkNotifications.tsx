@@ -19,7 +19,11 @@ const BookmarkNotifications = ({ newBookmarks }: BookmarkNotificationsProps) => 
             new Notification("New Bookmark Added", {
               body: `${bookmark.title}\n${bookmark.url}`,
               icon: "/icon48.png",
-              tag: bookmark.id // Prevent duplicate notifications
+              tag: bookmark.id,
+              badge: "/icon48.png",
+              vibrate: [200, 100, 200],
+              requireInteraction: false,
+              silent: false
             });
 
             toast.success(`New bookmark added: ${bookmark.title}`, {

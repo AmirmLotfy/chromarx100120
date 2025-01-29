@@ -1,4 +1,4 @@
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, SlidersHorizontal } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import {
 } from "./ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "./ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -44,6 +45,88 @@ const BookmarkHeader = ({
 }: BookmarkHeaderProps) => {
   const isMobile = useIsMobile();
 
+  const ActionButtons = () => (
+    <div className="flex items-center gap-2">
+      <BookmarkAIActions
+        selectedBookmarks={selectedBookmarks}
+        onUpdateCategories={onUpdateCategories}
+      />
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9">
+            <FolderPlus className="h-5 w-5 sm:h-4 sm:w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem onClick={onImport}>
+            <Import className="h-4 w-4 mr-2" />
+            Import Bookmarks
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onCreateFolder}>
+            <FolderPlus className="h-4 w-4 mr-2" />
+            New Folder
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {!isMobile && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onViewChange("list")}
+            className={cn(
+              "h-10 w-10 sm:h-9 sm:w-9",
+              view === "list" && "text-primary"
+            )}
+          >
+            <List className="h-5 w-5 sm:h-4 sm:w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onViewChange("grid")}
+            className={cn(
+              "h-10 w-10 sm:h-9 sm:w-9",
+              view === "grid" && "text-primary"
+            )}
+          >
+            <Grid className="h-5 w-5 sm:h-4 sm:w-4" />
+          </Button>
+        </>
+      )}
+
+      {selectedBookmarksCount > 0 && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 sm:h-9 sm:w-9"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: "Shared Bookmarks",
+                  text: selectedBookmarks.map(b => `${b.title}: ${b.url}`).join("\n"),
+                });
+              }
+            }}
+          >
+            <Share2 className="h-5 w-5 sm:h-4 sm:w-4" />
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={onDeleteSelected}
+            className="h-10 w-10 sm:h-9 sm:w-9 animate-fade-in"
+          >
+            <Trash2 className="h-5 w-5 sm:h-4 sm:w-4" />
+          </Button>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -56,85 +139,24 @@ const BookmarkHeader = ({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <BookmarkAIActions
-            selectedBookmarks={selectedBookmarks}
-            onUpdateCategories={onUpdateCategories}
-          />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9">
-                <FolderPlus className="h-4 w-4" />
+        
+        {isMobile ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="h-10 w-10">
+                <SlidersHorizontal className="h-5 w-5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onImport}>
-                <Import className="h-4 w-4 mr-2" />
-                Import Bookmarks
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onCreateFolder}>
-                <FolderPlus className="h-4 w-4 mr-2" />
-                New Folder
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {!isMobile && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onViewChange("list")}
-                className={cn(
-                  "h-9 w-9",
-                  view === "list" && "text-primary"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onViewChange("grid")}
-                className={cn(
-                  "h-9 w-9",
-                  view === "grid" && "text-primary"
-                )}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-
-          {selectedBookmarksCount > 0 && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: "Shared Bookmarks",
-                      text: selectedBookmarks.map(b => `${b.title}: ${b.url}`).join("\n"),
-                    });
-                  }
-                }}
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={onDeleteSelected}
-                className="h-9 w-9 animate-fade-in"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
+            </SheetTrigger>
+            <SheetContent>
+              <div className="space-y-4">
+                <h2 className="font-medium">Actions</h2>
+                <ActionButtons />
+              </div>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <ActionButtons />
+        )}
       </div>
 
       <div className="relative">
@@ -143,7 +165,7 @@ const BookmarkHeader = ({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
-          className="pl-9 w-full"
+          className="pl-9 w-full h-10 sm:h-9"
           aria-label="Search bookmarks"
         />
         {suggestions.length > 0 && (
@@ -151,7 +173,7 @@ const BookmarkHeader = ({
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
-                className="w-full px-3 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
+                className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
                 onClick={() => onSelectSuggestion(suggestion)}
               >
                 {suggestion}
