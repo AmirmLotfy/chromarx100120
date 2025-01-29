@@ -16,22 +16,15 @@ const BookmarkCategories = ({
 }: BookmarkCategoriesProps) => {
   return (
     <div>
-      <div>
-        <h2>Categories</h2>
-      </div>
-      <div>
-        <button onClick={() => onSelectCategory(null)}>
-          All
+      <button onClick={() => onSelectCategory(null)}>All</button>
+      {categories.map((category) => (
+        <button
+          key={category.name}
+          onClick={() => onSelectCategory(category.name)}
+        >
+          {category.name} ({category.count})
         </button>
-        {categories.map((category) => (
-          <button
-            key={category.name}
-            onClick={() => onSelectCategory(category.name)}
-          >
-            {category.name} ({category.count})
-          </button>
-        ))}
-      </div>
+      ))}
     </div>
   );
 };

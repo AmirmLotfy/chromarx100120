@@ -9,15 +9,15 @@ interface BookmarkHeaderProps {
 
 const BookmarkHeader = ({
   selectedBookmarksCount,
-  view,
-  onViewChange,
-  onDeleteSelected,
 }: BookmarkHeaderProps) => {
   return (
     <div>
-      <div className="flex items-center gap-2">
-        <Bookmark className="h-5 w-5" />
-        <h1>Bookmarks</h1>
+      <div>
+        <Bookmark />
+        <div>Bookmarks</div>
+        {selectedBookmarksCount > 0 && (
+          <div>{selectedBookmarksCount} selected</div>
+        )}
       </div>
     </div>
   );

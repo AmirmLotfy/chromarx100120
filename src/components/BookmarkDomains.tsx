@@ -11,22 +11,15 @@ const BookmarkDomains = ({
 }: BookmarkDomainsProps) => {
   return (
     <div>
-      <div>
-        <h2>Domains</h2>
-      </div>
-      <div>
-        <button onClick={() => onSelectDomain(null)}>
-          All
+      <button onClick={() => onSelectDomain(null)}>All</button>
+      {domains.map(({ domain, count }) => (
+        <button
+          key={domain}
+          onClick={() => onSelectDomain(domain)}
+        >
+          {domain} ({count})
         </button>
-        {domains.map(({ domain, count }) => (
-          <button
-            key={domain}
-            onClick={() => onSelectDomain(domain)}
-          >
-            {domain} ({count})
-          </button>
-        ))}
-      </div>
+      ))}
     </div>
   );
 };
