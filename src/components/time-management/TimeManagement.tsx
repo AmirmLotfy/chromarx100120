@@ -32,8 +32,8 @@ const TimeManagement = () => {
   ];
 
   const renderContent = () => (
-    <ScrollArea className="h-[calc(100vh-20rem)] md:h-[calc(100vh-18rem)] px-4">
-      <div className="space-y-6 pb-6">
+    <ScrollArea className="h-[calc(100vh-22rem)]">
+      <div className="space-y-4 px-4">
         {activeTab === "custom" && (
           <div className="space-y-4">
             <AITimerSuggestions onSuggestion={handleAISuggestion} />
@@ -67,13 +67,10 @@ const TimeManagement = () => {
               ))}
             </SelectContent>
           </Select>
-
-          <div>
-            {renderContent()}
-          </div>
+          {renderContent()}
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
@@ -81,10 +78,7 @@ const TimeManagement = () => {
               </TabsTrigger>
             ))}
           </TabsList>
-          
-          <div>
-            {renderContent()}
-          </div>
+          {renderContent()}
         </Tabs>
       )}
     </div>
