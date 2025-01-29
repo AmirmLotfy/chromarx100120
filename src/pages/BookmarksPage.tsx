@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
+import { toast } from "sonner";
 
 const BookmarksPage = () => {
   const {
@@ -61,6 +62,16 @@ const BookmarksPage = () => {
       return Array.from(bookmarkMap.values());
     });
   }, [setBookmarks]);
+
+  const handleImport = () => {
+    // This is a placeholder function for now
+    toast.info("Import functionality coming soon!");
+  };
+
+  const handleCreateFolder = () => {
+    // This is a placeholder function for now
+    toast.info("Create folder functionality coming soon!");
+  };
 
   const toggleBookmarkSelection = (id: string) => {
     setSelectedBookmarks((prev) => {
@@ -135,8 +146,11 @@ const BookmarksPage = () => {
           view={view}
           onViewChange={setView}
           onDeleteSelected={handleDeleteSelected}
+          onUpdateCategories={handleUpdateCategories}
           searchQuery={searchQuery}
           onSearchChange={handleSearch}
+          onImport={handleImport}
+          onCreateFolder={handleCreateFolder}
           suggestions={suggestions}
           onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
         />
