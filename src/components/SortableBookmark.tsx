@@ -10,6 +10,8 @@ interface SortableBookmarkProps {
   onDelete: (id: string) => void;
   formatDate: (timestamp?: number) => string;
   view: "grid" | "list";
+  tabIndex?: number;
+  onFocus?: () => void;
 }
 
 const SortableBookmark = ({
@@ -19,6 +21,8 @@ const SortableBookmark = ({
   onDelete,
   formatDate,
   view,
+  tabIndex,
+  onFocus,
 }: SortableBookmarkProps) => {
   const {
     attributes,
@@ -37,7 +41,14 @@ const SortableBookmark = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      {...attributes} 
+      {...listeners}
+      tabIndex={tabIndex}
+      onFocus={onFocus}
+    >
       <DraggableBookmark
         bookmark={bookmark}
         selected={selected}

@@ -17,6 +17,8 @@ import {
 import SortableBookmark from "./SortableBookmark";
 import { useEffect, useState } from "react";
 import { extractDomain } from "@/utils/domainUtils";
+import { Button } from "./ui/button";
+import { CheckSquare } from "lucide-react";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -39,6 +41,7 @@ const BookmarkList = ({
 }: BookmarkListProps) => {
   const [items, setItems] = useState(bookmarks);
   const [groupedByDomain, setGroupedByDomain] = useState<Record<string, ChromeBookmark[]>>({});
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
   useEffect(() => {
     setItems(bookmarks);
@@ -54,6 +57,32 @@ const BookmarkList = ({
     }, {} as Record<string, ChromeBookmark[]>);
     setGroupedByDomain(grouped);
   }, [bookmarks]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (focusedIndex === -1) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.min(prev + 1, bookmarks.length - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case ' ':
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < bookmarks.length) {
+            onToggleSelect(bookmarks[focusedIndex].id);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [focusedIndex, bookmarks, onToggleSelect]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -84,6 +113,17 @@ const BookmarkList = ({
     }
   };
 
+  const handleSelectAll = () => {
+    const allSelected = bookmarks.length === selectedBookmarks.size;
+    if (allSelected) {
+      // Deselect all
+      setSelectedBookmarks(new Set());
+    } else {
+      // Select all
+      setSelectedBookmarks(new Set(bookmarks.map(b => b.id)));
+    }
+  };
+
   const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => (
     <div
       className={cn(
@@ -93,7 +133,7 @@ const BookmarkList = ({
           : "grid-cols-1"
       )}
     >
-      {bookmarksToRender.map((bookmark) => (
+      {bookmarksToRender.map((bookmark, index) => (
         <SortableBookmark
           key={bookmark.id}
           bookmark={bookmark}
@@ -102,6 +142,8 @@ const BookmarkList = ({
           onDelete={onDelete}
           formatDate={formatDate}
           view={view}
+          tabIndex={focusedIndex === index ? 0 : -1}
+          onFocus={() => setFocusedIndex(index)}
         />
       ))}
     </div>
@@ -117,6 +159,16 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-8">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSelectAll}
+            className="w-full sm:w-auto"
+          >
+            <CheckSquare className="h-4 w-4 mr-2" />
+            {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
+          </Button>
+
           {Object.entries(groupedByDomain).map(([domain, domainBookmarks]) => (
             <div key={domain} className="space-y-4">
               <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm p-2 rounded-lg flex items-center gap-2">
