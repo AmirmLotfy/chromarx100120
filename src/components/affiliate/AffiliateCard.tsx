@@ -26,7 +26,7 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
 
   return (
     <div
-      className="relative w-full h-[300px] perspective-1000"
+      className="relative w-full h-[320px] perspective-1000"
       onMouseEnter={() => setIsFlipped(true)}
       onMouseLeave={() => setIsFlipped(false)}
     >
@@ -36,18 +36,18 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
         }`}
       >
         {/* Front of card */}
-        <Card className="absolute w-full h-full backface-hidden">
-          <div className="p-4 h-full flex flex-col">
-            <div className="relative h-48 mb-4">
+        <Card className="absolute w-full h-full backface-hidden bg-card">
+          <div className="p-6 h-full flex flex-col">
+            <div className="relative h-40 mb-4">
               <img
                 src={product.imageUrl}
                 alt={product.title}
-                className="w-full h-full object-cover rounded-md"
+                className="w-full h-full object-cover rounded-md shadow-sm"
               />
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-full">
+                    <div className="absolute top-2 right-2 bg-background/90 p-1.5 rounded-full shadow-sm">
                       <Info className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </TooltipTrigger>
@@ -57,24 +57,25 @@ const AffiliateCard = ({ product }: AffiliateCardProps) => {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <h3 className="font-semibold text-lg mb-1">{product.title}</h3>
-            <p className="text-primary font-medium">{product.price}</p>
+            <h3 className="font-semibold text-lg mb-2 line-clamp-1">{product.title}</h3>
+            <p className="text-primary font-medium mt-auto">{product.price}</p>
           </div>
         </Card>
 
         {/* Back of card */}
-        <Card className="absolute w-full h-full backface-hidden rotate-y-180">
-          <div className="p-4 h-full flex flex-col">
-            <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
-            <p className="text-muted-foreground flex-grow">{product.description}</p>
+        <Card className="absolute w-full h-full backface-hidden rotate-y-180 bg-accent">
+          <div className="p-6 h-full flex flex-col">
+            <h3 className="font-semibold text-lg mb-3">{product.title}</h3>
+            <p className="text-muted-foreground text-sm flex-grow line-clamp-6">
+              {product.description}
+            </p>
             <div className="mt-4">
               <a
                 href={product.affiliateUrl}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
-                className="inline-flex items-center gap-2 text-primary hover:text-primary/80"
+                className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium"
                 onClick={() => {
-                  // Track click event
                   console.log(`Affiliate link clicked: ${product.id}`);
                 }}
               >
