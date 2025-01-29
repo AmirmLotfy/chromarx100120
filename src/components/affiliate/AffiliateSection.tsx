@@ -50,16 +50,16 @@ const AffiliateSection = ({ showAll = false }) => {
   const products = showAll ? SAMPLE_PRODUCTS : [FEATURED_PRODUCT];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-start gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
           {showAll ? "Recommended Services" : "Featured Service"}
         </h2>
-        <Info className="h-6 w-6 text-muted-foreground" />
+        <Info className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
       </div>
       
-      <Card className="p-4 sm:p-6 bg-gradient-to-br from-accent/50 to-background overflow-hidden">
-        <div className="mb-6">
+      <Card className="p-3 sm:p-6 bg-gradient-to-br from-accent/50 to-background overflow-hidden">
+        <div className="mb-4 sm:mb-6">
           <p className="text-sm text-muted-foreground">
             {showAll 
               ? "Browse our curated selection of premium services. We may earn a commission when you purchase through these links."
@@ -76,28 +76,29 @@ const AffiliateSection = ({ showAll = false }) => {
             }}
             className="w-full"
           >
-            <CarouselContent className="-ml-2 md:-ml-4">
+            <CarouselContent className="-ml-2 sm:-ml-4">
               {products.map((product) => (
-                <CarouselItem key={product.id} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
+                <CarouselItem 
+                  key={product.id} 
+                  className="pl-2 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+                >
                   <div className="p-1">
                     <AffiliateCard product={product} />
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <div className="hidden sm:block">
-              <CarouselPrevious />
-              <CarouselNext />
-            </div>
+            <CarouselPrevious className="hidden sm:flex -left-3 sm:left-0" />
+            <CarouselNext className="hidden sm:flex -right-3 sm:right-0" />
           </Carousel>
         ) : (
-          <div className="max-w-md mx-auto">
+          <div className="max-w-sm mx-auto">
             <AffiliateCard product={FEATURED_PRODUCT} />
           </div>
         )}
 
         {!showAll && (
-          <div className="mt-6 text-center">
+          <div className="mt-4 sm:mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Want to see more recommended services? 
               <a href="/suggested-services" className="text-primary hover:text-primary/80 ml-1 font-medium">
