@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { useBookmarkState } from "./BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
+import { searchWebResults } from "@/utils/searchUtils";
 
 interface Message {
   id: string;
@@ -15,6 +16,10 @@ interface Message {
     title: string;
     url: string;
     relevance: number;
+  }[];
+  webResults?: {
+    title: string;
+    url: string;
   }[];
 }
 
@@ -43,7 +48,11 @@ const ChatInterface = () => {
 
   const processQuery = async (query: string) => {
     try {
-      const relevantBookmarks = searchBookmarks(query);
+      const [relevantBookmarks, webResults] = await Promise.all([
+        Promise.resolve(searchBookmarks(query)),
+        searchWebResults(query),
+      ]);
+
       const bookmarkContext = relevantBookmarks
         .map((b) => `${b.title} (${b.url})`)
         .join("\n");
@@ -62,6 +71,7 @@ const ChatInterface = () => {
           url: b.url || "",
           relevance: 1,
         })),
+        webResults,
       };
     } catch (error) {
       console.error("Error processing query:", error);
@@ -84,7 +94,7 @@ const ChatInterface = () => {
     setIsProcessing(true);
 
     try {
-      const { response, bookmarks: relevantBookmarks } = await processQuery(
+      const { response, bookmarks: relevantBookmarks, webResults } = await processQuery(
         inputValue
       );
 
@@ -94,6 +104,7 @@ const ChatInterface = () => {
         sender: "assistant",
         timestamp: new Date(),
         bookmarks: relevantBookmarks,
+        webResults,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -141,6 +152,22 @@ const ChatInterface = () => {
                       className="block hover:underline text-blue-500 dark:text-blue-400"
                     >
                       {bookmark.title}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {message.webResults && message.webResults.length > 0 && (
+                <div className="mt-2 space-y-1 text-sm">
+                  <div className="font-medium">Suggested Links:</div>
+                  {message.webResults.map((result, index) => (
+                    <a
+                      key={index}
+                      href={result.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block hover:underline text-blue-500 dark:text-blue-400"
+                    >
+                      {result.title}
                     </a>
                   ))}
                 </div>
