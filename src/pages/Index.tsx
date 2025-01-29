@@ -1,5 +1,6 @@
 import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
+import BookmarksList from "../components/BookmarksList";
 
 const Index = () => {
   return (
@@ -12,6 +13,10 @@ const Index = () => {
           </p>
         </div>
         <FeatureGrid />
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold tracking-tight">Your Bookmarks</h2>
+          <BookmarksList />
+        </div>
       </div>
     </Layout>
   );
