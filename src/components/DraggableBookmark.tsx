@@ -64,16 +64,27 @@ const DraggableBookmark = ({
     }
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // For desktop, handle Ctrl/Cmd + Click for multi-select
+    if (e.ctrlKey || e.metaKey) {
+      onToggleSelect(bookmark.id);
+    } else {
+      // Single click without modifier keys selects only this bookmark
+      onToggleSelect(bookmark.id);
+    }
+  };
+
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full max-w-full relative",
+        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full max-w-full relative select-none cursor-pointer",
         selected && "ring-2 ring-primary bg-accent/50",
         isPressed && "scale-[0.98]",
         view === "list" && "flex items-center"
       )}
       {...bind()}
-      onClick={() => onToggleSelect(bookmark.id)}
+      onClick={handleClick}
+      title="Click to select. Use Ctrl/Cmd + Click for multi-select"
     >
       {selected && (
         <div className="absolute top-2 left-2 text-primary animate-scale-in">
