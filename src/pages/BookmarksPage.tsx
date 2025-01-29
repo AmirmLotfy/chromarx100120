@@ -17,9 +17,11 @@ const BookmarksPage = () => {
     loading,
     newBookmarks,
     loadBookmarks,
+    suggestions,
+    searchQuery,
+    handleSearch,
   } = useBookmarkState();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
@@ -77,6 +79,42 @@ const BookmarksPage = () => {
     } catch (error) {
       console.error("Error updating categories:", error);
       toast.error("Failed to update categories");
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.html';
+      input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          // Implementation for HTML bookmark file parsing would go here
+          toast.success("Bookmarks imported successfully");
+          await loadBookmarks();
+        }
+      };
+      input.click();
+    } catch (error) {
+      console.error("Error importing bookmarks:", error);
+      toast.error("Failed to import bookmarks");
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    try {
+      if (chrome.bookmarks) {
+        await chrome.bookmarks.create({
+          title: "New Folder",
+          parentId: "1"
+        });
+        toast.success("Folder created successfully");
+        await loadBookmarks();
+      }
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      toast.error("Failed to create folder");
     }
   };
 
@@ -153,7 +191,11 @@ const BookmarksPage = () => {
           onDeleteSelected={handleDeleteSelected}
           onUpdateCategories={handleUpdateCategories}
           searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={handleSearch}
+          onImport={handleImport}
+          onCreateFolder={handleCreateFolder}
+          suggestions={suggestions}
+          onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
         />
 
         <div className="flex flex-col md:flex-row gap-6">

@@ -7,6 +7,8 @@ export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
   const [loading, setLoading] = useState(true);
   const [newBookmarks, setNewBookmarks] = useState<ChromeBookmark[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadBookmarks = async () => {
     try {
@@ -22,10 +24,14 @@ export const useBookmarkState = () => {
             };
             
             if (!chromeBookmark.category && chromeBookmark.url) {
-              chromeBookmark.category = await suggestBookmarkCategory(
-                chromeBookmark.title,
-                chromeBookmark.url
-              );
+              try {
+                chromeBookmark.category = await suggestBookmarkCategory(
+                  chromeBookmark.title,
+                  chromeBookmark.url
+                );
+              } catch (error) {
+                console.error("Error suggesting category:", error);
+              }
             }
             return chromeBookmark;
           })
@@ -71,12 +77,32 @@ export const useBookmarkState = () => {
     }
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.length > 2) {
+      const filteredSuggestions = bookmarks
+        .filter(b => 
+          b.title.toLowerCase().includes(query.toLowerCase()) ||
+          b.url?.toLowerCase().includes(query.toLowerCase())
+        )
+        .map(b => b.title)
+        .slice(0, 5);
+      setSuggestions(filteredSuggestions);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
   useEffect(() => {
     loadBookmarks();
     if (chrome.bookmarks) {
       chrome.bookmarks.onCreated.addListener(loadBookmarks);
+      chrome.bookmarks.onRemoved.addListener(loadBookmarks);
+      chrome.bookmarks.onChanged.addListener(loadBookmarks);
       return () => {
         chrome.bookmarks.onCreated.removeListener(loadBookmarks);
+        chrome.bookmarks.onRemoved.removeListener(loadBookmarks);
+        chrome.bookmarks.onChanged.removeListener(loadBookmarks);
       };
     }
   }, []);
@@ -87,5 +113,8 @@ export const useBookmarkState = () => {
     loading,
     newBookmarks,
     loadBookmarks,
+    suggestions,
+    searchQuery,
+    handleSearch,
   };
 };
