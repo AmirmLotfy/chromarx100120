@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import BookmarkCategories from "@/components/BookmarkCategories";
 import BookmarkList from "@/components/BookmarkList";
+import BookmarkCleanup from "@/components/BookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 
@@ -34,7 +35,6 @@ const BookmarksPage = () => {
         if (chrome.bookmarks) {
           const results = await chrome.bookmarks.getRecent(100);
           
-          // Convert BookmarkTreeNode to ChromeBookmark and categorize
           const categorizedResults = await Promise.all(
             results.map(async (bookmark): Promise<ChromeBookmark> => {
               const chromeBookmark: ChromeBookmark = {
@@ -54,7 +54,6 @@ const BookmarksPage = () => {
           
           setBookmarks(categorizedResults);
         } else {
-          // Demo data for development
           setBookmarks([
             {
               id: "1",
@@ -174,6 +173,25 @@ const BookmarksPage = () => {
       }
     });
 
+  const handleBulkDelete = async (ids: string[]) => {
+    try {
+      if (chrome.bookmarks) {
+        const promises = ids.map(id => chrome.bookmarks.remove(id));
+        await Promise.all(promises);
+        setBookmarks(prev => prev.filter(bookmark => !ids.includes(bookmark.id)));
+        toast.success(`${ids.length} bookmarks deleted`);
+      }
+    } catch (error) {
+      console.error("Error deleting bookmarks:", error);
+      toast.error("Failed to delete bookmarks");
+    }
+  };
+
+  const refreshBookmarks = () => {
+    setLoading(true);
+    loadBookmarks().finally(() => setLoading(false));
+  };
+
   return (
     <Layout>
       <div className="space-y-6 pb-16">
@@ -225,29 +243,40 @@ const BookmarksPage = () => {
           </Select>
         </div>
 
-        <BookmarkCategories
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
-
-        {loading ? (
-          <div className="text-center py-8">Loading bookmarks...</div>
-        ) : filteredBookmarks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {searchQuery
-              ? "No bookmarks found matching your search"
-              : "No bookmarks found"}
+        <div className="grid gap-6 md:grid-cols-[300px_1fr]">
+          <div className="space-y-6">
+            <BookmarkCategories
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+            <BookmarkCleanup
+              bookmarks={bookmarks}
+              onDelete={handleBulkDelete}
+              onRefresh={refreshBookmarks}
+            />
           </div>
-        ) : (
-          <BookmarkList
-            bookmarks={filteredBookmarks}
-            selectedBookmarks={selectedBookmarks}
-            onToggleSelect={toggleBookmarkSelection}
-            onDelete={handleDelete}
-            formatDate={formatDate}
-          />
-        )}
+
+          <div className="space-y-6">
+            {loading ? (
+              <div className="text-center py-8">Loading bookmarks...</div>
+            ) : filteredBookmarks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchQuery
+                  ? "No bookmarks found matching your search"
+                  : "No bookmarks found"}
+              </div>
+            ) : (
+              <BookmarkList
+                bookmarks={filteredBookmarks}
+                selectedBookmarks={selectedBookmarks}
+                onToggleSelect={toggleBookmarkSelection}
+                onDelete={handleDelete}
+                formatDate={formatDate}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </Layout>
   );
