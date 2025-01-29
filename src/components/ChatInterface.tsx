@@ -1,32 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { useBookmarkState } from "./BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
 import { searchWebResults } from "@/utils/searchUtils";
-
-interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "assistant";
-  timestamp: Date;
-  bookmarks?: {
-    title: string;
-    url: string;
-    relevance: number;
-  }[];
-  webResults?: {
-    title: string;
-    url: string;
-  }[];
-}
+import ChatInput from "./ChatInput";
+import ChatMessages from "./ChatMessages";
+import { Message } from "@/types/chat";
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
 
@@ -79,9 +63,7 @@ const ChatInterface = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isProcessing) return;
-
+  const handleSendMessage = async (inputValue: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
@@ -90,7 +72,6 @@ const ChatInterface = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
     setIsProcessing(true);
 
     try {
@@ -115,86 +96,50 @@ const ChatInterface = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  // Generate suggestions based on bookmark titles and previous queries
+  const generateSuggestions = (query: string) => {
+    if (query.length < 2) return [];
+    
+    const bookmarkSuggestions = bookmarks
+      .filter(b => b.title.toLowerCase().includes(query.toLowerCase()))
+      .map(b => b.title)
+      .slice(0, 3);
+
+    const previousQueries = messages
+      .filter(m => m.sender === "user" && m.content.toLowerCase().includes(query.toLowerCase()))
+      .map(m => m.content)
+      .slice(0, 2);
+
+    return [...new Set([...bookmarkSuggestions, ...previousQueries])];
   };
+
+  useEffect(() => {
+    const handleSuggestions = (query: string) => {
+      const newSuggestions = generateSuggestions(query);
+      setSuggestions(newSuggestions);
+    };
+
+    const debounce = setTimeout(() => {
+      if (messages.length > 0) {
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage.sender === "user") {
+          handleSuggestions(lastMessage.content);
+        }
+      }
+    }, 300);
+
+    return () => clearTimeout(debounce);
+  }, [messages, bookmarks]);
 
   return (
     <div className="flex flex-col h-[600px] bg-background border rounded-lg shadow-sm">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.sender === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`max-w-[80%] space-y-2 ${
-                message.sender === "user"
-                  ? "bg-primary text-primary-foreground ml-4 p-3 rounded-lg"
-                  : "bg-muted text-muted-foreground mr-4 p-3 rounded-lg"
-              }`}
-            >
-              <div>{message.content}</div>
-              {message.bookmarks && message.bookmarks.length > 0 && (
-                <div className="mt-2 space-y-1 text-sm">
-                  <div className="font-medium">Related Bookmarks:</div>
-                  {message.bookmarks.map((bookmark, index) => (
-                    <a
-                      key={index}
-                      href={bookmark.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block hover:underline text-blue-500 dark:text-blue-400"
-                    >
-                      {bookmark.title}
-                    </a>
-                  ))}
-                </div>
-              )}
-              {message.webResults && message.webResults.length > 0 && (
-                <div className="mt-2 space-y-1 text-sm">
-                  <div className="font-medium">Suggested Links:</div>
-                  {message.webResults.map((result, index) => (
-                    <a
-                      key={index}
-                      href={result.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block hover:underline text-blue-500 dark:text-blue-400"
-                    >
-                      {result.title}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+      <ChatMessages messages={messages} messagesEndRef={messagesEndRef} />
       <div className="border-t p-4">
-        <div className="flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Type your message..."
-            className="flex-1"
-            disabled={isProcessing}
-          />
-          <Button
-            onClick={handleSendMessage}
-            size="icon"
-            disabled={isProcessing}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          isProcessing={isProcessing}
+          suggestions={suggestions}
+        />
       </div>
     </div>
   );
