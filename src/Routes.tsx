@@ -4,6 +4,7 @@ import NotFound from "./pages/NotFound";
 import BookmarksPage from "./pages/BookmarksPage";
 import SummariesPage from "./pages/SummariesPage";
 import ChatPage from "./pages/ChatPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
 const Routes = () => {
   return (
@@ -12,6 +13,7 @@ const Routes = () => {
       <Route path="/bookmarks" element={<BookmarksPage />} />
       <Route path="/summaries" element={<SummariesPage />} />
       <Route path="/chat" element={<ChatPage />} />
+      <Route path="/analytics" element={<AnalyticsPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );

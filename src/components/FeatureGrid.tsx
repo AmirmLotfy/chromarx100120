@@ -5,6 +5,7 @@ import {
   MessageSquare,
   FileText,
   Search,
+  BarChart,
 } from "lucide-react";
 
 const FeatureGrid = () => {
@@ -47,6 +48,16 @@ const FeatureGrid = () => {
         >
           <Search className="h-6 w-6" />
           <span>Search</span>
+        </Button>
+      </Link>
+
+      <Link to="/analytics">
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2"
+        >
+          <BarChart className="h-6 w-6" />
+          <span>Analytics</span>
         </Button>
       </Link>
     </div>
