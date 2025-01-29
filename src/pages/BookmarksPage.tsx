@@ -154,6 +154,22 @@ const BookmarksPage = () => {
     }
   };
 
+  const handleUpdateCategories = async (updatedBookmarks: ChromeBookmark[]) => {
+    try {
+      setBookmarks((prev) => {
+        const bookmarkMap = new Map(prev.map(b => [b.id, b]));
+        updatedBookmarks.forEach(bookmark => {
+          bookmarkMap.set(bookmark.id, bookmark);
+        });
+        return Array.from(bookmarkMap.values());
+      });
+      toast.success("Categories updated successfully");
+    } catch (error) {
+      console.error("Error updating categories:", error);
+      toast.error("Failed to update categories");
+    }
+  };
+
   const toggleBookmarkSelection = (id: string) => {
     setSelectedBookmarks((prev) => {
       const next = new Set(prev);
@@ -206,14 +222,20 @@ const BookmarksPage = () => {
       }
     });
 
+  const selectedBookmarksArray = Array.from(selectedBookmarks)
+    .map(id => bookmarks.find(b => b.id === id))
+    .filter((b): b is ChromeBookmark => b !== undefined);
+
   return (
     <Layout>
       <div className="space-y-8 pb-16">
         <BookmarkHeader
           selectedBookmarksCount={selectedBookmarks.size}
+          selectedBookmarks={selectedBookmarksArray}
           view={view}
           onViewChange={setView}
           onDeleteSelected={handleDeleteSelected}
+          onUpdateCategories={handleUpdateCategories}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
