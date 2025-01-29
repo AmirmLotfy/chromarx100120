@@ -13,13 +13,9 @@ const DraggableBookmark = ({
   bookmark,
   selected,
   onToggleSelect,
-  onDelete,
 }: DraggableBookmarkProps) => {
   return (
-    <div 
-      className="p-3 rounded-lg bg-accent"
-      onClick={() => onToggleSelect(bookmark.id)}
-    >
+    <div onClick={() => onToggleSelect(bookmark.id)}>
       <BookmarkContentDisplay 
         title={bookmark.title} 
         url={bookmark.url} 

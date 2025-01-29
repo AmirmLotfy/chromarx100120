@@ -17,10 +17,9 @@ const BookmarkList = ({
   onToggleSelect,
   onDelete,
   formatDate,
-  view,
 }: BookmarkListProps) => {
   return (
-    <div className="space-y-2 p-4">
+    <div>
       {bookmarks.map((bookmark) => (
         <DraggableBookmark
           key={bookmark.id}

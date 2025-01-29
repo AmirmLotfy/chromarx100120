@@ -1,6 +1,3 @@
-import { Globe } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-
 interface BookmarkDomainsProps {
   domains: { domain: string; count: number }[];
   selectedDomain: string | null;
@@ -13,28 +10,21 @@ const BookmarkDomains = ({
   onSelectDomain,
 }: BookmarkDomainsProps) => {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Globe className="h-4 w-4" />
-        <h2 className="text-sm font-medium">Domains</h2>
+    <div>
+      <div>
+        <h2>Domains</h2>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Badge
-          variant={selectedDomain === null ? "default" : "outline"}
-          className="cursor-pointer"
-          onClick={() => onSelectDomain(null)}
-        >
+      <div>
+        <button onClick={() => onSelectDomain(null)}>
           All
-        </Badge>
+        </button>
         {domains.map(({ domain, count }) => (
-          <Badge
+          <button
             key={domain}
-            variant={selectedDomain === domain ? "default" : "outline"}
-            className="cursor-pointer"
             onClick={() => onSelectDomain(domain)}
           >
             {domain} ({count})
-          </Badge>
+          </button>
         ))}
       </div>
     </div>

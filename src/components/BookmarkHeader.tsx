@@ -14,10 +14,10 @@ const BookmarkHeader = ({
   onDeleteSelected,
 }: BookmarkHeaderProps) => {
   return (
-    <div className="p-4">
+    <div>
       <div className="flex items-center gap-2">
-        <Bookmark className="h-5 w-5 text-primary" />
-        <h1 className="text-lg font-semibold">Bookmarks</h1>
+        <Bookmark className="h-5 w-5" />
+        <h1>Bookmarks</h1>
       </div>
     </div>
   );

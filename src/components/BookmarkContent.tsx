@@ -6,7 +6,6 @@ import BookmarkList from "./BookmarkList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { Filter } from "lucide-react";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -50,7 +49,7 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-6">
+    <div>
       <BookmarkCategories
         categories={categories}
         selectedCategory={selectedCategory}
@@ -70,35 +69,27 @@ const BookmarkContent = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div>
       {isMobile ? (
-        <div className="flex justify-end">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <FilterPanel />
-            </SheetContent>
-          </Sheet>
-        </div>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm">
+              Filters
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <FilterPanel />
+          </SheetContent>
+        </Sheet>
       ) : (
-        <div className="grid gap-6 md:grid-cols-[250px_1fr]">
-          <FilterPanel />
-          <div />
-        </div>
+        <FilterPanel />
       )}
 
-      <div className="space-y-6">
+      <div>
         {loading ? (
-          <div className="text-center py-8">Loading bookmarks...</div>
+          <div>Loading bookmarks...</div>
         ) : filteredBookmarks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No bookmarks found
-          </div>
+          <div>No bookmarks found</div>
         ) : (
           <BookmarkList
             bookmarks={filteredBookmarks}
