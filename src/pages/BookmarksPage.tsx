@@ -25,6 +25,7 @@ import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { groupByDomain, extractDomain } from "@/utils/domainUtils";
 import ViewToggle from "@/components/ViewToggle";
+import SearchBar from "@/components/SearchBar";
 
 const BookmarksPage = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -256,6 +257,22 @@ const BookmarksPage = () => {
     }
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
+  const handleSelectBookmark = (bookmark: ChromeBookmark) => {
+    // Scroll to the bookmark in the list
+    const element = document.getElementById(`bookmark-${bookmark.id}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.classList.add("animate-highlight");
+      setTimeout(() => {
+        element.classList.remove("animate-highlight");
+      }, 2000);
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-8 pb-16">
@@ -317,17 +334,15 @@ const BookmarksPage = () => {
           </div>
         </div>
 
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          bookmarks={bookmarks}
+          onSelectBookmark={handleSelectBookmark}
+        />
+
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-[300px] space-y-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search bookmarks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
             <Select
               value={sortBy}
               onValueChange={(value) => setSortBy(value as "title" | "dateAdded" | "url")}
