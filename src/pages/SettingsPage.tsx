@@ -2,12 +2,20 @@ import { useTheme } from "next-themes";
 import Layout from "@/components/Layout";
 import { useSettings } from "@/stores/settingsStore";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -18,13 +26,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -46,11 +47,21 @@ import FeedbackForm from "@/components/settings/FeedbackForm";
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = React.useState("appearance");
 
   const handleReset = () => {
     settings.resetSettings();
     toast.success("Settings have been reset to default");
   };
+
+  const tabs = [
+    { value: "appearance", label: "Appearance", icon: Sun },
+    { value: "privacy", label: "Privacy", icon: Shield },
+    { value: "feedback", label: "Feedback", icon: MessageSquare },
+    { value: "account", label: "Account", icon: User },
+    { value: "advanced", label: "Advanced", icon: Settings2 },
+  ];
 
   return (
     <Layout>
@@ -62,14 +73,32 @@ const SettingsPage = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="appearance" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="privacy">Privacy</TabsTrigger>
-            <TabsTrigger value="feedback">Feedback</TabsTrigger>
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {isMobile ? (
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Select section" />
+              </SelectTrigger>
+              <SelectContent>
+                {tabs.map((tab) => (
+                  <SelectItem key={tab.value} value={tab.value}>
+                    <div className="flex items-center gap-2">
+                      <tab.icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          )}
 
           <TabsContent value="appearance" className="space-y-4">
             <Card>
