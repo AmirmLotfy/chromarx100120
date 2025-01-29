@@ -10,6 +10,7 @@ import NotesPage from "@/pages/NotesPage";
 import SettingsPage from "@/pages/SettingsPage";
 import PlansPage from "@/pages/PlansPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
+import SuggestedServicesPage from "@/pages/SuggestedServicesPage";
 import NotFound from "@/pages/NotFound";
 
 const Routes = () => {
@@ -26,6 +27,7 @@ const Routes = () => {
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/plans" element={<PlansPage />} />
       <Route path="/subscription" element={<SubscriptionPage />} />
+      <Route path="/suggested-services" element={<SuggestedServicesPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );
