@@ -13,6 +13,7 @@ import FocusMode from "./FocusMode";
 import TimeAnalytics from "./TimeAnalytics";
 import AITimerSuggestions from "./AITimerSuggestions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const TimeManagement = () => {
   const [activeTab, setActiveTab] = useState("custom");
@@ -29,6 +30,20 @@ const TimeManagement = () => {
     { value: "focus", label: "Focus Mode" },
     { value: "analytics", label: "Analytics" },
   ];
+
+  const renderContent = () => (
+    <ScrollArea className="h-[calc(100vh-12rem)] px-1">
+      {activeTab === "custom" && (
+        <div className="space-y-4">
+          <AITimerSuggestions onSuggestion={handleAISuggestion} />
+          <CustomTimer initialMinutes={suggestedDuration} />
+        </div>
+      )}
+      {activeTab === "pomodoro" && <PomodoroTimer />}
+      {activeTab === "focus" && <FocusMode />}
+      {activeTab === "analytics" && <TimeAnalytics />}
+    </ScrollArea>
+  );
 
   return (
     <div className="space-y-4">
@@ -52,15 +67,7 @@ const TimeManagement = () => {
           </Select>
 
           <div className="pt-2">
-            {activeTab === "custom" && (
-              <div className="space-y-4">
-                <AITimerSuggestions onSuggestion={handleAISuggestion} />
-                <CustomTimer initialMinutes={suggestedDuration} />
-              </div>
-            )}
-            {activeTab === "pomodoro" && <PomodoroTimer />}
-            {activeTab === "focus" && <FocusMode />}
-            {activeTab === "analytics" && <TimeAnalytics />}
+            {renderContent()}
           </div>
         </div>
       ) : (
@@ -73,22 +80,9 @@ const TimeManagement = () => {
             ))}
           </TabsList>
           
-          <TabsContent value="custom" className="space-y-4">
-            <AITimerSuggestions onSuggestion={handleAISuggestion} />
-            <CustomTimer initialMinutes={suggestedDuration} />
-          </TabsContent>
-          
-          <TabsContent value="pomodoro" className="space-y-4">
-            <PomodoroTimer />
-          </TabsContent>
-          
-          <TabsContent value="focus" className="space-y-4">
-            <FocusMode />
-          </TabsContent>
-          
-          <TabsContent value="analytics" className="space-y-4">
-            <TimeAnalytics />
-          </TabsContent>
+          <div className="mt-4">
+            {renderContent()}
+          </div>
         </Tabs>
       )}
     </div>
