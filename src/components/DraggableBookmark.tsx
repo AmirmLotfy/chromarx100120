@@ -74,9 +74,8 @@ const DraggableBookmark = ({
   return (
     <Card
       className={cn(
-        "transition-all duration-200 hover:shadow-md active:scale-[0.98] touch-manipulation w-full relative select-none cursor-pointer px-0",
-        selected && "ring-2 ring-primary bg-accent/50",
-        isPressed && "scale-[0.98]",
+        "transition-all duration-200 hover:shadow-md touch-manipulation w-full relative select-none cursor-pointer px-0",
+        selected && "bg-accent/50",
         view === "list" && "flex items-center"
       )}
       {...bind()}

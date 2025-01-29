@@ -18,7 +18,7 @@ import SortableBookmark from "./SortableBookmark";
 import { useEffect, useState } from "react";
 import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
-import { CheckSquare, FileText, Sparkles, Trash2 } from "lucide-react";
+import { CheckSquare, FileText, Globe, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
@@ -146,30 +146,57 @@ const BookmarkList = ({
     }
   };
 
-  const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => (
-    <div
-      className={cn(
-        "grid gap-2 animate-fade-in",
-        view === "grid"
-          ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-          : "grid-cols-1"
-      )}
-    >
-      {bookmarksToRender.map((bookmark, index) => (
-        <SortableBookmark
-          key={bookmark.id}
-          bookmark={bookmark}
-          selected={selectedBookmarks.has(bookmark.id)}
-          onToggleSelect={onToggleSelect}
-          onDelete={onDelete}
-          formatDate={formatDate}
-          view={view}
-          tabIndex={focusedIndex === index ? 0 : -1}
-          onFocus={() => setFocusedIndex(index)}
-        />
-      ))}
-    </div>
-  );
+  const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => {
+    // Group bookmarks by domain
+    const groupedBookmarks = bookmarksToRender.reduce((acc, bookmark) => {
+      if (bookmark.url) {
+        const domain = extractDomain(bookmark.url);
+        if (!acc[domain]) {
+          acc[domain] = [];
+        }
+        acc[domain].push(bookmark);
+      }
+      return acc;
+    }, {} as Record<string, ChromeBookmark[]>);
+
+    return (
+      <div className="space-y-8">
+        {Object.entries(groupedBookmarks).map(([domain, domainBookmarks]) => (
+          <div key={domain} className="space-y-4">
+            <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 backdrop-blur-sm rounded-lg sticky top-0 z-10">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium">{domain}</h3>
+              <span className="text-xs text-muted-foreground">
+                ({domainBookmarks.length})
+              </span>
+            </div>
+            <div
+              className={cn(
+                "grid gap-2",
+                view === "grid"
+                  ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                  : "grid-cols-1"
+              )}
+            >
+              {domainBookmarks.map((bookmark) => (
+                <SortableBookmark
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  selected={selectedBookmarks.has(bookmark.id)}
+                  onToggleSelect={onToggleSelect}
+                  onDelete={onDelete}
+                  formatDate={formatDate}
+                  view={view}
+                  tabIndex={focusedIndex === bookmarks.indexOf(bookmark) ? 0 : -1}
+                  onFocus={() => setFocusedIndex(bookmarks.indexOf(bookmark))}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const handleCleanup = async () => {
     if (selectedBookmarks.size === 0) {
