@@ -18,10 +18,7 @@ const FeatureGrid = () => {
   const { user } = useFirebase();
 
   const handleNavigation = (path: string) => {
-    console.log('Navigation attempted to:', path);
-    console.log('User state:', user ? 'Logged in' : 'Not logged in');
-    
-    // Temporarily removed authentication check for testing
+    console.log('Navigating to:', path);
     navigate(path);
   };
 
