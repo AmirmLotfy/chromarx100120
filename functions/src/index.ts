@@ -31,23 +31,33 @@ export const handleSubscription = functions.https.onRequest(async (req, res) => 
     const { orderId, planId, paymentDetails } = req.body;
 
     // Store subscription in Firestore
-    await admin.firestore().collection('subscriptions').doc(orderId).set({
-      userId,
-      planId,
-      orderId,
-      paymentDetails,
-      status: 'active',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    const subscriptionRef = admin.firestore().collection('subscriptions').doc(orderId);
+    const userRef = admin.firestore().collection('users').doc(userId);
+
+    await admin.firestore().runTransaction(async (transaction) => {
+      // Create subscription document
+      transaction.set(subscriptionRef, {
+        userId,
+        planId,
+        orderId,
+        paymentDetails,
+        status: 'active',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Update user's subscription status
+      transaction.set(userRef, {
+        subscriptionStatus: 'active',
+        currentPlan: planId,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
     });
 
-    // Update user's subscription status
-    await admin.firestore().collection('users').doc(userId).set({
-      subscriptionStatus: 'active',
-      currentPlan: planId,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    res.status(200).json({ message: 'Subscription processed successfully' });
+    // Send success response
+    res.status(200).json({ 
+      message: 'Subscription processed successfully',
+      subscriptionId: orderId 
+    });
   } catch (error) {
     console.error('Subscription processing error:', error);
     res.status(500).json({ error: 'Failed to process subscription' });
