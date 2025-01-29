@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Share2, Copy, WhatsappLogo } from "lucide-react";
+import { Share2, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 interface NoteEditorProps {
@@ -120,7 +120,7 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
             onClick={() => handleShare('whatsapp')}
             title="Share via WhatsApp"
           >
-            <Share2 className="h-4 w-4" />
+            <MessageSquare className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
