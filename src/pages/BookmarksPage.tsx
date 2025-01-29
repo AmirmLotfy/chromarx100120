@@ -8,6 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkControls from "@/components/BookmarkControls";
 import BookmarkContent from "@/components/BookmarkContent";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const BookmarksPage = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -18,6 +19,7 @@ const BookmarksPage = () => {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
+  const isMobile = useIsMobile();
 
   const loadBookmarks = async () => {
     try {
@@ -203,35 +205,6 @@ const BookmarksPage = () => {
       }
     });
 
-  const handleBulkDelete = async (ids: string[]) => {
-    try {
-      if (chrome.bookmarks) {
-        const promises = ids.map(id => chrome.bookmarks.remove(id));
-        await Promise.all(promises);
-        setBookmarks(prev => prev.filter(bookmark => !ids.includes(bookmark.id)));
-        toast.success(`${ids.length} bookmarks deleted`);
-      }
-    } catch (error) {
-      console.error("Error deleting bookmarks:", error);
-      toast.error("Failed to delete bookmarks");
-    }
-  };
-
-  const handleReorderBookmarks = async (newBookmarks: ChromeBookmark[]) => {
-    try {
-      if (chrome.bookmarks) {
-        for (let i = 0; i < newBookmarks.length; i++) {
-          await chrome.bookmarks.move(newBookmarks[i].id, { index: i });
-        }
-      }
-      setBookmarks(newBookmarks);
-      toast.success("Bookmarks reordered successfully");
-    } catch (error) {
-      console.error("Error reordering bookmarks:", error);
-      toast.error("Failed to reorder bookmarks");
-    }
-  };
-
   return (
     <Layout>
       <div className="space-y-8 pb-16">
@@ -240,22 +213,8 @@ const BookmarksPage = () => {
           view={view}
           onViewChange={setView}
           onDeleteSelected={handleDeleteSelected}
-        />
-
-        <SearchBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          bookmarks={bookmarks}
-          onSelectBookmark={(bookmark) => {
-            const element = document.getElementById(`bookmark-${bookmark.id}`);
-            if (element) {
-              element.scrollIntoView({ behavior: "smooth", block: "center" });
-              element.classList.add("animate-highlight");
-              setTimeout(() => {
-                element.classList.remove("animate-highlight");
-              }, 2000);
-            }
-          }}
         />
 
         <div className="flex flex-col md:flex-row gap-6">
