@@ -21,13 +21,20 @@ const BookmarkNotifications = ({ newBookmarks }: BookmarkNotificationsProps) => 
 
   useEffect(() => {
     const showNotifications = async () => {
-      if (!("Notification" in window)) return;
+      if (!("Notification" in window)) {
+        console.log("Notifications not supported");
+        return;
+      }
 
       try {
         // Request permission if not granted
         if (notificationPermission === "default") {
           const permission = await Notification.requestPermission();
           setNotificationPermission(permission);
+          if (permission !== "granted") {
+            console.log("Notification permission denied");
+            return;
+          }
         }
         
         if (notificationPermission === "granted") {
@@ -36,42 +43,47 @@ const BookmarkNotifications = ({ newBookmarks }: BookmarkNotificationsProps) => 
 
           // Show notifications for each new bookmark
           newBookmarks.forEach(bookmark => {
-            // Create browser notification
-            new Notification("New Bookmark Added", {
-              body: `${bookmark.title}\n${bookmark.url}`,
-              icon: "/icon48.png",
-              tag: bookmark.id,
-              badge: "/icon48.png",
-              requireInteraction: false,
-              silent: false
-            });
+            // Create browser notification with proper error handling
+            try {
+              new Notification("New Bookmark Added", {
+                body: `${bookmark.title}\n${bookmark.url}`,
+                icon: "/lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
+                tag: bookmark.id,
+                badge: "/lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
+                requireInteraction: false,
+                silent: false
+              });
 
-            // Show toast notification
-            toast.success(`New bookmark added: ${bookmark.title}`, {
-              description: bookmark.url,
-              duration: 3000,
-              action: {
-                label: "View",
-                onClick: () => {
-                  // Scroll to the bookmark or highlight it
-                  const element = document.getElementById(bookmark.id);
-                  if (element) {
-                    element.scrollIntoView({ behavior: "smooth" });
-                    element.classList.add("highlight");
-                    setTimeout(() => element.classList.remove("highlight"), 2000);
+              // Show toast notification
+              toast.success(`New bookmark added: ${bookmark.title}`, {
+                description: bookmark.url,
+                duration: 3000,
+                action: {
+                  label: "View",
+                  onClick: () => {
+                    const element = document.getElementById(bookmark.id);
+                    if (element) {
+                      element.scrollIntoView({ behavior: "smooth" });
+                      element.classList.add("highlight");
+                      setTimeout(() => element.classList.remove("highlight"), 2000);
+                    }
                   }
                 }
-              }
-            });
+              });
+            } catch (error) {
+              console.error("Error showing notification:", error);
+            }
           });
 
           // Store unread count in chrome.storage
           if (chrome.storage) {
-            chrome.storage.local.set({ unreadBookmarks: unreadCount });
+            chrome.storage.local.set({ unreadBookmarks: unreadCount }).catch(error => {
+              console.error("Error storing unread count:", error);
+            });
           }
         }
       } catch (error) {
-        console.error("Error showing notification:", error);
+        console.error("Error in notification handling:", error);
       }
     };
 
@@ -84,7 +96,9 @@ const BookmarkNotifications = ({ newBookmarks }: BookmarkNotificationsProps) => 
   useEffect(() => {
     return () => {
       if (chrome.storage) {
-        chrome.storage.local.set({ unreadBookmarks: 0 });
+        chrome.storage.local.set({ unreadBookmarks: 0 }).catch(error => {
+          console.error("Error clearing unread count:", error);
+        });
       }
       setUnreadCount(0);
     };

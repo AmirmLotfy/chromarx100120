@@ -2,13 +2,15 @@
   "manifest_version": 3,
   "name": "ChroMarx",
   "version": "1.0.0",
-  "description": "A beautiful and functional Chrome extension",
+  "description": "A beautiful and functional Chrome extension for managing bookmarks with AI-powered organization and insights",
   "permissions": [
     "sidePanel",
     "bookmarks",
-    "contextMenus",
-    "notifications",
     "storage",
+    "notifications"
+  ],
+  "optional_permissions": [
+    "contextMenus",
     "alarms"
   ],
   "side_panel": {
@@ -26,5 +28,20 @@
     "16": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
     "48": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
     "128": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png"
-  }
+  },
+  "author": "ChroMarx Team",
+  "homepage_url": "https://chromarx.com",
+  "offline_enabled": true,
+  "short_name": "ChroMarx",
+  "version_name": "1.0.0 Beta",
+  "minimum_chrome_version": "88",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "lovable-uploads/*.png"
+    ],
+    "matches": ["<all_urls>"]
+  }]
 }
