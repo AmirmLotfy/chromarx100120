@@ -13,22 +13,9 @@ import { toast } from "sonner";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useEffect, useState } from "react";
 import { getPayPalClientId } from "@/utils/firebaseUtils";
+import type { Plan, PlanFeature } from "@/config/subscriptionPlans";
 
-interface PlanFeature {
-  name: string;
-  included: boolean;
-}
-
-interface PlanProps {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: PlanFeature[];
-  isPopular?: boolean;
-}
-
-const PlanCard = ({ id, name, price, description, features, isPopular }: PlanProps) => {
+const PlanCard = ({ id, name, price, description, features, isPopular }: Plan) => {
   const { user } = useFirebase();
   const [paypalClientId, setPaypalClientId] = useState<string>("");
 
@@ -38,7 +25,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
       if (clientId) {
         setPaypalClientId(clientId);
       } else {
-        toast.error("PayPal configuration not found");
+        toast.error("Payment configuration not found");
       }
     };
 
@@ -66,7 +53,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
         throw new Error('Failed to process subscription');
       }
 
-      toast.success("Successfully subscribed to " + name);
+      toast.success(`Successfully subscribed to ${name}`);
     } catch (error) {
       console.error('Payment processing error:', error);
       toast.error("Failed to process payment");
@@ -117,10 +104,16 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
             <PayPalScriptProvider options={{ 
               clientId: paypalClientId,
               currency: "USD",
-              intent: "capture"
+              intent: "capture",
+              components: "buttons,card",
+              disableFunding: "paypal"
             }}>
               <PayPalButtons
-                style={{ layout: "horizontal" }}
+                style={{ 
+                  layout: "horizontal",
+                  shape: "rect",
+                  label: "pay"
+                }}
                 createOrder={(data, actions) => {
                   return actions.order.create({
                     intent: "CAPTURE",
@@ -135,7 +128,7 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
                 }}
                 onApprove={handlePayPalApprove}
                 onError={() => {
-                  toast.error("PayPal payment failed");
+                  toast.error("Payment failed");
                 }}
               />
             </PayPalScriptProvider>
