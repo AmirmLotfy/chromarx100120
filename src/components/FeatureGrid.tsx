@@ -14,22 +14,20 @@ import { useFirebase } from "@/contexts/FirebaseContext";
 
 const FeatureGrid = () => {
   const navigate = useNavigate();
-  const { user } = useFirebase();
+  console.log('FeatureGrid component rendered');
 
   const handleNavigation = (path: string) => {
-    console.log('Navigation triggered for path:', path);
-    try {
-      navigate(path);
-      console.log('Navigation successful to:', path);
-    } catch (error) {
-      console.error('Navigation failed:', error);
-    }
+    console.log('Navigation attempt to:', path);
+    navigate(path);
   };
 
   return (
-    <div className="grid grid-cols-2 gap-3" onClick={() => console.log('Grid clicked')}>
+    <div className="grid grid-cols-2 gap-3">
       <Button
-        onClick={() => handleNavigation('/bookmarks')}
+        onClick={() => {
+          console.log('Bookmark button clicked');
+          handleNavigation('/bookmarks');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#0EA5E9] hover:bg-gradient-to-br hover:from-[#0EA5E9] hover:to-[#38BDF8] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -38,7 +36,10 @@ const FeatureGrid = () => {
       </Button>
       
       <Button
-        onClick={() => handleNavigation('/chat')}
+        onClick={() => {
+          console.log('Chat button clicked');
+          handleNavigation('/chat');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-gradient-to-br hover:from-[#8B5CF6] hover:to-[#A78BFA] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -47,7 +48,10 @@ const FeatureGrid = () => {
       </Button>
 
       <Button
-        onClick={() => handleNavigation('/summaries')}
+        onClick={() => {
+          console.log('Summaries button clicked');
+          handleNavigation('/summaries');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#D946EF] hover:bg-gradient-to-br hover:from-[#D946EF] hover:to-[#E879F9] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -56,7 +60,10 @@ const FeatureGrid = () => {
       </Button>
 
       <Button
-        onClick={() => handleNavigation('/analytics')}
+        onClick={() => {
+          console.log('Analytics button clicked');
+          handleNavigation('/analytics');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#F97316] hover:bg-gradient-to-br hover:from-[#F97316] hover:to-[#FB923C] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -65,7 +72,10 @@ const FeatureGrid = () => {
       </Button>
 
       <Button
-        onClick={() => handleNavigation('/timer')}
+        onClick={() => {
+          console.log('Timer button clicked');
+          handleNavigation('/timer');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#10B981] hover:bg-gradient-to-br hover:from-[#10B981] hover:to-[#34D399] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -74,7 +84,10 @@ const FeatureGrid = () => {
       </Button>
 
       <Button
-        onClick={() => handleNavigation('/tasks')}
+        onClick={() => {
+          console.log('Tasks button clicked');
+          handleNavigation('/tasks');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#6366F1] hover:bg-gradient-to-br hover:from-[#6366F1] hover:to-[#818CF8] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -83,7 +96,10 @@ const FeatureGrid = () => {
       </Button>
 
       <Button
-        onClick={() => handleNavigation('/notes')}
+        onClick={() => {
+          console.log('Notes button clicked');
+          handleNavigation('/notes');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#EC4899] hover:bg-gradient-to-br hover:from-[#EC4899] hover:to-[#F472B6] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
@@ -92,7 +108,10 @@ const FeatureGrid = () => {
       </Button>
 
       <Button
-        onClick={() => handleNavigation('/suggested-services')}
+        onClick={() => {
+          console.log('Services button clicked');
+          handleNavigation('/suggested-services');
+        }}
         variant="outline"
         className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-[#14B8A6] hover:bg-gradient-to-br hover:from-[#14B8A6] hover:to-[#2DD4BF] text-white transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border-none"
       >
