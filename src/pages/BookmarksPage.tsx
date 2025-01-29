@@ -33,6 +33,9 @@ const BookmarksPage = () => {
       if (chrome.bookmarks) {
         const results = await chrome.bookmarks.getRecent(100);
         
+        // Store the current bookmarks count for comparison
+        const previousCount = bookmarks.length;
+        
         const categorizedResults = await Promise.all(
           results.map(async (bookmark): Promise<ChromeBookmark> => {
             const chromeBookmark: ChromeBookmark = {
@@ -51,6 +54,12 @@ const BookmarksPage = () => {
         );
         
         setBookmarks(categorizedResults);
+
+        // Check for new bookmarks and notify
+        if (previousCount < categorizedResults.length) {
+          const newBookmarks = categorizedResults.slice(0, categorizedResults.length - previousCount);
+          notifyNewBookmarks(newBookmarks);
+        }
       } else {
         setBookmarks([
           {
@@ -84,8 +93,38 @@ const BookmarksPage = () => {
     }
   };
 
+  const notifyNewBookmarks = async (newBookmarks: ChromeBookmark[]) => {
+    if (!("Notification" in window)) {
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      
+      if (permission === "granted") {
+        newBookmarks.forEach(bookmark => {
+          new Notification("New Bookmark Added", {
+            body: `${bookmark.title}\n${bookmark.url}`,
+            icon: "/icon48.png"
+          });
+
+          toast.success(`New bookmark added: ${bookmark.title}`, {
+            description: bookmark.url,
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error showing notification:", error);
+    }
+  };
+
+  // Set up bookmark change listener
   useEffect(() => {
-    loadBookmarks();
+    if (chrome.bookmarks) {
+      chrome.bookmarks.onCreated.addListener(() => {
+        loadBookmarks();
+      });
+    }
   }, []);
 
   const handleDelete = async (id: string) => {
