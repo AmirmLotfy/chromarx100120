@@ -7,6 +7,7 @@ import {
   Search,
   BarChart,
   Timer,
+  CheckSquare,
 } from "lucide-react";
 
 const FeatureGrid = () => {
@@ -69,6 +70,16 @@ const FeatureGrid = () => {
         >
           <Timer className="h-6 w-6" />
           <span>Timer</span>
+        </Button>
+      </Link>
+
+      <Link to="/tasks">
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2"
+        >
+          <CheckSquare className="h-6 w-6" />
+          <span>Tasks</span>
         </Button>
       </Link>
     </div>
