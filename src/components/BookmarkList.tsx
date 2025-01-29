@@ -279,19 +279,19 @@ const BookmarkList = ({
         items={items.map((item) => item.id)}
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
-        <div className="space-y-8">
-          <div className="space-y-4">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
-              className="w-full sm:w-auto"
+              className="flex-1 sm:flex-none"
             >
               <CheckSquare className="h-4 w-4 mr-2" />
               {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
             </Button>
 
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 items-center justify-end flex-1">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -300,9 +300,9 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleCleanup}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="gap-2"
+                      className="flex-1 sm:flex-none"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 mr-2" />
                       Cleanup
                     </Button>
                   </TooltipTrigger>
@@ -318,9 +318,9 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleGenerateSummaries}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="gap-2"
+                      className="flex-1 sm:flex-none"
                     >
-                      <FileText className="h-4 w-4" />
+                      <FileText className="h-4 w-4 mr-2" />
                       Summarize
                     </Button>
                   </TooltipTrigger>
@@ -336,9 +336,9 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleSuggestCategories}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="gap-2"
+                      className="flex-1 sm:flex-none"
                     >
-                      <Sparkles className="h-4 w-4" />
+                      <Sparkles className="h-4 w-4 mr-2" />
                       Categorize
                     </Button>
                   </TooltipTrigger>

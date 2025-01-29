@@ -80,27 +80,29 @@ const BookmarkContent = ({
   );
 
   return (
-    <div className="space-y-6 w-full max-w-full">
-      {isMobile ? (
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full">
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters & Tools
-            </Button>
-          </SheetTrigger>
-          <SheetContent 
-            side="left" 
-            className="w-[280px] sm:w-[320px] p-4 overflow-y-auto"
-          >
+    <div className="space-y-4 w-full max-w-full">
+      <div className="flex flex-row gap-2 items-center justify-between">
+        {isMobile ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1">
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filters & Tools
+              </Button>
+            </SheetTrigger>
+            <SheetContent 
+              side="left" 
+              className="w-[280px] sm:w-[320px] p-4 overflow-y-auto"
+            >
+              <FilterPanel />
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <div className="bg-card rounded-lg border p-4 overflow-hidden">
             <FilterPanel />
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <div className="bg-card rounded-lg border p-4 overflow-hidden">
-          <FilterPanel />
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <div className="min-h-[200px] w-full max-w-full overflow-hidden">
         {loading ? (
