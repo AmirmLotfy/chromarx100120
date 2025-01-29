@@ -11,19 +11,23 @@ import {
   Package,
 } from "lucide-react";
 import { useFirebase } from "@/contexts/FirebaseContext";
-import { toast } from "sonner";
 
 const FeatureGrid = () => {
   const navigate = useNavigate();
   const { user } = useFirebase();
 
   const handleNavigation = (path: string) => {
-    console.log('Navigating to:', path);
-    navigate(path);
+    console.log('Navigation triggered for path:', path);
+    try {
+      navigate(path);
+      console.log('Navigation successful to:', path);
+    } catch (error) {
+      console.error('Navigation failed:', error);
+    }
   };
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3" onClick={() => console.log('Grid clicked')}>
       <Button
         onClick={() => handleNavigation('/bookmarks')}
         variant="outline"

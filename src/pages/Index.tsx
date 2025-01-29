@@ -6,6 +6,7 @@ import { useFirebase } from "@/contexts/FirebaseContext";
 
 const Index = () => {
   const { user } = useFirebase();
+  console.log("Rendering Index page");
 
   return (
     <Layout>
