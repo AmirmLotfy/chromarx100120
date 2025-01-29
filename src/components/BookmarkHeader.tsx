@@ -2,21 +2,27 @@ import { Bookmark, Grid, List, Search, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
+import BookmarkAIActions from "./BookmarkAIActions";
+import { ChromeBookmark } from "@/types/bookmark";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
+  selectedBookmarks: ChromeBookmark[];
   view: "grid" | "list";
   onViewChange: (view: "grid" | "list") => void;
   onDeleteSelected: () => void;
+  onUpdateCategories: (bookmarks: ChromeBookmark[]) => void;
   searchQuery: string;
   onSearchChange: (value: string) => void;
 }
 
 const BookmarkHeader = ({
   selectedBookmarksCount,
+  selectedBookmarks,
   view,
   onViewChange,
   onDeleteSelected,
+  onUpdateCategories,
   searchQuery,
   onSearchChange,
 }: BookmarkHeaderProps) => {
@@ -33,6 +39,10 @@ const BookmarkHeader = ({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <BookmarkAIActions
+            selectedBookmarks={selectedBookmarks}
+            onUpdateCategories={onUpdateCategories}
+          />
           <Button
             variant="ghost"
             size="icon"
