@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { useSettings } from "@/stores/settingsStore";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useFirebase } from "@/contexts/FirebaseContext";
 import {
   Tabs,
   TabsContent,
@@ -43,15 +44,29 @@ import {
   RefreshCw,
   HelpCircle,
   CreditCard,
+  Store,
 } from "lucide-react";
 import FeedbackForm from "@/components/settings/FeedbackForm";
 import SubscriptionSettings from "@/components/settings/SubscriptionSettings";
+import AffiliateSettings from "@/components/settings/AffiliateSettings";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
   const isMobile = useIsMobile();
+  const { user } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        setIsAdmin(userDoc.data()?.isAdmin || false);
+      }
+    };
+    checkAdminStatus();
+  }, [user]);
 
   const handleReset = () => {
     settings.resetSettings();
@@ -66,6 +81,11 @@ const SettingsPage = () => {
     { value: "account", label: "Account", icon: User },
     { value: "advanced", label: "Advanced", icon: Settings2 },
   ];
+
+  // Add affiliate management tab for admin users
+  if (isAdmin) {
+    tabs.push({ value: "affiliate", label: "Affiliate", icon: Store });
+  }
 
   return (
     <Layout>
@@ -340,6 +360,12 @@ const SettingsPage = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {isAdmin && (
+                <TabsContent value="affiliate">
+                  <AffiliateSettings />
+                </TabsContent>
+              )}
             </div>
           </Tabs>
         </div>
