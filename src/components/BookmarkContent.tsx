@@ -80,7 +80,7 @@ const BookmarkContent = ({
   );
 
   return (
-    <div className="space-y-1 sm:space-y-3 w-full max-w-full">
+    <div className="space-y-1 sm:space-y-2 w-full max-w-full">
       <div className="flex flex-row gap-1 sm:gap-1.5 items-center justify-between">
         {isMobile ? (
           <Sheet>
