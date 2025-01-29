@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import BookmarkCategories from "@/components/BookmarkCategories";
 import BookmarkList from "@/components/BookmarkList";
 import { ChromeBookmark } from "@/types/bookmark";
+import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 
 type SortOption = "title" | "dateAdded" | "url";
 
@@ -32,7 +33,22 @@ const BookmarksPage = () => {
       try {
         if (chrome.bookmarks) {
           const results = await chrome.bookmarks.getRecent(100);
-          setBookmarks(results);
+          
+          // Categorize uncategorized bookmarks
+          const categorizedResults = await Promise.all(
+            results.map(async (bookmark) => {
+              if (!bookmark.category && bookmark.url) {
+                const suggestedCategory = await suggestBookmarkCategory(
+                  bookmark.title,
+                  bookmark.url
+                );
+                return { ...bookmark, category: suggestedCategory };
+              }
+              return bookmark;
+            })
+          );
+          
+          setBookmarks(categorizedResults);
         } else {
           // Demo data for development
           setBookmarks([
