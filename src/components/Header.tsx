@@ -1,50 +1,41 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Settings, Menu } from "lucide-react";
+import { User } from "lucide-react";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useFirebase } from "@/contexts/FirebaseContext";
+import { auth } from "@/lib/firebase";
 
 const Header = () => {
+  const { user } = useFirebase();
+
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <div className="mr-4 flex items-center space-x-2 md:mr-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[240px] p-0">
-              <ScrollArea className="h-full px-2">
-                <div className="flex flex-col space-y-3 p-4">
-                  <Link to="/" className="flex items-center space-x-2">
-                    <img src="/logo.png" alt="ChroMarx" className="h-6" />
-                  </Link>
-                  <nav className="flex flex-col space-y-2">
-                    <Link to="/bookmarks" className="text-muted-foreground hover:text-primary">
-                      Bookmarks
-                    </Link>
-                    <Link to="/tasks" className="text-muted-foreground hover:text-primary">
-                      Tasks
-                    </Link>
-                    <Link to="/notes" className="text-muted-foreground hover:text-primary">
-                      Notes
-                    </Link>
-                  </nav>
-                </div>
-              </ScrollArea>
-            </SheetContent>
-          </Sheet>
-          <Link to="/" className="flex items-center space-x-2">
-            <img src="/logo.png" alt="ChroMarx" className="h-6" />
+        <div className="flex items-center">
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/lovable-uploads/b4b481d2-8bb9-44fd-adee-0a0b27cb341c.png" 
+              alt="ChroMarx" 
+              className="h-8" 
+            />
           </Link>
         </div>
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-8">
           <Link to="/bookmarks" className="text-muted-foreground hover:text-primary transition-colors">
             Bookmarks
           </Link>
@@ -56,11 +47,31 @@ const Header = () => {
           </Link>
         </nav>
         <div className="ml-auto flex items-center space-x-4">
-          <Link to="/settings">
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>
+                {user ? user.email : 'Account'}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/settings">Settings</Link>
+              </DropdownMenuItem>
+              {user ? (
+                <DropdownMenuItem onClick={handleSignOut}>
+                  Sign out
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem asChild>
+                  <Link to="/login">Sign in</Link>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
