@@ -14,7 +14,7 @@ const AnalyticsDashboard = () => {
   return (
     <div className="h-full flex flex-col">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start mb-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="domains">Domains</TabsTrigger>
           <TabsTrigger value="time">Time</TabsTrigger>
@@ -22,9 +22,9 @@ const AnalyticsDashboard = () => {
           <TabsTrigger value="tips">AI Tips</TabsTrigger>
         </TabsList>
 
-        <div className="flex-1 overflow-hidden mt-4">
-          <ScrollArea className="h-full">
-            <div className="space-y-4 pr-4">
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-[calc(100vh-20rem)]">
+            <div className="space-y-4 pr-4 pb-8">
               <TabsContent value="overview" className="mt-0 space-y-4">
                 <ProductivityScore />
                 <DomainStats />
