@@ -280,18 +280,20 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
-              className="col-span-1"
+              className="flex-1 sm:flex-none"
             >
               <CheckSquare className="h-4 w-4 mr-2" />
               {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
             </Button>
+          </div>
 
-            <div className="col-span-1 sm:flex-1 grid grid-cols-3 sm:flex sm:flex-wrap gap-2 items-center sm:justify-end">
+          {selectedBookmarks.size > 0 && (
+            <div className="grid grid-cols-3 gap-2 animate-fade-in">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -299,7 +301,8 @@ const BookmarkList = ({
                       variant="outline"
                       size="sm"
                       onClick={handleCleanup}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      disabled={isProcessing}
+                      className="w-full"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Cleanup
@@ -316,7 +319,8 @@ const BookmarkList = ({
                       variant="outline"
                       size="sm"
                       onClick={handleGenerateSummaries}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      disabled={isProcessing}
+                      className="w-full"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Summarize
@@ -333,7 +337,8 @@ const BookmarkList = ({
                       variant="outline"
                       size="sm"
                       onClick={handleSuggestCategories}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      disabled={isProcessing}
+                      className="w-full"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
                       Categorize
@@ -345,7 +350,7 @@ const BookmarkList = ({
                 </Tooltip>
               </TooltipProvider>
             </div>
-          </div>
+          )}
 
           {Object.entries(groupedByDomain).map(([domain, domainBookmarks]) => (
             <div key={domain} className="space-y-4">
