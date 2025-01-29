@@ -1,28 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
-
-// Using the same product data structure
-const FEATURED_SERVICES = [
-  {
-    id: "1",
-    title: "1Password",
-    imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
-    affiliateUrl: "https://1password.com/",
-  },
-  {
-    id: "2",
-    title: "Dropbox",
-    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475",
-    affiliateUrl: "https://www.dropbox.com/",
-  },
-  {
-    id: "3",
-    title: "NordVPN",
-    imageUrl: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-    affiliateUrl: "https://nordvpn.com/",
-  }
-];
+import { featuredServices } from "@/config/affiliateContent";
 
 const CompactServiceBanner = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,14 +17,14 @@ const CompactServiceBanner = () => {
 
   useEffect(() => {
     const productInterval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % FEATURED_SERVICES.length);
+      setCurrentIndex((prev) => (prev + 1) % featuredServices.length);
       setIsFlipped(false);
     }, 6000);
 
     return () => clearInterval(productInterval);
   }, []);
 
-  const currentService = FEATURED_SERVICES[currentIndex];
+  const currentService = featuredServices[currentIndex];
 
   return (
     <div className="relative h-32 mb-4 perspective-1000">
