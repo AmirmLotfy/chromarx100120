@@ -39,18 +39,20 @@ export const useBookmarkState = () => {
         
         setBookmarks(categorizedResults);
 
+        // Check for new bookmarks and update notifications
         if (previousCount < categorizedResults.length) {
           const newOnes = categorizedResults.slice(0, categorizedResults.length - previousCount);
           setNewBookmarks(newOnes);
 
+          // Update badge text if available
           if (chrome.action) {
             const unreadCount = newOnes.length;
             chrome.action.setBadgeText({ text: unreadCount > 0 ? unreadCount.toString() : "" });
-            chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+            chrome.action.setBadgeBackgroundColor({ color: "#10B981" }); // Green color
           }
         }
       } else {
-        // Demo data with real links for testing
+        // Demo data for development
         setBookmarks([
           {
             id: "1",
@@ -68,130 +70,11 @@ export const useBookmarkState = () => {
           },
           {
             id: "3",
-            title: "MDN Web Docs",
-            url: "https://developer.mozilla.org",
+            title: "Tailwind CSS",
+            url: "https://tailwindcss.com",
             dateAdded: Date.now() - 259200000,
-            category: "Development",
-          },
-          {
-            id: "4",
-            title: "GitHub",
-            url: "https://github.com",
-            dateAdded: Date.now() - 345600000,
-            category: "Development",
-          },
-          {
-            id: "5",
-            title: "Stack Overflow",
-            url: "https://stackoverflow.com",
-            dateAdded: Date.now() - 432000000,
-            category: "Development",
-          },
-          {
-            id: "6",
-            title: "CSS-Tricks",
-            url: "https://css-tricks.com",
-            dateAdded: Date.now() - 518400000,
             category: "Design",
           },
-          {
-            id: "7",
-            title: "Dribbble",
-            url: "https://dribbble.com",
-            dateAdded: Date.now() - 604800000,
-            category: "Design",
-          },
-          {
-            id: "8",
-            title: "Behance",
-            url: "https://www.behance.net",
-            dateAdded: Date.now() - 691200000,
-            category: "Design",
-          },
-          {
-            id: "9",
-            title: "Medium",
-            url: "https://medium.com",
-            dateAdded: Date.now() - 777600000,
-            category: "Reading",
-          },
-          {
-            id: "10",
-            title: "Dev.to",
-            url: "https://dev.to",
-            dateAdded: Date.now() - 864000000,
-            category: "Development",
-          },
-          {
-            id: "11",
-            title: "Product Hunt",
-            url: "https://www.producthunt.com",
-            dateAdded: Date.now() - 950400000,
-            category: "Technology",
-          },
-          {
-            id: "12",
-            title: "Hacker News",
-            url: "https://news.ycombinator.com",
-            dateAdded: Date.now() - 1036800000,
-            category: "Technology",
-          },
-          {
-            id: "13",
-            title: "Figma",
-            url: "https://www.figma.com",
-            dateAdded: Date.now() - 1123200000,
-            category: "Design",
-          },
-          {
-            id: "14",
-            title: "CodePen",
-            url: "https://codepen.io",
-            dateAdded: Date.now() - 1209600000,
-            category: "Development",
-          },
-          {
-            id: "15",
-            title: "Smashing Magazine",
-            url: "https://www.smashingmagazine.com",
-            dateAdded: Date.now() - 1296000000,
-            category: "Development",
-          },
-          {
-            id: "16",
-            title: "Node.js",
-            url: "https://nodejs.org",
-            dateAdded: Date.now() - 1382400000,
-            category: "Development",
-          },
-          {
-            id: "17",
-            title: "npm",
-            url: "https://www.npmjs.com",
-            dateAdded: Date.now() - 1468800000,
-            category: "Development",
-          },
-          {
-            id: "18",
-            title: "Vue.js",
-            url: "https://vuejs.org",
-            dateAdded: Date.now() - 1555200000,
-            category: "Development",
-          },
-          {
-            id: "19",
-            title: "Angular",
-            url: "https://angular.io",
-            dateAdded: Date.now() - 1641600000,
-            category: "Development",
-          },
-          {
-            id: "20",
-            title: "Next.js",
-            url: "https://nextjs.org",
-            dateAdded: Date.now() - 1728000000,
-            category: "Development",
-          }
         ]);
       }
     } catch (error) {
