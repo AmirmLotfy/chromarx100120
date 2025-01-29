@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Task } from "@/types/task";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Wand2 } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,6 +19,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { getTaskSuggestions } from "@/utils/taskSuggestions";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskFormProps {
   onSubmit: (task: Omit<Task, "id" | "createdAt">) => void;
@@ -35,6 +37,8 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
   const [dueDate, setDueDate] = useState<Date | undefined>(
     initialData?.dueDate ? new Date(initialData.dueDate) : undefined
   );
+  const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +56,34 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
       setPriority("medium");
       setCategory("");
       setDueDate(undefined);
+    }
+  };
+
+  const handleGetSuggestions = async () => {
+    if (!title) {
+      toast({
+        title: "Please enter a task title",
+        description: "A title is required to get suggestions.",
+      });
+      return;
+    }
+
+    setIsGettingSuggestions(true);
+    try {
+      const suggestions = await getTaskSuggestions(title, description);
+      setPriority(suggestions.suggestedPriority);
+      setCategory(suggestions.suggestedCategory);
+      toast({
+        title: "Suggestions applied",
+        description: "AI has suggested priority and category based on your task.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error getting suggestions",
+        description: "Failed to get AI suggestions. Please try again.",
+      });
+    } finally {
+      setIsGettingSuggestions(false);
     }
   };
 
@@ -107,7 +139,20 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
           </PopoverContent>
         </Popover>
       </div>
-      <Button type="submit">{initialData ? "Update" : "Add"} Task</Button>
+      <div className="flex gap-2">
+        <Button type="submit">{initialData ? "Update" : "Add"} Task</Button>
+        {!initialData && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleGetSuggestions}
+            disabled={isGettingSuggestions}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Get AI Suggestions
+          </Button>
+        )}
+      </div>
     </form>
   );
 };
