@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { SlidersHorizontal } from "lucide-react";
+import AIActionButtons from "./AIActionButtons";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
