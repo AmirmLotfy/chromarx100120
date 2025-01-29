@@ -43,8 +43,7 @@ const BookmarkNotifications = ({ newBookmarks }: BookmarkNotificationsProps) => 
               tag: bookmark.id,
               badge: "/icon48.png",
               requireInteraction: false,
-              silent: false,
-              vibrate: [200, 100, 200]
+              silent: false
             });
 
             // Show toast notification
