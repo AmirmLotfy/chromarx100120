@@ -95,7 +95,7 @@ const Header = () => {
             <Button 
               onClick={signInWithGoogle}
               size="sm"
-              className="h-8 px-3 text-sm bg-primary hover:bg-primary/90 transition-colors"
+              className="h-7 md:h-8 px-2 md:px-3 text-xs md:text-sm bg-primary hover:bg-primary/90 transition-colors"
             >
               Sign in
             </Button>
