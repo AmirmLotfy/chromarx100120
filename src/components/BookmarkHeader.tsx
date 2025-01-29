@@ -1,4 +1,4 @@
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, SlidersHorizontal } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, SlidersHorizontal, Sparkles, Folders } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,10 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "./ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import {
+  Card,
+  CardContent,
+} from "./ui/card";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -44,6 +48,40 @@ const BookmarkHeader = ({
   onSelectSuggestion,
 }: BookmarkHeaderProps) => {
   const isMobile = useIsMobile();
+
+  const AIActionButtons = () => (
+    <Card className="bg-accent/50 border-none shadow-none">
+      <CardContent className="p-3 flex flex-wrap gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {/* Implement cleanup action */}}
+        >
+          <Trash2 className="h-4 w-4" />
+          Cleanup
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {/* Implement summarize action */}}
+        >
+          <Sparkles className="h-4 w-4" />
+          Summarize
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={() => {/* Implement categorize action */}}
+        >
+          <Folders className="h-4 w-4" />
+          Categorize
+        </Button>
+      </CardContent>
+    </Card>
+  );
 
   const ActionButtons = () => (
     <div className="flex items-center gap-2">
@@ -158,6 +196,8 @@ const BookmarkHeader = ({
           <ActionButtons />
         )}
       </div>
+
+      <AIActionButtons />
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
