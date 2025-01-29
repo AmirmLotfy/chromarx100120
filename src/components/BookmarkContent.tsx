@@ -26,6 +26,7 @@ interface BookmarkContentProps {
   onRefresh: () => void;
   loading: boolean;
   filteredBookmarks: ChromeBookmark[];
+  onUpdateCategories: (bookmarks: ChromeBookmark[]) => void;
 }
 
 const BookmarkContent = ({
@@ -46,6 +47,7 @@ const BookmarkContent = ({
   onRefresh,
   loading,
   filteredBookmarks,
+  onUpdateCategories,
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
 
@@ -118,6 +120,7 @@ const BookmarkContent = ({
             formatDate={formatDate}
             view={view}
             onReorder={onReorder}
+            onUpdateCategories={onUpdateCategories}
           />
         )}
       </div>
