@@ -75,7 +75,6 @@ export default {
         highlight: "highlight 2s ease-in-out",
       },
       fontSize: {
-        // Ensuring readable text sizes across devices
         'xs': ['0.75rem', { lineHeight: '1rem' }],
         'sm': ['0.875rem', { lineHeight: '1.25rem' }],
         'base': ['1rem', { lineHeight: '1.5rem' }],
@@ -84,7 +83,6 @@ export default {
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
       },
       spacing: {
-        // Consistent spacing scale
         '4xs': '0.125rem',
         '3xs': '0.25rem',
         '2xs': '0.375rem',
@@ -94,6 +92,18 @@ export default {
         'lg': '1.25rem',
         'xl': '1.5rem',
         '2xl': '2rem',
+      },
+      transformStyle: {
+        '3d': 'preserve-3d',
+      },
+      perspective: {
+        '1000': '1000px',
+      },
+      backfaceVisibility: {
+        'hidden': 'hidden',
+      },
+      rotate: {
+        'y-180': 'rotateY(180deg)',
       },
     },
   },

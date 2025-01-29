@@ -1,6 +1,7 @@
 import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
 import WelcomeCard from "../components/WelcomeCard";
+import AffiliateSection from "../components/affiliate/AffiliateSection";
 
 const Index = () => {
   return (
@@ -14,6 +15,7 @@ const Index = () => {
         </div>
         <WelcomeCard />
         <FeatureGrid />
+        <AffiliateSection />
       </div>
     </Layout>
   );
