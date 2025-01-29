@@ -50,8 +50,8 @@ const TaskPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 w-full max-w-3xl mx-auto px-4">
-        <div className="space-y-2">
+      <div className="w-full max-w-3xl mx-auto px-4 pb-20">
+        <div className="space-y-2 mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Task Management</h1>
           <p className="text-muted-foreground">
             Create and manage your tasks efficiently

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,7 +88,7 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-3xl mx-auto">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Input
         placeholder="Task title"
         value={title}
@@ -100,11 +100,11 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
         placeholder="Task description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="w-full min-h-[100px]"
+        className="w-full min-h-[100px] resize-none"
       />
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Select value={priority} onValueChange={(value: Task["priority"]) => setPriority(value)}>
-          <SelectTrigger className="w-full sm:w-[200px]">
+          <SelectTrigger>
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>
@@ -117,14 +117,13 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
           placeholder="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full sm:w-[200px]"
         />
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-full sm:w-[200px] justify-start text-left font-normal",
+                "w-full justify-start text-left font-normal",
                 !dueDate && "text-muted-foreground"
               )}
             >

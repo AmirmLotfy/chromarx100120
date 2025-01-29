@@ -43,7 +43,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
   };
 
   return (
-    <div className="space-y-4 w-full max-w-3xl mx-auto">
+    <div className="space-y-4">
       {tasks.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">
           No tasks yet. Add your first task above!
@@ -51,27 +51,27 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
       ) : (
         tasks.map((task) => (
           <Card key={task.id} className={cn("w-full", task.completed && "opacity-60")}>
-            <CardHeader className="pb-2 space-y-2">
-              <div className="flex items-start gap-3 flex-wrap sm:flex-nowrap">
+            <CardHeader className="pb-2">
+              <div className="flex items-start gap-3">
                 <Checkbox
                   checked={task.completed}
                   onCheckedChange={() => onToggleComplete(task.id)}
                   className="mt-1"
                 />
                 <div className="flex-1 min-w-0">
-                  <CardTitle className={cn("break-words", task.completed && "line-through")}>
+                  <CardTitle className={cn("break-words text-base sm:text-lg", task.completed && "line-through")}>
                     {task.title}
                   </CardTitle>
-                  <CardDescription className="break-words mt-1">
+                  <CardDescription className="break-words mt-1 text-sm">
                     {task.description}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2 ml-auto">
+                <div className="flex gap-1 ml-2 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setEditingTask(task)}
-                    className="shrink-0"
+                    className="h-8 w-8"
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -79,7 +79,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(task.id)}
-                    className="shrink-0"
+                    className="h-8 w-8"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -87,14 +87,14 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2 text-sm">
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
                 <Badge variant="secondary" className="whitespace-nowrap">
                   {task.category}
                 </Badge>
                 <Badge className={cn("whitespace-nowrap", getPriorityColor(task.priority))}>
                   {task.priority}
                 </Badge>
-                <span className="text-muted-foreground whitespace-nowrap">
+                <span className="text-muted-foreground whitespace-nowrap text-xs">
                   Due: {format(new Date(task.dueDate), "PPP")}
                 </span>
               </div>
@@ -104,7 +104,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
       )}
 
       <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
-        <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
