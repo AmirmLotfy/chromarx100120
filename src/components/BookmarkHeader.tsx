@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles, FileText } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles, FileText, Download } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
@@ -57,158 +57,58 @@ const BookmarkHeader = ({
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleGenerateSummaries = async () => {
-    if (selectedBookmarks.length === 0) {
-      toast.error("Please select bookmarks to summarize");
+  const handleImportBookmarks = async () => {
+    if (!chrome.bookmarks) {
+      toast.error("Chrome bookmarks API not available");
       return;
     }
 
-    setIsProcessing(true);
     try {
-      const summaries = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
-          return {
-            id: bookmark.id,
-            title: bookmark.title,
-            content: summary,
-            url: bookmark.url || "",
-            date: new Date().toLocaleDateString(),
-          };
-        })
-      );
-
-      const existingSummaries = JSON.parse(
-        localStorage.getItem("bookmarkSummaries") || "[]"
-      );
-      localStorage.setItem(
-        "bookmarkSummaries",
-        JSON.stringify([...summaries, ...existingSummaries])
-      );
-
-      toast.success("Summaries generated successfully!");
-      navigate("/summaries");
+      const bookmarks = await chrome.bookmarks.getTree();
+      // Process the bookmarks tree
+      onImport();
+      toast.success("Bookmarks imported successfully!");
     } catch (error) {
-      toast.error("Failed to generate summaries");
-    } finally {
-      setIsProcessing(false);
+      toast.error("Failed to import bookmarks");
     }
   };
 
-  const handleSuggestCategories = async () => {
+  const handleExportBookmarks = async () => {
     if (selectedBookmarks.length === 0) {
-      toast.error("Please select bookmarks to categorize");
+      toast.error("Please select bookmarks to export");
       return;
     }
 
-    setIsProcessing(true);
     try {
-      const updatedBookmarks = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => ({
-          ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
-        }))
-      );
+      const bookmarksData = selectedBookmarks.map(bookmark => ({
+        title: bookmark.title,
+        url: bookmark.url,
+        dateAdded: bookmark.dateAdded,
+        category: bookmark.category
+      }));
 
-      onUpdateCategories(updatedBookmarks);
-      toast.success("Categories suggested successfully!");
-    } catch (error) {
-      toast.error("Failed to suggest categories");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleCleanup = async () => {
-    if (selectedBookmarks.length === 0) {
-      toast.error("Please select bookmarks to clean up");
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const duplicates = findDuplicateBookmarks(selectedBookmarks);
-      const brokenBookmarks = await findBrokenBookmarks(selectedBookmarks);
+      // Create a Blob with the bookmarks data
+      const blob = new Blob([JSON.stringify(bookmarksData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
       
-      const totalIssues = duplicates.byUrl.length + duplicates.byTitle.length + brokenBookmarks.length;
-      
-      if (totalIssues === 0) {
-        toast.info("No issues found in selected bookmarks");
-        return;
-      }
+      // Create a download link and trigger it
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bookmarks-export.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      await onDeleteSelected();
-      toast.success("Cleanup completed successfully");
+      toast.success("Bookmarks exported successfully!");
     } catch (error) {
-      toast.error("Failed to clean up bookmarks");
-    } finally {
-      setIsProcessing(false);
+      toast.error("Failed to export bookmarks");
     }
   };
-
-  const AIActionButtons = () => (
-    <div className="flex items-center gap-2">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCleanup}
-              disabled={isProcessing || selectedBookmarks.length === 0}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Cleanup
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Find and remove duplicate or broken bookmarks
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateSummaries}
-              disabled={isProcessing || selectedBookmarks.length === 0}
-              className="gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              Summarize
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Generate summaries for selected bookmarks
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSuggestCategories}
-              disabled={isProcessing || selectedBookmarks.length === 0}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Categorize
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Suggest categories for selected bookmarks
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  );
 
   return (
-    <div className="space-y-4 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Bookmarks</h1>
@@ -219,23 +119,61 @@ const BookmarkHeader = ({
           )}
         </div>
         
-        {isMobile ? (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10">
-                <FolderPlus className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <div className="space-y-4">
-                <h2 className="font-medium">Actions</h2>
-                <AIActionButtons />
-              </div>
-            </SheetContent>
-          </Sheet>
-        ) : (
-          <AIActionButtons />
-        )}
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleImportBookmarks}
+                  className="h-8 w-8"
+                >
+                  <Import className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Import Chrome bookmarks</TooltipContent>
+            </Tooltip>
+
+            {selectedBookmarksCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleExportBookmarks}
+                    className="h-8 w-8"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Export selected bookmarks</TooltipContent>
+              </Tooltip>
+            )}
+          </TooltipProvider>
+
+          {isMobile ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8">
+                  <FolderPlus className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <div className="space-y-4">
+                  <h2 className="font-medium">Actions</h2>
+                  <div className="grid grid-cols-1 gap-2">
+                    <AIActionButtons />
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <div className="flex items-center gap-2">
+              <AIActionButtons />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="relative">
@@ -244,15 +182,15 @@ const BookmarkHeader = ({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
-          className="pl-9 w-full h-9"
+          className="pl-9 w-full h-8"
           aria-label="Search bookmarks"
         />
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 mx-1">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
-                className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md"
+                className="w-full px-3 py-1.5 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md text-sm"
                 onClick={() => onSelectSuggestion(suggestion)}
               >
                 {suggestion}
