@@ -3,6 +3,7 @@ import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
 import BookmarkCleanup from "./BookmarkCleanup";
 import BookmarkList from "./BookmarkList";
+import BookmarkAIActions from "./BookmarkAIActions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -49,8 +50,16 @@ const BookmarkContent = ({
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
 
+  const selectedBookmarksArray = Array.from(selectedBookmarks)
+    .map(id => bookmarks.find(b => b.id === id))
+    .filter((b): b is ChromeBookmark => b !== undefined);
+
   const FilterPanel = () => (
     <div className="space-y-6 w-full max-w-full overflow-hidden p-1">
+      <BookmarkAIActions
+        selectedBookmarks={selectedBookmarksArray}
+        onUpdateCategories={() => {}}
+      />
       <div className="space-y-2">
         <h2 className="text-sm font-medium px-2">Categories</h2>
         <BookmarkCategories
