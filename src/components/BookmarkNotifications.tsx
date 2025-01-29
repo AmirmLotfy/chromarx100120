@@ -21,7 +21,6 @@ const BookmarkNotifications = ({ newBookmarks }: BookmarkNotificationsProps) => 
               icon: "/icon48.png",
               tag: bookmark.id,
               badge: "/icon48.png",
-              vibrate: [200, 100, 200],
               requireInteraction: false,
               silent: false
             });
