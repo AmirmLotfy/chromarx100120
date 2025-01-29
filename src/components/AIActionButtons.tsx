@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
