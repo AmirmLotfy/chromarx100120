@@ -21,7 +21,7 @@ const BookmarkDomains = ({
           size="sm"
           onClick={() => onSelectDomain(null)}
           className={cn(
-            "whitespace-nowrap",
+            "whitespace-nowrap min-w-[60px] text-center",
             selectedDomain === null && "bg-primary text-primary-foreground"
           )}
         >
@@ -34,7 +34,7 @@ const BookmarkDomains = ({
             size="sm"
             onClick={() => onSelectDomain(domain)}
             className={cn(
-              "whitespace-nowrap",
+              "whitespace-nowrap min-w-[60px] text-center",
               selectedDomain === domain && "bg-primary text-primary-foreground"
             )}
           >

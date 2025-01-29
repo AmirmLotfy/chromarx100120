@@ -50,9 +50,9 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-6 w-full max-w-full overflow-hidden">
+    <div className="space-y-6 w-full max-w-full overflow-hidden p-1">
       <div className="space-y-2">
-        <h2 className="text-sm font-medium">Categories</h2>
+        <h2 className="text-sm font-medium px-2">Categories</h2>
         <BookmarkCategories
           categories={categories}
           selectedCategory={selectedCategory}
@@ -60,18 +60,20 @@ const BookmarkContent = ({
         />
       </div>
       <div className="space-y-2">
-        <h2 className="text-sm font-medium">Domains</h2>
+        <h2 className="text-sm font-medium px-2">Domains</h2>
         <BookmarkDomains
           domains={domains}
           selectedDomain={selectedDomain}
           onSelectDomain={onSelectDomain}
         />
       </div>
-      <BookmarkCleanup
-        bookmarks={bookmarks}
-        onDelete={onBulkDelete}
-        onRefresh={onRefresh}
-      />
+      <div className="px-2">
+        <BookmarkCleanup
+          bookmarks={bookmarks}
+          onDelete={onBulkDelete}
+          onRefresh={onRefresh}
+        />
+      </div>
     </div>
   );
 
@@ -85,12 +87,17 @@ const BookmarkContent = ({
               Filters & Tools
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+          <SheetContent 
+            side="left" 
+            className="w-[280px] sm:w-[320px] p-4 overflow-y-auto"
+          >
             <FilterPanel />
           </SheetContent>
         </Sheet>
       ) : (
-        <FilterPanel />
+        <div className="bg-card rounded-lg border p-4 overflow-hidden">
+          <FilterPanel />
+        </div>
       )}
 
       <div className="min-h-[200px] w-full max-w-full overflow-hidden">

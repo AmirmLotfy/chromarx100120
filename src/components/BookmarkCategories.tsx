@@ -26,7 +26,7 @@ const BookmarkCategories = ({
           size="sm"
           onClick={() => onSelectCategory(null)}
           className={cn(
-            "whitespace-nowrap",
+            "whitespace-nowrap min-w-[60px] text-center",
             selectedCategory === null && "bg-primary text-primary-foreground"
           )}
         >
@@ -39,7 +39,7 @@ const BookmarkCategories = ({
             size="sm"
             onClick={() => onSelectCategory(category.name)}
             className={cn(
-              "whitespace-nowrap",
+              "whitespace-nowrap min-w-[60px] text-center",
               selectedCategory === category.name && "bg-primary text-primary-foreground"
             )}
           >
