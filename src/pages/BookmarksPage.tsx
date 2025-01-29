@@ -1,17 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import Layout from "../components/Layout";
 import { ChromeBookmark } from "@/types/bookmark";
-import { suggestBookmarkCategory } from "@/utils/geminiUtils";
-import { groupByDomain, extractDomain } from "@/utils/domainUtils";
+import { groupByDomain } from "@/utils/domainUtils";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkControls from "@/components/BookmarkControls";
 import BookmarkContent from "@/components/BookmarkContent";
+import BookmarkNotifications from "@/components/BookmarkNotifications";
+import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const BookmarksPage = () => {
-  const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    bookmarks,
+    setBookmarks,
+    loading,
+    newBookmarks,
+    loadBookmarks,
+  } = useBookmarkState();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -19,103 +26,6 @@ const BookmarksPage = () => {
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
   const isMobile = useIsMobile();
-
-  const loadBookmarks = async () => {
-    try {
-      if (chrome.bookmarks) {
-        const results = await chrome.bookmarks.getRecent(100);
-        const previousCount = bookmarks.length;
-        
-        const categorizedResults = await Promise.all(
-          results.map(async (bookmark): Promise<ChromeBookmark> => {
-            const chromeBookmark: ChromeBookmark = {
-              ...bookmark,
-              category: undefined
-            };
-            
-            if (!chromeBookmark.category && chromeBookmark.url) {
-              chromeBookmark.category = await suggestBookmarkCategory(
-                chromeBookmark.title,
-                chromeBookmark.url
-              );
-            }
-            return chromeBookmark;
-          })
-        );
-        
-        setBookmarks(categorizedResults);
-
-        if (previousCount < categorizedResults.length) {
-          const newBookmarks = categorizedResults.slice(0, categorizedResults.length - previousCount);
-          notifyNewBookmarks(newBookmarks);
-        }
-      } else {
-        setBookmarks([
-          {
-            id: "1",
-            title: "React Documentation",
-            url: "https://react.dev",
-            dateAdded: Date.now() - 86400000,
-            category: "Development",
-          },
-          {
-            id: "2",
-            title: "TypeScript Handbook",
-            url: "https://www.typescriptlang.org/docs/",
-            dateAdded: Date.now() - 172800000,
-            category: "Development",
-          },
-          {
-            id: "3",
-            title: "Tailwind CSS",
-            url: "https://tailwindcss.com",
-            dateAdded: Date.now() - 259200000,
-            category: "Design",
-          },
-        ]);
-      }
-    } catch (error) {
-      console.error("Error loading bookmarks:", error);
-      toast.error("Failed to load bookmarks");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const notifyNewBookmarks = async (newBookmarks: ChromeBookmark[]) => {
-    if (!("Notification" in window)) {
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      
-      if (permission === "granted") {
-        newBookmarks.forEach(bookmark => {
-          new Notification("New Bookmark Added", {
-            body: `${bookmark.title}\n${bookmark.url}`,
-            icon: "/icon48.png"
-          });
-
-          toast.success(`New bookmark added: ${bookmark.title}`, {
-            description: bookmark.url,
-          });
-        });
-      }
-    } catch (error) {
-      console.error("Error showing notification:", error);
-    }
-  };
-
-  useEffect(() => {
-    loadBookmarks();
-    if (chrome.bookmarks) {
-      chrome.bookmarks.onCreated.addListener(loadBookmarks);
-      return () => {
-        chrome.bookmarks.onCreated.removeListener(loadBookmarks);
-      };
-    }
-  }, []);
 
   const handleDelete = async (id: string) => {
     try {
@@ -228,7 +138,13 @@ const BookmarksPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-8 pb-16">
+      <div 
+        className="space-y-8 pb-16"
+        role="main"
+        aria-label="Bookmarks Management"
+      >
+        <BookmarkNotifications newBookmarks={newBookmarks} />
+        
         <BookmarkHeader
           selectedBookmarksCount={selectedBookmarks.size}
           selectedBookmarks={selectedBookmarksArray}
