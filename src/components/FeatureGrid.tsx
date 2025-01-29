@@ -21,10 +21,7 @@ const FeatureGrid = () => {
     console.log('Navigation attempted to:', path);
     console.log('User state:', user ? 'Logged in' : 'Not logged in');
     
-    if (!user) {
-      toast.error("Please sign in to access this feature");
-      return;
-    }
+    // Temporarily removed authentication check for testing
     navigate(path);
   };
 
