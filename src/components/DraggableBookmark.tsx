@@ -2,9 +2,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChromeBookmark } from "@/types/bookmark";
 import { cn } from "@/lib/utils";
-import { Move } from "lucide-react";
+import { Move, Trash2 } from "lucide-react";
 import BookmarkContent from "./BookmarkContent";
 import BookmarkShare from "./BookmarkShare";
+import { Checkbox } from "./ui/checkbox";
 
 interface DraggableBookmarkProps {
   bookmark: ChromeBookmark;
@@ -39,11 +40,18 @@ const DraggableBookmark = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex flex-col p-4 rounded-lg group animate-fade-in transition-colors",
+        "flex flex-col p-4 rounded-lg group animate-fade-in transition-colors relative",
         selected ? "bg-primary/10" : "bg-accent hover:bg-accent/80"
       )}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="absolute top-2 left-2">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={() => onToggleSelect(bookmark.id)}
+          className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        />
+      </div>
+      <div className="flex items-center gap-2 mb-2 ml-8">
         <button
           className="p-2 text-muted-foreground hover:text-primary transition-colors cursor-move"
           {...attributes}
@@ -55,18 +63,18 @@ const DraggableBookmark = ({
         <BookmarkShare bookmark={bookmark} />
       </div>
       {bookmark.url && (
-        <p className="text-sm text-muted-foreground truncate">
+        <p className="text-sm text-muted-foreground truncate ml-8">
           {bookmark.url}
         </p>
       )}
       {bookmark.dateAdded && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground ml-8">
           Added: {formatDate(bookmark.dateAdded)}
         </p>
       )}
       <button
         onClick={() => onDelete(bookmark.id)}
-        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+        className="absolute top-2 right-2 p-2 text-muted-foreground hover:text-destructive transition-colors"
         aria-label="Delete bookmark"
       >
         <Trash2 className="h-4 w-4" />

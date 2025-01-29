@@ -1,8 +1,5 @@
-import { ExternalLink, Trash2 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
-import BookmarkContent from "./BookmarkContent";
-import BookmarkShare from "./BookmarkShare";
-import { cn } from "@/lib/utils";
+import { extractDomain } from "@/utils/domainUtils";
 import {
   DndContext,
   closestCenter,
@@ -17,7 +14,8 @@ import {
   sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
-import DraggableBookmark from "./DraggableBookmark";
+import DomainGroup from "./DomainGroup";
+import { cn } from "@/lib/utils";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -56,6 +54,15 @@ const BookmarkList = ({
     }
   };
 
+  // Group bookmarks by domain
+  const domains = Array.from(
+    new Set(
+      bookmarks
+        .map((b) => b.url && extractDomain(b.url))
+        .filter(Boolean) as string[]
+    )
+  ).sort();
+
   return (
     <DndContext
       sensors={sensors}
@@ -64,18 +71,17 @@ const BookmarkList = ({
     >
       <div
         className={cn(
-          "gap-4",
-          view === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-            : "grid"
+          "space-y-8",
+          view === "grid" && "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
         )}
       >
         <SortableContext items={bookmarks.map((b) => b.id)} strategy={rectSortingStrategy}>
-          {bookmarks.map((bookmark) => (
-            <DraggableBookmark
-              key={bookmark.id}
-              bookmark={bookmark}
-              selected={selectedBookmarks.has(bookmark.id)}
+          {domains.map((domain) => (
+            <DomainGroup
+              key={domain}
+              domain={domain}
+              bookmarks={bookmarks}
+              selectedBookmarks={selectedBookmarks}
               onToggleSelect={onToggleSelect}
               onDelete={onDelete}
               formatDate={formatDate}
