@@ -53,8 +53,86 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Improved focus styles for better accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary ring-2 ring-primary ring-offset-2;
+  }
+
+  /* Ensure text remains visible during webfont load */
+  html {
+    font-display: swap;
+  }
+
+  /* Improve color contrast for better readability */
+  .text-muted-foreground {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+
+  /* Add smooth scrolling for better user experience */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Improve tap target sizes on mobile */
+  button, 
+  [role="button"],
+  input,
+  select,
+  textarea {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Add proper heading hierarchy styles */
+  h1 {
+    @apply text-2xl font-bold md:text-3xl;
+  }
+
+  h2 {
+    @apply text-xl font-semibold md:text-2xl;
+  }
+
+  h3 {
+    @apply text-lg font-medium md:text-xl;
+  }
+
+  /* Improve link accessibility */
+  a {
+    @apply underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary;
+  }
+
+  /* Add proper list styles */
+  ul, ol {
+    @apply list-inside;
+  }
+
+  /* Ensure proper spacing for text content */
+  p {
+    @apply leading-relaxed;
+  }
+
+  /* Add proper table styles for better readability */
+  table {
+    @apply w-full border-collapse;
+  }
+
+  th, td {
+    @apply p-2 border text-left;
+  }
+
+  /* Improve form element accessibility */
+  input, 
+  textarea {
+    @apply px-3 py-2;
+  }
+
+  /* Add proper skip link for keyboard navigation */
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-background focus:text-foreground;
   }
 }

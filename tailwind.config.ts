@@ -74,6 +74,27 @@ export default {
         "scale-in": "scale-in 0.2s ease-out",
         highlight: "highlight 2s ease-in-out",
       },
+      fontSize: {
+        // Ensuring readable text sizes across devices
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+      },
+      spacing: {
+        // Consistent spacing scale
+        '4xs': '0.125rem',
+        '3xs': '0.25rem',
+        '2xs': '0.375rem',
+        'xs': '0.5rem',
+        'sm': '0.75rem',
+        'md': '1rem',
+        'lg': '1.25rem',
+        'xl': '1.5rem',
+        '2xl': '2rem',
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
