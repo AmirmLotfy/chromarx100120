@@ -34,17 +34,21 @@ const BookmarksPage = () => {
         if (chrome.bookmarks) {
           const results = await chrome.bookmarks.getRecent(100);
           
-          // Categorize uncategorized bookmarks
+          // Convert BookmarkTreeNode to ChromeBookmark and categorize
           const categorizedResults = await Promise.all(
-            results.map(async (bookmark) => {
-              if (!bookmark.category && bookmark.url) {
-                const suggestedCategory = await suggestBookmarkCategory(
-                  bookmark.title,
-                  bookmark.url
+            results.map(async (bookmark): Promise<ChromeBookmark> => {
+              const chromeBookmark: ChromeBookmark = {
+                ...bookmark,
+                category: undefined
+              };
+              
+              if (!chromeBookmark.category && chromeBookmark.url) {
+                chromeBookmark.category = await suggestBookmarkCategory(
+                  chromeBookmark.title,
+                  chromeBookmark.url
                 );
-                return { ...bookmark, category: suggestedCategory };
               }
-              return bookmark;
+              return chromeBookmark;
             })
           );
           
