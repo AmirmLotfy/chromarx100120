@@ -7,6 +7,7 @@ import { getContextFromHistory, generateChatPrompt, extractTopicsFromMessages } 
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { Message } from "@/types/chat";
+import { useGemini } from "@/contexts/GeminiContext";
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -14,6 +15,7 @@ const ChatInterface = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
+  const { apiKey } = useGemini();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,6 +35,11 @@ const ChatInterface = () => {
   }, [bookmarks]);
 
   const processQuery = async (query: string) => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     try {
       const [relevantBookmarks, webResults] = await Promise.all([
         Promise.resolve(searchBookmarks(query)),
@@ -46,7 +53,7 @@ const ChatInterface = () => {
       const chatContext = getContextFromHistory(messages, query);
       const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
 
-      const response = await summarizeContent(prompt);
+      const response = await summarizeContent(prompt, apiKey);
 
       return {
         response,

@@ -4,6 +4,7 @@ import { FileText, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
+import { useGemini } from "@/contexts/GeminiContext";
 import {
   Tooltip,
   TooltipContent,
@@ -21,8 +22,14 @@ interface AIActionButtonsProps {
 const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActionButtonsProps) => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { apiKey } = useGemini();
 
   const handleGenerateSummaries = async () => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     if (selectedBookmarks.length === 0) {
       toast.error("Please select bookmarks to summarize");
       return;
@@ -32,7 +39,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`, apiKey);
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -61,6 +68,11 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
   };
 
   const handleSuggestCategories = async () => {
+    if (!apiKey) {
+      toast.error("Please set your Gemini API key in settings");
+      return;
+    }
+
     if (!onUpdateCategories || selectedBookmarks.length === 0) {
       toast.error("Please select bookmarks to categorize");
       return;
@@ -71,7 +83,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
           ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", apiKey),
         }))
       );
 

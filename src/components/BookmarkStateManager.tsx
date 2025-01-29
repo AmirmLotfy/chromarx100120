@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { useGemini } from "@/contexts/GeminiContext";
 
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -9,6 +10,7 @@ export const useBookmarkState = () => {
   const [newBookmarks, setNewBookmarks] = useState<ChromeBookmark[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const { apiKey } = useGemini();
 
   const loadBookmarks = async () => {
     try {
@@ -16,6 +18,11 @@ export const useBookmarkState = () => {
         const results = await chrome.bookmarks.getRecent(100);
         const previousCount = bookmarks.length;
         
+        if (!apiKey) {
+          setBookmarks(results);
+          return;
+        }
+
         const categorizedResults = await Promise.all(
           results.map(async (bookmark): Promise<ChromeBookmark> => {
             const chromeBookmark: ChromeBookmark = {
@@ -27,7 +34,8 @@ export const useBookmarkState = () => {
               try {
                 chromeBookmark.category = await suggestBookmarkCategory(
                   chromeBookmark.title,
-                  chromeBookmark.url
+                  chromeBookmark.url,
+                  apiKey
                 );
               } catch (error) {
                 console.error("Error suggesting category:", error);

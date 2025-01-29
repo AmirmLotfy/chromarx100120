@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { useGemini } from "@/contexts/GeminiContext";
 
 interface AIGeneratedData {
   summary?: string;
