@@ -1,6 +1,6 @@
-import { BookmarkTreeNode } from "chrome";
+/// <reference types="chrome"/>
 
-export interface ChromeBookmark extends Omit<BookmarkTreeNode, 'children'> {
+export interface ChromeBookmark extends Omit<chrome.bookmarks.BookmarkTreeNode, 'children'> {
   id: string;
   title: string;
   url?: string;
