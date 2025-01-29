@@ -28,7 +28,7 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
 
   const handleSend = () => {
     if (!inputValue.trim() || isProcessing) return;
-    onSendMessage(inputValue.trim());
+    onSendMessage(inputValue);
     setInputValue("");
     setOpen(false);
   };
@@ -46,7 +46,7 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
   };
 
   return (
-    <div className="flex gap-2 w-full">
+    <div className="flex gap-2">
       <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Input
@@ -79,12 +79,7 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
           </Command>
         </PopoverContent>
       </Popover>
-      <Button 
-        onClick={handleSend} 
-        size="icon" 
-        disabled={isProcessing}
-        type="button"
-      >
+      <Button onClick={handleSend} size="icon" disabled={isProcessing}>
         <Send className="h-4 w-4" />
       </Button>
     </div>
