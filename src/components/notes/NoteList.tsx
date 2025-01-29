@@ -31,8 +31,8 @@ const NoteList = ({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
+    <div className="flex flex-col h-full space-y-4">
+      <div className="relative flex-shrink-0">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search notes..."
@@ -42,8 +42,8 @@ const NoteList = ({
         />
       </div>
       
-      <ScrollArea className="h-[calc(100vh-12rem)]">
-        <div className="space-y-2">
+      <ScrollArea className="flex-1">
+        <div className="space-y-2 pr-4">
           {filteredNotes.length === 0 ? (
             <p className="text-center text-muted-foreground p-4">
               No notes found

@@ -41,7 +41,7 @@ const NotesPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-4">
+      <div className="h-[calc(100vh-8rem)] flex flex-col space-y-4 overflow-hidden">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Notes</h1>
           <Button onClick={handleCreateNew}>
@@ -50,8 +50,8 @@ const NotesPage = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-1 space-y-4">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 min-h-0">
+          <div className="md:col-span-1 overflow-hidden flex flex-col">
             <NoteList
               notes={notes}
               selectedNote={selectedNote}
@@ -59,7 +59,7 @@ const NotesPage = () => {
               onDeleteNote={handleDeleteNote}
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 overflow-auto">
             <NoteEditor
               note={selectedNote}
               onSave={handleSaveNote}
