@@ -80,7 +80,7 @@ const SettingsPage = () => {
               <SelectTrigger className="w-full mb-4">
                 <SelectValue placeholder="Select section" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-lg">
                 {tabs.map((tab) => (
                   <SelectItem key={tab.value} value={tab.value}>
                     <div className="flex items-center gap-2">
