@@ -66,7 +66,7 @@ const SettingsPage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto px-4 py-6 h-[calc(100vh-8rem)] flex flex-col">
+      <div className="container max-w-4xl mx-auto h-full flex flex-col">
         <div className="space-y-2 flex-shrink-0">
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">
@@ -74,7 +74,7 @@ const SettingsPage = () => {
           </p>
         </div>
 
-        <div className="flex-1 overflow-hidden mt-6">
+        <div className="flex-1 overflow-hidden mt-4">
           <Tabs 
             value={activeTab} 
             onValueChange={setActiveTab} 
@@ -106,7 +106,7 @@ const SettingsPage = () => {
               </TabsList>
             )}
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-16">
             <TabsContent value="appearance" className="space-y-4">
               <Card>
                 <CardHeader>

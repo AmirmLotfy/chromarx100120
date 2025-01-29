@@ -7,7 +7,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <main className="flex-1 container mx-auto py-6 overflow-y-auto">
+      <main className="flex-1 container mx-auto py-4 flex flex-col">
         {children}
       </main>
       <Navigation />
