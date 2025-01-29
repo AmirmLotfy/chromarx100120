@@ -9,6 +9,7 @@ import {
   Timer,
   CheckSquare,
   StickyNote,
+  Package,
 } from "lucide-react";
 
 const FeatureGrid = () => {
@@ -91,6 +92,16 @@ const FeatureGrid = () => {
         >
           <StickyNote className="h-6 w-6" />
           <span>Notes</span>
+        </Button>
+      </Link>
+
+      <Link to="/suggested-services">
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-accent hover:bg-accent/80"
+        >
+          <Package className="h-6 w-6" />
+          <span>Suggested Services</span>
         </Button>
       </Link>
     </div>
