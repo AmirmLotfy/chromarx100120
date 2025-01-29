@@ -28,11 +28,11 @@ export const getGeminiApiKey = async (userId: string) => {
   }
 };
 
-export const storePayPalCredentials = async () => {
+export const storePayPalCredentials = async (clientId: string, secretKey: string) => {
   try {
     await setDoc(doc(db, 'secrets', 'paypal'), {
-      clientId: 'YOUR_PAYPAL_CLIENT_ID',
-      secretKey: 'YOUR_PAYPAL_SECRET_KEY',
+      clientId,
+      secretKey,
       updatedAt: new Date().toISOString(),
     });
     return true;
