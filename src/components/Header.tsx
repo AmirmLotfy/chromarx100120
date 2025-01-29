@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, LogIn } from "lucide-react";
 import {
@@ -11,17 +11,37 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const Header = () => {
   const { user, signInWithGoogle, signOut } = useFirebase();
   const navigate = useNavigate();
 
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      toast.success("Successfully signed in!");
+      navigate('/bookmarks');
+    } catch (error) {
+      console.error('Error signing in:', error);
+      toast.error("Failed to sign in. Please try again.");
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Successfully signed out");
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error("Failed to sign out");
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       navigate('/');
-      toast.error("Please sign in to continue");
     }
   }, [user, navigate]);
 
@@ -83,7 +103,7 @@ const Header = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={signOut}
+                  onClick={handleSignOut}
                   className="text-red-500 cursor-pointer focus:text-red-500"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -93,13 +113,13 @@ const Header = () => {
             </DropdownMenu>
           ) : (
             <Button 
-              onClick={signInWithGoogle}
+              onClick={handleSignIn}
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full hover:bg-accent"
+              size="sm"
+              className="flex items-center space-x-2 hover:bg-accent px-3"
             >
               <LogIn className="h-4 w-4" />
-              <span className="sr-only">Sign in</span>
+              <span>Sign in</span>
             </Button>
           )}
         </div>
