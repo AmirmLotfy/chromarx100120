@@ -280,18 +280,18 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
-              className="flex-1 sm:flex-none"
+              className="col-span-1"
             >
               <CheckSquare className="h-4 w-4 mr-2" />
               {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
             </Button>
 
-            <div className="flex flex-wrap gap-2 items-center justify-end flex-1">
+            <div className="col-span-1 sm:flex-1 grid grid-cols-3 sm:flex sm:flex-wrap gap-2 items-center sm:justify-end">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -300,7 +300,6 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleCleanup}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="flex-1 sm:flex-none"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Cleanup
@@ -318,7 +317,6 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleGenerateSummaries}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="flex-1 sm:flex-none"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Summarize
@@ -336,7 +334,6 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleSuggestCategories}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="flex-1 sm:flex-none"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
                       Categorize
