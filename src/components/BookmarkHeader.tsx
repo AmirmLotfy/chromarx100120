@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles, Broom, FileText } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles, FileText } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
@@ -158,7 +158,7 @@ const BookmarkHeader = ({
               disabled={isProcessing || selectedBookmarks.length === 0}
               className="gap-2"
             >
-              <Broom className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
               Cleanup
             </Button>
           </TooltipTrigger>
