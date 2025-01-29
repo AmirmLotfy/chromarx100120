@@ -39,9 +39,17 @@ export const useBookmarkState = () => {
         
         setBookmarks(categorizedResults);
 
+        // Check for new bookmarks and update notifications
         if (previousCount < categorizedResults.length) {
           const newOnes = categorizedResults.slice(0, categorizedResults.length - previousCount);
           setNewBookmarks(newOnes);
+
+          // Update badge text if available
+          if (chrome.action) {
+            const unreadCount = newOnes.length;
+            chrome.action.setBadgeText({ text: unreadCount > 0 ? unreadCount.toString() : "" });
+            chrome.action.setBadgeBackgroundColor({ color: "#10B981" }); // Green color
+          }
         }
       } else {
         // Demo data for development

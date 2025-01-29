@@ -7,7 +7,9 @@
     "sidePanel",
     "bookmarks",
     "contextMenus",
-    "notifications"
+    "notifications",
+    "storage",
+    "alarms"
   ],
   "side_panel": {
     "default_path": "index.html"
