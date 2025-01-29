@@ -18,7 +18,17 @@ import SortableBookmark from "./SortableBookmark";
 import { useEffect, useState } from "react";
 import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
-import { CheckSquare } from "lucide-react";
+import { CheckSquare, FileText, Sparkles, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { useNavigate } from "react-router-dom";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -28,6 +38,7 @@ interface BookmarkListProps {
   formatDate: (timestamp?: number) => string;
   view: "grid" | "list";
   onReorder?: (bookmarks: ChromeBookmark[]) => void;
+  onUpdateCategories: (bookmarks: ChromeBookmark[]) => void;
 }
 
 const BookmarkList = ({
@@ -38,10 +49,13 @@ const BookmarkList = ({
   formatDate,
   view,
   onReorder,
+  onUpdateCategories,
 }: BookmarkListProps) => {
   const [items, setItems] = useState(bookmarks);
   const [groupedByDomain, setGroupedByDomain] = useState<Record<string, ChromeBookmark[]>>({});
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setItems(bookmarks);
@@ -157,6 +171,105 @@ const BookmarkList = ({
     </div>
   );
 
+  const handleCleanup = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("Please select bookmarks to clean up");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const selectedBookmarksArray = Array.from(selectedBookmarks)
+        .map(id => bookmarks.find(b => b.id === id))
+        .filter((b): b is ChromeBookmark => b !== undefined);
+
+      const duplicates = findDuplicateBookmarks(selectedBookmarksArray);
+      const brokenBookmarks = await findBrokenBookmarks(selectedBookmarksArray);
+      
+      if (duplicates.byUrl.length === 0 && duplicates.byTitle.length === 0 && brokenBookmarks.length === 0) {
+        toast.info("No issues found in selected bookmarks");
+        return;
+      }
+
+      await onDelete(Array.from(selectedBookmarks)[0]);
+      toast.success("Cleanup completed successfully");
+    } catch (error) {
+      toast.error("Failed to clean up bookmarks");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGenerateSummaries = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("Please select bookmarks to summarize");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const selectedBookmarksArray = Array.from(selectedBookmarks)
+        .map(id => bookmarks.find(b => b.id === id))
+        .filter((b): b is ChromeBookmark => b !== undefined);
+
+      const summaries = await Promise.all(
+        selectedBookmarksArray.map(async (bookmark) => {
+          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
+          return {
+            id: bookmark.id,
+            title: bookmark.title,
+            content: summary,
+            url: bookmark.url || "",
+            date: new Date().toLocaleDateString(),
+          };
+        })
+      );
+
+      const existingSummaries = JSON.parse(
+        localStorage.getItem("bookmarkSummaries") || "[]"
+      );
+      localStorage.setItem(
+        "bookmarkSummaries",
+        JSON.stringify([...summaries, ...existingSummaries])
+      );
+
+      toast.success("Summaries generated successfully!");
+      navigate("/summaries");
+    } catch (error) {
+      toast.error("Failed to generate summaries");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSuggestCategories = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("Please select bookmarks to categorize");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const selectedBookmarksArray = Array.from(selectedBookmarks)
+        .map(id => bookmarks.find(b => b.id === id))
+        .filter((b): b is ChromeBookmark => b !== undefined);
+
+      const updatedBookmarks = await Promise.all(
+        selectedBookmarksArray.map(async (bookmark) => ({
+          ...bookmark,
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
+        }))
+      );
+
+      onUpdateCategories(updatedBookmarks);
+      toast.success("Categories suggested successfully!");
+    } catch (error) {
+      toast.error("Failed to suggest categories");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -167,15 +280,75 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-8">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSelectAll}
-            className="w-full sm:w-auto"
-          >
-            <CheckSquare className="h-4 w-4 mr-2" />
-            {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
-          </Button>
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAll}
+              className="w-full sm:w-auto"
+            >
+              <CheckSquare className="h-4 w-4 mr-2" />
+              {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
+            </Button>
+
+            <div className="flex flex-wrap gap-2 mt-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCleanup}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Cleanup
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Find and remove duplicate or broken bookmarks
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateSummaries}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Summarize
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Generate summaries for selected bookmarks
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSuggestCategories}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="gap-2"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Categorize
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Suggest categories for selected bookmarks
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
 
           {Object.entries(groupedByDomain).map(([domain, domainBookmarks]) => (
             <div key={domain} className="space-y-4">
