@@ -5,13 +5,9 @@ interface BookmarkContentDisplayProps {
 
 const BookmarkContentDisplay = ({ title, url }: BookmarkContentDisplayProps) => {
   return (
-    <div className="flex-1 min-w-0 space-y-1">
-      <h3 className="font-medium text-sm sm:text-base truncate">{title}</h3>
-      {url && (
-        <p className="text-xs sm:text-sm text-muted-foreground truncate">
-          {url}
-        </p>
-      )}
+    <div className="min-w-0">
+      {title && <h3 className="text-sm font-medium truncate">{title}</h3>}
+      {url && <p className="text-xs text-muted-foreground truncate">{url}</p>}
     </div>
   );
 };

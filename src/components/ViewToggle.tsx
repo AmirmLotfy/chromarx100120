@@ -1,6 +1,5 @@
 import { Grid3X3, List } from "lucide-react";
 import { Button } from "./ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ViewToggleProps {
   view: "grid" | "list";
@@ -8,23 +7,21 @@ interface ViewToggleProps {
 }
 
 const ViewToggle = ({ view, onViewChange }: ViewToggleProps) => {
-  const isMobile = useIsMobile();
-
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex gap-1">
       <Button
-        variant={view === "list" ? "default" : "ghost"}
-        size={isMobile ? "icon" : "sm"}
+        variant="ghost"
+        size="icon"
         onClick={() => onViewChange("list")}
-        className="w-8 h-8 p-0"
+        className={view === "list" ? "bg-accent" : ""}
       >
         <List className="h-4 w-4" />
       </Button>
       <Button
-        variant={view === "grid" ? "default" : "ghost"}
-        size={isMobile ? "icon" : "sm"}
+        variant="ghost"
+        size="icon"
         onClick={() => onViewChange("grid")}
-        className="w-8 h-8 p-0"
+        className={view === "grid" ? "bg-accent" : ""}
       >
         <Grid3X3 className="h-4 w-4" />
       </Button>
