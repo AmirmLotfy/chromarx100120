@@ -15,6 +15,7 @@ const features = [
     icon: Bookmark,
     path: "/bookmarks",
     color: "bg-accent",
+    description: "Manage your bookmarks",
   },
   {
     name: "Chat",
@@ -70,6 +71,11 @@ const FeatureGrid = () => {
             <span className="text-sm font-medium text-foreground">
               {feature.name}
             </span>
+            {feature.description && (
+              <span className="text-xs text-muted-foreground">
+                {feature.description}
+              </span>
+            )}
           </div>
         </Link>
       ))}
