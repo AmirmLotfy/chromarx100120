@@ -108,8 +108,8 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="space-y-1 sm:space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-4">
-      <div className="flex items-center justify-between gap-1 sm:gap-2 flex-wrap">
+    <div className="space-y-4 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Bookmarks</h1>
@@ -183,7 +183,7 @@ const BookmarkHeader = ({
         </div>
       </div>
 
-      <div className="relative mt-4">
+      <div className="relative mt-6">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={searchQuery}
@@ -193,7 +193,7 @@ const BookmarkHeader = ({
           aria-label="Search bookmarks"
         />
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 mx-1">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
