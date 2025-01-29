@@ -1,6 +1,7 @@
 import { ExternalLink, Trash2 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkContent from "./BookmarkContent";
+import BookmarkShare from "./BookmarkShare";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -36,15 +37,18 @@ const BookmarkList = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-medium truncate">{bookmark.title}</h3>
                 {bookmark.url && (
-                  <a
-                    href={bookmark.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-primary"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
+                  <>
+                    <a
+                      href={bookmark.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-primary"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <BookmarkShare bookmark={bookmark} />
+                  </>
                 )}
               </div>
               {bookmark.url && (
