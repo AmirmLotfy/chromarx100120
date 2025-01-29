@@ -32,19 +32,19 @@ const SearchBar = ({
   );
 
   return (
-    <div className="relative w-full max-w-full sm:max-w-2xl mx-auto mb-4 sm:mb-8">
+    <div className="sticky top-0 z-10 w-full max-w-full sm:max-w-2xl mx-auto mb-4 sm:mb-8 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Command className="rounded-lg border shadow-md">
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <CommandInput
             value={searchQuery}
             onValueChange={onSearchChange}
-            placeholder={isMobile ? "Search bookmarks..." : "Search bookmarks by title or URL..."}
+            placeholder={isMobile ? "Search..." : "Search bookmarks by title or URL..."}
             className="flex h-10 sm:h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
         {searchQuery && (
-          <CommandList className="max-h-[200px] sm:max-h-[300px] overflow-y-auto">
+          <CommandList className="max-h-[40vh] sm:max-h-[300px] overflow-y-auto">
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Suggestions">
               {suggestions.slice(0, 5).map((bookmark) => (

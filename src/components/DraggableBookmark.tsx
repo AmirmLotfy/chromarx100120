@@ -7,6 +7,7 @@ import BookmarkContentDisplay from "./BookmarkContentDisplay";
 import BookmarkShare from "./BookmarkShare";
 import { Checkbox } from "./ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 interface DraggableBookmarkProps {
   bookmark: ChromeBookmark;
@@ -30,11 +31,22 @@ const DraggableBookmark = ({
     transform,
     transition,
   } = useSortable({ id: bookmark.id });
+  
   const isMobile = useIsMobile();
-
+  const [isLongPressed, setIsLongPressed] = useState(false);
+  
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+  };
+
+  const handleTouchStart = () => {
+    const timer = setTimeout(() => {
+      setIsLongPressed(true);
+      onToggleSelect(bookmark.id);
+    }, 500);
+
+    return () => clearTimeout(timer);
   };
 
   return (
@@ -45,6 +57,8 @@ const DraggableBookmark = ({
         "flex flex-col p-3 sm:p-4 rounded-lg group animate-fade-in transition-colors relative touch-manipulation",
         selected ? "bg-primary/10" : "bg-accent hover:bg-accent/80"
       )}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={() => setIsLongPressed(false)}
     >
       <div className="absolute top-2 left-2">
         <Checkbox
