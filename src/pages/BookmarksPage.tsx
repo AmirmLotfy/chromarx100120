@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import Layout from "../components/Layout";
 import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
-import { groupByDomain } from "@/utils/domainUtils";
+import { groupByDomain, extractDomain } from "@/utils/domainUtils";
 import SearchBar from "@/components/SearchBar";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkControls from "@/components/BookmarkControls";

@@ -5,6 +5,8 @@ import BookmarkCleanup from "./BookmarkCleanup";
 import BookmarkList from "./BookmarkList";
 
 interface BookmarkContentProps {
+  title?: string;
+  url?: string;
   categories: { name: string; count: number }[];
   domains: { domain: string; count: number }[];
   selectedCategory: string | null;
