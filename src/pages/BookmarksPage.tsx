@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { Bookmark, ExternalLink, Trash2 } from "lucide-react";
+import { Bookmark, ExternalLink, Search, SortAsc, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ChromeBookmark {
   id: string;
@@ -10,9 +18,13 @@ interface ChromeBookmark {
   dateAdded?: number;
 }
 
+type SortOption = "title" | "dateAdded" | "url";
+
 const BookmarksPage = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
 
   useEffect(() => {
     const loadBookmarks = async () => {
@@ -75,6 +87,27 @@ const BookmarksPage = () => {
     return new Date(timestamp).toLocaleDateString();
   };
 
+  const filteredBookmarks = bookmarks
+    .filter((bookmark) => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        bookmark.title.toLowerCase().includes(searchLower) ||
+        bookmark.url?.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "url":
+          return (a.url || "").localeCompare(b.url || "");
+        case "dateAdded":
+          return (b.dateAdded || 0) - (a.dateAdded || 0);
+        default:
+          return 0;
+      }
+    });
+
   return (
     <Layout>
       <div className="space-y-6 pb-16">
@@ -84,21 +117,44 @@ const BookmarksPage = () => {
               <Bookmark className="h-6 w-6" />
               Bookmarks
             </h1>
-            <p className="text-muted-foreground">
-              Manage your Chrome bookmarks
-            </p>
+            <p className="text-muted-foreground">Manage your Chrome bookmarks</p>
           </div>
+        </div>
+
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search bookmarks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+            <SelectTrigger className="w-[180px]">
+              <SortAsc className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dateAdded">Date Added</SelectItem>
+              <SelectItem value="title">Title</SelectItem>
+              <SelectItem value="url">URL</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {loading ? (
           <div className="text-center py-8">Loading bookmarks...</div>
-        ) : bookmarks.length === 0 ? (
+        ) : filteredBookmarks.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No bookmarks found
+            {searchQuery ? "No bookmarks found matching your search" : "No bookmarks found"}
           </div>
         ) : (
           <div className="grid gap-4">
-            {bookmarks.map((bookmark) => (
+            {filteredBookmarks.map((bookmark) => (
               <div
                 key={bookmark.id}
                 className="flex items-center justify-between p-4 bg-accent rounded-lg group animate-fade-in"
