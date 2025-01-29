@@ -88,21 +88,23 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-3xl mx-auto">
       <Input
         placeholder="Task title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         required
+        className="w-full"
       />
       <Textarea
         placeholder="Task description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
+        className="w-full min-h-[100px]"
       />
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <Select value={priority} onValueChange={(value: Task["priority"]) => setPriority(value)}>
-          <SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>
@@ -115,13 +117,14 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
           placeholder="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
+          className="w-full sm:w-[200px]"
         />
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "justify-start text-left font-normal",
+                "w-full sm:w-[200px] justify-start text-left font-normal",
                 !dueDate && "text-muted-foreground"
               )}
             >
@@ -129,7 +132,7 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
               {dueDate ? format(dueDate, "PPP") : <span>Due date</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
               selected={dueDate}
@@ -139,14 +142,17 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex gap-2">
-        <Button type="submit">{initialData ? "Update" : "Add"} Task</Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button type="submit" className="w-full sm:w-auto">
+          {initialData ? "Update" : "Add"} Task
+        </Button>
         {!initialData && (
           <Button 
             type="button" 
             variant="outline" 
             onClick={handleGetSuggestions}
             disabled={isGettingSuggestions}
+            className="w-full sm:w-auto"
           >
             <Wand2 className="mr-2 h-4 w-4" />
             Get AI Suggestions

@@ -43,33 +43,35 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-3xl mx-auto">
       {tasks.length === 0 ? (
         <div className="text-center text-muted-foreground py-8">
           No tasks yet. Add your first task above!
         </div>
       ) : (
         tasks.map((task) => (
-          <Card key={task.id} className={cn(task.completed && "opacity-60")}>
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-2">
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={() => onToggleComplete(task.id)}
-                  />
-                  <div>
-                    <CardTitle className={cn(task.completed && "line-through")}>
-                      {task.title}
-                    </CardTitle>
-                    <CardDescription>{task.description}</CardDescription>
-                  </div>
+          <Card key={task.id} className={cn("w-full", task.completed && "opacity-60")}>
+            <CardHeader className="pb-2 space-y-2">
+              <div className="flex items-start gap-3 flex-wrap sm:flex-nowrap">
+                <Checkbox
+                  checked={task.completed}
+                  onCheckedChange={() => onToggleComplete(task.id)}
+                  className="mt-1"
+                />
+                <div className="flex-1 min-w-0">
+                  <CardTitle className={cn("break-words", task.completed && "line-through")}>
+                    {task.title}
+                  </CardTitle>
+                  <CardDescription className="break-words mt-1">
+                    {task.description}
+                  </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2 ml-auto">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setEditingTask(task)}
+                    className="shrink-0"
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>
@@ -77,6 +79,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(task.id)}
+                    className="shrink-0"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -84,12 +87,14 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2 text-sm">
-                <Badge variant="secondary">{task.category}</Badge>
-                <Badge className={getPriorityColor(task.priority)}>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <Badge variant="secondary" className="whitespace-nowrap">
+                  {task.category}
+                </Badge>
+                <Badge className={cn("whitespace-nowrap", getPriorityColor(task.priority))}>
                   {task.priority}
                 </Badge>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground whitespace-nowrap">
                   Due: {format(new Date(task.dueDate), "PPP")}
                 </span>
               </div>
@@ -99,7 +104,7 @@ const TaskList = ({ tasks, onDelete, onEdit, onToggleComplete }: TaskListProps) 
       )}
 
       <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
