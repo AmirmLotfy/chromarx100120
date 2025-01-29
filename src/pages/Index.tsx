@@ -2,7 +2,6 @@ import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
 import WelcomeCard from "../components/WelcomeCard";
 import CompactServiceBanner from "../components/affiliate/CompactServiceBanner";
-import AffiliateSection from "../components/affiliate/AffiliateSection";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
@@ -40,12 +39,7 @@ const Index = () => {
     <Layout>
       <div className="space-y-4 pb-16">
         <WelcomeCard />
-        {subscriptionStatus === "free" && (
-          <>
-            <CompactServiceBanner />
-            <AffiliateSection showAll={false} />
-          </>
-        )}
+        {subscriptionStatus === "free" && <CompactServiceBanner />}
         <FeatureGrid />
       </div>
     </Layout>
