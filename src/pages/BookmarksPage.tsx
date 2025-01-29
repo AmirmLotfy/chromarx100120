@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { Bookmark, ExternalLink, Search, SortAsc, Trash2 } from "lucide-react";
+import { Bookmark, Search, SortAsc, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,13 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface ChromeBookmark {
-  id: string;
-  title: string;
-  url?: string;
-  dateAdded?: number;
-}
+import { Button } from "@/components/ui/button";
+import BookmarkCategories from "@/components/BookmarkCategories";
+import BookmarkList from "@/components/BookmarkList";
+import { ChromeBookmark } from "@/types/bookmark";
 
 type SortOption = "title" | "dateAdded" | "url";
 
@@ -25,6 +22,10 @@ const BookmarksPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     const loadBookmarks = async () => {
@@ -40,18 +41,21 @@ const BookmarksPage = () => {
               title: "React Documentation",
               url: "https://react.dev",
               dateAdded: Date.now() - 86400000,
+              category: "Development",
             },
             {
               id: "2",
               title: "TypeScript Handbook",
               url: "https://www.typescriptlang.org/docs/",
               dateAdded: Date.now() - 172800000,
+              category: "Development",
             },
             {
               id: "3",
               title: "Tailwind CSS",
               url: "https://tailwindcss.com",
               dateAdded: Date.now() - 259200000,
+              category: "Design",
             },
           ]);
         }
@@ -82,18 +86,60 @@ const BookmarksPage = () => {
     }
   };
 
+  const handleDeleteSelected = async () => {
+    try {
+      const promises = Array.from(selectedBookmarks).map((id) =>
+        chrome.bookmarks ? chrome.bookmarks.remove(id) : Promise.resolve()
+      );
+      await Promise.all(promises);
+      setBookmarks((prev) =>
+        prev.filter((bookmark) => !selectedBookmarks.has(bookmark.id))
+      );
+      setSelectedBookmarks(new Set());
+      toast.success(
+        `${selectedBookmarks.size} bookmark${
+          selectedBookmarks.size === 1 ? "" : "s"
+        } deleted`
+      );
+    } catch (error) {
+      console.error("Error deleting bookmarks:", error);
+      toast.error("Failed to delete bookmarks");
+    }
+  };
+
+  const toggleBookmarkSelection = (id: string) => {
+    setSelectedBookmarks((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return "";
     return new Date(timestamp).toLocaleDateString();
   };
 
+  const categories = Array.from(
+    new Set(bookmarks.map((b) => b.category).filter(Boolean) as string[])
+  ).map((name) => ({
+    name,
+    count: bookmarks.filter((b) => b.category === name).length,
+  }));
+
   const filteredBookmarks = bookmarks
     .filter((bookmark) => {
       const searchLower = searchQuery.toLowerCase();
-      return (
+      const matchesSearch =
         bookmark.title.toLowerCase().includes(searchLower) ||
-        bookmark.url?.toLowerCase().includes(searchLower)
-      );
+        bookmark.url?.toLowerCase().includes(searchLower);
+      const matchesCategory =
+        !selectedCategory || bookmark.category === selectedCategory;
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -119,6 +165,16 @@ const BookmarksPage = () => {
             </h1>
             <p className="text-muted-foreground">Manage your Chrome bookmarks</p>
           </div>
+          {selectedBookmarks.size > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              className="animate-fade-in"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedBookmarks.size})
+            </Button>
+          )}
         </div>
 
         <div className="flex gap-4 items-center">
@@ -133,7 +189,10 @@ const BookmarksPage = () => {
               />
             </div>
           </div>
-          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+          <Select
+            value={sortBy}
+            onValueChange={(value) => setSortBy(value as SortOption)}
+          >
             <SelectTrigger className="w-[180px]">
               <SortAsc className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Sort by" />
@@ -146,54 +205,28 @@ const BookmarksPage = () => {
           </Select>
         </div>
 
+        <BookmarkCategories
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
+
         {loading ? (
           <div className="text-center py-8">Loading bookmarks...</div>
         ) : filteredBookmarks.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {searchQuery ? "No bookmarks found matching your search" : "No bookmarks found"}
+            {searchQuery
+              ? "No bookmarks found matching your search"
+              : "No bookmarks found"}
           </div>
         ) : (
-          <div className="grid gap-4">
-            {filteredBookmarks.map((bookmark) => (
-              <div
-                key={bookmark.id}
-                className="flex items-center justify-between p-4 bg-accent rounded-lg group animate-fade-in"
-              >
-                <div className="space-y-1 flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium truncate">{bookmark.title}</h3>
-                    {bookmark.url && (
-                      <a
-                        href={bookmark.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-muted-foreground hover:text-primary"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    )}
-                  </div>
-                  {bookmark.url && (
-                    <p className="text-sm text-muted-foreground truncate">
-                      {bookmark.url}
-                    </p>
-                  )}
-                  {bookmark.dateAdded && (
-                    <p className="text-xs text-muted-foreground">
-                      Added: {formatDate(bookmark.dateAdded)}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDelete(bookmark.id)}
-                  className="p-2 text-muted-foreground hover:text-destructive transition-colors"
-                  aria-label="Delete bookmark"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
+          <BookmarkList
+            bookmarks={filteredBookmarks}
+            selectedBookmarks={selectedBookmarks}
+            onToggleSelect={toggleBookmarkSelection}
+            onDelete={handleDelete}
+            formatDate={formatDate}
+          />
         )}
       </div>
     </Layout>
