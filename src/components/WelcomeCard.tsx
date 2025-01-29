@@ -8,14 +8,14 @@ const WelcomeCard = () => {
   if (isOnboardingComplete) return null;
 
   return (
-    <div className="bg-accent rounded-lg p-6 mb-6 animate-fade-in">
-      <h2 className="text-xl font-semibold mb-2">Welcome to ChroMarx!</h2>
-      <p className="text-muted-foreground mb-4">
+    <div className="bg-accent rounded-lg p-4 mb-4 animate-fade-in">
+      <h2 className="text-lg font-semibold mb-1">Welcome to ChroMarx!</h2>
+      <p className="text-muted-foreground text-sm mb-3">
         Let's help you get started with our powerful productivity tools.
       </p>
-      <Button onClick={startOnboarding}>
+      <Button size="sm" onClick={startOnboarding}>
         Start Tutorial
-        <ArrowRight className="ml-2 h-4 w-4" />
+        <ArrowRight className="ml-2 h-3 w-3" />
       </Button>
     </div>
   );

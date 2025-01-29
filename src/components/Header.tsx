@@ -26,12 +26,12 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <div className="flex items-center">
+        <div className="flex items-center -ml-4">
           <Link to="/" className="flex items-center">
             <img 
               src="/lovable-uploads/beb46658-15c1-4b7f-88fa-ef04d641652b.png" 
               alt="ChroMarx" 
-              className="h-12 md:h-14" 
+              className="h-10 md:h-12" 
             />
           </Link>
         </div>
