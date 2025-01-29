@@ -23,6 +23,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
+import AIActionButtons from "./AIActionButtons";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -163,14 +164,20 @@ const BookmarkHeader = ({
                 <div className="space-y-4">
                   <h2 className="font-medium">Actions</h2>
                   <div className="grid grid-cols-1 gap-2">
-                    <AIActionButtons />
+                    <AIActionButtons 
+                      selectedBookmarks={selectedBookmarks}
+                      onUpdateCategories={onUpdateCategories}
+                    />
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
           ) : (
             <div className="flex items-center gap-2">
-              <AIActionButtons />
+              <AIActionButtons 
+                selectedBookmarks={selectedBookmarks}
+                onUpdateCategories={onUpdateCategories}
+              />
             </div>
           )}
         </div>
