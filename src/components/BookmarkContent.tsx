@@ -52,8 +52,8 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-6 w-full max-w-full overflow-hidden p-1">
-      <div className="space-y-2">
+    <div className="space-y-4 w-full max-w-full overflow-hidden">
+      <div className="space-y-1.5">
         <h2 className="text-sm font-medium px-2">Categories</h2>
         <BookmarkCategories
           categories={categories}
@@ -61,7 +61,7 @@ const BookmarkContent = ({
           onSelectCategory={onSelectCategory}
         />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <h2 className="text-sm font-medium px-2">Domains</h2>
         <BookmarkDomains
           domains={domains}
@@ -80,8 +80,8 @@ const BookmarkContent = ({
   );
 
   return (
-    <div className="space-y-4 w-full max-w-full">
-      <div className="flex flex-row gap-2 items-center justify-between">
+    <div className="space-y-3 w-full max-w-full">
+      <div className="flex flex-row gap-1.5 items-center justify-between">
         {isMobile ? (
           <Sheet>
             <SheetTrigger asChild>
@@ -92,13 +92,13 @@ const BookmarkContent = ({
             </SheetTrigger>
             <SheetContent 
               side="left" 
-              className="w-[280px] sm:w-[320px] p-4 overflow-y-auto"
+              className="w-[280px] sm:w-[320px] p-3 overflow-y-auto"
             >
               <FilterPanel />
             </SheetContent>
           </Sheet>
         ) : (
-          <div className="bg-card rounded-lg border p-4 overflow-hidden">
+          <div className="bg-card rounded-lg border p-3 overflow-hidden">
             <FilterPanel />
           </div>
         )}

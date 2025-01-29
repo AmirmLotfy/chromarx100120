@@ -149,7 +149,7 @@ const BookmarkList = ({
   const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => (
     <div
       className={cn(
-        "grid gap-4 animate-fade-in",
+        "grid gap-2 animate-fade-in",
         view === "grid"
           ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
           : "grid-cols-1"
@@ -279,23 +279,23 @@ const BookmarkList = ({
         items={items.map((item) => item.id)}
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
               className="flex-1 sm:flex-none"
             >
-              <CheckSquare className="h-4 w-4 mr-2" />
+              <CheckSquare className="h-4 w-4 mr-1.5" />
               {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
             </Button>
           </div>
 
           {selectedBookmarks.size > 0 && (
-            <div className="bg-accent/50 rounded-lg p-4 animate-fade-in space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">AI Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-accent/50 rounded-lg p-3 animate-fade-in">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">AI Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -306,7 +306,7 @@ const BookmarkList = ({
                         disabled={isProcessing}
                         className="w-full"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
+                        <Trash2 className="h-4 w-4 mr-1.5" />
                         Cleanup
                       </Button>
                     </TooltipTrigger>
@@ -324,7 +324,7 @@ const BookmarkList = ({
                         disabled={isProcessing}
                         className="w-full"
                       >
-                        <FileText className="h-4 w-4 mr-2" />
+                        <FileText className="h-4 w-4 mr-1.5" />
                         Summarize
                       </Button>
                     </TooltipTrigger>
@@ -342,7 +342,7 @@ const BookmarkList = ({
                         disabled={isProcessing}
                         className="w-full"
                       >
-                        <Sparkles className="h-4 w-4 mr-2" />
+                        <Sparkles className="h-4 w-4 mr-1.5" />
                         Categorize
                       </Button>
                     </TooltipTrigger>
@@ -355,17 +355,16 @@ const BookmarkList = ({
             </div>
           )}
 
-          {Object.entries(groupedByDomain).map(([domain, domainBookmarks]) => (
-            <div key={domain} className="space-y-4">
-              <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm p-2 rounded-lg flex items-center gap-2">
-                <span className="text-sm font-medium">{domain}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({domainBookmarks.length})
-                </span>
-              </div>
-              {renderBookmarks(domainBookmarks)}
-            </div>
-          ))}
+          <div
+            className={cn(
+              "grid gap-2 animate-fade-in",
+              view === "grid"
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                : "grid-cols-1"
+            )}
+          >
+            {renderBookmarks(items)}
+          </div>
         </div>
       </SortableContext>
     </DndContext>
