@@ -12,22 +12,21 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import BookmarkCategories from "@/components/BookmarkCategories";
+import BookmarkDomains from "@/components/BookmarkDomains";
 import BookmarkList from "@/components/BookmarkList";
 import BookmarkCleanup from "@/components/BookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
-
-type SortOption = "title" | "dateAdded" | "url";
+import { groupByDomain, extractDomain } from "@/utils/domainUtils";
 
 const BookmarksPage = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("dateAdded");
+  const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(
-    new Set()
-  );
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
 
   const loadBookmarks = async () => {
     try {
@@ -150,6 +149,8 @@ const BookmarksPage = () => {
     count: bookmarks.filter((b) => b.category === name).length,
   }));
 
+  const domains = groupByDomain(bookmarks);
+
   const filteredBookmarks = bookmarks
     .filter((bookmark) => {
       const searchLower = searchQuery.toLowerCase();
@@ -158,7 +159,10 @@ const BookmarksPage = () => {
         bookmark.url?.toLowerCase().includes(searchLower);
       const matchesCategory =
         !selectedCategory || bookmark.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const matchesDomain =
+        !selectedDomain || 
+        (bookmark.url && extractDomain(bookmark.url) === selectedDomain);
+      return matchesSearch && matchesCategory && matchesDomain;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -229,7 +233,7 @@ const BookmarksPage = () => {
           </div>
           <Select
             value={sortBy}
-            onValueChange={(value) => setSortBy(value as SortOption)}
+            onValueChange={(value) => setSortBy(value as "title" | "dateAdded" | "url")}
           >
             <SelectTrigger className="w-[180px]">
               <SortAsc className="h-4 w-4 mr-2" />
@@ -249,6 +253,11 @@ const BookmarksPage = () => {
               categories={categories}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
+            />
+            <BookmarkDomains
+              domains={domains}
+              selectedDomain={selectedDomain}
+              onSelectDomain={setSelectedDomain}
             />
             <BookmarkCleanup
               bookmarks={bookmarks}
