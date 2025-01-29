@@ -108,7 +108,7 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-2">
+    <div className="space-y-1 sm:space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-2">
       <div className="flex items-center justify-between gap-1 sm:gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-primary" />
