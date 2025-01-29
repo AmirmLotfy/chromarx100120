@@ -11,44 +11,66 @@ import {
 } from "@/components/ui/card";
 import { Check, ArrowRight, Info, SkipForward } from "lucide-react";
 import { toast } from "sonner";
+import { useFirebase } from "@/contexts/FirebaseContext";
 
 const onboardingSteps = [
   {
     title: "Welcome to ChroMarx!",
     description: "Your all-in-one browser productivity companion. Let's get you started!",
     content: "ChroMarx helps you manage bookmarks, track time, take notes, and boost your productivity.",
+    requiresAuth: false,
+  },
+  {
+    title: "Sign in to Get Started",
+    description: "Secure your data and sync across devices",
+    content: "Sign in with your Google account to save your bookmarks, notes, and preferences securely in the cloud.",
+    requiresAuth: true,
   },
   {
     title: "Smart Bookmarking",
     description: "Organize your bookmarks intelligently",
     content: "Save, categorize, and search through your bookmarks with ease. AI-powered features help you stay organized.",
+    requiresAuth: true,
   },
   {
     title: "Time Management",
     description: "Track and optimize your time",
     content: "Use the Pomodoro timer, track your productivity, and get insights into your browsing habits.",
+    requiresAuth: true,
   },
   {
     title: "Tasks & Notes",
     description: "Stay organized and productive",
     content: "Create tasks, take notes, and keep everything synchronized across your devices.",
+    requiresAuth: true,
   },
   {
     title: "Ready to Start!",
     description: "You're all set to boost your productivity",
     content: "Explore ChroMarx's features and make the most of your browsing experience.",
+    requiresAuth: true,
   },
 ];
 
 export const OnboardingOverlay = () => {
   const { currentStep, setCurrentStep, completeOnboarding, skipOnboarding } = useOnboarding();
+  const { user, signInWithGoogle } = useFirebase();
 
   if (currentStep === 0) return null;
 
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentStepData.requiresAuth && !user) {
+      try {
+        await signInWithGoogle();
+      } catch (error) {
+        toast.error("Please sign in to continue");
+        return;
+      }
+    }
+
     if (isLastStep) {
       completeOnboarding();
       toast.success("Welcome to ChroMarx! 🎉");
@@ -58,6 +80,10 @@ export const OnboardingOverlay = () => {
   };
 
   const handleSkip = () => {
+    if (!user) {
+      toast.error("Please sign in to continue using ChroMarx");
+      return;
+    }
     skipOnboarding();
     toast.info("You can always access the tutorial from settings");
   };
@@ -86,12 +112,16 @@ export const OnboardingOverlay = () => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="ghost" onClick={handleSkip}>
-            <SkipForward className="mr-2 h-4 w-4" />
-            Skip Tutorial
-          </Button>
-          <Button onClick={handleNext}>
-            {isLastStep ? (
+          {!currentStepData.requiresAuth && (
+            <Button variant="ghost" onClick={handleSkip}>
+              <SkipForward className="mr-2 h-4 w-4" />
+              Skip Tutorial
+            </Button>
+          )}
+          <Button onClick={handleNext} className="ml-auto">
+            {currentStepData.requiresAuth && !user ? (
+              "Sign in to Continue"
+            ) : isLastStep ? (
               <>
                 Get Started
                 <Check className="ml-2 h-4 w-4" />

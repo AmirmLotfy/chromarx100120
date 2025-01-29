@@ -10,9 +10,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useFirebase } from "@/contexts/FirebaseContext";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Header = () => {
   const { user, signInWithGoogle, signOut } = useFirebase();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+      toast.error("Please sign in to continue");
+    }
+  }, [user, navigate]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -27,15 +38,19 @@ const Header = () => {
           </Link>
         </div>
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-8">
-          <Link to="/bookmarks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
-            Bookmarks
-          </Link>
-          <Link to="/tasks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
-            Tasks
-          </Link>
-          <Link to="/notes" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
-            Notes
-          </Link>
+          {user && (
+            <>
+              <Link to="/bookmarks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
+                Bookmarks
+              </Link>
+              <Link to="/tasks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
+                Tasks
+              </Link>
+              <Link to="/notes" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
+                Notes
+              </Link>
+            </>
+          )}
         </nav>
         <div className="ml-auto flex items-center space-x-4">
           {user ? (
@@ -79,9 +94,10 @@ const Header = () => {
           ) : (
             <Button 
               onClick={signInWithGoogle}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              size="sm"
+              className="h-8 px-3 text-sm bg-primary hover:bg-primary/90 transition-colors"
             >
-              Sign in with Google
+              Sign in
             </Button>
           )}
         </div>

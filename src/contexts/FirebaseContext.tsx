@@ -3,6 +3,7 @@ import { User, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface FirebaseContextType {
   user: User | null;
@@ -21,6 +22,7 @@ const FirebaseContext = createContext<FirebaseContextType>({
 export const FirebaseProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const signInWithGoogle = async () => {
     try {
@@ -39,13 +41,16 @@ export const FirebaseProvider = ({ children }: { children: React.ReactNode }) =>
           createdAt: new Date().toISOString(),
           subscriptionStatus: 'free',
           preferences: {},
+          lastSyncedBookmarks: null,
         });
       }
       
       toast.success('Successfully signed in!');
+      navigate('/bookmarks');
     } catch (error) {
       console.error('Error signing in with Google:', error);
       toast.error('Failed to sign in with Google');
+      throw error;
     }
   };
 
@@ -53,6 +58,7 @@ export const FirebaseProvider = ({ children }: { children: React.ReactNode }) =>
     try {
       await auth.signOut();
       toast.success('Successfully signed out');
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
