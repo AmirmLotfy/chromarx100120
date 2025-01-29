@@ -32,21 +32,23 @@ const TimeManagement = () => {
   ];
 
   const renderContent = () => (
-    <ScrollArea className="h-[calc(100vh-12rem)] px-1">
-      {activeTab === "custom" && (
-        <div className="space-y-4">
-          <AITimerSuggestions onSuggestion={handleAISuggestion} />
-          <CustomTimer initialMinutes={suggestedDuration} />
-        </div>
-      )}
-      {activeTab === "pomodoro" && <PomodoroTimer />}
-      {activeTab === "focus" && <FocusMode />}
-      {activeTab === "analytics" && <TimeAnalytics />}
+    <ScrollArea className="h-[calc(100vh-16rem)] md:h-[calc(100vh-14rem)] px-4 pb-20">
+      <div className="space-y-6">
+        {activeTab === "custom" && (
+          <div className="space-y-4">
+            <AITimerSuggestions onSuggestion={handleAISuggestion} />
+            <CustomTimer initialMinutes={suggestedDuration} />
+          </div>
+        )}
+        {activeTab === "pomodoro" && <PomodoroTimer />}
+        {activeTab === "focus" && <FocusMode />}
+        {activeTab === "analytics" && <TimeAnalytics />}
+      </div>
     </ScrollArea>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-16">
       {isMobile ? (
         <div className="space-y-6">
           <Select value={activeTab} onValueChange={setActiveTab}>
