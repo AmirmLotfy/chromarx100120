@@ -140,9 +140,9 @@ const ChatInterface = () => {
   }, [messages, generateSuggestions]);
 
   return (
-    <div className="flex flex-col h-[600px] bg-background border rounded-lg shadow-sm">
+    <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm">
       <ChatMessages messages={messages} messagesEndRef={messagesEndRef} />
-      <div className="border-t p-4">
+      <div className="border-t p-3">
         <ChatInput
           onSendMessage={handleSendMessage}
           isProcessing={isProcessing}

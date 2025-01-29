@@ -7,7 +7,7 @@ interface ChatMessagesProps {
 
 const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
       {messages.map((message) => (
         <div
           key={message.id}
@@ -16,15 +16,15 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
           }`}
         >
           <div
-            className={`max-w-[80%] space-y-2 ${
+            className={`max-w-[80%] space-y-1.5 ${
               message.sender === "user"
-                ? "bg-primary text-primary-foreground ml-4 p-3 rounded-lg"
-                : "bg-muted text-muted-foreground mr-4 p-3 rounded-lg"
+                ? "bg-primary text-primary-foreground ml-4 p-2.5 rounded-lg"
+                : "bg-muted text-muted-foreground mr-4 p-2.5 rounded-lg"
             }`}
           >
-            <div>{message.content}</div>
+            <div className="text-sm">{message.content}</div>
             {message.bookmarks && message.bookmarks.length > 0 && (
-              <div className="mt-2 space-y-1 text-sm">
+              <div className="mt-1.5 space-y-1 text-xs">
                 <div className="font-medium">Related Bookmarks:</div>
                 {message.bookmarks.map((bookmark, index) => (
                   <a
@@ -40,7 +40,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
               </div>
             )}
             {message.webResults && message.webResults.length > 0 && (
-              <div className="mt-2 space-y-1 text-sm">
+              <div className="mt-1.5 space-y-1 text-xs">
                 <div className="font-medium">Suggested Links:</div>
                 {message.webResults.map((result, index) => (
                   <a

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
@@ -26,27 +26,16 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!inputValue.trim() || isProcessing) return;
     onSendMessage(inputValue);
     setInputValue("");
     setOpen(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleSuggestionSelect = (suggestion: string) => {
-    setInputValue(suggestion);
-    setOpen(false);
-  };
-
   return (
-    <div className="flex gap-2">
+    <form onSubmit={handleSend} className="flex gap-2 w-full">
       <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Input
@@ -55,7 +44,6 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
               setInputValue(e.target.value);
               setOpen(e.target.value.length > 0);
             }}
-            onKeyDown={handleKeyPress}
             placeholder="Type your message..."
             className="flex-1"
             disabled={isProcessing}
@@ -69,7 +57,10 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
                 {suggestions.map((suggestion, index) => (
                   <CommandItem
                     key={index}
-                    onSelect={() => handleSuggestionSelect(suggestion)}
+                    onSelect={() => {
+                      setInputValue(suggestion);
+                      setOpen(false);
+                    }}
                   >
                     {suggestion}
                   </CommandItem>
@@ -79,10 +70,10 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
           </Command>
         </PopoverContent>
       </Popover>
-      <Button onClick={handleSend} size="icon" disabled={isProcessing}>
+      <Button type="submit" size="icon" disabled={isProcessing}>
         <Send className="h-4 w-4" />
       </Button>
-    </div>
+    </form>
   );
 };
 
