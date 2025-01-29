@@ -11,6 +11,8 @@ import { Check } from "lucide-react";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { toast } from "sonner";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { useEffect, useState } from "react";
+import { getPayPalClientId } from "@/utils/firebaseUtils";
 
 interface PlanFeature {
   name: string;
@@ -28,12 +30,25 @@ interface PlanProps {
 
 const PlanCard = ({ id, name, price, description, features, isPopular }: PlanProps) => {
   const { user } = useFirebase();
+  const [paypalClientId, setPaypalClientId] = useState<string>("");
+
+  useEffect(() => {
+    const fetchPayPalClientId = async () => {
+      const clientId = await getPayPalClientId();
+      if (clientId) {
+        setPaypalClientId(clientId);
+      } else {
+        toast.error("PayPal configuration not found");
+      }
+    };
+
+    fetchPayPalClientId();
+  }, []);
 
   const handlePayPalApprove = async (data: any, actions: any) => {
     try {
       const order = await actions.order.capture();
       
-      // Call your Firebase function to handle the successful payment
       const response = await fetch('https://us-central1-chromarx-215c8.cloudfunctions.net/handleSubscription', {
         method: 'POST',
         headers: {
@@ -98,31 +113,33 @@ const PlanCard = ({ id, name, price, description, features, isPopular }: PlanPro
             Get Started
           </Button>
         ) : (
-          <PayPalScriptProvider options={{ 
-            clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID || "",
-            currency: "USD",
-            intent: "capture"
-          }}>
-            <PayPalButtons
-              style={{ layout: "horizontal" }}
-              createOrder={(data, actions) => {
-                return actions.order.create({
-                  intent: "CAPTURE",
-                  purchase_units: [{
-                    amount: {
-                      value: price.toString(),
-                      currency_code: "USD"
-                    },
-                    description: `${name} Subscription`
-                  }]
-                });
-              }}
-              onApprove={handlePayPalApprove}
-              onError={() => {
-                toast.error("PayPal payment failed");
-              }}
-            />
-          </PayPalScriptProvider>
+          paypalClientId && (
+            <PayPalScriptProvider options={{ 
+              clientId: paypalClientId,
+              currency: "USD",
+              intent: "capture"
+            }}>
+              <PayPalButtons
+                style={{ layout: "horizontal" }}
+                createOrder={(data, actions) => {
+                  return actions.order.create({
+                    intent: "CAPTURE",
+                    purchase_units: [{
+                      amount: {
+                        value: price.toString(),
+                        currency_code: "USD"
+                      },
+                      description: `${name} Subscription`
+                    }]
+                  });
+                }}
+                onApprove={handlePayPalApprove}
+                onError={() => {
+                  toast.error("PayPal payment failed");
+                }}
+              />
+            </PayPalScriptProvider>
+          )
         )}
       </CardFooter>
     </Card>
