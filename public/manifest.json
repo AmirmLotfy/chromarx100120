@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "ChroMarx",
+  "version": "1.0.0",
+  "description": "A beautiful and functional Chrome extension",
+  "permissions": [
+    "sidePanel",
+    "bookmarks",
+    "contextMenus",
+    "notifications"
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "ChroMarx",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

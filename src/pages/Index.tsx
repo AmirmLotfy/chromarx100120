@@ -1,13 +1,19 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import Layout from "../components/Layout";
+import FeatureGrid from "../components/FeatureGrid";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <Layout>
+      <div className="space-y-6 pb-16">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+          <p className="text-muted-foreground">
+            Access your favorite features below
+          </p>
+        </div>
+        <FeatureGrid />
       </div>
-    </div>
+    </Layout>
   );
 };
 
