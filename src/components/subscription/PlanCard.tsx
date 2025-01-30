@@ -119,14 +119,17 @@ const PlanCard = ({
             <PayPalScriptProvider options={{ 
               clientId: paypalClientId,
               currency: "USD",
-              intent: "capture"
+              intent: "capture",
+              components: "buttons,hosted-fields",
+              dataClientToken: "your-client-token", // You'll need to generate this on your server
             }}>
               <PayPalButtons
                 style={{ 
                   layout: "horizontal",
                   shape: "rect",
-                  label: "subscribe"
+                  label: "pay"
                 }}
+                fundingSource="card"
                 createOrder={(data, actions) => {
                   return actions.order.create({
                     intent: "CAPTURE",
@@ -136,7 +139,17 @@ const PlanCard = ({
                         currency_code: "USD"
                       },
                       description: `${name} Subscription - ${isYearly ? 'Yearly' : 'Monthly'}`
-                    }]
+                    }],
+                    application_context: {
+                      shipping_preference: "NO_SHIPPING",
+                      user_action: "PAY_NOW",
+                      brand_name: "ChroMarx",
+                      landing_page: "BILLING", // Direct users to card form instead of login
+                      payment_method: {
+                        payer_selected: "PAYPAL",
+                        payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
+                      }
+                    }
                   });
                 }}
                 onApprove={async (data, actions) => {
