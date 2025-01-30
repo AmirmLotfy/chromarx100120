@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Download } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -14,6 +14,13 @@ import { Badge } from "./ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "sonner";
 import SummariesButton from "./summaries/SummariesButton";
+import AIActionButtons from "./AIActionButtons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
