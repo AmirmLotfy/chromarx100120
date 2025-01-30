@@ -14,6 +14,8 @@ import { useSettings } from "@/stores/settingsStore";
 import { Sun, Moon, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
+type ColorScheme = "default" | "purple" | "blue" | "green";
+
 const ThemeSettings = () => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -29,7 +31,7 @@ const ThemeSettings = () => {
     toast.success(`Theme changed to ${value} mode`);
   };
 
-  const handleColorSchemeChange = (value: string) => {
+  const handleColorSchemeChange = (value: ColorScheme) => {
     settings.setColorScheme(value);
     toast.success(`Color scheme updated to ${value}`);
   };
