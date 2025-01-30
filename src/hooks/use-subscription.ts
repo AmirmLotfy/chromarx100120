@@ -3,6 +3,7 @@ import { useFirebase } from '@/contexts/FirebaseContext';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
+import { subscriptionPlans, getFeatureAvailability } from '@/config/subscriptionPlans';
 
 interface UsageData {
   bookmarks: number;
@@ -96,7 +97,6 @@ export const useSubscription = (): SubscriptionHook => {
         const subscriptionDoc = await getDoc(doc(db, 'subscriptions', subscriptionId));
         if (subscriptionDoc.exists()) {
           const planId = subscriptionDoc.data().planId;
-          // Use the existing getFeatureAvailability function
           return getFeatureAvailability(planId, feature);
         }
       }

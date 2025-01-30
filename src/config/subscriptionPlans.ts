@@ -1,3 +1,6 @@
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 export interface PlanFeature {
   name: string;
   included: boolean;
