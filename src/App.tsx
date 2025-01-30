@@ -15,22 +15,34 @@ function App() {
   const [isSidePanelAvailable, setIsSidePanelAvailable] = useState(false);
 
   useEffect(() => {
-    // Check if the side panel API is available
+    // Check if the side panel API is available (Chrome 114+)
     if (chrome?.sidePanel) {
       setIsSidePanelAvailable(true);
+      
+      // Configure side panel behavior to open on action click
+      chrome.sidePanel
+        .setPanelBehavior({ openPanelOnActionClick: true })
+        .catch(console.error);
     }
   }, []);
 
-  const toggleSidePanel = () => {
-    if (chrome?.sidePanel) {
-      setIsVisible(!isVisible);
+  const toggleSidePanel = async () => {
+    if (!chrome?.sidePanel) return;
+
+    try {
       if (isVisible) {
-        // Use setOptions to control visibility
-        chrome.sidePanel.setOptions({ enabled: false });
+        // Disable the side panel
+        await chrome.sidePanel.setOptions({ enabled: false });
       } else {
-        // Open with required path parameter
-        chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
+        // Enable and open the side panel in the current window
+        await chrome.sidePanel.setOptions({ enabled: true });
+        await chrome.sidePanel.open({
+          windowId: chrome.windows.WINDOW_ID_CURRENT
+        });
       }
+      setIsVisible(!isVisible);
+    } catch (error) {
+      console.error('Error toggling side panel:', error);
     }
   };
 
