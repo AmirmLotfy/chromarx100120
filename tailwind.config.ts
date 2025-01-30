@@ -44,6 +44,22 @@ export default {
           DEFAULT: "#E5DEFF",
           foreground: "#403E43",
         },
+        // Add color scheme presets
+        purple: {
+          DEFAULT: "#9b87f5",
+          dark: "#7E69AB",
+          light: "#E5DEFF",
+        },
+        blue: {
+          DEFAULT: "#0EA5E9",
+          dark: "#0C8BC3",
+          light: "#E0F2FE",
+        },
+        green: {
+          DEFAULT: "#10B981",
+          dark: "#059669",
+          light: "#D1FAE5",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
