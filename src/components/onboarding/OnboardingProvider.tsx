@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useSettings } from "@/stores/settingsStore";
+import { useFirebase } from "@/contexts/FirebaseContext";
 
 interface OnboardingContextType {
   currentStep: number;
@@ -8,6 +9,7 @@ interface OnboardingContextType {
   completeOnboarding: () => void;
   skipOnboarding: () => void;
   startOnboarding: () => void;
+  canSkipStep: boolean;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -23,12 +25,17 @@ export const useOnboarding = () => {
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [canSkipStep, setCanSkipStep] = useState(true);
   const settings = useSettings();
+  const { user } = useFirebase();
 
   useEffect(() => {
     const hasCompletedOnboarding = localStorage.getItem("onboardingComplete");
     if (hasCompletedOnboarding) {
       setIsOnboardingComplete(true);
+    } else if (!currentStep) {
+      // Start onboarding automatically if not completed
+      setCurrentStep(1);
     }
   }, []);
 
@@ -39,6 +46,7 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   };
 
   const skipOnboarding = () => {
+    if (!user) return; // Require authentication to skip
     completeOnboarding();
   };
 
@@ -55,6 +63,7 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
         completeOnboarding,
         skipOnboarding,
         startOnboarding,
+        canSkipStep,
       }}
     >
       {children}

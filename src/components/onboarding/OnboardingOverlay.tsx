@@ -12,42 +12,31 @@ import {
 import { Check, ArrowRight, Info, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
+import { subscriptionPlans } from "@/config/subscriptionPlans";
 
 const onboardingSteps = [
   {
     title: "Welcome to ChroMarx!",
-    description: "Your all-in-one browser productivity companion. Let's get you started!",
-    content: "ChroMarx helps you manage bookmarks, track time, take notes, and boost your productivity.",
+    description: "Your all-in-one browser productivity companion",
+    content: "Let's get you set up with ChroMarx to enhance your browsing experience.",
     requiresAuth: false,
   },
   {
     title: "Sign in to Get Started",
     description: "Secure your data and sync across devices",
-    content: "Sign in with your Google account to save your bookmarks, notes, and preferences securely in the cloud.",
+    content: "Sign in with your Google account to unlock all features and keep your data synced across devices.",
     requiresAuth: true,
   },
   {
-    title: "Smart Bookmarking",
-    description: "Organize your bookmarks intelligently",
-    content: "Save, categorize, and search through your bookmarks with ease. AI-powered features help you stay organized.",
-    requiresAuth: true,
-  },
-  {
-    title: "Time Management",
-    description: "Track and optimize your time",
-    content: "Use the Pomodoro timer, track your productivity, and get insights into your browsing habits.",
-    requiresAuth: true,
-  },
-  {
-    title: "Tasks & Notes",
-    description: "Stay organized and productive",
-    content: "Create tasks, take notes, and keep everything synchronized across your devices.",
+    title: "Choose Your Plan",
+    description: "Select the perfect plan for your needs",
+    content: "Pick a subscription plan that matches your productivity goals.",
     requiresAuth: true,
   },
   {
     title: "Ready to Start!",
     description: "You're all set to boost your productivity",
-    content: "Explore ChroMarx's features and make the most of your browsing experience.",
+    content: "Start exploring ChroMarx's powerful features and make the most of your browsing experience.",
     requiresAuth: true,
   },
 ];
@@ -60,6 +49,7 @@ export const OnboardingOverlay = () => {
 
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
+  const progress = (currentStep / onboardingSteps.length) * 100;
 
   const handleNext = async () => {
     if (currentStepData.requiresAuth && !user) {
@@ -90,27 +80,44 @@ export const OnboardingOverlay = () => {
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <div className="w-full bg-muted rounded-full h-2 mb-4">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <CardTitle className="flex items-center gap-2 text-2xl">
             {currentStepData.title}
             <Info className="h-5 w-5 text-muted-foreground" />
           </CardTitle>
-          <CardDescription>{currentStepData.description}</CardDescription>
+          <CardDescription className="text-lg">{currentStepData.description}</CardDescription>
         </CardHeader>
+        
         <CardContent>
-          <p className="text-muted-foreground">{currentStepData.content}</p>
-          <div className="mt-4 flex justify-center gap-2">
-            {Array.from({ length: onboardingSteps.length }).map((_, index) => (
-              <div
-                key={index}
-                className={`h-2 w-2 rounded-full transition-colors ${
-                  index + 1 === currentStep ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
+          {currentStep === 3 && (
+            <div className="grid md:grid-cols-3 gap-4">
+              {subscriptionPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`p-4 rounded-lg border ${
+                    plan.isPopular ? "border-primary" : "border-border"
+                  }`}
+                >
+                  <h3 className="font-semibold">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground">{plan.description}</p>
+                  <div className="mt-2">
+                    <span className="text-xl font-bold">${plan.pricing.monthly}</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-muted-foreground mt-4">{currentStepData.content}</p>
         </CardContent>
+
         <CardFooter className="flex justify-between">
           {!currentStepData.requiresAuth && (
             <Button variant="ghost" onClick={handleSkip}>
