@@ -47,9 +47,7 @@
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -57,6 +55,29 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Mobile-first responsive design */
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px; /* Slightly smaller base font size for mobile */
+    }
+
+    /* Improve touch targets on mobile */
+    button, 
+    [role="button"],
+    input,
+    select,
+    textarea {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+
+  /* Tablet and desktop adjustments */
+  @media (min-width: 641px) {
+    html {
+      font-size: 16px;
+    }
   }
 
   /* Improved focus styles for better accessibility */
@@ -67,6 +88,7 @@
   /* Ensure text remains visible during webfont load */
   html {
     font-display: swap;
+    @apply scroll-smooth;
   }
 
   /* Improve color contrast for better readability */
@@ -74,31 +96,17 @@
     @apply text-gray-600 dark:text-gray-400;
   }
 
-  /* Add smooth scrolling for better user experience */
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* Improve tap target sizes on mobile */
-  button, 
-  [role="button"],
-  input,
-  select,
-  textarea {
-    @apply min-h-[44px] min-w-[44px];
-  }
-
   /* Add proper heading hierarchy styles */
   h1 {
-    @apply text-2xl font-bold md:text-3xl;
+    @apply text-xl font-bold md:text-2xl lg:text-3xl;
   }
 
   h2 {
-    @apply text-xl font-semibold md:text-2xl;
+    @apply text-lg font-semibold md:text-xl lg:text-2xl;
   }
 
   h3 {
-    @apply text-lg font-medium md:text-xl;
+    @apply text-base font-medium md:text-lg lg:text-xl;
   }
 
   /* Improve link accessibility */
@@ -134,5 +142,17 @@
   /* Add proper skip link for keyboard navigation */
   .skip-link {
     @apply sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-background focus:text-foreground;
+  }
+
+  /* Mobile-specific styles */
+  @media (max-width: 640px) {
+    .mobile-touch-scroll {
+      @apply overflow-auto touch-pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
 }

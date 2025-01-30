@@ -1,127 +1,29 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, LogIn } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useFirebase } from "@/contexts/FirebaseContext";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { Moon, Sun } from "lucide-react";
 
 const Header = () => {
-  const { user, signInWithGoogle, signOut } = useFirebase();
-  const navigate = useNavigate();
-
-  const handleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-      toast.success("Successfully signed in!");
-      navigate('/bookmarks');
-    } catch (error) {
-      console.error('Error signing in:', error);
-      toast.error("Failed to sign in. Please try again.");
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success("Successfully signed out");
-      navigate('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error("Failed to sign out");
-    }
-  };
-
-  useEffect(() => {
-    if (!user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center -ml-3">
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/lovable-uploads/beb46658-15c1-4b7f-88fa-ef04d641652b.png" 
-              alt="ChroMarx" 
-              className="h-7 md:h-9" // Decreased size from h-8/h-10 to h-7/h-9
-            />
-          </Link>
-        </div>
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          {user && (
-            <>
-              <Link to="/bookmarks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
-                Bookmarks
-              </Link>
-              <Link to="/tasks" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
-                Tasks
-              </Link>
-              <Link to="/notes" className="text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground px-3 py-2 rounded-md">
-                Notes
-              </Link>
-            </>
-          )}
-        </nav>
-        <div className="ml-auto mr-4"> {/* Increased mr-2 to mr-4 to move sign-in button more right */}
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="relative h-9 w-9 rounded-full"
-                >
-                  {user.photoURL ? (
-                    <img 
-                      src={user.photoURL} 
-                      alt={user.displayName || 'User'} 
-                      className="h-8 w-8 rounded-full"
-                    />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  {user.displayName || user.email}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="w-full cursor-pointer">
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleSignOut}
-                  className="text-red-500 cursor-pointer focus:text-red-500"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button 
-              onClick={handleSignIn}
+      <div className="container flex h-14 max-w-7xl items-center">
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="w-full flex-1 md:w-auto md:flex-none">
+            <h1 className="text-lg font-semibold md:text-xl">ChroMarx</h1>
+          </div>
+          <nav className="flex items-center space-x-2">
+            <Button
               variant="ghost"
-              size="sm"
-              className="flex items-center space-x-1"
+              size="icon"
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="h-9 w-9 md:h-10 md:w-10"
             >
-              <LogIn className="h-4 w-4" />
-              <span>Sign in</span>
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
             </Button>
-          )}
+          </nav>
         </div>
       </div>
     </header>
