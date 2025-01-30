@@ -37,7 +37,7 @@ import {
 import { Sun, Moon, HelpCircle, User, RefreshCw } from "lucide-react";
 import FeedbackForm from "@/components/settings/FeedbackForm";
 import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
-import AffiliateSettings from "@/components/affiliate/AffiliateSettings";
+import AffiliateSettings from "@/components/settings/AffiliateSettings";
 import { useSubscription } from "@/hooks/use-subscription";
 
 const SettingsPage = () => {
@@ -54,17 +54,17 @@ const SettingsPage = () => {
   };
 
   const tabs = [
-    { value: "appearance", label: "Appearance" },
-    { value: "privacy", label: "Privacy" },
-    { value: "subscription", label: "Subscription" },
-    { value: "feedback", label: "Feedback" },
-    { value: "account", label: "Account" },
-    { value: "advanced", label: "Advanced" },
+    { value: "appearance", label: "Appearance", icon: Sun },
+    { value: "privacy", label: "Privacy", icon: User },
+    { value: "subscription", label: "Subscription", icon: RefreshCw },
+    { value: "feedback", label: "Feedback", icon: HelpCircle },
+    { value: "account", label: "Account", icon: User },
+    { value: "advanced", label: "Advanced", icon: RefreshCw },
   ];
 
   // Only add affiliate tab if user is admin
   if (isAdmin) {
-    tabs.push({ value: "affiliate", label: "Affiliate" });
+    tabs.push({ value: "affiliate", label: "Affiliate", icon: HelpCircle });
   }
 
   return (
