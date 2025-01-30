@@ -196,6 +196,17 @@ export const OnboardingOverlay = () => {
   };
 
   const handleNext = async () => {
+    if (currentStep === 1) {
+      const termsAccepted = localStorage.getItem('termsAccepted');
+      if (!termsAccepted) {
+        const confirmed = window.confirm(
+          "By continuing, you agree to our Terms of Service and Privacy Policy. Would you like to proceed?"
+        );
+        if (!confirmed) return;
+        localStorage.setItem('termsAccepted', 'true');
+      }
+    }
+    
     if (currentStepData.requiresAuth && !user) {
       try {
         await signInWithGoogle();

@@ -60,6 +60,7 @@ const SettingsPage = () => {
     { value: "feedback", label: "Feedback", icon: HelpCircle },
     { value: "account", label: "Account", icon: User },
     { value: "advanced", label: "Advanced", icon: RefreshCw },
+    { value: "legal", label: "Legal & Feedback", icon: FileText },
   ];
 
   // Only add affiliate tab if user is admin
@@ -339,6 +340,10 @@ const SettingsPage = () => {
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="legal" className="space-y-4">
+                <LegalAndFeedback />
               </TabsContent>
 
               {isAdmin && (
