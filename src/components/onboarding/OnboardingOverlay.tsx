@@ -260,6 +260,61 @@ export const OnboardingOverlay = () => {
     }
   };
 
+  const renderBookmarkTree = (node: BookmarkNode) => {
+    if (!node) return null;
+
+    return (
+      <div key={node.id} className="space-y-2">
+        {node.url ? (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={node.id}
+              checked={selectedBookmarks.has(node.id)}
+              onCheckedChange={() => {
+                const newSelected = new Set(selectedBookmarks);
+                if (newSelected.has(node.id)) {
+                  newSelected.delete(node.id);
+                } else {
+                  newSelected.add(node.id);
+                }
+                setSelectedBookmarks(newSelected);
+              }}
+            />
+            <label htmlFor={node.id} className="text-sm">
+              {node.title}
+            </label>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={node.id}
+                checked={selectedBookmarks.has(node.id)}
+                onCheckedChange={() => {
+                  const newSelected = new Set(selectedBookmarks);
+                  if (newSelected.has(node.id)) {
+                    newSelected.delete(node.id);
+                  } else {
+                    newSelected.add(node.id);
+                  }
+                  setSelectedBookmarks(newSelected);
+                }}
+              />
+              <label htmlFor={node.id} className="font-medium">
+                {node.title}
+              </label>
+            </div>
+            {node.children && (
+              <div className="ml-6 space-y-2">
+                {node.children.map(child => renderBookmarkTree(child))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">

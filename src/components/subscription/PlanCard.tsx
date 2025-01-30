@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 
 interface PlanCardProps extends Plan {
   onSubscribe?: (planId: string) => void;
+  isSelected?: boolean;
 }
 
 const PlanCard = ({ 
@@ -28,6 +29,7 @@ const PlanCard = ({
   description, 
   features, 
   isPopular,
+  isSelected,
   onSubscribe 
 }: PlanCardProps) => {
   const [paypalClientId, setPaypalClientId] = useState<string>("");
@@ -51,7 +53,7 @@ const PlanCard = ({
   const savings = isYearly ? Math.round((pricing.monthly * 12 - pricing.yearly) / (pricing.monthly * 12) * 100) : 0;
 
   return (
-    <Card className={`relative ${isPopular ? 'border-primary shadow-lg' : ''}`}>
+    <Card className={`relative ${isPopular ? 'border-primary shadow-lg' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}>
       {isPopular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <span className="bg-primary text-primary-foreground text-sm px-3 py-1 rounded-full">
