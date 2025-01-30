@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { Share2, Copy, MessageSquare, Tags, Link } from "lucide-react";
 import { toast } from "sonner";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
+import { useSubscription } from "@/hooks/use-subscription";
 
 interface NoteEditorProps {
   note: Note | null;
@@ -41,25 +43,40 @@ const NoteEditor = ({ note, onSave }: NoteEditorProps) => {
     }
   }, [note]);
 
-  const handleSave = () => {
+  const { incrementUsage } = useSubscription();
+  const { checkUsageLimit } = useFeatureAccess();
+
+  const handleSave = async () => {
     if (!title.trim()) {
       toast.error("Please enter a title");
       return;
     }
 
-    const updatedNote: Note = {
-      id: note?.id || crypto.randomUUID(),
-      title,
-      content,
-      category,
-      tags,
-      linkedTaskId,
-      createdAt: note?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (!note && !checkUsageLimit('notes')) {
+      return;
+    }
 
-    onSave(updatedNote);
-    toast.success("Note saved successfully");
+    try {
+      if (!note) {
+        await incrementUsage('notes');
+      }
+
+      const updatedNote: Note = {
+        id: note?.id || crypto.randomUUID(),
+        title,
+        content,
+        category,
+        tags,
+        linkedTaskId,
+        createdAt: note?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      onSave(updatedNote);
+      toast.success("Note saved successfully");
+    } catch (error) {
+      toast.error("Failed to save note");
+    }
   };
 
   const handleShare = async (type: 'copy' | 'whatsapp' | 'email') => {

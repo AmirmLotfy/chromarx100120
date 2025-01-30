@@ -21,6 +21,8 @@ import {
 import { cn } from "@/lib/utils";
 import { getTaskSuggestions } from "@/utils/taskSuggestions";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
+import { useSubscription } from "@/hooks/use-subscription";
 
 interface TaskFormProps {
   onSubmit: (task: Omit<Task, "id" | "createdAt">) => void;
@@ -40,8 +42,16 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
   const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { incrementUsage } = useSubscription();
+  const { checkUsageLimit } = useFeatureAccess();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!initialData && !checkUsageLimit('tasks')) {
+      return;
+    }
+
     if (!dueDate) {
       toast({
         title: "Due date required",
@@ -49,49 +59,34 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
       });
       return;
     }
-    onSubmit({
-      title,
-      description,
-      priority,
-      category,
-      dueDate: dueDate.toISOString(),
-      completed: initialData?.completed || false,
-      timeSpent: initialData?.timeSpent || 0,
-    });
-    if (!initialData) {
-      setTitle("");
-      setDescription("");
-      setPriority("medium");
-      setCategory("");
-      setDueDate(undefined);
-    }
-  };
 
-  const handleGetSuggestions = async () => {
-    if (!title) {
-      toast({
-        title: "Please enter a task title",
-        description: "A title is required to get suggestions.",
-      });
-      return;
-    }
-
-    setIsGettingSuggestions(true);
     try {
-      const suggestions = await getTaskSuggestions(title, description);
-      setPriority(suggestions.suggestedPriority);
-      setCategory(suggestions.suggestedCategory);
-      toast({
-        title: "Suggestions applied",
-        description: "AI has suggested priority and category based on your task.",
+      if (!initialData) {
+        await incrementUsage('tasks');
+      }
+      
+      onSubmit({
+        title,
+        description,
+        priority,
+        category,
+        dueDate: dueDate.toISOString(),
+        completed: initialData?.completed || false,
+        timeSpent: initialData?.timeSpent || 0,
       });
+
+      if (!initialData) {
+        setTitle("");
+        setDescription("");
+        setPriority("medium");
+        setCategory("");
+        setDueDate(undefined);
+      }
     } catch (error) {
       toast({
-        title: "Error getting suggestions",
-        description: "Failed to get AI suggestions. Please try again.",
+        title: "Error",
+        description: "Failed to create task. Please try again.",
       });
-    } finally {
-      setIsGettingSuggestions(false);
     }
   };
 
