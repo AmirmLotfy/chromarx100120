@@ -34,11 +34,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Sun, Moon, HelpCircle, User, RefreshCw } from "lucide-react";
+import { Sun, Moon, HelpCircle, User, RefreshCw, FileText } from "lucide-react";
 import FeedbackForm from "@/components/settings/FeedbackForm";
 import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
 import AffiliateSettings from "@/components/settings/AffiliateSettings";
 import { useSubscription } from "@/hooks/use-subscription";
+import LegalAndFeedback from "@/components/settings/LegalAndFeedback";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
