@@ -70,25 +70,72 @@ export const OnboardingOverlay = () => {
   const progress = (currentStep / onboardingSteps.length) * 100;
 
   const loadBookmarkTree = async () => {
-    if (!chrome?.bookmarks) {
-      toast.error("Bookmark import is only available in Chrome");
-      return false;
-    }
-
     setIsLoadingBookmarks(true);
     try {
-      const tree = await chrome.bookmarks.getTree();
-      console.log("Loaded bookmark tree:", tree);
-      setBookmarkTree(tree);
-      
-      // Select root folders by default
-      if (tree[0]?.children) {
-        const rootFolders = new Set(tree[0].children.map(node => node.id));
+      if (typeof chrome !== 'undefined' && chrome.bookmarks) {
+        console.log("Loading real Chrome bookmarks...");
+        const tree = await chrome.bookmarks.getTree();
+        console.log("Loaded bookmark tree:", tree);
+        setBookmarkTree(tree);
+        
+        // Select root folders by default
+        if (tree[0]?.children) {
+          const rootFolders = new Set(tree[0].children.map(node => node.id));
+          setSelectedBookmarks(rootFolders);
+        }
+        
+        toast.success("Bookmarks loaded successfully!");
+        return true;
+      } else {
+        console.log("Running in development mode - loading demo bookmarks");
+        // Demo data for development
+        const demoTree = [{
+          id: "1",
+          title: "Bookmarks Bar",
+          children: [
+            {
+              id: "2",
+              title: "Development",
+              children: [
+                {
+                  id: "3",
+                  title: "React Documentation",
+                  url: "https://react.dev",
+                },
+                {
+                  id: "4",
+                  title: "TypeScript Handbook",
+                  url: "https://www.typescriptlang.org/docs/",
+                }
+              ]
+            },
+            {
+              id: "5",
+              title: "Productivity",
+              children: [
+                {
+                  id: "6",
+                  title: "ChatGPT",
+                  url: "https://chat.openai.com",
+                },
+                {
+                  id: "7",
+                  title: "Google Calendar",
+                  url: "https://calendar.google.com",
+                }
+              ]
+            }
+          ]
+        }];
+        
+        setBookmarkTree(demoTree);
+        // Select root folders by default
+        const rootFolders = new Set(demoTree[0].children?.map(node => node.id) || []);
         setSelectedBookmarks(rootFolders);
+        
+        toast.success("Demo bookmarks loaded successfully!");
+        return true;
       }
-      
-      toast.success("Bookmarks loaded successfully!");
-      return true;
     } catch (error) {
       console.error("Error loading bookmarks:", error);
       toast.error("Failed to load bookmarks. Please try again.");
