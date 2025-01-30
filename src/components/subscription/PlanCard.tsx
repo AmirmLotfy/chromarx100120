@@ -120,8 +120,7 @@ const PlanCard = ({
               clientId: paypalClientId,
               currency: "USD",
               intent: "capture",
-              components: "buttons,hosted-fields",
-              dataClientToken: "your-client-token", // You'll need to generate this on your server
+              components: "buttons,hosted-fields"
             }}>
               <PayPalButtons
                 style={{ 
@@ -144,9 +143,8 @@ const PlanCard = ({
                       shipping_preference: "NO_SHIPPING",
                       user_action: "PAY_NOW",
                       brand_name: "ChroMarx",
-                      landing_page: "BILLING", // Direct users to card form instead of login
+                      landing_page: "BILLING",
                       payment_method: {
-                        payer_selected: "PAYPAL",
                         payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
                       }
                     }
