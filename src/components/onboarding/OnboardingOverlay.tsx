@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useOnboarding } from "./OnboardingProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,12 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info } from "lucide-react";
+import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Spinner } from "@/components/ui/spinner";
 
 interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
   isSelected?: boolean;
@@ -60,6 +61,7 @@ export const OnboardingOverlay = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [bookmarkTree, setBookmarkTree] = useState<BookmarkNode[]>([]);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
+  const [isLoadingBookmarks, setIsLoadingBookmarks] = useState(false);
 
   // Don't render if onboarding is complete or no current step
   if (isOnboardingComplete || currentStep === 0) return null;
@@ -67,6 +69,32 @@ export const OnboardingOverlay = () => {
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
   const progress = (currentStep / onboardingSteps.length) * 100;
+
+  const loadBookmarkTree = async () => {
+    if (!chrome?.bookmarks) {
+      toast.error("Bookmark import is only available in Chrome");
+      return;
+    }
+
+    setIsLoadingBookmarks(true);
+    try {
+      const tree = await chrome.bookmarks.getTree();
+      setBookmarkTree(tree);
+      
+      // Select root folders by default
+      if (selectedBookmarks.size === 0 && tree[0]?.children) {
+        const rootFolders = new Set(tree[0].children.map(node => node.id));
+        setSelectedBookmarks(rootFolders);
+      }
+      
+      toast.success("Bookmarks loaded successfully!");
+    } catch (error) {
+      console.error("Error loading bookmarks:", error);
+      toast.error("Failed to load bookmarks. Please try again.");
+    } finally {
+      setIsLoadingBookmarks(false);
+    }
+  };
 
   const toggleBookmarkSelection = (id: string) => {
     setSelectedBookmarks(prev => {
@@ -80,44 +108,23 @@ export const OnboardingOverlay = () => {
     });
   };
 
-  const handleImportBookmarks = async () => {
-    if (!chrome?.bookmarks) {
-      toast.error("Bookmark import is only available in Chrome");
-      return;
-    }
-
-    setIsImporting(true);
-    try {
-      const tree = await chrome.bookmarks.getTree();
-      setBookmarkTree(tree);
-      
-      // If it's the first time loading bookmarks, select the root folders by default
-      if (selectedBookmarks.size === 0 && tree[0]?.children) {
-        const rootFolders = new Set(tree[0].children.map(node => node.id));
-        setSelectedBookmarks(rootFolders);
-      }
-      
-      toast.success("Bookmarks loaded successfully!");
-    } catch (error) {
-      console.error("Error loading bookmarks:", error);
-      toast.error("Failed to load bookmarks. Please try again.");
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   const renderBookmarkTree = (node: BookmarkNode, level: number = 0) => {
     if (!node.children && !node.url) return null;
 
     return (
-      <div key={node.id} style={{ marginLeft: `${level * 20}px` }} className="py-1">
-        <div className="flex items-center space-x-2">
+      <div key={node.id} style={{ marginLeft: `${level * 16}px` }} className="py-1">
+        <div className="flex items-center space-x-2 hover:bg-accent/50 rounded-md p-1">
           <Checkbox
             id={node.id}
             checked={selectedBookmarks.has(node.id)}
             onCheckedChange={() => toggleBookmarkSelection(node.id)}
           />
-          <label htmlFor={node.id} className="text-sm cursor-pointer">
+          <label htmlFor={node.id} className="text-sm cursor-pointer flex items-center gap-2">
+            {node.children ? (
+              <FolderIcon className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <BookmarkIcon className="h-4 w-4 text-muted-foreground" />
+            )}
             {node.title || "Untitled"}
           </label>
         </div>
@@ -128,6 +135,35 @@ export const OnboardingOverlay = () => {
         )}
       </div>
     );
+  };
+
+  const processSelectedBookmarks = async () => {
+    setIsImporting(true);
+    try {
+      const processedBookmarks = Array.from(selectedBookmarks).map(id => {
+        const findBookmark = (nodes: BookmarkNode[]): BookmarkNode | null => {
+          for (const node of nodes) {
+            if (node.id === id) return node;
+            if (node.children) {
+              const found = findBookmark(node.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        return findBookmark(bookmarkTree);
+      }).filter((bookmark): bookmark is BookmarkNode => bookmark !== null);
+
+      console.log("Processing selected bookmarks:", processedBookmarks);
+      toast.success(`Successfully imported ${processedBookmarks.length} bookmarks!`);
+      return true;
+    } catch (error) {
+      console.error("Error processing bookmarks:", error);
+      toast.error("Failed to process bookmarks. Please try again.");
+      return false;
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleNext = async () => {
@@ -141,37 +177,18 @@ export const OnboardingOverlay = () => {
     }
 
     if (currentStep === 3) {
-      // Bookmark import step
       if (bookmarkTree.length === 0) {
-        await handleImportBookmarks();
-      } else if (selectedBookmarks.size > 0) {
-        // Process selected bookmarks
-        try {
-          const processedBookmarks = Array.from(selectedBookmarks).map(id => {
-            const findBookmark = (nodes: BookmarkNode[]): BookmarkNode | null => {
-              for (const node of nodes) {
-                if (node.id === id) return node;
-                if (node.children) {
-                  const found = findBookmark(node.children);
-                  if (found) return found;
-                }
-              }
-              return null;
-            };
-            return findBookmark(bookmarkTree);
-          }).filter((bookmark): bookmark is BookmarkNode => bookmark !== null);
-
-          console.log("Importing selected bookmarks:", processedBookmarks);
-          toast.success(`Successfully imported ${processedBookmarks.length} bookmarks!`);
-          setCurrentStep(currentStep + 1);
-        } catch (error) {
-          console.error("Error processing bookmarks:", error);
-          toast.error("Failed to process bookmarks. Please try again.");
-        }
-      } else {
-        toast.error("Please select at least one bookmark folder to import");
+        await loadBookmarkTree();
+        return;
       }
-      return;
+      
+      if (selectedBookmarks.size === 0) {
+        toast.error("Please select at least one bookmark folder to import");
+        return;
+      }
+
+      const success = await processSelectedBookmarks();
+      if (!success) return;
     }
 
     if (isLastStep) {
@@ -183,7 +200,7 @@ export const OnboardingOverlay = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <div className="w-full bg-muted rounded-full h-2 mb-4">
@@ -192,19 +209,21 @@ export const OnboardingOverlay = () => {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <CardTitle className="flex items-center gap-2 text-2xl md:text-3xl">
+          <CardTitle className="flex items-center gap-2">
             {currentStepData.title}
             <Info className="h-5 w-5 text-muted-foreground" />
           </CardTitle>
-          <CardDescription className="text-lg md:text-xl">
-            {currentStepData.description}
-          </CardDescription>
+          <CardDescription>{currentStepData.description}</CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {currentStep === 3 && (
             <ScrollArea className="h-[300px] rounded-md border p-4">
-              {bookmarkTree.length > 0 ? (
+              {isLoadingBookmarks ? (
+                <div className="flex items-center justify-center h-full">
+                  <Spinner className="h-6 w-6" />
+                </div>
+              ) : bookmarkTree.length > 0 ? (
                 bookmarkTree.map(node => renderBookmarkTree(node))
               ) : (
                 <div className="text-center text-muted-foreground">
@@ -219,23 +238,23 @@ export const OnboardingOverlay = () => {
               {subscriptionPlans.map((plan) => (
                 <div
                   key={plan.id}
-                  className={`p-6 rounded-lg border ${
+                  className={`p-4 rounded-lg border ${
                     plan.isPopular ? "border-primary" : "border-border"
                   } hover:shadow-lg transition-shadow duration-200`}
                 >
-                  <h3 className="font-semibold text-lg md:text-xl">{plan.name}</h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
+                  <h3 className="font-semibold">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground">
                     {plan.description}
                   </p>
                   <div className="mt-4">
-                    <span className="text-2xl font-bold">${plan.pricing.monthly}</span>
+                    <span className="text-xl font-bold">${plan.pricing.monthly}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
-          <p className="text-muted-foreground text-base md:text-lg">
+          <p className="text-muted-foreground">
             {currentStepData.content}
           </p>
         </CardContent>
@@ -243,10 +262,12 @@ export const OnboardingOverlay = () => {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleNext}
-            size="default"
-            className="px-4 py-2 text-sm"
-            disabled={isImporting}
+            disabled={isImporting || isLoadingBookmarks}
+            className="px-4 py-2"
           >
+            {isImporting || isLoadingBookmarks ? (
+              <Spinner className="mr-2 h-4 w-4" />
+            ) : null}
             {currentStepData.requiresAuth && !user ? (
               "Sign in to Continue"
             ) : isLastStep ? (
