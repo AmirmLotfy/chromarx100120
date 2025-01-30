@@ -7,7 +7,7 @@ const WelcomeCard = () => {
   const { isOnboardingComplete, startOnboarding } = useOnboarding();
   const { user } = useFirebase();
 
-  // Only show if onboarding is not complete and user is not signed in
+  // Don't render if onboarding is complete or user is signed in
   if (isOnboardingComplete || user) return null;
 
   return (
