@@ -100,7 +100,7 @@ export const getGeminiResponse = functions.https.onRequest(async (req, res) => {
     }
 
     const { apiKey } = apiKeyDoc.data() as { apiKey: string };
-    const { prompt, type } = req.body;
+    const { prompt, type, language } = req.body;
 
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -109,10 +109,14 @@ export const getGeminiResponse = functions.https.onRequest(async (req, res) => {
     let response;
     switch (type) {
       case 'summarize':
-        response = await model.generateContent(`Summarize this content concisely in 2-3 sentences: ${prompt}`);
+        response = await model.generateContent(
+          `Summarize this content concisely in 2-3 sentences in ${language} language: ${prompt}`
+        );
         break;
       case 'categorize':
-        response = await model.generateContent(`Suggest a single category for this content. Respond with just the category name, no explanation: ${prompt}`);
+        response = await model.generateContent(
+          `Suggest a single category for this content. Respond with just the category name in ${language} language, no explanation: ${prompt}`
+        );
         break;
       default:
         throw new Error('Invalid request type');

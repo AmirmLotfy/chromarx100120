@@ -1,4 +1,5 @@
 import { auth } from '@/lib/firebase';
+import { Language } from '@/stores/languageStore';
 
 async function getIdToken(): Promise<string> {
   const user = auth.currentUser;
@@ -8,7 +9,11 @@ async function getIdToken(): Promise<string> {
   return user.getIdToken();
 }
 
-async function callGeminiFunction(prompt: string, type: 'summarize' | 'categorize'): Promise<string> {
+async function callGeminiFunction(
+  prompt: string, 
+  type: 'summarize' | 'categorize',
+  language: Language
+): Promise<string> {
   try {
     const idToken = await getIdToken();
     const response = await fetch('https://us-central1-chromarx-215c8.cloudfunctions.net/getGeminiResponse', {
@@ -17,7 +22,11 @@ async function callGeminiFunction(prompt: string, type: 'summarize' | 'categoriz
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ prompt, type }),
+      body: JSON.stringify({ 
+        prompt, 
+        type,
+        language: language.code 
+      }),
     });
 
     if (!response.ok) {
@@ -32,19 +41,23 @@ async function callGeminiFunction(prompt: string, type: 'summarize' | 'categoriz
   }
 }
 
-export async function summarizeContent(text: string): Promise<string> {
+export async function summarizeContent(text: string, language: Language): Promise<string> {
   try {
-    return await callGeminiFunction(text, 'summarize');
+    return await callGeminiFunction(text, 'summarize', language);
   } catch (error) {
     console.error('Error summarizing content:', error);
     return 'Failed to generate summary';
   }
 }
 
-export async function suggestBookmarkCategory(title: string, url: string): Promise<string> {
+export async function suggestBookmarkCategory(
+  title: string, 
+  url: string, 
+  language: Language
+): Promise<string> {
   try {
     const prompt = `Title: ${title}\nURL: ${url}`;
-    return await callGeminiFunction(prompt, 'categorize');
+    return await callGeminiFunction(prompt, 'categorize', language);
   } catch (error) {
     console.error('Error suggesting category:', error);
     return 'Uncategorized';
