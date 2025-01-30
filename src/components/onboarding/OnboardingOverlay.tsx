@@ -9,10 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info, SkipForward } from "lucide-react";
+import { Check, ArrowRight, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
+import { ChromeBookmark } from "@/types/bookmark";
 
 const onboardingSteps = [
   {
@@ -25,6 +26,12 @@ const onboardingSteps = [
     title: "Sign in to Get Started",
     description: "Secure your data and sync across devices",
     content: "Sign in with your Google account to unlock all features and keep your data synced across devices.",
+    requiresAuth: true,
+  },
+  {
+    title: "Import Your Bookmarks",
+    description: "Bring your existing bookmarks",
+    content: "Import your Chrome bookmarks to get started quickly with ChroMarx.",
     requiresAuth: true,
   },
   {
@@ -42,14 +49,32 @@ const onboardingSteps = [
 ];
 
 export const OnboardingOverlay = () => {
-  const { currentStep, setCurrentStep, completeOnboarding, skipOnboarding } = useOnboarding();
+  const { currentStep, setCurrentStep, completeOnboarding } = useOnboarding();
   const { user, signInWithGoogle } = useFirebase();
+  const [importedBookmarks, setImportedBookmarks] = React.useState<ChromeBookmark[]>([]);
 
   if (currentStep === 0) return null;
 
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
   const progress = (currentStep / onboardingSteps.length) * 100;
+
+  const handleImportBookmarks = async () => {
+    if (!chrome?.bookmarks) {
+      toast.error("Bookmark import is only available in the Chrome extension");
+      return;
+    }
+
+    try {
+      const bookmarks = await chrome.bookmarks.getTree();
+      setImportedBookmarks(bookmarks);
+      toast.success("Bookmarks imported successfully!");
+      setCurrentStep(currentStep + 1);
+    } catch (error) {
+      console.error("Error importing bookmarks:", error);
+      toast.error("Failed to import bookmarks. Please try again.");
+    }
+  };
 
   const handleNext = async () => {
     if (currentStepData.requiresAuth && !user) {
@@ -61,6 +86,11 @@ export const OnboardingOverlay = () => {
       }
     }
 
+    if (currentStep === 3) {
+      await handleImportBookmarks();
+      return;
+    }
+
     if (isLastStep) {
       completeOnboarding();
       toast.success("Welcome to ChroMarx! 🎉");
@@ -69,18 +99,9 @@ export const OnboardingOverlay = () => {
     }
   };
 
-  const handleSkip = () => {
-    if (!user) {
-      toast.error("Please sign in to continue using ChroMarx");
-      return;
-    }
-    skipOnboarding();
-    toast.info("You can always access the tutorial from settings");
-  };
-
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <Card className="w-full max-w-2xl">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in overflow-y-auto">
+      <Card className="w-full max-w-md mx-auto my-4">
         <CardHeader>
           <div className="w-full bg-muted rounded-full h-2 mb-4">
             <div
@@ -88,16 +109,18 @@ export const OnboardingOverlay = () => {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
             {currentStepData.title}
             <Info className="h-5 w-5 text-muted-foreground" />
           </CardTitle>
-          <CardDescription className="text-lg">{currentStepData.description}</CardDescription>
+          <CardDescription className="text-base md:text-lg">
+            {currentStepData.description}
+          </CardDescription>
         </CardHeader>
         
         <CardContent>
-          {currentStep === 3 && (
-            <div className="grid md:grid-cols-3 gap-4">
+          {currentStep === 4 && (
+            <div className="grid gap-4">
               {subscriptionPlans.map((plan) => (
                 <div
                   key={plan.id}
@@ -118,25 +141,24 @@ export const OnboardingOverlay = () => {
           <p className="text-muted-foreground mt-4">{currentStepData.content}</p>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
-          {!currentStepData.requiresAuth && (
-            <Button variant="ghost" onClick={handleSkip}>
-              <SkipForward className="mr-2 h-4 w-4" />
-              Skip Tutorial
-            </Button>
-          )}
-          <Button onClick={handleNext} className="ml-auto">
+        <CardFooter>
+          <Button 
+            onClick={handleNext} 
+            className="w-full py-6 text-lg"
+          >
             {currentStepData.requiresAuth && !user ? (
               "Sign in to Continue"
+            ) : currentStep === 3 ? (
+              "Import Bookmarks"
             ) : isLastStep ? (
               <>
                 Get Started
-                <Check className="ml-2 h-4 w-4" />
+                <Check className="ml-2 h-5 w-5" />
               </>
             ) : (
               <>
                 Next
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
           </Button>
