@@ -1,17 +1,28 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { Trash2, ChevronDown } from "lucide-react";
 import { useBookmarkState } from "./BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
 import { searchWebResults } from "@/utils/searchUtils";
 import { getContextFromHistory, generateChatPrompt, extractTopicsFromMessages } from "@/utils/chatContextUtils";
+import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { Message } from "@/types/chat";
+
+const STORAGE_KEY = 'chromarx_chat_history';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState<Message[][]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
 
@@ -22,6 +33,42 @@ const ChatInterface = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    // Load chat history from Chrome storage
+    chrome.storage.local.get([STORAGE_KEY], (result) => {
+      if (result[STORAGE_KEY]) {
+        setChatHistory(result[STORAGE_KEY]);
+      }
+    });
+  }, []);
+
+  const saveChatHistory = useCallback((newMessages: Message[]) => {
+    if (newMessages.length === 0) return;
+    
+    chrome.storage.local.get([STORAGE_KEY], (result) => {
+      const existingHistory = result[STORAGE_KEY] || [];
+      const updatedHistory = [newMessages, ...existingHistory].slice(0, 10); // Keep last 10 conversations
+      
+      chrome.storage.local.set({ [STORAGE_KEY]: updatedHistory }, () => {
+        setChatHistory(updatedHistory);
+      });
+    });
+  }, []);
+
+  const clearChat = () => {
+    if (messages.length > 0) {
+      saveChatHistory(messages);
+      setMessages([]);
+      toast.success("Chat cleared successfully");
+    }
+  };
+
+  const loadChatSession = (sessionMessages: Message[]) => {
+    setMessages(sessionMessages);
+    setIsHistoryOpen(false);
+    scrollToBottom();
+  };
 
   const searchBookmarks = useCallback((query: string) => {
     return bookmarks.filter((bookmark) => {
@@ -93,7 +140,10 @@ const ChatInterface = () => {
         webResults,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => {
+        const newMessages = [...prev, assistantMessage];
+        return newMessages;
+      });
     } catch (error) {
       toast.error("Failed to process your request. Please try again.");
     } finally {
@@ -141,7 +191,20 @@ const ChatInterface = () => {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm">
+      <div className="flex justify-end p-2 border-b">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearChat}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Clear Chat
+        </Button>
+      </div>
+      
       <ChatMessages messages={messages} messagesEndRef={messagesEndRef} />
+      
       <div className="border-t p-3">
         <ChatInput
           onSendMessage={handleSendMessage}
@@ -149,6 +212,49 @@ const ChatInterface = () => {
           suggestions={suggestions}
         />
       </div>
+
+      <Collapsible
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        className="border-t"
+      >
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full flex items-center justify-between p-2 hover:bg-accent"
+          >
+            Recent Chat History
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+              isHistoryOpen ? "transform rotate-180" : ""
+            }`} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="p-2 space-y-2">
+          {chatHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              No chat history available
+            </p>
+          ) : (
+            chatHistory.map((session, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-left"
+                onClick={() => loadChatSession(session)}
+              >
+                <span className="truncate">
+                  {session[0]?.content || "Chat session"}
+                </span>
+                <span className="text-xs text-muted-foreground ml-2">
+                  {session[0]?.timestamp.toLocaleString()}
+                </span>
+              </Button>
+            ))
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };
