@@ -176,17 +176,37 @@ export const OnboardingOverlay = () => {
       }
     }
 
+    // Handle bookmark import step (step 3)
     if (currentStep === 3) {
-      if (bookmarkTree.length === 0) {
-        await loadBookmarkTree();
-        return;
-      }
-      
-      if (selectedBookmarks.size === 0) {
-        toast.error("Please select at least one bookmark folder to import");
-        return;
-      }
+      setIsLoadingBookmarks(true);
+      try {
+        if (!chrome?.bookmarks) {
+          toast.error("Bookmark import is only available in Chrome");
+          return;
+        }
 
+        const tree = await chrome.bookmarks.getTree();
+        setBookmarkTree(tree);
+        
+        // Select root folders by default
+        if (tree[0]?.children) {
+          const rootFolders = new Set(tree[0].children.map(node => node.id));
+          setSelectedBookmarks(rootFolders);
+        }
+        
+        toast.success("Bookmarks loaded successfully!");
+      } catch (error) {
+        console.error("Error loading bookmarks:", error);
+        toast.error("Failed to load bookmarks. Please try again.");
+        return;
+      } finally {
+        setIsLoadingBookmarks(false);
+      }
+      return; // Don't proceed to next step until user selects and processes bookmarks
+    }
+
+    // Handle processing selected bookmarks before moving to next step
+    if (currentStep === 3 && selectedBookmarks.size > 0) {
       const success = await processSelectedBookmarks();
       if (!success) return;
     }
@@ -233,27 +253,6 @@ export const OnboardingOverlay = () => {
             </ScrollArea>
           )}
           
-          {currentStep === 4 && (
-            <div className="grid md:grid-cols-3 gap-4">
-              {subscriptionPlans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`p-4 rounded-lg border ${
-                    plan.isPopular ? "border-primary" : "border-border"
-                  } hover:shadow-lg transition-shadow duration-200`}
-                >
-                  <h3 className="font-semibold">{plan.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {plan.description}
-                  </p>
-                  <div className="mt-4">
-                    <span className="text-xl font-bold">${plan.pricing.monthly}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
           <p className="text-muted-foreground">
             {currentStepData.content}
           </p>
