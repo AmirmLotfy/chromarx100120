@@ -90,6 +90,34 @@ const TaskForm = ({ onSubmit, initialData }: TaskFormProps) => {
     }
   };
 
+  const handleGetSuggestions = async () => {
+    if (!title) {
+      toast({
+        title: "Please enter a task title",
+        description: "A title is required to get suggestions.",
+      });
+      return;
+    }
+
+    setIsGettingSuggestions(true);
+    try {
+      const suggestions = await getTaskSuggestions(title, description);
+      setPriority(suggestions.suggestedPriority);
+      setCategory(suggestions.suggestedCategory);
+      toast({
+        title: "Suggestions applied",
+        description: "AI has suggested priority and category based on your task.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error getting suggestions",
+        description: "Failed to get AI suggestions. Please try again.",
+      });
+    } finally {
+      setIsGettingSuggestions(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
