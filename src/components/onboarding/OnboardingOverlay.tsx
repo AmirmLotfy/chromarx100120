@@ -9,12 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon } from "lucide-react";
+import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
+import { subscriptionPlans } from "@/config/subscriptionPlans";
+import PlanCard from "@/components/subscription/PlanCard";
 
 interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
   isSelected?: boolean;
@@ -35,15 +37,15 @@ const onboardingSteps = [
     requiresAuth: true,
   },
   {
-    title: "Import Your Bookmarks",
-    description: "Bring your existing bookmarks",
-    content: "Select the bookmark folders you'd like to import to ChroMarx.",
-    requiresAuth: true,
-  },
-  {
     title: "Choose Your Plan",
     description: "Select the perfect plan for your needs",
     content: "Pick a subscription plan that matches your productivity goals.",
+    requiresAuth: true,
+  },
+  {
+    title: "Import Your Bookmarks",
+    description: "Bring your existing bookmarks",
+    content: "Select the bookmark folders you'd like to import to ChroMarx.",
     requiresAuth: true,
   },
   {
@@ -61,8 +63,9 @@ export const OnboardingOverlay = () => {
   const [bookmarkTree, setBookmarkTree] = useState<BookmarkNode[]>([]);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [isLoadingBookmarks, setIsLoadingBookmarks] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Don't render if onboarding is complete or no current step
   if (isOnboardingComplete || currentStep === 0) return null;
 
   const currentStepData = onboardingSteps[currentStep - 1];
@@ -78,7 +81,6 @@ export const OnboardingOverlay = () => {
         console.log("Loaded bookmark tree:", tree);
         setBookmarkTree(tree);
         
-        // Select root folders by default
         if (tree[0]?.children) {
           const rootFolders = new Set(tree[0].children.map(node => node.id));
           setSelectedBookmarks(rootFolders);
@@ -88,7 +90,6 @@ export const OnboardingOverlay = () => {
         return true;
       } else {
         console.log("Running in development mode - loading demo bookmarks");
-        // Demo data for development
         const demoTree = [{
           id: "1",
           title: "Bookmarks Bar",
@@ -129,7 +130,6 @@ export const OnboardingOverlay = () => {
         }];
         
         setBookmarkTree(demoTree);
-        // Select root folders by default
         const rootFolders = new Set(demoTree[0].children?.map(node => node.id) || []);
         setSelectedBookmarks(rootFolders);
         
@@ -179,45 +179,50 @@ export const OnboardingOverlay = () => {
     }
   };
 
-  const toggleBookmarkSelection = (id: string) => {
-    setSelectedBookmarks(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+  const handlePlanSelection = async (planId: string) => {
+    setSelectedPlan(planId);
+    const plan = subscriptionPlans.find(p => p.id === planId);
+    
+    if (!plan) {
+      toast.error("Invalid plan selected");
+      return;
+    }
+
+    if (plan.pricing.monthly === 0) {
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const response = await fetch('YOUR_FIREBASE_FUNCTION_URL/handleSubscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user?.getIdToken()}`
+        },
+        body: JSON.stringify({
+          planId,
+          orderId: `order_${Date.now()}`,
+          paymentDetails: {
+            amount: plan.pricing.monthly,
+            currency: 'USD'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process subscription');
       }
-      return next;
-    });
-  };
 
-  const renderBookmarkTree = (node: BookmarkNode, level: number = 0) => {
-    if (!node.children && !node.url) return null;
-
-    return (
-      <div key={node.id} style={{ marginLeft: `${level * 16}px` }} className="py-1">
-        <div className="flex items-center space-x-2 hover:bg-accent/50 rounded-md p-1">
-          <Checkbox
-            id={node.id}
-            checked={selectedBookmarks.has(node.id)}
-            onCheckedChange={() => toggleBookmarkSelection(node.id)}
-          />
-          <label htmlFor={node.id} className="text-sm cursor-pointer flex items-center gap-2">
-            {node.children ? (
-              <FolderIcon className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <BookmarkIcon className="h-4 w-4 text-muted-foreground" />
-            )}
-            {node.title || "Untitled"}
-          </label>
-        </div>
-        {node.children && (
-          <div className="mt-1">
-            {node.children.map(child => renderBookmarkTree(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
+      toast.success("Subscription processed successfully!");
+      setCurrentStep(currentStep + 1);
+    } catch (error) {
+      console.error('Error processing subscription:', error);
+      toast.error("Failed to process subscription. Please try again.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleNext = async () => {
@@ -230,8 +235,12 @@ export const OnboardingOverlay = () => {
       }
     }
 
-    // Handle bookmark import step (step 3)
-    if (currentStep === 3) {
+    if (currentStep === 3 && !selectedPlan) {
+      toast.error("Please select a plan to continue");
+      return;
+    }
+
+    if (currentStep === 4) {
       if (bookmarkTree.length === 0) {
         const success = await loadBookmarkTree();
         if (!success) return;
@@ -270,6 +279,19 @@ export const OnboardingOverlay = () => {
         
         <CardContent className="space-y-4">
           {currentStep === 3 && (
+            <div className="grid md:grid-cols-3 gap-4">
+              {subscriptionPlans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  {...plan}
+                  isSelected={selectedPlan === plan.id}
+                  onSubscribe={handlePlanSelection}
+                />
+              ))}
+            </div>
+          )}
+          
+          {currentStep === 4 && (
             <ScrollArea className="h-[300px] rounded-md border p-4">
               {isLoadingBookmarks ? (
                 <div className="flex items-center justify-center h-full">
@@ -293,10 +315,10 @@ export const OnboardingOverlay = () => {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleNext}
-            disabled={isImporting || isLoadingBookmarks}
+            disabled={isProcessingPayment || isLoadingBookmarks}
             className="px-4 py-2"
           >
-            {isImporting || isLoadingBookmarks ? (
+            {isProcessingPayment || isLoadingBookmarks ? (
               <Spinner className="mr-2 h-4 w-4" />
             ) : null}
             {currentStepData.requiresAuth && !user ? (
