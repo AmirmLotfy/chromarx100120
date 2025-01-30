@@ -15,14 +15,29 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Sun, Moon, HelpCircle, User, RefreshCw } from "lucide-react";
 import FeedbackForm from "@/components/settings/FeedbackForm";
 import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
+import AffiliateSettings from "@/components/affiliate/AffiliateSettings";
 import { useSubscription } from "@/hooks/use-subscription";
 
 const SettingsPage = () => {
