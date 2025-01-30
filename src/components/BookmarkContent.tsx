@@ -8,6 +8,8 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { SlidersHorizontal } from "lucide-react";
 import AIActionButtons from "./AIActionButtons";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -51,6 +53,21 @@ const BookmarkContent = ({
   onUpdateCategories,
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
+  const { incrementUsage } = useSubscription();
+  const { checkUsageLimit } = useFeatureAccess();
+
+  const handleAddBookmark = async (bookmark: ChromeBookmark) => {
+    if (!checkUsageLimit('bookmarks')) {
+      return;
+    }
+
+    try {
+      await incrementUsage('bookmarks');
+      // Add your bookmark creation logic here
+    } catch (error) {
+      console.error('Error adding bookmark:', error);
+    }
+  };
 
   const FilterPanel = () => (
     <div className="space-y-4 w-full max-w-full overflow-hidden">

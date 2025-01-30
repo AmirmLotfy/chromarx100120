@@ -5,21 +5,12 @@ import { useSettings } from "@/stores/settingsStore";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFirebase } from "@/contexts/FirebaseContext";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -30,27 +21,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Sun,
-  Moon,
-  Shield,
-  MessageSquare,
-  User,
-  Settings2,
-  RefreshCw,
-  HelpCircle,
-  CreditCard,
-  Store,
-} from "lucide-react";
 import FeedbackForm from "@/components/settings/FeedbackForm";
-import SubscriptionSettings from "@/components/settings/SubscriptionSettings";
-import AffiliateSettings from "@/components/settings/AffiliateSettings";
+import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
+import { useSubscription } from "@/hooks/use-subscription";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
@@ -58,6 +31,7 @@ const SettingsPage = () => {
   const isMobile = useIsMobile();
   const { user, isAdmin } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
+  const { currentPlan, usage, isLoading } = useSubscription();
 
   const handleReset = () => {
     settings.resetSettings();
@@ -65,17 +39,17 @@ const SettingsPage = () => {
   };
 
   const tabs = [
-    { value: "appearance", label: "Appearance", icon: Sun },
-    { value: "privacy", label: "Privacy", icon: Shield },
-    { value: "subscription", label: "Subscription", icon: CreditCard },
-    { value: "feedback", label: "Feedback", icon: MessageSquare },
-    { value: "account", label: "Account", icon: User },
-    { value: "advanced", label: "Advanced", icon: Settings2 },
+    { value: "appearance", label: "Appearance" },
+    { value: "privacy", label: "Privacy" },
+    { value: "subscription", label: "Subscription" },
+    { value: "feedback", label: "Feedback" },
+    { value: "account", label: "Account" },
+    { value: "advanced", label: "Advanced" },
   ];
 
   // Only add affiliate tab if user is admin
   if (isAdmin) {
-    tabs.push({ value: "affiliate", label: "Affiliate", icon: Store });
+    tabs.push({ value: "affiliate", label: "Affiliate" });
   }
 
   return (
@@ -258,8 +232,8 @@ const SettingsPage = () => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="subscription">
-                <SubscriptionSettings />
+              <TabsContent value="subscription" className="space-y-4">
+                <SubscriptionDetails />
               </TabsContent>
 
               <TabsContent value="feedback" className="space-y-4">
