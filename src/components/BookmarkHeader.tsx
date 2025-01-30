@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Sparkles, FileText, Download } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { cn } from "@/lib/utils";
 import { ChromeBookmark } from "@/types/bookmark";
 import {
   DropdownMenu,
@@ -14,16 +13,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "./ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "sonner";
-import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
-import { useNavigate } from "react-router-dom";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
-import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
-import AIActionButtons from "./AIActionButtons";
+import SummariesButton from "./summaries/SummariesButton";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -55,8 +45,7 @@ const BookmarkHeader = ({
   onSelectSuggestion,
 }: BookmarkHeaderProps) => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [newSummariesCount, setNewSummariesCount] = useState(0);
 
   const handleImportBookmarks = async () => {
     if (!chrome.bookmarks) {
@@ -121,6 +110,8 @@ const BookmarkHeader = ({
         </div>
         
         <div className="flex items-center gap-1 sm:gap-2">
+          <SummariesButton newSummariesCount={newSummariesCount} />
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
