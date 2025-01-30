@@ -7,9 +7,7 @@ interface OnboardingContextType {
   setCurrentStep: (step: number) => void;
   isOnboardingComplete: boolean;
   completeOnboarding: () => void;
-  skipOnboarding: () => void;
   startOnboarding: () => void;
-  canSkipStep: boolean;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -25,7 +23,6 @@ export const useOnboarding = () => {
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const [canSkipStep, setCanSkipStep] = useState(true);
   const settings = useSettings();
   const { user } = useFirebase();
 
@@ -45,11 +42,6 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
     setCurrentStep(0);
   };
 
-  const skipOnboarding = () => {
-    if (!user) return; // Require authentication to skip
-    completeOnboarding();
-  };
-
   const startOnboarding = () => {
     setCurrentStep(1);
   };
@@ -61,9 +53,7 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
         setCurrentStep,
         isOnboardingComplete,
         completeOnboarding,
-        skipOnboarding,
         startOnboarding,
-        canSkipStep,
       }}
     >
       {children}

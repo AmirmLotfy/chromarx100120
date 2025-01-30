@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useOnboarding } from "./OnboardingProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info, SkipForward } from "lucide-react";
+import { Check, ArrowRight, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
@@ -28,6 +28,12 @@ const onboardingSteps = [
     requiresAuth: true,
   },
   {
+    title: "Import Your Bookmarks",
+    description: "Bring your existing bookmarks",
+    content: "Import your Chrome bookmarks to get started quickly with ChroMarx.",
+    requiresAuth: true,
+  },
+  {
     title: "Choose Your Plan",
     description: "Select the perfect plan for your needs",
     content: "Pick a subscription plan that matches your productivity goals.",
@@ -42,14 +48,35 @@ const onboardingSteps = [
 ];
 
 export const OnboardingOverlay = () => {
-  const { currentStep, setCurrentStep, completeOnboarding, skipOnboarding } = useOnboarding();
+  const { currentStep, setCurrentStep, completeOnboarding } = useOnboarding();
   const { user, signInWithGoogle } = useFirebase();
+  const [isImporting, setIsImporting] = useState(false);
 
   if (currentStep === 0) return null;
 
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
   const progress = (currentStep / onboardingSteps.length) * 100;
+
+  const handleImportBookmarks = async () => {
+    if (!chrome?.bookmarks) {
+      toast.error("Bookmark import is only available in Chrome");
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const bookmarks = await chrome.bookmarks.getTree();
+      console.log("Imported bookmarks:", bookmarks);
+      toast.success("Bookmarks imported successfully!");
+      setCurrentStep(currentStep + 1);
+    } catch (error) {
+      console.error("Error importing bookmarks:", error);
+      toast.error("Failed to import bookmarks. Please try again.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const handleNext = async () => {
     if (currentStepData.requiresAuth && !user) {
@@ -61,21 +88,18 @@ export const OnboardingOverlay = () => {
       }
     }
 
+    if (currentStep === 3) {
+      // Bookmark import step
+      await handleImportBookmarks();
+      return;
+    }
+
     if (isLastStep) {
       completeOnboarding();
       toast.success("Welcome to ChroMarx! 🎉");
     } else {
       setCurrentStep(currentStep + 1);
     }
-  };
-
-  const handleSkip = () => {
-    if (!user) {
-      toast.error("Please sign in to continue using ChroMarx");
-      return;
-    }
-    skipOnboarding();
-    toast.info("You can always access the tutorial from settings");
   };
 
   return (
@@ -88,55 +112,60 @@ export const OnboardingOverlay = () => {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2 text-2xl md:text-3xl">
             {currentStepData.title}
             <Info className="h-5 w-5 text-muted-foreground" />
           </CardTitle>
-          <CardDescription className="text-lg">{currentStepData.description}</CardDescription>
+          <CardDescription className="text-lg md:text-xl">
+            {currentStepData.description}
+          </CardDescription>
         </CardHeader>
         
-        <CardContent>
-          {currentStep === 3 && (
+        <CardContent className="space-y-6">
+          {currentStep === 4 && (
             <div className="grid md:grid-cols-3 gap-4">
               {subscriptionPlans.map((plan) => (
                 <div
                   key={plan.id}
-                  className={`p-4 rounded-lg border ${
+                  className={`p-6 rounded-lg border ${
                     plan.isPopular ? "border-primary" : "border-border"
-                  }`}
+                  } hover:shadow-lg transition-shadow duration-200`}
                 >
-                  <h3 className="font-semibold">{plan.name}</h3>
-                  <p className="text-sm text-muted-foreground">{plan.description}</p>
-                  <div className="mt-2">
-                    <span className="text-xl font-bold">${plan.pricing.monthly}</span>
+                  <h3 className="font-semibold text-lg md:text-xl">{plan.name}</h3>
+                  <p className="text-sm md:text-base text-muted-foreground">
+                    {plan.description}
+                  </p>
+                  <div className="mt-4">
+                    <span className="text-2xl font-bold">${plan.pricing.monthly}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
-          <p className="text-muted-foreground mt-4">{currentStepData.content}</p>
+          <p className="text-muted-foreground text-base md:text-lg">
+            {currentStepData.content}
+          </p>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
-          {!currentStepData.requiresAuth && (
-            <Button variant="ghost" onClick={handleSkip}>
-              <SkipForward className="mr-2 h-4 w-4" />
-              Skip Tutorial
-            </Button>
-          )}
-          <Button onClick={handleNext} className="ml-auto">
+        <CardFooter className="flex justify-end">
+          <Button 
+            onClick={handleNext}
+            size="lg"
+            className="min-w-[120px] text-base md:text-lg py-6"
+            disabled={isImporting}
+          >
             {currentStepData.requiresAuth && !user ? (
               "Sign in to Continue"
             ) : isLastStep ? (
               <>
                 Get Started
-                <Check className="ml-2 h-4 w-4" />
+                <Check className="ml-2 h-5 w-5" />
               </>
             ) : (
               <>
                 Next
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
           </Button>
