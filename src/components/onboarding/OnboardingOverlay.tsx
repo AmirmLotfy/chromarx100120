@@ -12,7 +12,6 @@ import {
 import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
-import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
@@ -73,26 +72,63 @@ export const OnboardingOverlay = () => {
   const loadBookmarkTree = async () => {
     if (!chrome?.bookmarks) {
       toast.error("Bookmark import is only available in Chrome");
-      return;
+      return false;
     }
 
     setIsLoadingBookmarks(true);
     try {
       const tree = await chrome.bookmarks.getTree();
+      console.log("Loaded bookmark tree:", tree);
       setBookmarkTree(tree);
       
       // Select root folders by default
-      if (selectedBookmarks.size === 0 && tree[0]?.children) {
+      if (tree[0]?.children) {
         const rootFolders = new Set(tree[0].children.map(node => node.id));
         setSelectedBookmarks(rootFolders);
       }
       
       toast.success("Bookmarks loaded successfully!");
+      return true;
     } catch (error) {
       console.error("Error loading bookmarks:", error);
       toast.error("Failed to load bookmarks. Please try again.");
+      return false;
     } finally {
       setIsLoadingBookmarks(false);
+    }
+  };
+
+  const processSelectedBookmarks = async () => {
+    setIsImporting(true);
+    try {
+      if (selectedBookmarks.size === 0) {
+        toast.error("Please select at least one bookmark folder to import");
+        return false;
+      }
+
+      const getBookmarksFromNode = async (nodeId: string): Promise<chrome.bookmarks.BookmarkTreeNode[]> => {
+        try {
+          const subtree = await chrome.bookmarks.getSubTree(nodeId);
+          return subtree;
+        } catch (error) {
+          console.error(`Error getting subtree for node ${nodeId}:`, error);
+          return [];
+        }
+      };
+
+      const selectedBookmarkNodes = await Promise.all(
+        Array.from(selectedBookmarks).map(id => getBookmarksFromNode(id))
+      );
+
+      console.log("Processing selected bookmarks:", selectedBookmarkNodes);
+      toast.success(`Successfully imported ${selectedBookmarks.size} bookmark folders!`);
+      return true;
+    } catch (error) {
+      console.error("Error processing bookmarks:", error);
+      toast.error("Failed to process bookmarks. Please try again.");
+      return false;
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -137,35 +173,6 @@ export const OnboardingOverlay = () => {
     );
   };
 
-  const processSelectedBookmarks = async () => {
-    setIsImporting(true);
-    try {
-      const processedBookmarks = Array.from(selectedBookmarks).map(id => {
-        const findBookmark = (nodes: BookmarkNode[]): BookmarkNode | null => {
-          for (const node of nodes) {
-            if (node.id === id) return node;
-            if (node.children) {
-              const found = findBookmark(node.children);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        return findBookmark(bookmarkTree);
-      }).filter((bookmark): bookmark is BookmarkNode => bookmark !== null);
-
-      console.log("Processing selected bookmarks:", processedBookmarks);
-      toast.success(`Successfully imported ${processedBookmarks.length} bookmarks!`);
-      return true;
-    } catch (error) {
-      console.error("Error processing bookmarks:", error);
-      toast.error("Failed to process bookmarks. Please try again.");
-      return false;
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   const handleNext = async () => {
     if (currentStepData.requiresAuth && !user) {
       try {
@@ -178,37 +185,15 @@ export const OnboardingOverlay = () => {
 
     // Handle bookmark import step (step 3)
     if (currentStep === 3) {
-      setIsLoadingBookmarks(true);
-      try {
-        if (!chrome?.bookmarks) {
-          toast.error("Bookmark import is only available in Chrome");
-          return;
-        }
-
-        const tree = await chrome.bookmarks.getTree();
-        setBookmarkTree(tree);
-        
-        // Select root folders by default
-        if (tree[0]?.children) {
-          const rootFolders = new Set(tree[0].children.map(node => node.id));
-          setSelectedBookmarks(rootFolders);
-        }
-        
-        toast.success("Bookmarks loaded successfully!");
-      } catch (error) {
-        console.error("Error loading bookmarks:", error);
-        toast.error("Failed to load bookmarks. Please try again.");
-        return;
-      } finally {
-        setIsLoadingBookmarks(false);
+      if (bookmarkTree.length === 0) {
+        const success = await loadBookmarkTree();
+        if (!success) return;
+      } else {
+        const success = await processSelectedBookmarks();
+        if (!success) return;
+        setCurrentStep(currentStep + 1);
       }
-      return; // Don't proceed to next step until user selects and processes bookmarks
-    }
-
-    // Handle processing selected bookmarks before moving to next step
-    if (currentStep === 3 && selectedBookmarks.size > 0) {
-      const success = await processSelectedBookmarks();
-      if (!success) return;
+      return;
     }
 
     if (isLastStep) {
