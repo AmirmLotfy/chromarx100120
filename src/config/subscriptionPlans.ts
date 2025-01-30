@@ -9,6 +9,12 @@ export interface PlanPricing {
   yearly: number;
 }
 
+export interface PlanLimits {
+  bookmarks: number;
+  tasks: number;
+  notes: number;
+}
+
 export interface Plan {
   id: string;
   name: string;
@@ -16,6 +22,7 @@ export interface Plan {
   description: string;
   features: PlanFeature[];
   isPopular?: boolean;
+  limits?: PlanLimits;
 }
 
 export const subscriptionPlans: Plan[] = [
@@ -41,6 +48,11 @@ export const subscriptionPlans: Plan[] = [
       { name: "Advanced analytics", included: false },
       { name: "Priority support", included: false },
     ],
+    limits: {
+      bookmarks: 100,
+      tasks: 25,
+      notes: 10
+    }
   },
   {
     id: "pro",
@@ -65,6 +77,11 @@ export const subscriptionPlans: Plan[] = [
       { name: "Advanced collaboration", included: false },
     ],
     isPopular: true,
+    limits: {
+      bookmarks: 1000,
+      tasks: 100,
+      notes: 50
+    }
   },
   {
     id: "premium",
@@ -88,6 +105,11 @@ export const subscriptionPlans: Plan[] = [
       { name: "Calendar integration", included: true },
       { name: "Third-party integrations", included: true },
     ],
+    limits: {
+      bookmarks: -1, // Unlimited
+      tasks: -1, // Unlimited
+      notes: -1 // Unlimited
+    }
   },
 ];
 
@@ -101,4 +123,15 @@ export const getFeatureAvailability = (planId: string, featureName: string): boo
 
 export const getPlanById = (planId: string): Plan | undefined => {
   return subscriptionPlans.find(p => p.id === planId);
+};
+
+export const checkFeatureAccess = async (userId: string, feature: string): Promise<boolean> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const currentPlan = userDoc.data()?.currentPlan || 'basic';
+    return getFeatureAvailability(currentPlan, feature);
+  } catch (error) {
+    console.error('Error checking feature access:', error);
+    return false;
+  }
 };
