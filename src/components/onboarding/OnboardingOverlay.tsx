@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon, CreditCard } from "lucide-react";
+import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon, CreditCard, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -65,6 +65,7 @@ export const OnboardingOverlay = () => {
   const [isLoadingBookmarks, setIsLoadingBookmarks] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);
 
   if (isOnboardingComplete || currentStep === 0) return null;
 
@@ -179,49 +180,18 @@ export const OnboardingOverlay = () => {
     }
   };
 
-  const handlePlanSelection = async (planId: string) => {
-    setSelectedPlan(planId);
-    const plan = subscriptionPlans.find(p => p.id === planId);
-    
-    if (!plan) {
-      toast.error("Invalid plan selected");
-      return;
-    }
-
-    if (plan.pricing.monthly === 0) {
-      setCurrentStep(currentStep + 1);
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    try {
-      const response = await fetch('YOUR_FIREBASE_FUNCTION_URL/handleSubscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user?.getIdToken()}`
-        },
-        body: JSON.stringify({
-          planId,
-          orderId: `order_${Date.now()}`,
-          paymentDetails: {
-            amount: plan.pricing.monthly,
-            currency: 'USD'
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process subscription');
-      }
-
-      toast.success("Subscription processed successfully!");
-      setCurrentStep(currentStep + 1);
-    } catch (error) {
-      console.error('Error processing subscription:', error);
-      toast.error("Failed to process subscription. Please try again.");
-    } finally {
-      setIsProcessingPayment(false);
+  const handleSelectAll = () => {
+    setSelectAll(!selectAll);
+    if (!selectAll && bookmarkTree[0]?.children) {
+      const allBookmarkIds = new Set<string>();
+      const collectIds = (node: BookmarkNode) => {
+        if (node.id) allBookmarkIds.add(node.id);
+        node.children?.forEach(collectIds);
+      };
+      bookmarkTree[0].children.forEach(collectIds);
+      setSelectedBookmarks(allBookmarkIds);
+    } else {
+      setSelectedBookmarks(new Set());
     }
   };
 
@@ -266,7 +236,7 @@ export const OnboardingOverlay = () => {
     return (
       <div key={node.id} className="space-y-2">
         {node.url ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 p-2 hover:bg-accent/50 rounded-lg transition-colors">
             <Checkbox
               id={node.id}
               checked={selectedBookmarks.has(node.id)}
@@ -279,14 +249,19 @@ export const OnboardingOverlay = () => {
                 }
                 setSelectedBookmarks(newSelected);
               }}
+              className="h-5 w-5"
             />
-            <label htmlFor={node.id} className="text-sm">
+            <label 
+              htmlFor={node.id} 
+              className="text-sm flex-1 cursor-pointer truncate"
+              title={node.title}
+            >
               {node.title}
             </label>
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
               <Checkbox
                 id={node.id}
                 checked={selectedBookmarks.has(node.id)}
@@ -299,13 +274,18 @@ export const OnboardingOverlay = () => {
                   }
                   setSelectedBookmarks(newSelected);
                 }}
+                className="h-5 w-5"
               />
-              <label htmlFor={node.id} className="font-medium">
+              <label 
+                htmlFor={node.id} 
+                className="font-medium flex-1 cursor-pointer truncate"
+                title={node.title}
+              >
                 {node.title}
               </label>
             </div>
             {node.children && (
-              <div className="ml-6 space-y-2">
+              <div className="ml-4 space-y-1 border-l-2 border-muted pl-2">
                 {node.children.map(child => renderBookmarkTree(child))}
               </div>
             )}
@@ -333,41 +313,48 @@ export const OnboardingOverlay = () => {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {currentStep === 3 && (
-            <div className="grid md:grid-cols-3 gap-4">
-              {subscriptionPlans.map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  {...plan}
-                  isSelected={selectedPlan === plan.id}
-                  onSubscribe={handlePlanSelection}
-                />
-              ))}
-            </div>
-          )}
-          
           {currentStep === 4 && (
-            <ScrollArea className="h-[300px] rounded-md border p-4">
-              {isLoadingBookmarks ? (
-                <div className="flex items-center justify-center h-full">
-                  <Spinner className="h-6 w-6" />
-                </div>
-              ) : bookmarkTree.length > 0 ? (
-                bookmarkTree.map(node => renderBookmarkTree(node))
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  Click Next to load your bookmarks
-                </div>
-              )}
-            </ScrollArea>
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="flex items-center gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  {selectAll ? "Deselect All" : "Select All"}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {selectedBookmarks.size} selected
+                </span>
+              </div>
+              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px] rounded-md border p-4">
+                {isLoadingBookmarks ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Spinner className="h-6 w-6" />
+                  </div>
+                ) : bookmarkTree.length > 0 ? (
+                  bookmarkTree.map(node => renderBookmarkTree(node))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+                    <Upload className="h-12 w-12" />
+                    <p>Click Next to load your bookmarks</p>
+                  </div>
+                )}
+              </ScrollArea>
+            </>
           )}
           
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {currentStepData.content}
           </p>
         </CardContent>
 
-        <CardFooter className="flex justify-end">
+        <CardFooter className="flex justify-between items-center">
+          <p className="text-sm text-muted-foreground">
+            {currentStep === 4 && `${selectedBookmarks.size} bookmarks selected`}
+          </p>
           <Button 
             onClick={handleNext}
             disabled={isProcessingPayment || isLoadingBookmarks}
