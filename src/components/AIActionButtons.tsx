@@ -32,7 +32,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`, 'en');
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -71,7 +71,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
           ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", 'en'),
         }))
       );
 

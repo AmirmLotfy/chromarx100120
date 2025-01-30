@@ -27,7 +27,8 @@ export const useBookmarkState = () => {
               try {
                 chromeBookmark.category = await suggestBookmarkCategory(
                   chromeBookmark.title,
-                  chromeBookmark.url
+                  chromeBookmark.url,
+                  'en'
                 );
               } catch (error) {
                 console.error("Error suggesting category:", error);

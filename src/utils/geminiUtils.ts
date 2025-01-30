@@ -1,65 +1,23 @@
-import { auth } from '@/lib/firebase';
-import { Language } from '@/stores/languageStore';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-async function getIdToken(): Promise<string> {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-  return user.getIdToken();
-}
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
-async function callGeminiFunction(
-  prompt: string, 
-  type: 'summarize' | 'categorize',
-  language: Language
-): Promise<string> {
-  try {
-    const idToken = await getIdToken();
-    const response = await fetch('https://us-central1-chromarx-215c8.cloudfunctions.net/getGeminiResponse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ 
-        prompt, 
-        type,
-        language: language.code 
-      }),
-    });
+export const summarizeContent = async (content: string, language: string = 'en') => {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const prompt = `Summarize the following content in ${language}:\n${content}`;
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+};
 
-    if (!response.ok) {
-      throw new Error('Failed to get response from Gemini API');
-    }
-
-    const data = await response.json();
-    return data.result;
-  } catch (error) {
-    console.error('Error calling Gemini function:', error);
-    throw error;
-  }
-}
-
-export async function summarizeContent(text: string, language: Language): Promise<string> {
-  try {
-    return await callGeminiFunction(text, 'summarize', language);
-  } catch (error) {
-    console.error('Error summarizing content:', error);
-    return 'Failed to generate summary';
-  }
-}
-
-export async function suggestBookmarkCategory(
-  title: string, 
-  url: string, 
-  language: Language
-): Promise<string> {
-  try {
-    const prompt = `Title: ${title}\nURL: ${url}`;
-    return await callGeminiFunction(prompt, 'categorize', language);
-  } catch (error) {
-    console.error('Error suggesting category:', error);
-    return 'Uncategorized';
-  }
-}
+export const suggestBookmarkCategory = async (
+  title: string,
+  url: string,
+  language: string = 'en'
+) => {
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const prompt = `Suggest a single category for this bookmark in ${language}:\nTitle: ${title}\nURL: ${url}`;
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+};
