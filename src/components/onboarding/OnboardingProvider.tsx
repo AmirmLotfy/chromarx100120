@@ -28,10 +28,10 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const hasCompletedOnboarding = localStorage.getItem("onboardingComplete");
-    if (hasCompletedOnboarding) {
+    if (hasCompletedOnboarding === "true") {
       setIsOnboardingComplete(true);
+      setCurrentStep(0);
     } else if (!currentStep) {
-      // Start onboarding automatically if not completed
       setCurrentStep(1);
     }
   }, []);
@@ -44,6 +44,7 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
 
   const startOnboarding = () => {
     setCurrentStep(1);
+    setIsOnboardingComplete(false);
   };
 
   return (

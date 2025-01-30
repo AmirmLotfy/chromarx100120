@@ -48,11 +48,12 @@ const onboardingSteps = [
 ];
 
 export const OnboardingOverlay = () => {
-  const { currentStep, setCurrentStep, completeOnboarding } = useOnboarding();
+  const { currentStep, setCurrentStep, completeOnboarding, isOnboardingComplete } = useOnboarding();
   const { user, signInWithGoogle } = useFirebase();
   const [isImporting, setIsImporting] = useState(false);
 
-  if (currentStep === 0) return null;
+  // Don't render if onboarding is complete or no current step
+  if (isOnboardingComplete || currentStep === 0) return null;
 
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
@@ -151,8 +152,8 @@ export const OnboardingOverlay = () => {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleNext}
-            size="lg"
-            className="min-w-[120px] text-base md:text-lg py-6"
+            size="default"
+            className="min-w-[100px] text-sm md:text-base"
             disabled={isImporting}
           >
             {currentStepData.requiresAuth && !user ? (
@@ -160,12 +161,12 @@ export const OnboardingOverlay = () => {
             ) : isLastStep ? (
               <>
                 Get Started
-                <Check className="ml-2 h-5 w-5" />
+                <Check className="ml-2 h-4 w-4" />
               </>
             ) : (
               <>
                 Next
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}
           </Button>
