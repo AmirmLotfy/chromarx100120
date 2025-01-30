@@ -13,6 +13,13 @@ import { Check, ArrowRight, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
+  isSelected?: boolean;
+  children?: BookmarkNode[];
+}
 
 const onboardingSteps = [
   {
@@ -30,7 +37,7 @@ const onboardingSteps = [
   {
     title: "Import Your Bookmarks",
     description: "Bring your existing bookmarks",
-    content: "Import your Chrome bookmarks to get started quickly with ChroMarx.",
+    content: "Select the bookmark folders you'd like to import to ChroMarx.",
     requiresAuth: true,
   },
   {
@@ -51,6 +58,8 @@ export const OnboardingOverlay = () => {
   const { currentStep, setCurrentStep, completeOnboarding, isOnboardingComplete } = useOnboarding();
   const { user, signInWithGoogle } = useFirebase();
   const [isImporting, setIsImporting] = useState(false);
+  const [bookmarkTree, setBookmarkTree] = useState<BookmarkNode[]>([]);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
 
   // Don't render if onboarding is complete or no current step
   if (isOnboardingComplete || currentStep === 0) return null;
@@ -58,6 +67,18 @@ export const OnboardingOverlay = () => {
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
   const progress = (currentStep / onboardingSteps.length) * 100;
+
+  const toggleBookmarkSelection = (id: string) => {
+    setSelectedBookmarks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleImportBookmarks = async () => {
     if (!chrome?.bookmarks) {
@@ -67,16 +88,46 @@ export const OnboardingOverlay = () => {
 
     setIsImporting(true);
     try {
-      const bookmarks = await chrome.bookmarks.getTree();
-      console.log("Imported bookmarks:", bookmarks);
-      toast.success("Bookmarks imported successfully!");
-      setCurrentStep(currentStep + 1);
+      const tree = await chrome.bookmarks.getTree();
+      setBookmarkTree(tree);
+      
+      // If it's the first time loading bookmarks, select the root folders by default
+      if (selectedBookmarks.size === 0 && tree[0]?.children) {
+        const rootFolders = new Set(tree[0].children.map(node => node.id));
+        setSelectedBookmarks(rootFolders);
+      }
+      
+      toast.success("Bookmarks loaded successfully!");
     } catch (error) {
-      console.error("Error importing bookmarks:", error);
-      toast.error("Failed to import bookmarks. Please try again.");
+      console.error("Error loading bookmarks:", error);
+      toast.error("Failed to load bookmarks. Please try again.");
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const renderBookmarkTree = (node: BookmarkNode, level: number = 0) => {
+    if (!node.children && !node.url) return null;
+
+    return (
+      <div key={node.id} style={{ marginLeft: `${level * 20}px` }} className="py-1">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id={node.id}
+            checked={selectedBookmarks.has(node.id)}
+            onCheckedChange={() => toggleBookmarkSelection(node.id)}
+          />
+          <label htmlFor={node.id} className="text-sm cursor-pointer">
+            {node.title || "Untitled"}
+          </label>
+        </div>
+        {node.children && (
+          <div className="mt-1">
+            {node.children.map(child => renderBookmarkTree(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleNext = async () => {
@@ -91,7 +142,35 @@ export const OnboardingOverlay = () => {
 
     if (currentStep === 3) {
       // Bookmark import step
-      await handleImportBookmarks();
+      if (bookmarkTree.length === 0) {
+        await handleImportBookmarks();
+      } else if (selectedBookmarks.size > 0) {
+        // Process selected bookmarks
+        try {
+          const processedBookmarks = Array.from(selectedBookmarks).map(id => {
+            const findBookmark = (nodes: BookmarkNode[]): BookmarkNode | null => {
+              for (const node of nodes) {
+                if (node.id === id) return node;
+                if (node.children) {
+                  const found = findBookmark(node.children);
+                  if (found) return found;
+                }
+              }
+              return null;
+            };
+            return findBookmark(bookmarkTree);
+          }).filter((bookmark): bookmark is BookmarkNode => bookmark !== null);
+
+          console.log("Importing selected bookmarks:", processedBookmarks);
+          toast.success(`Successfully imported ${processedBookmarks.length} bookmarks!`);
+          setCurrentStep(currentStep + 1);
+        } catch (error) {
+          console.error("Error processing bookmarks:", error);
+          toast.error("Failed to process bookmarks. Please try again.");
+        }
+      } else {
+        toast.error("Please select at least one bookmark folder to import");
+      }
       return;
     }
 
@@ -123,6 +202,18 @@ export const OnboardingOverlay = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {currentStep === 3 && (
+            <ScrollArea className="h-[300px] rounded-md border p-4">
+              {bookmarkTree.length > 0 ? (
+                bookmarkTree.map(node => renderBookmarkTree(node))
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  Click Next to load your bookmarks
+                </div>
+              )}
+            </ScrollArea>
+          )}
+          
           {currentStep === 4 && (
             <div className="grid md:grid-cols-3 gap-4">
               {subscriptionPlans.map((plan) => (
