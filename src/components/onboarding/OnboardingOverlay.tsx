@@ -153,7 +153,7 @@ export const OnboardingOverlay = () => {
           <Button 
             onClick={handleNext}
             size="default"
-            className="min-w-[100px] text-sm md:text-base"
+            className="px-4 py-2 text-sm"
             disabled={isImporting}
           >
             {currentStepData.requiresAuth && !user ? (
