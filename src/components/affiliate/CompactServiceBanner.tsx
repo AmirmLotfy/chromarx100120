@@ -27,7 +27,7 @@ const CompactServiceBanner = () => {
   const currentService = featuredServices[currentIndex];
 
   return (
-    <div className="relative h-24 sm:h-32 mb-4 perspective-1000 mx-2 sm:mx-4">
+    <div className="relative h-32 sm:h-40 mb-6 perspective-1000 mx-4 sm:mx-6">
       <div
         className={`w-full h-full transition-all duration-700 transform-style-3d relative ${
           isFlipped ? "rotate-x-180" : ""
@@ -41,19 +41,19 @@ const CompactServiceBanner = () => {
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-2 left-3 text-white">
-              <h3 className="text-base sm:text-lg font-semibold">{currentService.title}</h3>
+            <div className="absolute bottom-4 left-4 text-white">
+              <h3 className="text-lg sm:text-xl font-semibold">{currentService.title}</h3>
             </div>
           </div>
         </Card>
 
         <Card className="absolute w-full h-full backface-hidden rotate-x-180 overflow-hidden rounded-lg bg-gradient-to-r from-accent to-primary/10">
-          <div className="p-3 sm:p-4 h-full flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-base sm:text-lg text-foreground mb-1">
+          <div className="p-4 sm:p-6 h-full flex items-center justify-between">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-lg sm:text-xl text-foreground">
                 {currentService.title}
               </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Click to learn more about this service
               </p>
             </div>
@@ -61,13 +61,13 @@ const CompactServiceBanner = () => {
               href={currentService.affiliateUrl}
               target="_blank"
               rel="noopener noreferrer sponsored"
-              className="flex items-center gap-1 text-primary hover:text-primary/90 transition-colors"
+              className="flex items-center gap-2 text-primary hover:text-primary/90 transition-colors"
               onClick={() => {
                 console.log(`Banner affiliate link clicked: ${currentService.id}`);
               }}
             >
-              <span className="text-sm sm:text-base">Visit</span>
-              <ExternalLink className="h-4 w-4" />
+              <span className="text-base sm:text-lg">Visit</span>
+              <ExternalLink className="h-5 w-5" />
             </a>
           </div>
         </Card>
