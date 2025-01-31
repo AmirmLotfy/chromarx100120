@@ -1,6 +1,4 @@
-import { toast } from "sonner";
-
-export class ChromeAIService {
+class ChromeAIService {
   private static instance: ChromeAIService;
   private isExtensionEnvironment: boolean;
 
@@ -10,87 +8,79 @@ export class ChromeAIService {
       chrome.ai !== null;
   }
 
-  public static getInstance(): ChromeAIService {
+  static getInstance(): ChromeAIService {
     if (!ChromeAIService.instance) {
       ChromeAIService.instance = new ChromeAIService();
     }
     return ChromeAIService.instance;
   }
 
-  public async generatePrompt(input: string): Promise<string> {
+  async generateText(prompt: string): Promise<string> {
     if (!this.isExtensionEnvironment) {
-      console.warn('Chrome AI APIs are not available in this environment');
-      return input;
+      throw new Error('Chrome AI is only available in the Chrome extension environment');
     }
 
     try {
-      const result = await (chrome as any).ai.prompt.generate({
-        prompt: input,
-        maxTokens: 100
+      const response = await chrome.ai.generateText({
+        model: 'gemini-pro',
+        prompt: prompt
       });
-      return result.text;
+
+      if (!response || !response.text) {
+        throw new Error('No response from AI service');
+      }
+
+      return response.text;
     } catch (error) {
-      console.error('Error generating prompt:', error);
-      toast.error('Failed to generate prompt');
-      return input;
+      console.error('Error generating text:', error);
+      throw error;
     }
   }
 
-  public async summarizeText(text: string): Promise<string> {
+  async generateImage(prompt: string): Promise<string> {
     if (!this.isExtensionEnvironment) {
-      console.warn('Chrome AI APIs are not available in this environment');
-      return text;
+      throw new Error('Chrome AI is only available in the Chrome extension environment');
     }
 
     try {
-      const result = await (chrome as any).ai.summarizer.summarize({
-        text,
-        maxSentences: 3
+      const response = await chrome.ai.generateImage({
+        model: 'gemini-pro-vision',
+        prompt: prompt
       });
-      return result.summary;
+
+      if (!response || !response.imageUrl) {
+        throw new Error('No image generated from AI service');
+      }
+
+      return response.imageUrl;
     } catch (error) {
-      console.error('Error summarizing text:', error);
-      toast.error('Failed to summarize text');
-      return text;
+      console.error('Error generating image:', error);
+      throw error;
     }
   }
 
-  public async detectLanguage(text: string): Promise<string> {
+  async analyzeImage(imageUrl: string, prompt: string): Promise<string> {
     if (!this.isExtensionEnvironment) {
-      console.warn('Chrome AI APIs are not available in this environment');
-      return 'en';
+      throw new Error('Chrome AI is only available in the Chrome extension environment');
     }
 
     try {
-      const result = await (chrome as any).ai.language.detectLanguage({
-        text
+      const response = await chrome.ai.analyzeImage({
+        model: 'gemini-pro-vision',
+        imageUrl: imageUrl,
+        prompt: prompt
       });
-      return result.language;
-    } catch (error) {
-      console.error('Error detecting language:', error);
-      toast.error('Failed to detect language');
-      return 'en';
-    }
-  }
 
-  public async translateText(text: string, targetLanguage: string): Promise<string> {
-    if (!this.isExtensionEnvironment) {
-      console.warn('Chrome AI APIs are not available in this environment');
-      return text;
-    }
+      if (!response || !response.text) {
+        throw new Error('No analysis from AI service');
+      }
 
-    try {
-      const result = await (chrome as any).ai.translator.translate({
-        text,
-        targetLanguage
-      });
-      return result.translatedText;
+      return response.text;
     } catch (error) {
-      console.error('Error translating text:', error);
-      toast.error('Failed to translate text');
-      return text;
+      console.error('Error analyzing image:', error);
+      throw error;
     }
   }
 }
 
-export const chromeAI = ChromeAIService.getInstance();
+export const chromeAIService = ChromeAIService.getInstance();

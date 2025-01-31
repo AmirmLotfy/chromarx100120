@@ -105,13 +105,14 @@ export const useBookmarkState = () => {
   useEffect(() => {
     loadBookmarks();
     if (chrome.bookmarks) {
-      chrome.bookmarks.onCreated.addListener(loadBookmarks);
-      chrome.bookmarks.onRemoved.addListener(loadBookmarks);
-      chrome.bookmarks.onChanged.addListener(loadBookmarks);
+      const bookmarksAPI = chrome.bookmarks as chrome.bookmarks.BookmarksAPI;
+      bookmarksAPI.onCreated.addListener(loadBookmarks);
+      bookmarksAPI.onRemoved.addListener(loadBookmarks);
+      bookmarksAPI.onChanged.addListener(loadBookmarks);
       return () => {
-        chrome.bookmarks.onCreated.removeListener(loadBookmarks);
-        chrome.bookmarks.onRemoved.removeListener(loadBookmarks);
-        chrome.bookmarks.onChanged.removeListener(loadBookmarks);
+        bookmarksAPI.onCreated.removeListener(loadBookmarks);
+        bookmarksAPI.onRemoved.removeListener(loadBookmarks);
+        bookmarksAPI.onChanged.removeListener(loadBookmarks);
       };
     }
   }, []);
