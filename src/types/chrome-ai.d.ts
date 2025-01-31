@@ -1,40 +1,40 @@
 declare namespace chrome {
-  export interface AIPromptOptions {
+  interface AIPromptOptions {
     prompt: string;
     maxTokens?: number;
   }
 
-  export interface AIPromptResult {
+  interface AIPromptResult {
     text: string;
   }
 
-  export interface AISummarizerOptions {
+  interface AISummarizerOptions {
     text: string;
     maxSentences?: number;
   }
 
-  export interface AISummarizerResult {
+  interface AISummarizerResult {
     summary: string;
   }
 
-  export interface AILanguageDetectionOptions {
+  interface AILanguageDetectionOptions {
     text: string;
   }
 
-  export interface AILanguageDetectionResult {
+  interface AILanguageDetectionResult {
     language: string;
   }
 
-  export interface AITranslatorOptions {
+  interface AITranslatorOptions {
     text: string;
     targetLanguage: string;
   }
 
-  export interface AITranslatorResult {
+  interface AITranslatorResult {
     translatedText: string;
   }
 
-  export interface AINamespace {
+  interface AINamespace {
     prompt: {
       generate(options: AIPromptOptions): Promise<AIPromptResult>;
     };
@@ -49,7 +49,9 @@ declare namespace chrome {
     };
   }
 
-  interface Chrome {
-    ai?: AINamespace;
+  namespace chrome {
+    interface Chrome {
+      ai?: AINamespace;
+    }
   }
 }
