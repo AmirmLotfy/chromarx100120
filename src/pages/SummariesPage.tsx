@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Share2, Star, StarOff, Trash2, Copy, MessageSquare, FileText } from "lucide-react";
+import { ArrowLeft, Share2, Star, StarOff, Trash2, Copy, MessageSquare, FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface Summary {
   id: string;
@@ -28,6 +28,7 @@ const SummariesPage = () => {
     const saved = localStorage.getItem("bookmarkSummaries");
     return saved ? JSON.parse(saved) : [];
   });
+  const [activeTab, setActiveTab] = useState<'current' | 'new' | 'history'>('current');
 
   const handleShare = async (summary: Summary, type: 'copy' | 'whatsapp' | 'notes') => {
     try {
@@ -91,6 +92,23 @@ const SummariesPage = () => {
   const newSummaries = summaries.filter(s => s.isNew);
   const regularSummaries = summaries.filter(s => !s.isNew);
 
+  const getActiveContent = () => {
+    switch (activeTab) {
+      case 'new':
+        return newSummaries;
+      case 'history':
+        return summaries;
+      default:
+        return regularSummaries;
+    }
+  };
+
+  const tabLabels = {
+    current: 'Current',
+    new: `New${newSummaries.length > 0 ? ` (${newSummaries.length})` : ''}`,
+    history: 'History'
+  };
+
   return (
     <Layout>
       <div className="space-y-6 pb-16">
@@ -116,93 +134,86 @@ const SummariesPage = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="current">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="current">Current</TabsTrigger>
-            <TabsTrigger value="new">
+        <div className="w-full">
+          {/* Mobile Dropdown */}
+          <div className="md:hidden w-full">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  {tabLabels[activeTab]}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full min-w-[200px] bg-background border">
+                <DropdownMenuItem onClick={() => setActiveTab('current')}>
+                  Current
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab('new')}>
+                  New {newSummaries.length > 0 && `(${newSummaries.length})`}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab('history')}>
+                  History
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Desktop Tabs */}
+          <div className="hidden md:grid w-full grid-cols-3">
+            <Button
+              variant={activeTab === 'current' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('current')}
+              className="rounded-none"
+            >
+              Current
+            </Button>
+            <Button
+              variant={activeTab === 'new' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('new')}
+              className="rounded-none relative"
+            >
               New
               {newSummaries.length > 0 && (
                 <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
                   {newSummaries.length}
                 </span>
               )}
-            </TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-          </TabsList>
+            </Button>
+            <Button
+              variant={activeTab === 'history' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('history')}
+              className="rounded-none"
+            >
+              History
+            </Button>
+          </div>
 
-          <TabsContent value="current">
-            <ScrollArea className="h-[calc(100vh-16rem)]">
-              <div className="space-y-4">
-                {regularSummaries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No summaries available. Select bookmarks and use the Summarize
-                      button to generate summaries.
-                    </p>
-                  </div>
-                ) : (
-                  regularSummaries.map((summary) => (
-                    <SummaryCard
-                      key={summary.id}
-                      summary={summary}
-                      onShare={handleShare}
-                      onToggleStar={toggleStar}
-                      onDelete={deleteSummary}
-                    />
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="new">
-            <ScrollArea className="h-[calc(100vh-16rem)]">
-              <div className="space-y-4">
-                {newSummaries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No new summaries available.
-                    </p>
-                  </div>
-                ) : (
-                  newSummaries.map((summary) => (
-                    <SummaryCard
-                      key={summary.id}
-                      summary={summary}
-                      onShare={handleShare}
-                      onToggleStar={toggleStar}
-                      onDelete={deleteSummary}
-                    />
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="history">
-            <ScrollArea className="h-[calc(100vh-16rem)]">
-              <div className="space-y-4">
-                {summaries.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No summary history available.
-                    </p>
-                  </div>
-                ) : (
-                  summaries.map((summary) => (
-                    <SummaryCard
-                      key={summary.id}
-                      summary={summary}
-                      onShare={handleShare}
-                      onToggleStar={toggleStar}
-                      onDelete={deleteSummary}
-                    />
-                  ))
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
+          <ScrollArea className="h-[calc(100vh-16rem)]">
+            <div className="space-y-4 p-4">
+              {getActiveContent().length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    {activeTab === 'new'
+                      ? 'No new summaries available.'
+                      : activeTab === 'history'
+                      ? 'No summary history available.'
+                      : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
+                  </p>
+                </div>
+              ) : (
+                getActiveContent().map((summary) => (
+                  <SummaryCard
+                    key={summary.id}
+                    summary={summary}
+                    onShare={handleShare}
+                    onToggleStar={toggleStar}
+                    onDelete={deleteSummary}
+                  />
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
     </Layout>
   );
