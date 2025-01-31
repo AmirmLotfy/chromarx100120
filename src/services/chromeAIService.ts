@@ -3,9 +3,10 @@ class ChromeAIService {
   private isExtensionEnvironment: boolean;
 
   private constructor() {
+    // Check if we're in a Chrome extension environment and if AI is available
     this.isExtensionEnvironment = typeof chrome !== 'undefined' && 
-      'ai' in chrome && 
-      chrome.ai !== null;
+      chrome.runtime?.id !== undefined &&
+      'ai' in chrome;
   }
 
   static getInstance(): ChromeAIService {
@@ -21,7 +22,10 @@ class ChromeAIService {
     }
 
     try {
-      const response = await (chrome as any).ai.generateText({
+      // Use type assertion to handle the AI property
+      const chromeWithAI = chrome as unknown as { ai: { generateText: (options: { model: string; prompt: string }) => Promise<{ text: string }> } };
+      
+      const response = await chromeWithAI.ai.generateText({
         model: 'gemini-pro',
         prompt: prompt
       });
@@ -43,7 +47,10 @@ class ChromeAIService {
     }
 
     try {
-      const response = await (chrome as any).ai.generateImage({
+      // Use type assertion to handle the AI property
+      const chromeWithAI = chrome as unknown as { ai: { generateImage: (options: { model: string; prompt: string }) => Promise<{ imageUrl: string }> } };
+      
+      const response = await chromeWithAI.ai.generateImage({
         model: 'gemini-pro-vision',
         prompt: prompt
       });
@@ -65,7 +72,10 @@ class ChromeAIService {
     }
 
     try {
-      const response = await (chrome as any).ai.analyzeImage({
+      // Use type assertion to handle the AI property
+      const chromeWithAI = chrome as unknown as { ai: { analyzeImage: (options: { model: string; imageUrl: string; prompt: string }) => Promise<{ text: string }> } };
+      
+      const response = await chromeWithAI.ai.analyzeImage({
         model: 'gemini-pro-vision',
         imageUrl: imageUrl,
         prompt: prompt
