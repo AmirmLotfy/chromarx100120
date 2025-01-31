@@ -13,84 +13,84 @@ import {
 
 const FeatureGrid = () => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4 px-2 sm:px-6 max-w-4xl mx-auto w-full py-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 px-2 sm:px-4 max-w-4xl mx-auto w-full py-2">
       <Link to="/bookmarks" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#9b87f5] hover:bg-gradient-to-br hover:from-[#9b87f5] hover:to-[#D6BCFA] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#9b87f5] hover:bg-[#8a73f4] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <BookmarkIcon className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Bookmarks</span>
+          <BookmarkIcon className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Bookmarks</span>
         </Button>
       </Link>
       
       <Link to="/chat" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#7E69AB] hover:bg-gradient-to-br hover:from-[#7E69AB] hover:to-[#9b87f5] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#7E69AB] hover:bg-[#6b5e9a] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Chat</span>
+          <MessageSquare className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Chat</span>
         </Button>
       </Link>
 
       <Link to="/summaries" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#D946EF] hover:bg-gradient-to-br hover:from-[#D946EF] hover:to-[#E879F9] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#D946EF] hover:bg-[#d03f9e] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <FileText className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Summaries</span>
+          <FileText className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Summaries</span>
         </Button>
       </Link>
 
       <Link to="/analytics" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#F97316] hover:bg-gradient-to-br hover:from-[#F97316] hover:to-[#FB923C] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#F97316] hover:bg-[#f86a1f] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <BarChart className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Analytics</span>
+          <BarChart className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Analytics</span>
         </Button>
       </Link>
 
       <Link to="/timer" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#10B981] hover:bg-gradient-to-br hover:from-[#10B981] hover:to-[#34D399] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#10B981] hover:bg-[#0fa76e] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <Timer className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Timer</span>
+          <Timer className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Timer</span>
         </Button>
       </Link>
 
       <Link to="/tasks" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#6366F1] hover:bg-gradient-to-br hover:from-[#6366F1] hover:to-[#818CF8] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#6366F1] hover:bg-[#5850d6] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <CheckSquare className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Tasks</span>
+          <CheckSquare className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Tasks</span>
         </Button>
       </Link>
 
       <Link to="/notes" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#EC4899] hover:bg-gradient-to-br hover:from-[#EC4899] hover:to-[#F472B6] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#EC4899] hover:bg-[#d83e8e] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <StickyNote className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Notes</span>
+          <StickyNote className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Notes</span>
         </Button>
       </Link>
 
       <Link to="/suggested-services" className="no-underline hover:no-underline w-full">
         <Button
           variant="outline"
-          className="w-full h-32 sm:h-40 flex flex-col items-center justify-center gap-4 bg-[#14B8A6] hover:bg-gradient-to-br hover:from-[#14B8A6] hover:to-[#2DD4BF] text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl border-none rounded-xl"
+          className="w-full h-28 sm:h-36 flex flex-col items-center justify-center gap-3 bg-[#14B8A6] hover:bg-[#12a99b] text-white transition-all duration-200 border-none rounded-lg"
         >
-          <Package className="h-8 w-8 sm:h-10 sm:w-10" />
-          <span className="font-semibold text-base sm:text-lg tracking-wide">Services</span>
+          <Package className="h-7 w-7 sm:h-9 sm:w-9" />
+          <span className="font-semibold text-sm sm:text-base tracking-wide">Services</span>
         </Button>
       </Link>
     </div>
