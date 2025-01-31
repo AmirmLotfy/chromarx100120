@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider";
-import { Routes } from "./Routes";
+import Routes from "./Routes";
 import { FirebaseProvider } from "@/contexts/FirebaseContext";
 
 function App() {
