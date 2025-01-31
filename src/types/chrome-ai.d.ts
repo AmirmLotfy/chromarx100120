@@ -1,57 +1,39 @@
 declare namespace chrome {
-  interface AIPromptOptions {
+  interface AIGenerateTextOptions {
+    model: string;
     prompt: string;
-    maxTokens?: number;
   }
 
-  interface AIPromptResult {
+  interface AIGenerateTextResult {
     text: string;
   }
 
-  interface AISummarizerOptions {
+  interface AIGenerateImageOptions {
+    model: string;
+    prompt: string;
+  }
+
+  interface AIGenerateImageResult {
+    imageUrl: string;
+  }
+
+  interface AIAnalyzeImageOptions {
+    model: string;
+    imageUrl: string;
+    prompt: string;
+  }
+
+  interface AIAnalyzeImageResult {
     text: string;
-    maxSentences?: number;
-  }
-
-  interface AISummarizerResult {
-    summary: string;
-  }
-
-  interface AILanguageDetectionOptions {
-    text: string;
-  }
-
-  interface AILanguageDetectionResult {
-    language: string;
-  }
-
-  interface AITranslatorOptions {
-    text: string;
-    targetLanguage: string;
-  }
-
-  interface AITranslatorResult {
-    translatedText: string;
   }
 
   interface AINamespace {
-    prompt: {
-      generate(options: AIPromptOptions): Promise<AIPromptResult>;
-    };
-    summarizer: {
-      summarize(options: AISummarizerOptions): Promise<AISummarizerResult>;
-    };
-    language: {
-      detectLanguage(options: AILanguageDetectionOptions): Promise<AILanguageDetectionResult>;
-    };
-    translator: {
-      translate(options: AITranslatorOptions): Promise<AITranslatorResult>;
-    };
+    generateText(options: AIGenerateTextOptions): Promise<AIGenerateTextResult>;
+    generateImage(options: AIGenerateImageOptions): Promise<AIGenerateImageResult>;
+    analyzeImage(options: AIAnalyzeImageOptions): Promise<AIAnalyzeImageResult>;
   }
 
-  namespace chrome {
-    interface Chrome {
-      ai?: AINamespace;
-    }
+  interface Chrome {
+    ai?: AINamespace;
   }
 }

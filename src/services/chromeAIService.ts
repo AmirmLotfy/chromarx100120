@@ -21,7 +21,7 @@ class ChromeAIService {
     }
 
     try {
-      const response = await chrome.ai.generateText({
+      const response = await (chrome as any).ai.generateText({
         model: 'gemini-pro',
         prompt: prompt
       });
@@ -43,7 +43,7 @@ class ChromeAIService {
     }
 
     try {
-      const response = await chrome.ai.generateImage({
+      const response = await (chrome as any).ai.generateImage({
         model: 'gemini-pro-vision',
         prompt: prompt
       });
@@ -65,7 +65,7 @@ class ChromeAIService {
     }
 
     try {
-      const response = await chrome.ai.analyzeImage({
+      const response = await (chrome as any).ai.analyzeImage({
         model: 'gemini-pro-vision',
         imageUrl: imageUrl,
         prompt: prompt
