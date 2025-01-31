@@ -10,7 +10,7 @@ const Navigation = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 bg-background border-t py-2 px-4 md:px-8 z-50 md:relative md:border-t-0 transition-all duration-200 ease-in-out"
+      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-primary/20 py-3 px-4 md:px-8 z-50 md:relative md:border-t-0 transition-all duration-200 ease-in-out"
       role="navigation"
       aria-label="Main navigation"
     >
@@ -24,10 +24,13 @@ const Navigation = () => {
           <Button
             variant={isActive("/") ? "default" : "ghost"}
             size="icon"
-            className="h-14 w-14 md:h-10 md:w-10 flex flex-col items-center justify-center gap-1 transition-colors duration-200"
+            className={`h-16 w-16 md:h-12 md:w-12 flex flex-col items-center justify-center gap-1.5 transition-all duration-300 
+              ${isActive("/") ? "bg-primary shadow-lg shadow-primary/25" : "hover:bg-primary/10"}`}
           >
-            <Home className="h-5 w-5" />
-            <span className="text-xs font-medium md:sr-only">Home</span>
+            <Home className={`h-6 w-6 ${isActive("/") ? "text-primary-foreground" : "text-foreground"}`} />
+            <span className={`text-xs font-medium md:sr-only ${isActive("/") ? "text-primary-foreground" : "text-foreground"}`}>
+              Home
+            </span>
           </Button>
         </Link>
 
@@ -40,10 +43,13 @@ const Navigation = () => {
           <Button
             variant={isActive("/bookmarks") ? "default" : "ghost"}
             size="icon"
-            className="h-14 w-14 md:h-10 md:w-10 flex flex-col items-center justify-center gap-1 transition-colors duration-200"
+            className={`h-16 w-16 md:h-12 md:w-12 flex flex-col items-center justify-center gap-1.5 transition-all duration-300 
+              ${isActive("/bookmarks") ? "bg-primary shadow-lg shadow-primary/25" : "hover:bg-primary/10"}`}
           >
-            <BookmarkIcon className="h-5 w-5" />
-            <span className="text-xs font-medium md:sr-only">Bookmarks</span>
+            <BookmarkIcon className={`h-6 w-6 ${isActive("/bookmarks") ? "text-primary-foreground" : "text-foreground"}`} />
+            <span className={`text-xs font-medium md:sr-only ${isActive("/bookmarks") ? "text-primary-foreground" : "text-foreground"}`}>
+              Bookmarks
+            </span>
           </Button>
         </Link>
 
@@ -56,10 +62,13 @@ const Navigation = () => {
           <Button
             variant={isActive("/settings") ? "default" : "ghost"}
             size="icon"
-            className="h-14 w-14 md:h-10 md:w-10 flex flex-col items-center justify-center gap-1 transition-colors duration-200"
+            className={`h-16 w-16 md:h-12 md:w-12 flex flex-col items-center justify-center gap-1.5 transition-all duration-300 
+              ${isActive("/settings") ? "bg-primary shadow-lg shadow-primary/25" : "hover:bg-primary/10"}`}
           >
-            <Settings className="h-5 w-5" />
-            <span className="text-xs font-medium md:sr-only">Settings</span>
+            <Settings className={`h-6 w-6 ${isActive("/settings") ? "text-primary-foreground" : "text-foreground"}`} />
+            <span className={`text-xs font-medium md:sr-only ${isActive("/settings") ? "text-primary-foreground" : "text-foreground"}`}>
+              Settings
+            </span>
           </Button>
         </Link>
       </div>
