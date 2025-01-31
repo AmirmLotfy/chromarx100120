@@ -43,7 +43,6 @@ const SummariesPage = () => {
           window.open(`https://wa.me/?text=${encodeURIComponent(summaryText)}`);
           break;
         case 'notes':
-          // Add to notes logic here
           const notes = JSON.parse(localStorage.getItem("notes") || "[]");
           const newNote = {
             id: crypto.randomUUID(),
@@ -125,17 +124,17 @@ const SummariesPage = () => {
             <h1 className="text-2xl font-semibold">Bookmark Summaries</h1>
           </div>
           <Button
-            variant="destructive"
+            variant="outline"
             size="sm"
             onClick={clearAllSummaries}
-            className="shrink-0"
+            className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive md:text-sm md:h-9 md:px-4"
           >
-            Clear All
+            <Trash2 className="h-3.5 w-3.5 mr-1 md:h-4 md:w-4" />
+            Clear
           </Button>
         </div>
 
         <div className="w-full">
-          {/* Mobile Dropdown */}
           <div className="md:hidden w-full">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -158,7 +157,6 @@ const SummariesPage = () => {
             </DropdownMenu>
           </div>
 
-          {/* Desktop Tabs */}
           <div className="hidden md:grid w-full grid-cols-3">
             <Button
               variant={activeTab === 'current' ? 'default' : 'ghost'}
