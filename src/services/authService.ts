@@ -12,7 +12,10 @@ class AuthService {
   private isExtensionEnvironment: boolean;
 
   private constructor() {
-    this.isExtensionEnvironment = typeof chrome !== 'undefined' && chrome.identity;
+    // Properly check if we're in a Chrome extension environment
+    this.isExtensionEnvironment = typeof chrome !== 'undefined' && 
+      typeof chrome.identity !== 'undefined' && 
+      chrome.identity !== null;
     
     if (this.isExtensionEnvironment) {
       // Only set up Chrome extension specific listeners if we're in an extension
