@@ -27,13 +27,12 @@ const CompactServiceBanner = () => {
   const currentService = featuredServices[currentIndex];
 
   return (
-    <div className="relative h-32 mb-4 perspective-1000">
+    <div className="relative h-24 sm:h-32 mb-4 perspective-1000 mx-2 sm:mx-4">
       <div
         className={`w-full h-full transition-all duration-700 transform-style-3d relative ${
           isFlipped ? "rotate-x-180" : ""
         }`}
       >
-        {/* Front of banner */}
         <Card className="absolute w-full h-full backface-hidden overflow-hidden rounded-lg">
           <div className="relative w-full h-full">
             <img
@@ -43,19 +42,18 @@ const CompactServiceBanner = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-2 left-3 text-white">
-              <h3 className="text-lg font-semibold">{currentService.title}</h3>
+              <h3 className="text-base sm:text-lg font-semibold">{currentService.title}</h3>
             </div>
           </div>
         </Card>
 
-        {/* Back of banner */}
         <Card className="absolute w-full h-full backface-hidden rotate-x-180 overflow-hidden rounded-lg bg-gradient-to-r from-accent to-primary/10">
-          <div className="p-4 h-full flex items-center justify-between">
+          <div className="p-3 sm:p-4 h-full flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-lg text-foreground mb-1">
+              <h3 className="font-semibold text-base sm:text-lg text-foreground mb-1">
                 {currentService.title}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Click to learn more about this service
               </p>
             </div>
@@ -68,7 +66,7 @@ const CompactServiceBanner = () => {
                 console.log(`Banner affiliate link clicked: ${currentService.id}`);
               }}
             >
-              <span>Visit</span>
+              <span className="text-sm sm:text-base">Visit</span>
               <ExternalLink className="h-4 w-4" />
             </a>
           </div>

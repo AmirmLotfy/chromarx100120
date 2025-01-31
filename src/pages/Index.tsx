@@ -37,8 +37,10 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 pb-16">
-        <WelcomeCard />
+      <div className="space-y-4 pb-16 w-full max-w-4xl mx-auto">
+        <div className="px-2 sm:px-4">
+          <WelcomeCard />
+        </div>
         {subscriptionStatus === "free" && <CompactServiceBanner />}
         <FeatureGrid />
       </div>
