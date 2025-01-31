@@ -1,15 +1,15 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
-import BookmarkCleanup from "./BookmarkCleanup";
 import BookmarkList from "./BookmarkList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import { SlidersHorizontal } from "lucide-react";
-import AIActionButtons from "./AIActionButtons";
-import { useSubscription } from "@/hooks/use-subscription";
-import { useFeatureAccess } from "@/hooks/use-feature-access";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { Filter, SlidersHorizontal, Calendar, Search } from "lucide-react";
+import { Input } from "./ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -53,46 +53,57 @@ const BookmarkContent = ({
   onUpdateCategories,
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
-  const { incrementUsage } = useSubscription();
-  const { checkUsageLimit } = useFeatureAccess();
-
-  const handleAddBookmark = async (bookmark: ChromeBookmark) => {
-    if (!checkUsageLimit('bookmarks')) {
-      return;
-    }
-
-    try {
-      await incrementUsage('bookmarks');
-      // Add your bookmark creation logic here
-    } catch (error) {
-      console.error('Error adding bookmark:', error);
-    }
-  };
 
   const FilterPanel = () => (
-    <div className="space-y-4 w-full max-w-full overflow-hidden">
-      <div className="space-y-1.5">
-        <h2 className="text-sm font-medium px-2">Categories</h2>
-        <BookmarkCategories
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={onSelectCategory}
-        />
-      </div>
-      <div className="space-y-1.5">
-        <h2 className="text-sm font-medium px-2">Domains</h2>
-        <BookmarkDomains
-          domains={domains}
-          selectedDomain={selectedDomain}
-          onSelectDomain={onSelectDomain}
-        />
-      </div>
-      <div className="px-2">
-        <BookmarkCleanup
-          bookmarks={bookmarks}
-          onDelete={onBulkDelete}
-          onRefresh={onRefresh}
-        />
+    <div className="space-y-4 w-full max-w-full">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Search Bookmarks</Label>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search..." className="pl-8" />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Date Added</Label>
+          <Select defaultValue="all">
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border">
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Categories</Label>
+          <BookmarkCategories
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={onSelectCategory}
+          />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Domains</Label>
+          <BookmarkDomains
+            domains={domains}
+            selectedDomain={selectedDomain}
+            onSelectDomain={onSelectDomain}
+          />
+        </div>
       </div>
     </div>
   );
@@ -104,19 +115,22 @@ const BookmarkContent = ({
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="flex-1">
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                Filters & Tools
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
               </Button>
             </SheetTrigger>
             <SheetContent 
               side="left" 
-              className="w-[280px] sm:w-[320px] p-3 overflow-y-auto"
+              className="w-[280px] sm:w-[320px] p-4"
             >
+              <SheetHeader className="mb-4">
+                <SheetTitle>Filter Bookmarks</SheetTitle>
+              </SheetHeader>
               <FilterPanel />
             </SheetContent>
           </Sheet>
         ) : (
-          <div className="bg-card rounded-lg border p-3 overflow-hidden">
+          <div className="bg-card rounded-lg border p-4 w-[280px]">
             <FilterPanel />
           </div>
         )}
