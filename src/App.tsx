@@ -1,7 +1,7 @@
 import { BrowserRouter as Router } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { FirebaseProvider } from "@/contexts/FirebaseContext";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import { OnboardingOverlay } from "@/components/onboarding/OnboardingOverlay";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -15,9 +15,11 @@ function App() {
   const [isSidePanelAvailable, setIsSidePanelAvailable] = useState(false);
 
   useEffect(() => {
+    // Check if the side panel API is available (Chrome 114+)
     if (chrome?.sidePanel) {
       setIsSidePanelAvailable(true);
       
+      // Configure side panel behavior to open on action click
       chrome.sidePanel
         .setPanelBehavior({ openPanelOnActionClick: true })
         .catch(console.error);
@@ -29,8 +31,10 @@ function App() {
 
     try {
       if (isVisible) {
+        // Disable the side panel
         await chrome.sidePanel.setOptions({ enabled: false });
       } else {
+        // Enable and open the side panel in the current window
         await chrome.sidePanel.setOptions({ enabled: true });
         await chrome.sidePanel.open({
           windowId: chrome.windows.WINDOW_ID_CURRENT
@@ -45,7 +49,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Router>
-        <AuthProvider>
+        <FirebaseProvider>
           <OnboardingProvider>
             <SidebarProvider>
               <div className="min-h-screen flex w-full">
@@ -53,6 +57,7 @@ function App() {
                 <OnboardingOverlay />
                 <Toaster />
                 
+                {/* Floating Toggle Button */}
                 {isSidePanelAvailable && (
                   <Button
                     variant="outline"
@@ -71,7 +76,7 @@ function App() {
               </div>
             </SidebarProvider>
           </OnboardingProvider>
-        </AuthProvider>
+        </FirebaseProvider>
       </Router>
     </ThemeProvider>
   );

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Sparkles, Trash2, Languages } from "lucide-react";
+import { FileText, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -11,7 +12,6 @@ import {
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
-import { chromeAIService } from "@/services/chromeAIService";
 
 interface AIActionButtonsProps {
   selectedBookmarks?: ChromeBookmark[];
@@ -32,7 +32,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await chromeAIService.generateText(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`, 'en');
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -69,14 +69,10 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     setIsProcessing(true);
     try {
       const updatedBookmarks = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => {
-          const prompt = `Suggest a category for this bookmark: ${bookmark.title} (${bookmark.url})`;
-          const category = await chromeAIService.generateText(prompt);
-          return {
-            ...bookmark,
-            category,
-          };
-        })
+        selectedBookmarks.map(async (bookmark) => ({
+          ...bookmark,
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", 'en'),
+        }))
       );
 
       onUpdateCategories(updatedBookmarks);
@@ -113,7 +109,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-4 gap-1.5">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -166,24 +162,6 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
           </TooltipTrigger>
           <TooltipContent>
             Suggest categories for selected bookmarks
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate("/translations")}
-              disabled={isProcessing}
-              className="w-full"
-            >
-              <Languages className="h-4 w-4 mr-1.5" />
-              Translate
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Translate bookmark content
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

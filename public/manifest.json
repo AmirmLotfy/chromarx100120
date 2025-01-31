@@ -7,25 +7,12 @@
     "sidePanel",
     "bookmarks",
     "storage",
-    "notifications",
-    "identity",
-    "identity.email",
-    "ai.prompt",
-    "ai.summarizer",
-    "ai.language",
-    "ai.translator"
+    "notifications"
   ],
   "optional_permissions": [
     "contextMenus",
     "alarms"
   ],
-  "oauth2": {
-    "client_id": "${CHROME_CLIENT_ID}",
-    "scopes": [
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile"
-    ]
-  },
   "side_panel": {
     "default_path": "index.html"
   },
