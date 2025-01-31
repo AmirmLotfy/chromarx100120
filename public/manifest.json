@@ -9,7 +9,11 @@
     "storage",
     "notifications",
     "identity",
-    "identity.email"
+    "identity.email",
+    "ai.prompt",
+    "ai.summarizer",
+    "ai.language",
+    "ai.translator"
   ],
   "optional_permissions": [
     "contextMenus",
