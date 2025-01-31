@@ -11,7 +11,7 @@ import {
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
-import { chromeAI } from "@/services/chromeAIService";
+import { chromeAIService } from "@/services/chromeAIService";
 
 interface AIActionButtonsProps {
   selectedBookmarks?: ChromeBookmark[];
@@ -32,7 +32,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await chromeAI.summarizeText(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await chromeAIService.generateText(`${bookmark.title}\n${bookmark.url}`);
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -71,7 +71,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
           const prompt = `Suggest a category for this bookmark: ${bookmark.title} (${bookmark.url})`;
-          const category = await chromeAI.generatePrompt(prompt);
+          const category = await chromeAIService.generateText(prompt);
           return {
             ...bookmark,
             category,
