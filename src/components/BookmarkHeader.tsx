@@ -104,19 +104,19 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="space-y-4 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pb-6">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Bookmark className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Bookmarks</h1>
+    <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pt-4">
+      <div className="flex items-center justify-between gap-1.5 flex-wrap px-2">
+        <div className="flex items-center gap-1.5">
+          <Bookmark className="h-4 w-4 text-primary" />
+          <h1 className="text-base font-semibold">Bookmarks</h1>
           {selectedBookmarksCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
+            <Badge variant="secondary" className="ml-1">
               {selectedBookmarksCount} selected
             </Badge>
           )}
         </div>
         
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1">
           <SummariesButton newSummariesCount={newSummariesCount} />
           
           <TooltipProvider>
@@ -126,9 +126,9 @@ const BookmarkHeader = ({
                   variant="outline"
                   size="icon"
                   onClick={handleImportBookmarks}
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                 >
-                  <Import className="h-4 w-4" />
+                  <Import className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Import Chrome bookmarks</TooltipContent>
@@ -141,9 +141,9 @@ const BookmarkHeader = ({
                     variant="outline"
                     size="icon"
                     onClick={handleExportBookmarks}
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                   >
-                    <Download className="h-4 w-4" />
+                    <Download className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Export selected bookmarks</TooltipContent>
@@ -154,8 +154,8 @@ const BookmarkHeader = ({
           {isMobile ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <FolderPlus className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="h-7 w-7">
+                  <FolderPlus className="h-3.5 w-3.5" />
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -171,7 +171,7 @@ const BookmarkHeader = ({
               </SheetContent>
             </Sheet>
           ) : (
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1">
               <AIActionButtons 
                 selectedBookmarks={selectedBookmarks}
                 onUpdateCategories={onUpdateCategories}
@@ -181,13 +181,13 @@ const BookmarkHeader = ({
         </div>
       </div>
 
-      <div className="relative mt-4">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <div className="relative mt-2 px-2">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
-          className="pl-9 w-full h-8"
+          className="pl-8 w-full h-8 text-sm"
           aria-label="Search bookmarks"
         />
         {suggestions.length > 0 && (
