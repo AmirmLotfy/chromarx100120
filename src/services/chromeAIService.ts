@@ -24,7 +24,7 @@ export class ChromeAIService {
     }
 
     try {
-      const result = await chrome.ai.prompt.generate({
+      const result = await chrome.ai!.prompt.generate({
         prompt: input,
         maxTokens: 100
       });
@@ -43,7 +43,7 @@ export class ChromeAIService {
     }
 
     try {
-      const result = await chrome.ai.summarizer.summarize({
+      const result = await chrome.ai!.summarizer.summarize({
         text,
         maxSentences: 3
       });
@@ -62,7 +62,7 @@ export class ChromeAIService {
     }
 
     try {
-      const result = await chrome.ai.language.detectLanguage({
+      const result = await chrome.ai!.language.detectLanguage({
         text
       });
       return result.language;
@@ -80,7 +80,7 @@ export class ChromeAIService {
     }
 
     try {
-      const result = await chrome.ai.translator.translate({
+      const result = await chrome.ai!.translator.translate({
         text,
         targetLanguage
       });
