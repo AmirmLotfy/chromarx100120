@@ -35,26 +35,48 @@ const ChatInterface = () => {
   }, [messages, scrollToBottom]);
 
   useEffect(() => {
-    // Load chat history from Chrome storage
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
-      if (result[STORAGE_KEY]) {
-        setChatHistory(result[STORAGE_KEY]);
+    // Load chat history from storage if available
+    const loadChatHistory = async () => {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          const result = await chrome.storage.local.get([STORAGE_KEY]);
+          if (result[STORAGE_KEY]) {
+            setChatHistory(result[STORAGE_KEY]);
+          }
+        } else {
+          // Fallback to localStorage when chrome.storage is not available
+          const savedHistory = localStorage.getItem(STORAGE_KEY);
+          if (savedHistory) {
+            setChatHistory(JSON.parse(savedHistory));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
       }
-    });
+    };
+
+    loadChatHistory();
   }, []);
 
-  const saveChatHistory = useCallback((newMessages: Message[]) => {
+  const saveChatHistory = useCallback(async (newMessages: Message[]) => {
     if (newMessages.length === 0) return;
     
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
-      const existingHistory = result[STORAGE_KEY] || [];
-      const updatedHistory = [newMessages, ...existingHistory].slice(0, 10); // Keep last 10 conversations
+    try {
+      const updatedHistory = [newMessages, ...chatHistory].slice(0, 10); // Keep last 10 conversations
+
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        await chrome.storage.local.set({ [STORAGE_KEY]: updatedHistory });
+      } else {
+        // Fallback to localStorage when chrome.storage is not available
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
+      }
       
-      chrome.storage.local.set({ [STORAGE_KEY]: updatedHistory }, () => {
-        setChatHistory(updatedHistory);
-      });
-    });
-  }, []);
+      setChatHistory(updatedHistory);
+    } catch (error) {
+      console.error('Error saving chat history:', error);
+      toast.error('Failed to save chat history');
+    }
+  }, [chatHistory]);
 
   const clearChat = () => {
     if (messages.length > 0) {
