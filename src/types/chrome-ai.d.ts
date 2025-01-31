@@ -49,7 +49,7 @@ declare namespace chrome {
     };
   }
 
-  export interface Chrome {
+  interface Chrome {
     ai?: AINamespace;
   }
 }
