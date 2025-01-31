@@ -21,19 +21,16 @@ export const useOnboarding = () => {
 };
 
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
+  // Temporarily set to 0 and true to bypass onboarding
   const [currentStep, setCurrentStep] = useState(0);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(true);
   const settings = useSettings();
   const { user } = useFirebase();
 
+  // Temporarily disable onboarding checks
   useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem("onboardingComplete");
-    if (hasCompletedOnboarding === "true") {
-      setIsOnboardingComplete(true);
-      setCurrentStep(0);
-    } else if (!currentStep) {
-      setCurrentStep(1);
-    }
+    setIsOnboardingComplete(true);
+    setCurrentStep(0);
   }, []);
 
   const completeOnboarding = () => {
@@ -43,8 +40,8 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   };
 
   const startOnboarding = () => {
-    setCurrentStep(1);
-    setIsOnboardingComplete(false);
+    // Temporarily disabled
+    console.log("Onboarding temporarily disabled");
   };
 
   return (
