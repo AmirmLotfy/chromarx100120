@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-
 interface UserProfile {
   uid: string;
   email: string | null;
@@ -11,16 +9,23 @@ class AuthService {
   private static instance: AuthService;
   private user: UserProfile | null = null;
   private listeners: ((user: UserProfile | null) => void)[] = [];
+  private isExtensionEnvironment: boolean;
 
   private constructor() {
-    // Initialize Chrome Identity API
-    chrome.identity.onSignInChanged.addListener((account, signedIn) => {
-      if (signedIn) {
-        this.handleSignIn(account);
-      } else {
-        this.handleSignOut();
-      }
-    });
+    this.isExtensionEnvironment = typeof chrome !== 'undefined' && chrome.identity;
+    
+    if (this.isExtensionEnvironment) {
+      // Only set up Chrome extension specific listeners if we're in an extension
+      chrome.identity.onSignInChanged?.addListener((account, signedIn) => {
+        if (signedIn) {
+          this.handleSignIn(account);
+        } else {
+          this.handleSignOut();
+        }
+      });
+    } else {
+      console.log('Running in non-extension environment - some features may be limited');
+    }
   }
 
   static getInstance(): AuthService {
@@ -32,6 +37,10 @@ class AuthService {
 
   async signInWithGoogle(): Promise<void> {
     try {
+      if (!this.isExtensionEnvironment) {
+        throw new Error('Google Sign-In is only available in the Chrome extension');
+      }
+
       const token = await this.getGoogleAuthToken();
       if (!token) {
         throw new Error('Failed to get auth token');
@@ -56,28 +65,36 @@ class AuthService {
 
       this.notifyListeners();
       await this.syncUserData();
-      toast.success('Successfully signed in!');
+      console.log('Successfully signed in!');
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error('Failed to sign in with Google');
       throw error;
     }
   }
 
   async signOut(): Promise<void> {
     try {
-      await chrome.identity.removeCachedAuthToken({ token: await this.getGoogleAuthToken() });
+      if (this.isExtensionEnvironment) {
+        const token = await this.getGoogleAuthToken();
+        if (token) {
+          await chrome.identity.removeCachedAuthToken({ token });
+        }
+      }
+      
       this.user = null;
       this.notifyListeners();
-      toast.success('Successfully signed out');
+      console.log('Successfully signed out');
     } catch (error) {
       console.error('Sign out error:', error);
-      toast.error('Failed to sign out');
       throw error;
     }
   }
 
   private async getGoogleAuthToken(): Promise<string> {
+    if (!this.isExtensionEnvironment) {
+      throw new Error('Google Auth Token is only available in the Chrome extension');
+    }
+
     return new Promise((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         if (chrome.runtime.lastError) {
@@ -121,7 +138,7 @@ class AuthService {
   }
 
   private async syncUserData() {
-    if (!this.user) return;
+    if (!this.user || !this.isExtensionEnvironment) return;
 
     try {
       // Sync user data with Chrome storage
@@ -140,7 +157,6 @@ class AuthService {
       });
     } catch (error) {
       console.error('Error syncing user data:', error);
-      toast.error('Failed to sync user data');
     }
   }
 
