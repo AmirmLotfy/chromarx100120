@@ -15,11 +15,9 @@ function App() {
   const [isSidePanelAvailable, setIsSidePanelAvailable] = useState(false);
 
   useEffect(() => {
-    // Check if the side panel API is available (Chrome 114+)
     if (chrome?.sidePanel) {
       setIsSidePanelAvailable(true);
       
-      // Configure side panel behavior to open on action click
       chrome.sidePanel
         .setPanelBehavior({ openPanelOnActionClick: true })
         .catch(console.error);
@@ -31,10 +29,8 @@ function App() {
 
     try {
       if (isVisible) {
-        // Disable the side panel
         await chrome.sidePanel.setOptions({ enabled: false });
       } else {
-        // Enable and open the side panel in the current window
         await chrome.sidePanel.setOptions({ enabled: true });
         await chrome.sidePanel.open({
           windowId: chrome.windows.WINDOW_ID_CURRENT
@@ -52,12 +48,11 @@ function App() {
         <FirebaseProvider>
           <OnboardingProvider>
             <SidebarProvider>
-              <div className="min-h-screen flex w-full">
+              <div className="min-h-screen flex w-full max-w-full overflow-x-hidden">
                 <Routes />
                 <OnboardingOverlay />
                 <Toaster />
                 
-                {/* Floating Toggle Button */}
                 {isSidePanelAvailable && (
                   <Button
                     variant="outline"
