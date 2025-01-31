@@ -8,11 +8,11 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <img 
-            src="/logo.png" 
+            src="/lovable-uploads/c57439a4-ac35-4ae6-ac00-dd8f5ef8a360.png" 
             alt="ChroMarx Logo" 
-            className="h-8 w-8 object-contain"
+            className="h-8 w-auto object-contain"
           />
           <h1 className="text-lg font-semibold md:text-xl">ChroMarx</h1>
         </div>
