@@ -110,8 +110,8 @@ const SummariesPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 pb-16">
-        <div className="flex items-center justify-between gap-4">
+      <div className="space-y-6 pb-16 pt-4">
+        <div className="flex items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { FileText, Bell } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 
@@ -21,7 +21,7 @@ const SummariesButton = ({ newSummariesCount = 0 }: SummariesButtonProps) => {
       variant="outline"
       size="sm"
       onClick={() => navigate("/summaries")}
-      className="relative"
+      className="relative ml-1"
     >
       <FileText className="h-4 w-4 mr-2" />
       Summaries
