@@ -1,10 +1,28 @@
 import Layout from "@/components/Layout";
 import BookmarkContent from "@/components/BookmarkContent";
-import BookmarkControls from "@/components/BookmarkControls";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 
 const BookmarksPage = () => {
-  const { bookmarks, loading } = useBookmarks();
+  const {
+    bookmarks,
+    loading,
+    categories,
+    domains,
+    selectedCategory,
+    selectedDomain,
+    onSelectCategory,
+    onSelectDomain,
+    selectedBookmarks,
+    onToggleSelect,
+    onDelete,
+    formatDate,
+    view,
+    onReorder,
+    onBulkDelete,
+    onRefresh,
+    filteredBookmarks,
+    onUpdateCategories,
+  } = useBookmarks();
 
   return (
     <Layout>
@@ -16,13 +34,25 @@ const BookmarksPage = () => {
           </p>
         </div>
         <div className="grid gap-6">
-          <BookmarkControls 
-            sortBy="dateAdded"
-            onSortChange={() => {}}
-          />
-          <BookmarkContent 
+          <BookmarkContent
+            categories={categories}
+            domains={domains}
+            selectedCategory={selectedCategory}
+            selectedDomain={selectedDomain}
+            onSelectCategory={onSelectCategory}
+            onSelectDomain={onSelectDomain}
             bookmarks={bookmarks}
+            selectedBookmarks={selectedBookmarks}
+            onToggleSelect={onToggleSelect}
+            onDelete={onDelete}
+            formatDate={formatDate}
+            view={view}
+            onReorder={onReorder}
+            onBulkDelete={onBulkDelete}
+            onRefresh={onRefresh}
             loading={loading}
+            filteredBookmarks={filteredBookmarks}
+            onUpdateCategories={onUpdateCategories}
           />
         </div>
       </div>
