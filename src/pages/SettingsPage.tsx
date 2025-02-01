@@ -504,6 +504,10 @@ const SettingsPage = () => {
                 </Card>
               </TabsContent>
 
+              <TabsContent value="legal" className="space-y-4">
+                <LegalAndFeedback />
+              </TabsContent>
+
               {isAdmin && (
                 <TabsContent value="affiliate">
                   <AffiliateSettings />
