@@ -25,9 +25,9 @@ const Navigation = () => {
             variant={isActive("/") ? "default" : "ghost"}
             size="icon"
             className={`w-full h-14 md:h-12 flex items-center justify-center transition-all duration-200 
-              ${isActive("/") ? "bg-primary/90 shadow-sm" : "hover:bg-primary/5"}`}
+              ${isActive("/") ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-accent hover:text-accent-foreground"}`}
           >
-            <Home className={`h-6 w-6 ${isActive("/") ? "text-primary-foreground" : "text-foreground"}`} />
+            <Home className="h-6 w-6" />
           </Button>
         </Link>
 
@@ -41,9 +41,9 @@ const Navigation = () => {
             variant={isActive("/bookmarks") ? "default" : "ghost"}
             size="icon"
             className={`w-full h-14 md:h-12 flex items-center justify-center transition-all duration-200 
-              ${isActive("/bookmarks") ? "bg-primary/90 shadow-sm" : "hover:bg-primary/5"}`}
+              ${isActive("/bookmarks") ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-accent hover:text-accent-foreground"}`}
           >
-            <BookmarkIcon className={`h-6 w-6 ${isActive("/bookmarks") ? "text-primary-foreground" : "text-foreground"}`} />
+            <BookmarkIcon className="h-6 w-6" />
           </Button>
         </Link>
 
@@ -57,9 +57,9 @@ const Navigation = () => {
             variant={isActive("/settings") ? "default" : "ghost"}
             size="icon"
             className={`w-full h-14 md:h-12 flex items-center justify-center transition-all duration-200 
-              ${isActive("/settings") ? "bg-primary/90 shadow-sm" : "hover:bg-primary/5"}`}
+              ${isActive("/settings") ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-accent hover:text-accent-foreground"}`}
           >
-            <Settings className={`h-6 w-6 ${isActive("/settings") ? "text-primary-foreground" : "text-foreground"}`} />
+            <Settings className="h-6 w-6" />
           </Button>
         </Link>
       </div>
