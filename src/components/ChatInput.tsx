@@ -34,16 +34,19 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
     setOpen(false);
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    setOpen(value.length > 0);
+  };
+
   return (
     <form onSubmit={handleSend} className="flex gap-2 w-full relative">
       <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Input
             value={inputValue}
-            onChange={(e) => {
-              setInputValue(e.target.value);
-              setOpen(e.target.value.length > 0);
-            }}
+            onChange={handleInputChange}
             placeholder="Ask me anything about your bookmarks..."
             className="flex-1 pr-24 bg-white dark:bg-accent text-foreground border-2 border-primary/20 focus:border-primary shadow-sm focus:ring-2 focus:ring-primary/20 rounded-xl h-12 text-base"
             disabled={isProcessing}
