@@ -1,8 +1,10 @@
-import { chromeDb } from '@/lib/chrome-storage';
+import { chromeDb, StorageData } from '@/lib/chrome-storage';
 
 export const storeGeminiApiKey = async (userId: string, apiKey: string) => {
   try {
+    const settings = await chromeDb.get<StorageData['settings']>('settings') || {};
     await chromeDb.set('settings', {
+      ...settings,
       geminiApiKey: apiKey,
       updatedAt: new Date().toISOString(),
     });
@@ -15,7 +17,7 @@ export const storeGeminiApiKey = async (userId: string, apiKey: string) => {
 
 export const getGeminiApiKey = async (userId: string) => {
   try {
-    const settings = await chromeDb.get('settings');
+    const settings = await chromeDb.get<StorageData['settings']>('settings');
     return settings?.geminiApiKey || null;
   } catch (error) {
     console.error('Error getting API key:', error);
@@ -25,7 +27,9 @@ export const getGeminiApiKey = async (userId: string) => {
 
 export const storePayPalCredentials = async (clientId: string, secretKey: string) => {
   try {
+    const settings = await chromeDb.get<StorageData['settings']>('settings') || {};
     await chromeDb.set('settings', {
+      ...settings,
       paypal: {
         clientId,
         secretKey,
@@ -41,7 +45,7 @@ export const storePayPalCredentials = async (clientId: string, secretKey: string
 
 export const getPayPalClientId = async () => {
   try {
-    const settings = await chromeDb.get('settings');
+    const settings = await chromeDb.get<StorageData['settings']>('settings');
     return settings?.paypal?.clientId || null;
   } catch (error) {
     console.error('Error getting PayPal client ID:', error);

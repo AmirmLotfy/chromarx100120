@@ -1,19 +1,34 @@
+export interface ChromeUser {
+  id: string;
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
 export interface StorageData {
   user: ChromeUser | null;
-  settings: Record<string, any>;
+  settings: {
+    geminiApiKey?: string;
+    paypal?: {
+      clientId: string;
+      secretKey: string;
+    };
+  };
   subscriptions: Record<string, any>;
   history: any[];
   privacySettings: {
     userId: string;
-    [key: string]: any;
+    dataCollection: boolean;
+    notifications: {
+      bookmarks: boolean;
+      updates: boolean;
+      reminders: boolean;
+    };
   };
   config: {
     affiliateContent?: {
       products: any[];
-    };
-    geminiApiKey?: string;
-    paypal?: {
-      clientId: string;
     };
   };
 }

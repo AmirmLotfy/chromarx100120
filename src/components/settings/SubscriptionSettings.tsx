@@ -1,11 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Layout from "@/components/Layout";
 import PlanCard from "@/components/subscription/PlanCard";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
+import { chromeDb } from "@/lib/chrome-storage";
+import { useEffect, useState } from "react";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SubscriptionSettings = () => {
@@ -21,9 +20,9 @@ const SubscriptionSettings = () => {
       }
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setCurrentPlan(userDoc.data()?.currentPlan || 'basic');
+        const subscriptionData = await chromeDb.get<any>('subscriptions');
+        if (subscriptionData && subscriptionData[user.id]) {
+          setCurrentPlan(subscriptionData[user.id].planId || 'basic');
         }
       } catch (error) {
         console.error('Error fetching subscription:', error);
@@ -36,56 +35,48 @@ const SubscriptionSettings = () => {
     fetchSubscription();
   }, [user]);
 
-  const handleSubscribe = async (planId: string) => {
-    if (!user) {
-      toast.error("Please sign in to subscribe");
-      return;
-    }
-    
-    console.log("Processing subscription for plan:", planId);
-    // The actual subscription processing is handled by PlanCard component
-    // through PayPal integration
-  };
-
   if (isLoading) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-72 mt-2" />
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
+      <Layout>
+        <div className="container max-w-6xl mx-auto px-4 py-8">
+          <div className="text-center mb-12">
+            <Skeleton className="h-8 w-48 mx-auto" />
+            <Skeleton className="h-4 w-72 mx-auto mt-2" />
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-96 w-full" />
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Subscription</CardTitle>
-        <CardDescription>
-          Choose the plan that best fits your needs
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid md:grid-cols-3 gap-6">
+    <Layout>
+      <div className="container max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-bold tracking-tight mb-4">
+            Choose Your Plan
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Select the plan that best fits your needs. All plans include our core
+            features with additional capabilities as you upgrade.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
           {subscriptionPlans.map((plan) => (
             <PlanCard 
               key={plan.id} 
               {...plan} 
-              onSubscribe={handleSubscribe}
               isSelected={currentPlan === plan.id}
             />
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Layout>
   );
 };
 
