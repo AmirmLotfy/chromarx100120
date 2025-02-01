@@ -55,36 +55,8 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-4 w-full max-w-full">
+    <div className="space-y-6 w-full max-w-full p-4">
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Search Bookmarks</Label>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-8" />
-          </div>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Date Added</Label>
-          <Select defaultValue="all">
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by date" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border">
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Separator />
-
         <div className="space-y-2">
           <Label className="text-sm font-medium">Categories</Label>
           <BookmarkCategories
@@ -94,7 +66,7 @@ const BookmarkContent = ({
           />
         </div>
 
-        <Separator />
+        <Separator className="my-6" />
 
         <div className="space-y-2">
           <Label className="text-sm font-medium">Domains</Label>
@@ -109,34 +81,29 @@ const BookmarkContent = ({
   );
 
   return (
-    <div className="space-y-1 sm:space-y-2 w-full max-w-full">
-      <div className="flex flex-row gap-1 sm:gap-1.5 items-center justify-between">
-        {isMobile ? (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
-            </SheetTrigger>
-            <SheetContent 
-              side="left" 
-              className="w-[280px] sm:w-[320px] p-4"
-            >
-              <SheetHeader className="mb-4">
-                <SheetTitle>Filter Bookmarks</SheetTitle>
-              </SheetHeader>
-              <FilterPanel />
-            </SheetContent>
-          </Sheet>
-        ) : (
-          <div className="bg-card rounded-lg border p-4 w-[280px]">
+    <div className="flex gap-6 p-4">
+      {isMobile ? (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="mb-4">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+            <SheetHeader className="mb-4">
+              <SheetTitle>Filter Bookmarks</SheetTitle>
+            </SheetHeader>
             <FilterPanel />
-          </div>
-        )}
-      </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <div className="w-[280px] bg-card rounded-lg border hidden md:block">
+          <FilterPanel />
+        </div>
+      )}
 
-      <div className="min-h-[200px] w-full max-w-full overflow-hidden">
+      <div className="flex-1 min-h-[200px] w-full max-w-full">
         {loading ? (
           <div className="flex items-center justify-center h-[200px] text-muted-foreground">
             Loading bookmarks...
