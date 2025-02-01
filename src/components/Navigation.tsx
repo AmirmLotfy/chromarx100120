@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, BookmarkIcon, Settings } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const Navigation = () => {
   const location = useLocation();
@@ -22,13 +23,14 @@ const Navigation = () => {
           aria-current={isActive("/") ? "page" : undefined}
         >
           <Button
-            variant={isActive("/") ? "default" : "ghost"}
-            size="icon"
-            className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all md:h-10
-              ${isActive("/") ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
+            variant="ghost"
+            className={cn(
+              "nav-button",
+              isActive("/") && "nav-button-active"
+            )}
           >
-            <Home className="h-5 w-5" />
-            <span className="text-xs font-medium">Home</span>
+            <Home className="nav-icon" />
+            <span className="nav-text">Home</span>
           </Button>
         </Link>
 
@@ -39,13 +41,14 @@ const Navigation = () => {
           aria-current={isActive("/bookmarks") ? "page" : undefined}
         >
           <Button
-            variant={isActive("/bookmarks") ? "default" : "ghost"}
-            size="icon"
-            className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all md:h-10
-              ${isActive("/bookmarks") ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
+            variant="ghost"
+            className={cn(
+              "nav-button",
+              isActive("/bookmarks") && "nav-button-active"
+            )}
           >
-            <BookmarkIcon className="h-5 w-5" />
-            <span className="text-xs font-medium">Bookmarks</span>
+            <BookmarkIcon className="nav-icon" />
+            <span className="nav-text">Bookmarks</span>
           </Button>
         </Link>
 
@@ -56,13 +59,14 @@ const Navigation = () => {
           aria-current={isActive("/settings") ? "page" : undefined}
         >
           <Button
-            variant={isActive("/settings") ? "default" : "ghost"}
-            size="icon"
-            className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all md:h-10
-              ${isActive("/settings") ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
+            variant="ghost"
+            className={cn(
+              "nav-button",
+              isActive("/settings") && "nav-button-active"
+            )}
           >
-            <Settings className="h-5 w-5" />
-            <span className="text-xs font-medium">Settings</span>
+            <Settings className="nav-icon" />
+            <span className="nav-text">Settings</span>
           </Button>
         </Link>
       </div>

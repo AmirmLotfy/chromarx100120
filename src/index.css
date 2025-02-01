@@ -19,75 +19,58 @@
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 0 0% 11%;
+    --background: 240 10% 4%;
     --foreground: 0 0% 95%;
     --primary-color: #7E69AB;
     --primary-foreground: #ffffff;
     --secondary-color: #5D4D80;
     --secondary-foreground: #ffffff;
-    --muted-color: #202124;
+    --muted-color: #1F1F23;
     --muted-foreground: #9CA3AF;
-    --accent-color: #292B2F;
+    --accent-color: #2A2D3E;
     --accent-foreground: #ffffff;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 18%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.9%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer components {
+  .feature-button {
+    @apply group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 
+           transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 
+           sm:h-36 flex flex-col items-center justify-center gap-3;
   }
 
-  /* Color scheme variations */
-  .theme-purple {
-    --primary-color: #8B5CF6;
-    --secondary-color: #7C3AED;
-    --accent-color: #E5DEFF;
-    --muted-color: #F1F0FB;
+  .feature-icon {
+    @apply h-8 w-8 transition-transform duration-200 group-hover:scale-110 
+           sm:h-12 sm:w-12 text-primary;
   }
 
-  .theme-blue {
-    --primary-color: #3B82F6;
-    --secondary-color: #2563EB;
-    --accent-color: #DBEAFE;
-    --muted-color: #F0F9FF;
+  .feature-text {
+    @apply font-medium tracking-wide text-foreground;
   }
 
-  .theme-green {
-    --primary-color: #10B981;
-    --secondary-color: #059669;
-    --accent-color: #D1FAE5;
-    --muted-color: #ECFDF5;
+  .nav-button {
+    @apply flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl 
+           transition-all md:h-10 hover:bg-accent hover:text-accent-foreground;
   }
 
-  .dark.theme-purple {
-    --primary-color: #7E69AB;
-    --secondary-color: #5D4D80;
-    --accent-color: #2A2D3E;
-    --muted-color: #1F2937;
+  .nav-button-active {
+    @apply bg-primary text-primary-foreground;
   }
 
-  .dark.theme-blue {
-    --primary-color: #0C8BC3;
-    --secondary-color: #0B7AAB;
-    --accent-color: #1E3A8A;
-    --muted-color: #1E3A8A;
+  .nav-icon {
+    @apply h-5 w-5;
   }
 
-  .dark.theme-green {
-    --primary-color: #059669;
-    --secondary-color: #047857;
-    --accent-color: #064E3B;
-    --muted-color: #064E3B;
-  }
-
-  * {
-    @apply border-border;
-  }
-  
-  body {
-    @apply bg-background text-foreground;
+  .nav-text {
+    @apply text-xs font-medium;
   }
 }

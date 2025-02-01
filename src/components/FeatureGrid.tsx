@@ -15,98 +15,58 @@ const FeatureGrid = () => {
   return (
     <div className="mx-auto grid w-full max-w-4xl grid-cols-2 gap-3 px-3 py-3 sm:grid-cols-2 sm:px-4">
       <Link to="/bookmarks" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <BookmarkIcon className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Bookmarks</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <BookmarkIcon className="feature-icon" />
+          <span className="feature-text">Bookmarks</span>
         </Button>
       </Link>
       
       <Link to="/chat" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <MessageSquare className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Chat</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <MessageSquare className="feature-icon" />
+          <span className="feature-text">Chat</span>
         </Button>
       </Link>
 
       <Link to="/summaries" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <FileText className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Summaries</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <FileText className="feature-icon" />
+          <span className="feature-text">Summaries</span>
         </Button>
       </Link>
 
       <Link to="/analytics" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <BarChart className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Analytics</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <BarChart className="feature-icon" />
+          <span className="feature-text">Analytics</span>
         </Button>
       </Link>
 
       <Link to="/timer" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <Timer className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Timer</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <Timer className="feature-icon" />
+          <span className="feature-text">Timer</span>
         </Button>
       </Link>
 
       <Link to="/tasks" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <CheckSquare className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Tasks</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <CheckSquare className="feature-icon" />
+          <span className="feature-text">Tasks</span>
         </Button>
       </Link>
 
       <Link to="/notes" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <StickyNote className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Notes</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <StickyNote className="feature-icon" />
+          <span className="feature-text">Notes</span>
         </Button>
       </Link>
 
       <Link to="/suggested-services" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-28 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-36"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <Package className="h-8 w-8 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12" />
-            <span className="font-medium tracking-wide">Services</span>
-          </div>
+        <Button variant="outline" className="feature-button">
+          <Package className="feature-icon" />
+          <span className="feature-text">Services</span>
         </Button>
       </Link>
     </div>
