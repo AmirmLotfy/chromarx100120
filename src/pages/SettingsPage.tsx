@@ -89,7 +89,6 @@ const SettingsPage = () => {
     { value: "appearance", label: "Appearance", icon: Sun },
     { value: "privacy", label: "Privacy", icon: User },
     { value: "subscription", label: "Subscription", icon: RefreshCw },
-    { value: "feedback", label: "Feedback", icon: HelpCircle },
     { value: "account", label: "Account", icon: User },
     { value: "advanced", label: "Advanced", icon: RefreshCw },
     { value: "legal", label: "Legal & Feedback", icon: FileText },
@@ -307,39 +306,6 @@ const SettingsPage = () => {
 
               <TabsContent value="subscription" className="space-y-4">
                 <SubscriptionDetails />
-              </TabsContent>
-
-              <TabsContent value="feedback" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Send Feedback</CardTitle>
-                    <CardDescription>
-                      Help us improve ChroMarx by sharing your thoughts
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <FeedbackForm />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Help Center</CardTitle>
-                    <CardDescription>
-                      Find answers to common questions and learn how to use ChroMarx
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => window.open("https://docs.chromarx.com", "_blank")}
-                    >
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      Visit Help Center
-                    </Button>
-                  </CardContent>
-                </Card>
               </TabsContent>
 
               <TabsContent value="account" className="space-y-4">
