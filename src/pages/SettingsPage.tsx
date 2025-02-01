@@ -69,9 +69,20 @@ const SettingsPage = () => {
     loadPrivacySettings();
   }, [user]);
 
+  const handleExperimentalFeaturesToggle = (enabled: boolean) => {
+    settings.setExperimentalFeatures(enabled);
+    if (enabled) {
+      toast.success("Experimental features enabled! You now have access to beta features.");
+    } else {
+      toast.info("Experimental features disabled");
+    }
+  };
+
   const handleReset = () => {
-    settings.resetSettings();
-    toast.success("Settings have been reset to default");
+    if (window.confirm("Are you sure you want to reset all settings? This cannot be undone.")) {
+      settings.resetSettings();
+      toast.success("All settings have been reset to default values");
+    }
   };
 
   const tabs = [
@@ -446,7 +457,7 @@ const SettingsPage = () => {
                   <CardHeader>
                     <CardTitle>Advanced Settings</CardTitle>
                     <CardDescription>
-                      Configure advanced features and options
+                      Configure advanced features and experimental options
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -454,14 +465,30 @@ const SettingsPage = () => {
                       <div className="space-y-1">
                         <Label>Experimental Features</Label>
                         <p className="text-sm text-muted-foreground">
-                          Enable experimental features and options
+                          Enable experimental features and beta testing options. 
+                          {settings.experimentalFeatures && (
+                            <span className="block text-yellow-500 dark:text-yellow-400 mt-1">
+                              ⚠️ These features are in beta and may be unstable
+                            </span>
+                          )}
                         </p>
                       </div>
                       <Switch
                         checked={settings.experimentalFeatures}
-                        onCheckedChange={settings.setExperimentalFeatures}
+                        onCheckedChange={handleExperimentalFeaturesToggle}
                       />
                     </div>
+
+                    {settings.experimentalFeatures && (
+                      <div className="space-y-4 p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium">Active Beta Features:</h4>
+                        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                          <li>Enhanced AI processing for bookmarks</li>
+                          <li>Advanced analytics dashboard</li>
+                          <li>New experimental UI components</li>
+                        </ul>
+                      </div>
+                    )}
 
                     <div className="pt-4 border-t">
                       <Button
@@ -475,10 +502,6 @@ const SettingsPage = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="legal" className="space-y-4">
-                <LegalAndFeedback />
               </TabsContent>
 
               {isAdmin && (
