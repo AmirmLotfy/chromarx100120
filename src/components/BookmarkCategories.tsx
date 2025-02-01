@@ -1,14 +1,8 @@
 import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-interface BookmarkCategory {
-  name: string;
-  count: number;
-}
-
 interface BookmarkCategoriesProps {
-  categories: BookmarkCategory[];
+  categories: { name: string; count: number }[];
   selectedCategory: string | null;
   onSelectCategory: (category: string | null) => void;
 }
@@ -19,35 +13,33 @@ const BookmarkCategories = ({
   onSelectCategory,
 }: BookmarkCategoriesProps) => {
   return (
-    <ScrollArea className="w-full">
-      <div className="flex flex-wrap gap-2 p-2">
+    <div className="flex flex-col gap-1.5 w-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onSelectCategory(null)}
+        className={cn(
+          "justify-start h-9 px-3 font-normal",
+          selectedCategory === null && "bg-accent text-accent-foreground"
+        )}
+      >
+        All Categories
+      </Button>
+      {categories.map(({ name, count }) => (
         <Button
-          variant="outline"
+          key={name}
+          variant="ghost"
           size="sm"
-          onClick={() => onSelectCategory(null)}
+          onClick={() => onSelectCategory(name)}
           className={cn(
-            "whitespace-nowrap min-w-[60px] text-center",
-            selectedCategory === null && "bg-primary text-primary-foreground"
+            "justify-start h-9 px-3 font-normal",
+            selectedCategory === name && "bg-accent text-accent-foreground"
           )}
         >
-          All
+          {name} ({count})
         </Button>
-        {categories.map((category) => (
-          <Button
-            key={category.name}
-            variant="outline"
-            size="sm"
-            onClick={() => onSelectCategory(category.name)}
-            className={cn(
-              "whitespace-nowrap min-w-[60px] text-center",
-              selectedCategory === category.name && "bg-primary text-primary-foreground"
-            )}
-          >
-            {category.name} ({category.count})
-          </Button>
-        ))}
-      </div>
-    </ScrollArea>
+      ))}
+    </div>
   );
 };
 

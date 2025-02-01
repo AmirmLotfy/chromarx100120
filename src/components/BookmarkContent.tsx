@@ -5,11 +5,12 @@ import BookmarkList from "./BookmarkList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { Filter, SlidersHorizontal, Calendar, Search } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -65,98 +66,99 @@ const BookmarkContent = ({
           </div>
         </div>
 
-        <Separator />
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Date Added</Label>
-          <Select defaultValue="all">
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by date" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border">
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Separator />
+        <Separator className="my-4" />
 
         <div className="space-y-2">
           <Label className="text-sm font-medium">Categories</Label>
-          <BookmarkCategories
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={onSelectCategory}
-          />
+          <ScrollArea className="h-[120px]">
+            <BookmarkCategories
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={onSelectCategory}
+            />
+          </ScrollArea>
         </div>
 
-        <Separator />
+        <Separator className="my-4" />
 
         <div className="space-y-2">
           <Label className="text-sm font-medium">Domains</Label>
-          <BookmarkDomains
-            domains={domains}
-            selectedDomain={selectedDomain}
-            onSelectDomain={onSelectDomain}
-          />
+          <ScrollArea className="h-[120px]">
+            <BookmarkDomains
+              domains={domains}
+              selectedDomain={selectedDomain}
+              onSelectDomain={onSelectDomain}
+            />
+          </ScrollArea>
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Sort By</Label>
+          <Select defaultValue="dateAdded">
+            <SelectTrigger>
+              <SelectValue placeholder="Sort bookmarks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dateAdded">Date Added</SelectItem>
+              <SelectItem value="title">Title</SelectItem>
+              <SelectItem value="url">URL</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-1 sm:space-y-2 w-full max-w-full">
-      <div className="flex flex-row gap-1 sm:gap-1.5 items-center justify-between">
+    <div className="space-y-4 w-full max-w-full px-4 md:px-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {isMobile ? (
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1">
+              <Button variant="outline" size="sm" className="w-full md:w-auto mb-4">
                 <Filter className="h-4 w-4 mr-2" />
-                Filters
+                Filters & Sort
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="left" 
-              className="w-[280px] sm:w-[320px] p-4"
-            >
-              <SheetHeader className="mb-4">
+            <SheetContent side="left" className="w-[300px] sm:w-[360px] p-6">
+              <SheetHeader className="mb-6">
                 <SheetTitle>Filter Bookmarks</SheetTitle>
               </SheetHeader>
               <FilterPanel />
             </SheetContent>
           </Sheet>
         ) : (
-          <div className="bg-card rounded-lg border p-4 w-[280px]">
+          <div className="hidden md:block w-[300px] bg-card rounded-lg border p-6 h-fit sticky top-4">
             <FilterPanel />
           </div>
         )}
-      </div>
 
-      <div className="min-h-[200px] w-full max-w-full overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-            Loading bookmarks...
+        <div className="flex-1 min-w-0">
+          <div className="min-h-[200px] w-full">
+            {loading ? (
+              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                Loading bookmarks...
+              </div>
+            ) : filteredBookmarks.length === 0 ? (
+              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                No bookmarks found
+              </div>
+            ) : (
+              <BookmarkList
+                bookmarks={filteredBookmarks}
+                selectedBookmarks={selectedBookmarks}
+                onToggleSelect={onToggleSelect}
+                onDelete={onDelete}
+                formatDate={formatDate}
+                view={view}
+                onReorder={onReorder}
+                onUpdateCategories={onUpdateCategories}
+              />
+            )}
           </div>
-        ) : filteredBookmarks.length === 0 ? (
-          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-            No bookmarks found
-          </div>
-        ) : (
-          <BookmarkList
-            bookmarks={filteredBookmarks}
-            selectedBookmarks={selectedBookmarks}
-            onToggleSelect={onToggleSelect}
-            onDelete={onDelete}
-            formatDate={formatDate}
-            view={view}
-            onReorder={onReorder}
-            onUpdateCategories={onUpdateCategories}
-          />
-        )}
+        </div>
       </div>
     </div>
   );
