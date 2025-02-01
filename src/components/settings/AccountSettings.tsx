@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { updateProfile } from "firebase/auth";
 
 const AccountSettings = () => {
   const { user } = useFirebase();
@@ -15,7 +16,7 @@ const AccountSettings = () => {
   const handleUpdateProfile = async () => {
     try {
       if (user) {
-        await user.updateProfile({
+        await updateProfile(user, {
           displayName: displayName,
         });
         toast({
