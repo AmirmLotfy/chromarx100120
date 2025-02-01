@@ -6,7 +6,7 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    --primary-color: #8B5CF6;
+    --primary-color: 139, 92, 246; /* RGB values for purple */
     --primary-foreground: #ffffff;
     --secondary-color: #7C3AED;
     --secondary-foreground: #ffffff;
@@ -25,7 +25,7 @@
   .dark {
     --background: 240 10% 4%;
     --foreground: 0 0% 95%;
-    --primary-color: #7E69AB;
+    --primary-color: 126, 105, 171; /* RGB values for dark mode purple */
     --primary-foreground: #ffffff;
     --secondary-color: #5D4D80;
     --secondary-foreground: #ffffff;
