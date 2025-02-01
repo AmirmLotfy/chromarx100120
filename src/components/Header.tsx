@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useFirebase } from "@/contexts/FirebaseContext";
+import { LanguageSelector } from "./LanguageSelector";
 
 const Header = () => {
   const { theme, setTheme } = useTheme();
@@ -25,6 +26,8 @@ const Header = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          <LanguageSelector />
+          
           <Button
             variant="ghost"
             size="icon"

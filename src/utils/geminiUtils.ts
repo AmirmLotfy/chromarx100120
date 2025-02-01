@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { extractPageContent } from "./contentExtractor";
+import { useLanguage } from "@/stores/languageStore";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -20,6 +21,8 @@ Provide a summary that is:
 - 2-3 sentences long
 - Captures the essential information
 - Maintains the original tone and technical accuracy where relevant
+
+Important: Generate the summary in ${language}.
 `;
 
   const result = await model.generateContent(prompt);
@@ -81,7 +84,7 @@ Content to categorize:
 Title: ${title}
 URL: ${url}
 
-Respond with just the category name, no explanation.
+Important: Respond with just the category name in ${language}, no explanation.
 `;
 
   const result = await model.generateContent(prompt);
