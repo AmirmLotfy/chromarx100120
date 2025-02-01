@@ -1,8 +1,5 @@
 import * as React from "react";
-import { useTheme } from "next-themes";
 import Layout from "@/components/Layout";
-import { useSettings } from "@/stores/settingsStore";
-import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import {
@@ -11,10 +8,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Sun, User, RefreshCw, FileText, HelpCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,68 +16,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Sun, Moon, HelpCircle, User, RefreshCw, FileText } from "lucide-react";
-import FeedbackForm from "@/components/settings/FeedbackForm";
-import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
-import AffiliateSettings from "@/components/settings/AffiliateSettings";
-import { useSubscription } from "@/hooks/use-subscription";
+import AppearanceSettings from "@/components/settings/AppearanceSettings";
+import PrivacySettings from "@/components/settings/PrivacySettings";
+import AdvancedSettings from "@/components/settings/AdvancedSettings";
 import LegalAndFeedback from "@/components/settings/LegalAndFeedback";
-import { getPrivacySettings } from "@/services/privacyService";
-import { sendEmailVerification } from "firebase/auth";
+import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
+import AccountSettings from "@/components/settings/AccountSettings";
+import AffiliateSettings from "@/components/settings/AffiliateSettings";
 
 const SettingsPage = () => {
-  const { theme, setTheme } = useTheme();
-  const settings = useSettings();
   const isMobile = useIsMobile();
-  const { user, isAdmin, signInWithGoogle } = useFirebase();
+  const { isAdmin } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
-  const { currentPlan, usage, isLoading } = useSubscription();
-
-  // Load privacy settings on component mount
-  React.useEffect(() => {
-    const loadPrivacySettings = async () => {
-      if (user?.uid) {
-        const savedSettings = await getPrivacySettings(user.uid);
-        if (savedSettings) {
-          settings.setDataCollection(savedSettings.dataCollection);
-          Object.entries(savedSettings.notifications).forEach(([key, value]) => {
-            settings.setNotifications(key as keyof typeof settings.notifications, value);
-          });
-        }
-      }
-    };
-    
-    loadPrivacySettings();
-  }, [user]);
-
-  const handleExperimentalFeaturesToggle = (enabled: boolean) => {
-    settings.setExperimentalFeatures(enabled);
-    if (enabled) {
-      toast.success("Experimental features enabled! You now have access to beta features.");
-    } else {
-      toast.info("Experimental features disabled");
-    }
-  };
-
-  const handleReset = () => {
-    if (window.confirm("Are you sure you want to reset all settings? This cannot be undone.")) {
-      settings.resetSettings();
-      toast.success("All settings have been reset to default values");
-    }
-  };
 
   const tabs = [
     { value: "appearance", label: "Appearance", icon: Sun },
@@ -143,165 +87,11 @@ const SettingsPage = () => {
 
             <div className="flex-1 overflow-y-auto pb-16 max-w-[1400px] mx-auto w-full">
               <TabsContent value="appearance" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Theme Settings</CardTitle>
-                    <CardDescription>
-                      Customize how ChroMarx looks on your device
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label>Theme Mode</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Choose between light and dark themes
-                        </p>
-                      </div>
-                      <Select
-                        value={theme}
-                        onValueChange={(value) => setTheme(value)}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select theme" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="light">
-                            <div className="flex items-center">
-                              <Sun className="mr-2 h-4 w-4" />
-                              Light
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="dark">
-                            <div className="flex items-center">
-                              <Moon className="mr-2 h-4 w-4" />
-                              Dark
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="system">System</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label>Color Scheme</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Select your preferred color scheme
-                        </p>
-                      </div>
-                      <Select
-                        value={settings.colorScheme}
-                        onValueChange={settings.setColorScheme}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select scheme" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="purple">Purple</SelectItem>
-                          <SelectItem value="blue">Blue</SelectItem>
-                          <SelectItem value="green">Green</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardContent>
-                </Card>
+                <AppearanceSettings />
               </TabsContent>
 
               <TabsContent value="privacy" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Privacy Settings</CardTitle>
-                    <CardDescription>
-                      Control your data and notification preferences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <TooltipProvider>
-                      <div className="flex items-center justify-between p-4 bg-accent rounded-lg border border-accent-foreground/10 hover:border-accent-foreground/20 transition-colors">
-                        <div className="space-y-1">
-                          <Label className="text-lg font-semibold">Data Collection</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow anonymous usage data collection
-                          </p>
-                        </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="relative">
-                              <Switch
-                                className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                                checked={settings.dataCollection}
-                                onCheckedChange={(checked) => {
-                                  if (user?.uid) {
-                                    settings.setDataCollection(checked, user.uid);
-                                    toast.success('Data collection preference updated');
-                                  } else {
-                                    toast.error('Please sign in to save preferences');
-                                  }
-                                }}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Help improve ChroMarx by sharing anonymous usage data</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-
-                      <div className="space-y-4">
-                        <Label>Notification Settings</Label>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="bookmarks">Bookmark Updates</Label>
-                            <Switch
-                              id="bookmarks"
-                              checked={settings.notifications.bookmarks}
-                              onCheckedChange={(checked) => {
-                                if (user?.uid) {
-                                  settings.setNotifications("bookmarks", checked, user.uid);
-                                  toast.success('Bookmark notifications updated');
-                                } else {
-                                  toast.error('Please sign in to save preferences');
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="updates">Extension Updates</Label>
-                            <Switch
-                              id="updates"
-                              checked={settings.notifications.updates}
-                              onCheckedChange={(checked) => {
-                                if (user?.uid) {
-                                  settings.setNotifications("updates", checked, user.uid);
-                                  toast.success('Update notifications updated');
-                                } else {
-                                  toast.error('Please sign in to save preferences');
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="reminders">Reminders</Label>
-                            <Switch
-                              id="reminders"
-                              checked={settings.notifications.reminders}
-                              onCheckedChange={(checked) => {
-                                if (user?.uid) {
-                                  settings.setNotifications("reminders", checked, user.uid);
-                                  toast.success('Reminder notifications updated');
-                                } else {
-                                  toast.error('Please sign in to save preferences');
-                                }
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </TooltipProvider>
-                  </CardContent>
-                </Card>
+                <PrivacySettings />
               </TabsContent>
 
               <TabsContent value="subscription" className="space-y-4">
@@ -309,165 +99,11 @@ const SettingsPage = () => {
               </TabsContent>
 
               <TabsContent value="account" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Account Settings</CardTitle>
-                    <CardDescription>
-                      Manage your account and profile settings
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {user ? (
-                      <>
-                        <div className="flex items-center space-x-4 p-4 bg-accent rounded-lg">
-                          <div className="h-12 w-12 rounded-full overflow-hidden">
-                            <img 
-                              src={user.photoURL || '/placeholder.svg'} 
-                              alt="Profile" 
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-medium">{user.displayName}</h3>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4 pt-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <Label>Email Verification</Label>
-                              <p className="text-sm text-muted-foreground">
-                                Status of your email verification
-                              </p>
-                            </div>
-                            {user.emailVerified ? (
-                              <Badge variant="secondary">Verified</Badge>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  sendEmailVerification(user)
-                                    .then(() => toast.success("Verification email sent!"))
-                                    .catch(() => toast.error("Failed to send verification email"));
-                                }}
-                              >
-                                Verify Email
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <Label>Account Created</Label>
-                              <p className="text-sm text-muted-foreground">
-                                When you joined ChroMarx
-                              </p>
-                            </div>
-                            <p className="text-sm">
-                              {new Date(user.metadata.creationTime!).toLocaleDateString()}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <Label>Last Sign In</Label>
-                              <p className="text-sm text-muted-foreground">
-                                Your most recent login
-                              </p>
-                            </div>
-                            <p className="text-sm">
-                              {new Date(user.metadata.lastSignInTime!).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="pt-6">
-                          <Button
-                            variant="destructive"
-                            className="w-full"
-                            onClick={() => {
-                              if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                                user.delete()
-                                  .then(() => {
-                                    toast.success("Account deleted successfully");
-                                  })
-                                  .catch((error) => {
-                                    console.error("Error deleting account:", error);
-                                    toast.error("Failed to delete account. Please sign in again and try once more.");
-                                  });
-                              }
-                            }}
-                          >
-                            Delete Account
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-muted-foreground mb-4">
-                          Please sign in to manage your account settings
-                        </p>
-                        <Button onClick={() => signInWithGoogle()}>
-                          <User className="mr-2 h-4 w-4" />
-                          Sign In with Google
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <AccountSettings />
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Advanced Settings</CardTitle>
-                    <CardDescription>
-                      Configure advanced features and experimental options
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label>Experimental Features</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Enable experimental features and beta testing options. 
-                          {settings.experimentalFeatures && (
-                            <span className="block text-yellow-500 dark:text-yellow-400 mt-1">
-                              ⚠️ These features are in beta and may be unstable
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <Switch
-                        checked={settings.experimentalFeatures}
-                        onCheckedChange={handleExperimentalFeaturesToggle}
-                      />
-                    </div>
-
-                    {settings.experimentalFeatures && (
-                      <div className="space-y-4 p-4 bg-muted rounded-lg">
-                        <h4 className="font-medium">Active Beta Features:</h4>
-                        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                          <li>Enhanced AI processing for bookmarks</li>
-                          <li>Advanced analytics dashboard</li>
-                          <li>New experimental UI components</li>
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="pt-4 border-t">
-                      <Button
-                        variant="destructive"
-                        onClick={handleReset}
-                        className="w-full"
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Reset All Settings
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <AdvancedSettings />
               </TabsContent>
 
               <TabsContent value="legal" className="space-y-4">
