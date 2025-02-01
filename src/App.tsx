@@ -7,7 +7,7 @@ import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider defaultTheme="system" enableSystem>
+      <ThemeProvider defaultTheme="system" storageKey="chromarx-theme" enableSystem>
         <FirebaseProvider>
           <OnboardingProvider>
             <div className="min-h-screen bg-background">

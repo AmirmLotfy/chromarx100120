@@ -21,11 +21,16 @@ const ThemeSettings = () => {
   const [mounted, setMounted] = useState(false);
   const settings = useSettings();
 
-  useEffect(() => setMounted(true), []);
+  // Wait for component to mount to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+    console.log("Current theme:", theme); // Debug log
+  }, [theme]);
 
   if (!mounted) return null;
 
   const handleThemeChange = (value: string) => {
+    console.log("Changing theme to:", value); // Debug log
     setTheme(value);
     settings.setTheme(value as 'light' | 'dark' | 'system');
     toast.success(`Theme changed to ${value} mode`);
@@ -56,7 +61,7 @@ const ThemeSettings = () => {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select theme" />
             </SelectTrigger>
-            <SelectContent className="bg-background border shadow-md">
+            <SelectContent className="bg-background border border-border shadow-md">
               <SelectItem value="light">
                 <div className="flex items-center">
                   <Sun className="mr-2 h-4 w-4" />
@@ -93,7 +98,7 @@ const ThemeSettings = () => {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select scheme" />
             </SelectTrigger>
-            <SelectContent className="bg-background border shadow-md">
+            <SelectContent className="bg-background border border-border shadow-md">
               <SelectItem value="default">Default</SelectItem>
               <SelectItem value="purple">Purple</SelectItem>
               <SelectItem value="blue">Blue</SelectItem>

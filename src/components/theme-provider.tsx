@@ -15,7 +15,24 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     if (colorScheme !== 'default') {
       root.classList.add(`theme-${colorScheme}`);
     }
-  }, [colorScheme]);
+
+    // Set up system theme listener
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (props.theme === 'system') {
+        document.documentElement.classList.toggle('dark', e.matches);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    
+    // Initial system theme check
+    if (props.theme === 'system') {
+      document.documentElement.classList.toggle('dark', mediaQuery.matches);
+    }
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [colorScheme, props.theme]);
 
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }
