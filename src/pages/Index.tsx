@@ -4,8 +4,7 @@ import WelcomeCard from "../components/WelcomeCard";
 import CompactServiceBanner from "../components/affiliate/CompactServiceBanner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { storage } from "@/lib/chrome-utils";
 
 const Index = () => {
   const { user } = useFirebase();
@@ -15,13 +14,11 @@ const Index = () => {
     const fetchSubscriptionStatus = async () => {
       if (user) {
         try {
-          console.log("Fetching subscription status for user:", user.uid);
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const status = userDoc.data().subscriptionStatus || "free";
-            console.log("User subscription status:", status);
-            setSubscriptionStatus(status);
-          }
+          console.log("Fetching subscription status for user:", user.id);
+          const subscriptionData = await storage.get('subscriptions');
+          const status = subscriptionData?.[user.id]?.status || "free";
+          console.log("User subscription status:", status);
+          setSubscriptionStatus(status);
         } catch (error) {
           console.error("Error fetching subscription status:", error);
           setSubscriptionStatus("free");
