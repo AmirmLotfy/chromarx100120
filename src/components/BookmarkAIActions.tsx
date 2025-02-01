@@ -8,7 +8,7 @@ import {
 import { ChromeBookmark } from "@/types/bookmark";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { summarizeBookmark, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 
 interface BookmarkAIActionsProps {
@@ -26,7 +26,7 @@ const BookmarkAIActions = ({
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`, 'en');
+          const summary = await summarizeBookmark(bookmark.title, bookmark.url || "", 'en');
           return {
             id: bookmark.id,
             title: bookmark.title,
