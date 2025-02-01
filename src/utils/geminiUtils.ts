@@ -1,12 +1,56 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { extractPageContent } from "./contentExtractor";
-import { useLanguage } from "@/stores/languageStore";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
+const initializeAISession = async () => {
+  try {
+    // Check if Chrome Prompt API is available
+    if (chrome?.aiOriginTrial?.languageModel) {
+      const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
+      
+      if (capabilities.available !== 'no') {
+        console.log('Using Chrome Prompt API with Gemini Nano');
+        return await chrome.aiOriginTrial.languageModel.create({
+          systemPrompt: 'You are a helpful AI assistant specialized in analyzing and organizing bookmarks.',
+          temperature: capabilities.defaultTemperature,
+          topK: capabilities.defaultTopK
+        });
+      }
+    }
+    
+    console.log('Using Gemini API');
+    return null; // Fallback to regular Gemini API
+  } catch (error) {
+    console.error('Error initializing AI session:', error);
+    return null;
+  }
+};
+
+let aiSession: any = null;
+
+const getAIResponse = async (prompt: string) => {
+  try {
+    if (!aiSession) {
+      aiSession = await initializeAISession();
+    }
+
+    if (aiSession) {
+      // Using Chrome Prompt API
+      return await aiSession.prompt(prompt);
+    } else {
+      // Fallback to regular Gemini API
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    }
+  } catch (error) {
+    console.error('Error getting AI response:', error);
+    throw error;
+  }
+};
+
 export const summarizeContent = async (content: string, language: string = 'en', contentType: string = 'general') => {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-  
   const prompt = `
 As an expert content summarizer, create a comprehensive yet concise summary of the following ${contentType} content in ${language}.
 Focus on the key points and main ideas while maintaining clarity and coherence.
@@ -25,9 +69,7 @@ Provide a summary that is:
 Important: Generate the summary in ${language}.
 `;
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return response.text();
+  return await getAIResponse(prompt);
 };
 
 export const summarizeBookmark = async (
@@ -63,8 +105,6 @@ export const suggestBookmarkCategory = async (
   url: string,
   language: string = 'en'
 ) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-  
   const prompt = `
 Analyze this content and suggest the most appropriate single category in ${language}.
 Consider both the title and content when determining the category.
@@ -87,7 +127,5 @@ URL: ${url}
 Important: Respond with just the category name in ${language}, no explanation.
 `;
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  return response.text();
+  return await getAIResponse(prompt);
 };
