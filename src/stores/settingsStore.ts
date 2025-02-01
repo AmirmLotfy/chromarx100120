@@ -36,10 +36,22 @@ const initialState = {
 
 export const useSettings = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
-      setTheme: (theme) => set({ theme }),
-      setColorScheme: (colorScheme) => set({ colorScheme }),
+      setTheme: (theme) => {
+        set({ theme });
+        // Apply theme immediately
+        document.documentElement.classList.remove('light', 'dark');
+        if (theme !== 'system') {
+          document.documentElement.classList.add(theme);
+        }
+      },
+      setColorScheme: (colorScheme) => {
+        set({ colorScheme });
+        // Apply color scheme immediately
+        document.documentElement.classList.remove('theme-default', 'theme-purple', 'theme-blue', 'theme-green');
+        document.documentElement.classList.add(`theme-${colorScheme}`);
+      },
       setHighContrast: (highContrast) => set({ highContrast }),
       setDataCollection: (dataCollection) => set({ dataCollection }),
       setNotifications: (type, enabled) =>

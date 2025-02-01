@@ -25,7 +25,7 @@
     --ring: 240 5.9% 10%;
     --radius: 1rem;
   }
- 
+
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -46,6 +46,25 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+  }
+
+  /* Color scheme variations */
+  .theme-purple {
+    --primary: 255, 135, 245;
+    --secondary: 126, 105, 171;
+    --accent: 229, 222, 255;
+  }
+
+  .theme-blue {
+    --primary: 14, 165, 233;
+    --secondary: 12, 139, 195;
+    --accent: 224, 242, 254;
+  }
+
+  .theme-green {
+    --primary: 16, 185, 129;
+    --secondary: 5, 150, 105;
+    --accent: 209, 250, 229;
   }
 
   * {
