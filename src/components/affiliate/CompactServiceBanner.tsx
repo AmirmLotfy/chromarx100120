@@ -20,12 +20,18 @@ const CompactServiceBanner = () => {
 
   const currentService = featuredServices[currentIndex];
 
+  const handleBannerClick = () => {
+    window.open(currentService.affiliateUrl, '_blank', 'noopener,noreferrer');
+    console.log(`Banner affiliate link clicked: ${currentService.id}`);
+  };
+
   return (
     <div className="relative h-32 mb-4 mx-2 sm:mx-4 max-w-4xl w-full animate-fade-in">
       <Card 
-        className="group relative w-full h-full overflow-hidden rounded-xl border-primary/20 transition-all duration-500 bg-gradient-to-br from-purple-dark/90 via-purple/70 to-transparent"
+        className="group relative w-full h-full overflow-hidden rounded-xl border-primary/20 transition-all duration-500 bg-gradient-to-br from-purple-dark/90 via-purple/70 to-transparent cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={handleBannerClick}
       >
         <div className="absolute inset-0">
           <img
@@ -61,14 +67,15 @@ const CompactServiceBanner = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end justify-center h-full">
             <a
               href={currentService.affiliateUrl}
               target="_blank"
               rel="noopener noreferrer sponsored"
               className="group/link flex items-center gap-1.5 bg-primary hover:bg-primary/90 px-3 py-1.5 rounded-lg transition-all duration-300"
-              onClick={() => {
-                console.log(`Banner affiliate link clicked: ${currentService.id}`);
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log(`Learn More button clicked: ${currentService.id}`);
               }}
             >
               <span className="text-sm font-medium text-primary-foreground">
@@ -78,18 +85,21 @@ const CompactServiceBanner = () => {
                 className="h-3.5 w-3.5 text-primary-foreground transition-transform group-hover/link:translate-x-0.5" 
               />
             </a>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-white/90 hover:text-white hover:bg-white/10"
-              onClick={() => navigate('/subscription')}
-            >
-              Remove Ads
-              <X className="ml-1 h-3 w-3" />
-            </Button>
           </div>
         </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute bottom-2 right-2 text-xs text-white/90 hover:text-white hover:bg-white/10"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate('/subscription');
+          }}
+        >
+          Remove Ads
+          <X className="ml-1 h-3 w-3" />
+        </Button>
       </Card>
     </div>
   );

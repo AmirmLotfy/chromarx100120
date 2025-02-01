@@ -35,7 +35,8 @@ export const affiliateProducts: AffiliateProduct[] = [
     imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
     affiliateUrl: "https://www.dropbox.com/",
     price: "$11.99/month",
-    featured: true
+    featured: true,
+    showOnHome: true
   },
   {
     id: "3",
@@ -52,7 +53,17 @@ export const affiliateProducts: AffiliateProduct[] = [
     description: "Complete digital protection with antivirus, VPN, password manager, and cloud backup.",
     imageUrl: "https://images.unsplash.com/photo-1500673922987-e212871fec22",
     affiliateUrl: "https://norton.com/",
-    price: "$4.99/month"
+    price: "$4.99/month",
+    showOnHome: true
+  },
+  {
+    id: "5",
+    title: "LastPass Premium",
+    description: "Advanced password management with secure sharing and dark web monitoring.",
+    imageUrl: "https://images.unsplash.com/photo-1555421689-491a97ff2040",
+    affiliateUrl: "https://lastpass.com/",
+    price: "$3.00/month",
+    showOnHome: true
   }
 ];
 
