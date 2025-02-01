@@ -17,19 +17,20 @@ export const useBookmarks = () => {
     try {
       if (chrome.bookmarks) {
         const results = await chrome.bookmarks.getRecent(100);
-        setBookmarks(results);
+        const typedResults = results as ChromeBookmark[];
+        setBookmarks(typedResults);
         
         // Calculate categories and domains
         const categoryMap = new Map<string, number>();
         const domainMap = new Map<string, number>();
         
-        results.forEach(bookmark => {
+        typedResults.forEach(bookmark => {
           if (bookmark.url) {
             // Handle domains
             const domain = extractDomain(bookmark.url);
             domainMap.set(domain, (domainMap.get(domain) || 0) + 1);
             
-            // Handle categories (assuming category is stored in bookmark)
+            // Handle categories (now safely accessing optional category)
             if (bookmark.category) {
               categoryMap.set(bookmark.category, (categoryMap.get(bookmark.category) || 0) + 1);
             }
