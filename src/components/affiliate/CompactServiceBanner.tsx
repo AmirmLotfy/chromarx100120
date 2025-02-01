@@ -28,7 +28,7 @@ const CompactServiceBanner = () => {
   return (
     <div className="relative h-32 mb-4 mx-2 sm:mx-4 max-w-4xl w-full animate-fade-in">
       <Card 
-        className="group relative w-full h-full overflow-hidden rounded-xl border-primary/20 transition-all duration-500 bg-gradient-to-br from-primary/20 via-accent to-background cursor-pointer shadow-md hover:shadow-lg"
+        className="group relative w-full h-full overflow-hidden rounded-xl border-primary/20 transition-all duration-500 bg-gradient-to-br from-primary/30 via-accent/40 to-background cursor-pointer shadow-md hover:shadow-lg"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleBannerClick}
@@ -37,7 +37,7 @@ const CompactServiceBanner = () => {
           <img
             src={currentService.imageUrl}
             alt={currentService.title}
-            className="w-full h-full object-cover opacity-40 transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover opacity-50 transition-transform duration-700 group-hover:scale-105"
           />
         </div>
 
@@ -45,7 +45,7 @@ const CompactServiceBanner = () => {
           <div className="flex-1 space-y-1">
             <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              <p className="text-xs font-medium text-foreground uppercase tracking-wider">
+              <p className="text-xs font-medium text-foreground/90 uppercase tracking-wider">
                 Featured Service
               </p>
             </div>
@@ -89,9 +89,9 @@ const CompactServiceBanner = () => {
         </div>
 
         <Button
-          variant="ghost"
+          variant="secondary"
           size="sm"
-          className="absolute bottom-2 right-2 text-xs text-foreground/90 hover:text-foreground hover:bg-foreground/10"
+          className="absolute top-2 right-2 z-30 text-xs bg-secondary/90 hover:bg-secondary text-secondary-foreground shadow-md"
           onClick={(e) => {
             e.stopPropagation();
             navigate('/subscription');

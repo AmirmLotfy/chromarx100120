@@ -6,52 +6,52 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    --primary-color: #9b87f5;
+    --primary-color: #8B5CF6;
     --primary-foreground: #ffffff;
-    --secondary-color: #7E69AB;
+    --secondary-color: #7C3AED;
     --secondary-foreground: #ffffff;
-    --muted-color: #F8F9FC;  /* Lighter muted background for better contrast */
-    --muted-foreground: #374151;  /* Darker muted text for better readability */
+    --muted-color: #F8F9FC;
+    --muted-foreground: #374151;
     --accent-color: #E5DEFF;
-    --accent-foreground: #2D2A35;  /* Darker accent text for better contrast */
+    --accent-foreground: #2D2A35;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 91%;  /* Slightly more visible borders */
+    --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 11%;  /* Chrome's dark mode background - slightly lighter than pure black */
-    --foreground: 0 0% 95%;  /* Slightly off-white for better readability */
+    --background: 0 0% 11%;
+    --foreground: 0 0% 95%;
     --primary-color: #7E69AB;
     --primary-foreground: #ffffff;
     --secondary-color: #5D4D80;
     --secondary-foreground: #ffffff;
-    --muted-color: #202124;  /* Chrome's dark mode surface color */
+    --muted-color: #202124;
     --muted-foreground: #9CA3AF;
-    --accent-color: #292B2F;  /* Chrome's dark mode accent */
+    --accent-color: #292B2F;
     --accent-foreground: #ffffff;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 18%;      /* Slightly visible borders */
+    --border: 0 0% 18%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.9%;
   }
 
   /* Color scheme variations */
   .theme-purple {
-    --primary-color: #9b87f5;
-    --secondary-color: #7E69AB;
+    --primary-color: #8B5CF6;
+    --secondary-color: #7C3AED;
     --accent-color: #E5DEFF;
     --muted-color: #F1F0FB;
   }
 
   .theme-blue {
-    --primary-color: #0EA5E9;
-    --secondary-color: #0C8BC3;
-    --accent-color: #E0F2FE;
+    --primary-color: #3B82F6;
+    --secondary-color: #2563EB;
+    --accent-color: #DBEAFE;
     --muted-color: #F0F9FF;
   }
 
