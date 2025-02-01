@@ -8,14 +8,14 @@ interface BookmarkContentDisplayProps {
 
 const BookmarkContentDisplay = ({ title, url, className }: BookmarkContentDisplayProps) => {
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("space-y-0.5", className)}>
       {title && (
-        <h3 className="font-medium text-base leading-none truncate">
+        <h3 className="font-medium text-sm leading-tight truncate">
           {title}
         </h3>
       )}
       {url && (
-        <p className="text-sm text-muted-foreground truncate">
+        <p className="text-xs text-muted-foreground truncate">
           {url}
         </p>
       )}

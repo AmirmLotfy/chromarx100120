@@ -5,9 +5,7 @@ import BookmarkList from "./BookmarkList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { Filter, Search } from "lucide-react";
-import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Filter } from "lucide-react";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { ScrollArea } from "./ui/scroll-area";
@@ -56,81 +54,53 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-4 w-full max-w-full">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Search Bookmarks</Label>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-8" />
-          </div>
-        </div>
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Categories</Label>
+        <ScrollArea className="h-[120px]">
+          <BookmarkCategories
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={onSelectCategory}
+          />
+        </ScrollArea>
+      </div>
 
-        <Separator className="my-4" />
+      <Separator className="my-2" />
 
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Categories</Label>
-          <ScrollArea className="h-[120px]">
-            <BookmarkCategories
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={onSelectCategory}
-            />
-          </ScrollArea>
-        </div>
-
-        <Separator className="my-4" />
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Domains</Label>
-          <ScrollArea className="h-[120px]">
-            <BookmarkDomains
-              domains={domains}
-              selectedDomain={selectedDomain}
-              onSelectDomain={onSelectDomain}
-            />
-          </ScrollArea>
-        </div>
-
-        <Separator className="my-4" />
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Sort By</Label>
-          <Select defaultValue="dateAdded">
-            <SelectTrigger>
-              <SelectValue placeholder="Sort bookmarks" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dateAdded">Date Added</SelectItem>
-              <SelectItem value="title">Title</SelectItem>
-              <SelectItem value="url">URL</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Domains</Label>
+        <ScrollArea className="h-[120px]">
+          <BookmarkDomains
+            domains={domains}
+            selectedDomain={selectedDomain}
+            onSelectDomain={onSelectDomain}
+          />
+        </ScrollArea>
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-4 w-full max-w-full px-4 md:px-6">
-      <div className="flex flex-col md:flex-row gap-6">
+    <div className="space-y-3 w-full max-w-full px-2 md:px-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {isMobile ? (
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full md:w-auto mb-4">
+              <Button variant="outline" size="sm" className="w-full md:w-auto mb-2">
                 <Filter className="h-4 w-4 mr-2" />
-                Filters & Sort
+                Filters
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[360px] p-6">
-              <SheetHeader className="mb-6">
+            <SheetContent side="left" className="w-[280px] sm:w-[320px] p-4">
+              <SheetHeader className="mb-4">
                 <SheetTitle>Filter Bookmarks</SheetTitle>
               </SheetHeader>
               <FilterPanel />
             </SheetContent>
           </Sheet>
         ) : (
-          <div className="hidden md:block w-[300px] bg-card rounded-lg border p-6 h-fit sticky top-4">
+          <div className="hidden md:block w-[280px] bg-card rounded-lg border p-4 h-fit sticky top-4">
             <FilterPanel />
           </div>
         )}

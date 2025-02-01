@@ -13,13 +13,13 @@ const BookmarkCategories = ({
   onSelectCategory,
 }: BookmarkCategoriesProps) => {
   return (
-    <div className="flex flex-col gap-1.5 w-full">
+    <div className="flex flex-col gap-1 w-full">
       <Button
         variant="ghost"
         size="sm"
         onClick={() => onSelectCategory(null)}
         className={cn(
-          "justify-start h-9 px-3 font-normal",
+          "justify-start h-8 px-2 font-normal text-sm",
           selectedCategory === null && "bg-accent text-accent-foreground"
         )}
       >
@@ -32,7 +32,7 @@ const BookmarkCategories = ({
           size="sm"
           onClick={() => onSelectCategory(name)}
           className={cn(
-            "justify-start h-9 px-3 font-normal",
+            "justify-start h-8 px-2 font-normal text-sm",
             selectedCategory === name && "bg-accent text-accent-foreground"
           )}
         >

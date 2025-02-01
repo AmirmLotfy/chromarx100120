@@ -13,13 +13,13 @@ const BookmarkDomains = ({
   onSelectDomain,
 }: BookmarkDomainsProps) => {
   return (
-    <div className="flex flex-col gap-1.5 w-full">
+    <div className="flex flex-col gap-1 w-full">
       <Button
         variant="ghost"
         size="sm"
         onClick={() => onSelectDomain(null)}
         className={cn(
-          "justify-start h-9 px-3 font-normal",
+          "justify-start h-8 px-2 font-normal text-sm",
           selectedDomain === null && "bg-accent text-accent-foreground"
         )}
       >
@@ -32,7 +32,7 @@ const BookmarkDomains = ({
           size="sm"
           onClick={() => onSelectDomain(domain)}
           className={cn(
-            "justify-start h-9 px-3 font-normal",
+            "justify-start h-8 px-2 font-normal text-sm",
             selectedDomain === domain && "bg-accent text-accent-foreground"
           )}
         >
