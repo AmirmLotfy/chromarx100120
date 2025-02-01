@@ -22,12 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Card,
   CardContent,
   CardDescription,
@@ -64,22 +58,21 @@ const SettingsPage = () => {
     { value: "legal", label: "Legal & Feedback", icon: FileText },
   ];
 
-  // Only add affiliate tab if user is admin
   if (isAdmin) {
     tabs.push({ value: "affiliate", label: "Affiliate", icon: HelpCircle });
   }
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 h-full flex flex-col">
+      <div className="container mx-auto px-4 py-6 h-full flex flex-col max-w-5xl">
         <div className="space-y-2 flex-shrink-0">
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Settings</h1>
+          <p className="text-muted-foreground text-lg">
             Manage your preferences and customize your experience
           </p>
         </div>
 
-        <div className="flex-1 overflow-hidden mt-4">
+        <div className="flex-1 overflow-hidden mt-8">
           <Tabs 
             value={activeTab} 
             onValueChange={setActiveTab} 
@@ -87,10 +80,10 @@ const SettingsPage = () => {
           >
             {isMobile ? (
               <Select value={activeTab} onValueChange={setActiveTab}>
-                <SelectTrigger className="w-full mb-4">
+                <SelectTrigger className="w-full mb-6 bg-background border-border">
                   <SelectValue placeholder="Select section" />
                 </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md w-[280px]">
+                <SelectContent className="bg-background border border-border shadow-md">
                   {tabs.map((tab) => (
                     <SelectItem key={tab.value} value={tab.value}>
                       <div className="flex items-center gap-2">
@@ -102,16 +95,20 @@ const SettingsPage = () => {
                 </SelectContent>
               </Select>
             ) : (
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 mb-4">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 mb-6 bg-muted p-1 rounded-lg">
                 {tabs.map((tab) => (
-                  <TabsTrigger key={tab.value} value={tab.value}>
+                  <TabsTrigger 
+                    key={tab.value} 
+                    value={tab.value}
+                    className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+                  >
                     {tab.label}
                   </TabsTrigger>
                 ))}
               </TabsList>
             )}
 
-            <div className="flex-1 overflow-y-auto pb-16 max-w-[1400px] mx-auto w-full">
+            <div className="flex-1 overflow-y-auto pb-16 space-y-6">
               <TabsContent value="appearance" className="space-y-4">
                 <Card>
                   <CardHeader>
@@ -188,63 +185,54 @@ const SettingsPage = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <TooltipProvider>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label>Data Collection</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow anonymous usage data collection
-                          </p>
-                        </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Switch
-                              checked={settings.dataCollection}
-                              onCheckedChange={settings.setDataCollection}
-                            />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Help improve ChroMarx by sharing anonymous usage data</p>
-                          </TooltipContent>
-                        </Tooltip>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label>Data Collection</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Allow anonymous usage data collection
+                        </p>
                       </div>
+                      <Switch
+                        checked={settings.dataCollection}
+                        onCheckedChange={settings.setDataCollection}
+                      />
+                    </div>
 
-                      <div className="space-y-4">
-                        <Label>Notification Settings</Label>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="bookmarks">Bookmark Updates</Label>
-                            <Switch
-                              id="bookmarks"
-                              checked={settings.notifications.bookmarks}
-                              onCheckedChange={(checked) =>
-                                settings.setNotifications("bookmarks", checked)
-                              }
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="updates">Extension Updates</Label>
-                            <Switch
-                              id="updates"
-                              checked={settings.notifications.updates}
-                              onCheckedChange={(checked) =>
-                                settings.setNotifications("updates", checked)
-                              }
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="reminders">Reminders</Label>
-                            <Switch
-                              id="reminders"
-                              checked={settings.notifications.reminders}
-                              onCheckedChange={(checked) =>
-                                settings.setNotifications("reminders", checked)
-                              }
-                            />
-                          </div>
+                    <div className="space-y-4">
+                      <Label>Notification Settings</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="bookmarks">Bookmark Updates</Label>
+                          <Switch
+                            id="bookmarks"
+                            checked={settings.notifications.bookmarks}
+                            onCheckedChange={(checked) =>
+                              settings.setNotifications("bookmarks", checked)
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="updates">Extension Updates</Label>
+                          <Switch
+                            id="updates"
+                            checked={settings.notifications.updates}
+                            onCheckedChange={(checked) =>
+                              settings.setNotifications("updates", checked)
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="reminders">Reminders</Label>
+                          <Switch
+                            id="reminders"
+                            checked={settings.notifications.reminders}
+                            onCheckedChange={(checked) =>
+                              settings.setNotifications("reminders", checked)
+                            }
+                          />
                         </div>
                       </div>
-                    </TooltipProvider>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
