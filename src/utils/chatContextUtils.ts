@@ -1,9 +1,7 @@
 import { Message } from "@/types/chat";
 
 export const getContextFromHistory = (messages: Message[], currentQuery: string) => {
-  // Get last 5 messages for better context
   const recentMessages = messages.slice(-5);
-  
   return recentMessages
     .map((msg) => `${msg.sender}: ${msg.content}`)
     .join("\n") + `\nuser: ${currentQuery}`;
@@ -32,15 +30,12 @@ Query: "${query}"`;
 
 export const extractTopicsFromMessages = (messages: Message[]): string[] => {
   const topics = new Set<string>();
-  
   messages.forEach(msg => {
     const words = msg.content
       .split(/\s+/)
       .filter(word => word.length > 4)
       .map(word => word.toLowerCase());
-      
     words.forEach(word => topics.add(word));
   });
-  
   return Array.from(topics);
 };
