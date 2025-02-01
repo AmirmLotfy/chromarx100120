@@ -29,9 +29,33 @@ declare namespace chrome {
       }>;
     }
 
+    export interface AISummarizerCapabilities {
+      available: 'no' | 'readily' | 'after-download';
+    }
+
+    export interface AISummarizerOptions {
+      sharedContext?: string;
+      type?: 'key-points' | 'tl;dr' | 'teaser' | 'headline';
+      format?: 'markdown' | 'plain-text';
+      length?: 'short' | 'medium' | 'long';
+      monitor?(monitor: EventTarget): void;
+    }
+
+    export interface AISummarizer {
+      summarize(text: string, options?: { context?: string }): Promise<string>;
+      summarizeStreaming(text: string, options?: { context?: string }): ReadableStream;
+      ready: Promise<void>;
+      addEventListener(type: 'downloadprogress', listener: (e: { loaded: number; total: number }) => void): void;
+    }
+
     export namespace languageModel {
       export function capabilities(): Promise<AILanguageModelCapabilities>;
       export function create(options?: AILanguageModelOptions): Promise<AILanguageModelSession>;
+    }
+
+    export namespace summarizer {
+      export function capabilities(): Promise<AISummarizerCapabilities>;
+      export function create(options?: AISummarizerOptions): Promise<AISummarizer>;
     }
   }
 }

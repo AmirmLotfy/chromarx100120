@@ -28,6 +28,29 @@ const initializeAISession = async () => {
 };
 
 let aiSession: chrome.aiOriginTrial.AILanguageModelSession | null = null;
+let aiSummarizer: chrome.aiOriginTrial.AISummarizer | null = null;
+
+const initializeSummarizer = async () => {
+  try {
+    if (chrome?.aiOriginTrial?.summarizer) {
+      const capabilities = await chrome.aiOriginTrial.summarizer.capabilities();
+      
+      if (capabilities.available !== 'no') {
+        console.log('Using Chrome Summarizer API');
+        return await chrome.aiOriginTrial.summarizer.create({
+          type: 'key-points',
+          format: 'markdown',
+          length: 'medium',
+          sharedContext: 'This is a bookmark summary'
+        });
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error initializing summarizer:', error);
+    return null;
+  }
+};
 
 const getAIResponse = async (prompt: string) => {
   try {
@@ -52,7 +75,20 @@ const getAIResponse = async (prompt: string) => {
 };
 
 export const summarizeContent = async (content: string, language: string = 'en', contentType: string = 'general') => {
-  const prompt = `
+  try {
+    if (!aiSummarizer) {
+      aiSummarizer = await initializeSummarizer();
+    }
+
+    if (aiSummarizer) {
+      // Using Chrome Summarizer API
+      return await aiSummarizer.summarize(content, {
+        context: `This is ${contentType} content in ${language} language.`
+      });
+    }
+
+    // Fallback to using Prompt API or Gemini API
+    const prompt = `
 As an expert content summarizer, create a comprehensive yet concise summary of the following ${contentType} content in ${language}.
 Focus on the key points and main ideas while maintaining clarity and coherence.
 If the content is technical, preserve important technical details.
@@ -70,7 +106,11 @@ Provide a summary that is:
 Important: Generate the summary in ${language}.
 `;
 
-  return await getAIResponse(prompt);
+    return await getAIResponse(prompt);
+  } catch (error) {
+    console.error('Error summarizing content:', error);
+    throw error;
+  }
 };
 
 export const summarizeBookmark = async (
