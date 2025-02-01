@@ -36,21 +36,25 @@ const initialState = {
 
 export const useSettings = create<SettingsState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
       setTheme: (theme) => {
         set({ theme });
         // Apply theme immediately
-        document.documentElement.classList.remove('light', 'dark');
+        const root = document.documentElement;
+        root.classList.remove('light', 'dark');
         if (theme !== 'system') {
-          document.documentElement.classList.add(theme);
+          root.classList.add(theme);
         }
       },
       setColorScheme: (colorScheme) => {
         set({ colorScheme });
         // Apply color scheme immediately
-        document.documentElement.classList.remove('theme-default', 'theme-purple', 'theme-blue', 'theme-green');
-        document.documentElement.classList.add(`theme-${colorScheme}`);
+        const root = document.documentElement;
+        root.classList.remove('theme-default', 'theme-purple', 'theme-blue', 'theme-green');
+        if (colorScheme !== 'default') {
+          root.classList.add(`theme-${colorScheme}`);
+        }
       },
       setHighContrast: (highContrast) => set({ highContrast }),
       setDataCollection: (dataCollection) => set({ dataCollection }),
@@ -62,7 +66,12 @@ export const useSettings = create<SettingsState>()(
           },
         })),
       setExperimentalFeatures: (experimentalFeatures) => set({ experimentalFeatures }),
-      resetSettings: () => set(initialState),
+      resetSettings: () => {
+        set(initialState);
+        // Reset theme and color scheme classes
+        const root = document.documentElement;
+        root.classList.remove('light', 'dark', 'theme-default', 'theme-purple', 'theme-blue', 'theme-green');
+      },
     }),
     {
       name: 'chromarx-settings',

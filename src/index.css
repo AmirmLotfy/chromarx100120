@@ -6,41 +6,33 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --primary-color: #9b87f5;
+    --primary-foreground: #ffffff;
+    --secondary-color: #7E69AB;
+    --secondary-foreground: #ffffff;
+    --muted-color: #F1F0FB;
+    --muted-foreground: #403E43;
+    --accent-color: #E5DEFF;
+    --accent-foreground: #403E43;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
-    --radius: 1rem;
+    --radius: 0.5rem;
   }
 
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --primary-color: #7E69AB;
+    --primary-foreground: #ffffff;
+    --secondary-color: #5D4D80;
+    --secondary-foreground: #ffffff;
+    --muted-color: #2A2D3E;
+    --muted-foreground: #9CA3AF;
+    --accent-color: #374151;
+    --accent-foreground: #ffffff;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
@@ -50,21 +42,45 @@
 
   /* Color scheme variations */
   .theme-purple {
-    --primary: 255, 135, 245;
-    --secondary: 126, 105, 171;
-    --accent: 229, 222, 255;
+    --primary-color: #9b87f5;
+    --secondary-color: #7E69AB;
+    --accent-color: #E5DEFF;
+    --muted-color: #F1F0FB;
   }
 
   .theme-blue {
-    --primary: 14, 165, 233;
-    --secondary: 12, 139, 195;
-    --accent: 224, 242, 254;
+    --primary-color: #0EA5E9;
+    --secondary-color: #0C8BC3;
+    --accent-color: #E0F2FE;
+    --muted-color: #F0F9FF;
   }
 
   .theme-green {
-    --primary: 16, 185, 129;
-    --secondary: 5, 150, 105;
-    --accent: 209, 250, 229;
+    --primary-color: #10B981;
+    --secondary-color: #059669;
+    --accent-color: #D1FAE5;
+    --muted-color: #ECFDF5;
+  }
+
+  .dark.theme-purple {
+    --primary-color: #7E69AB;
+    --secondary-color: #5D4D80;
+    --accent-color: #2A2D3E;
+    --muted-color: #1F2937;
+  }
+
+  .dark.theme-blue {
+    --primary-color: #0C8BC3;
+    --secondary-color: #0B7AAB;
+    --accent-color: #1E3A8A;
+    --muted-color: #1E3A8A;
+  }
+
+  .dark.theme-green {
+    --primary-color: #059669;
+    --secondary-color: #047857;
+    --accent-color: #064E3B;
+    --muted-color: #064E3B;
   }
 
   * {
@@ -73,105 +89,5 @@
   
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-
-  /* Mobile-first responsive design */
-  @media (max-width: 640px) {
-    html {
-      font-size: 14px; /* Slightly smaller base font size for mobile */
-    }
-
-    /* Improve touch targets on mobile */
-    button, 
-    [role="button"],
-    input,
-    select,
-    textarea {
-      @apply min-h-[44px] min-w-[44px];
-    }
-  }
-
-  /* Tablet and desktop adjustments */
-  @media (min-width: 641px) {
-    html {
-      font-size: 16px;
-    }
-  }
-
-  /* Improved focus styles for better accessibility */
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-primary ring-2 ring-primary ring-offset-2;
-  }
-
-  /* Ensure text remains visible during webfont load */
-  html {
-    font-display: swap;
-    @apply scroll-smooth;
-  }
-
-  /* Improve color contrast for better readability */
-  .text-muted-foreground {
-    @apply text-gray-600 dark:text-gray-400;
-  }
-
-  /* Add proper heading hierarchy styles */
-  h1 {
-    @apply text-xl font-bold md:text-2xl lg:text-3xl;
-  }
-
-  h2 {
-    @apply text-lg font-semibold md:text-xl lg:text-2xl;
-  }
-
-  h3 {
-    @apply text-base font-medium md:text-lg lg:text-xl;
-  }
-
-  /* Improve link accessibility */
-  a {
-    @apply underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary;
-  }
-
-  /* Add proper list styles */
-  ul, ol {
-    @apply list-inside;
-  }
-
-  /* Ensure proper spacing for text content */
-  p {
-    @apply leading-relaxed;
-  }
-
-  /* Add proper table styles for better readability */
-  table {
-    @apply w-full border-collapse;
-  }
-
-  th, td {
-    @apply p-2 border text-left;
-  }
-
-  /* Improve form element accessibility */
-  input, 
-  textarea {
-    @apply px-3 py-2;
-  }
-
-  /* Add proper skip link for keyboard navigation */
-  .skip-link {
-    @apply sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-background focus:text-foreground;
-  }
-
-  /* Mobile-specific styles */
-  @media (max-width: 640px) {
-    .mobile-touch-scroll {
-      @apply overflow-auto touch-pan-y;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .mobile-safe-bottom {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
   }
 }

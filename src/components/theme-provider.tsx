@@ -12,7 +12,9 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     // Apply color scheme classes to the root element
     const root = document.documentElement;
     root.classList.remove('theme-default', 'theme-purple', 'theme-blue', 'theme-green');
-    root.classList.add(`theme-${colorScheme}`);
+    if (colorScheme !== 'default') {
+      root.classList.add(`theme-${colorScheme}`);
+    }
   }, [colorScheme]);
 
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
