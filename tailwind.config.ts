@@ -25,7 +25,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "rgb(var(--primary-color) / <alpha-value>)", // Enable opacity modifier
+          DEFAULT: "var(--primary-color)",
           foreground: "var(--primary-foreground)",
         },
         secondary: {
