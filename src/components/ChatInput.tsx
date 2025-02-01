@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -35,7 +35,7 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
   };
 
   return (
-    <form onSubmit={handleSend} className="flex gap-2 w-full">
+    <form onSubmit={handleSend} className="flex gap-2 w-full relative">
       <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Input
@@ -44,12 +44,12 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
               setInputValue(e.target.value);
               setOpen(e.target.value.length > 0);
             }}
-            placeholder="Type your message..."
-            className="flex-1"
+            placeholder="Ask me anything..."
+            className="flex-1 pr-24 bg-background/50 backdrop-blur-sm border-muted"
             disabled={isProcessing}
           />
         </PopoverTrigger>
-        <PopoverContent className="p-0" align="start">
+        <PopoverContent className="p-0 w-[calc(100vw-2rem)] sm:w-[500px]" align="start">
           <Command>
             <CommandList>
               <CommandEmpty>No suggestions found.</CommandEmpty>
@@ -62,6 +62,7 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
                       setOpen(false);
                     }}
                   >
+                    <Sparkles className="h-4 w-4 mr-2 text-muted-foreground" />
                     {suggestion}
                   </CommandItem>
                 ))}
@@ -70,7 +71,12 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
           </Command>
         </PopoverContent>
       </Popover>
-      <Button type="submit" size="icon" disabled={isProcessing}>
+      <Button 
+        type="submit" 
+        size="icon" 
+        disabled={isProcessing}
+        className="absolute right-1 top-1 h-8 w-8"
+      >
         <Send className="h-4 w-4" />
       </Button>
     </form>
