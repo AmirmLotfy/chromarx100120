@@ -1,6 +1,7 @@
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Globe } from "lucide-react";
 
 interface BookmarkDomainsProps {
   domains: { domain: string; count: number }[];
@@ -14,31 +15,35 @@ const BookmarkDomains = ({
   onSelectDomain,
 }: BookmarkDomainsProps) => {
   return (
-    <ScrollArea className="w-full">
-      <div className="flex flex-wrap gap-2 p-2">
+    <ScrollArea className="h-[200px]">
+      <div className="space-y-1 pr-4">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => onSelectDomain(null)}
           className={cn(
-            "whitespace-nowrap min-w-[60px] text-center",
-            selectedDomain === null && "bg-primary text-primary-foreground"
+            "w-full justify-start",
+            selectedDomain === null && "bg-accent text-accent-foreground"
           )}
         >
-          All
+          <Globe className="h-4 w-4 mr-2" />
+          All Domains
         </Button>
         {domains.map(({ domain, count }) => (
           <Button
             key={domain}
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onSelectDomain(domain)}
             className={cn(
-              "whitespace-nowrap min-w-[60px] text-center",
-              selectedDomain === domain && "bg-primary text-primary-foreground"
+              "w-full justify-start",
+              selectedDomain === domain && "bg-accent text-accent-foreground"
             )}
           >
-            {domain} ({count})
+            <span className="truncate">{domain}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {count}
+            </span>
           </Button>
         ))}
       </div>

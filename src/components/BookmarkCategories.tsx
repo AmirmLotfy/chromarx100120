@@ -1,6 +1,7 @@
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { BookmarkCheck } from "lucide-react";
 
 interface BookmarkCategory {
   name: string;
@@ -19,31 +20,35 @@ const BookmarkCategories = ({
   onSelectCategory,
 }: BookmarkCategoriesProps) => {
   return (
-    <ScrollArea className="w-full">
-      <div className="flex flex-wrap gap-2 p-2">
+    <ScrollArea className="h-[200px]">
+      <div className="space-y-1 pr-4">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => onSelectCategory(null)}
           className={cn(
-            "whitespace-nowrap min-w-[60px] text-center",
-            selectedCategory === null && "bg-primary text-primary-foreground"
+            "w-full justify-start",
+            selectedCategory === null && "bg-accent text-accent-foreground"
           )}
         >
-          All
+          <BookmarkCheck className="h-4 w-4 mr-2" />
+          All Categories
         </Button>
         {categories.map((category) => (
           <Button
             key={category.name}
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onSelectCategory(category.name)}
             className={cn(
-              "whitespace-nowrap min-w-[60px] text-center",
-              selectedCategory === category.name && "bg-primary text-primary-foreground"
+              "w-full justify-start",
+              selectedCategory === category.name && "bg-accent text-accent-foreground"
             )}
           >
-            {category.name} ({category.count})
+            <span className="truncate">{category.name}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {category.count}
+            </span>
           </Button>
         ))}
       </div>
