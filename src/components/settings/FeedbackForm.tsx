@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { MessageSquare, HelpCircle } from "lucide-react";
 import { useFirebase } from "@/contexts/FirebaseContext";
-import { chromeDb } from "@/lib/chrome-storage";
+import { chromeDb, FeedbackItem } from "@/lib/chrome-storage";
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
@@ -43,7 +43,7 @@ const FeedbackForm = () => {
     console.log("Submitting feedback:", { type, message });
 
     try {
-      const feedback = {
+      const feedback: FeedbackItem = {
         type,
         message,
         userId: user.id,
@@ -52,7 +52,7 @@ const FeedbackForm = () => {
         status: "new"
       };
 
-      const existingFeedback = await chromeDb.get<any[]>('feedback') || [];
+      const existingFeedback = await chromeDb.get<FeedbackItem[]>('feedback') || [];
       await chromeDb.set('feedback', [...existingFeedback, feedback]);
 
       console.log("Feedback submitted successfully");

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { chromeDb } from "@/lib/chrome-storage";
+import { chromeDb, StorageData } from "@/lib/chrome-storage";
 import { AffiliateProduct } from "@/config/affiliateContent";
 
 const AffiliateSettings = () => {

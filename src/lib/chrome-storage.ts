@@ -6,6 +6,15 @@ export interface ChromeUser {
   photoURL: string | null;
 }
 
+export interface FeedbackItem {
+  type: string;
+  message: string;
+  userId: string;
+  userEmail: string | null;
+  createdAt: string;
+  status: string;
+}
+
 export interface StorageData {
   user: ChromeUser | null;
   settings: {
@@ -17,6 +26,7 @@ export interface StorageData {
   };
   subscriptions: Record<string, any>;
   history: any[];
+  feedback: FeedbackItem[];
   privacySettings: {
     userId: string;
     dataCollection: boolean;
