@@ -67,7 +67,7 @@ const CompactServiceBanner = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-end justify-center h-full">
+          <div className="flex flex-col items-end justify-center h-full gap-2">
             <a
               href={currentService.affiliateUrl}
               target="_blank"
@@ -85,21 +85,20 @@ const CompactServiceBanner = () => {
                 className="h-3.5 w-3.5 text-primary-foreground transition-transform group-hover/link:translate-x-0.5" 
               />
             </a>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="text-xs bg-secondary/80 hover:bg-secondary/90 text-secondary-foreground shadow-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/subscription');
+              }}
+            >
+              Remove Ads
+              <X className="ml-1 h-3 w-3" />
+            </Button>
           </div>
         </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          className="absolute top-2 right-2 z-30 text-xs bg-secondary/90 hover:bg-secondary text-secondary-foreground shadow-md"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate('/subscription');
-          }}
-        >
-          Remove Ads
-          <X className="ml-1 h-3 w-3" />
-        </Button>
       </Card>
     </div>
   );
