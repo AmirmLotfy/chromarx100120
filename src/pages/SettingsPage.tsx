@@ -334,18 +334,107 @@ const SettingsPage = () => {
                   <CardHeader>
                     <CardTitle>Account Settings</CardTitle>
                     <CardDescription>
-                      Manage your account and subscription
+                      Manage your account and profile settings
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => toast.info("Coming soon!")}
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      Sign In to Sync Settings
-                    </Button>
+                    {user ? (
+                      <>
+                        <div className="flex items-center space-x-4 p-4 bg-accent rounded-lg">
+                          <div className="h-12 w-12 rounded-full overflow-hidden">
+                            <img 
+                              src={user.photoURL || '/placeholder.svg'} 
+                              alt="Profile" 
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium">{user.displayName}</h3>
+                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 pt-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label>Email Verification</Label>
+                              <p className="text-sm text-muted-foreground">
+                                Status of your email verification
+                              </p>
+                            </div>
+                            {user.emailVerified ? (
+                              <Badge variant="success" className="bg-green-500">Verified</Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  user.sendEmailVerification()
+                                    .then(() => toast.success("Verification email sent!"))
+                                    .catch(() => toast.error("Failed to send verification email"));
+                                }}
+                              >
+                                Verify Email
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label>Account Created</Label>
+                              <p className="text-sm text-muted-foreground">
+                                When you joined ChroMarx
+                              </p>
+                            </div>
+                            <p className="text-sm">
+                              {new Date(user.metadata.creationTime!).toLocaleDateString()}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <Label>Last Sign In</Label>
+                              <p className="text-sm text-muted-foreground">
+                                Your most recent login
+                              </p>
+                            </div>
+                            <p className="text-sm">
+                              {new Date(user.metadata.lastSignInTime!).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-6">
+                          <Button
+                            variant="destructive"
+                            className="w-full"
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                                user.delete()
+                                  .then(() => {
+                                    toast.success("Account deleted successfully");
+                                  })
+                                  .catch((error) => {
+                                    console.error("Error deleting account:", error);
+                                    toast.error("Failed to delete account. Please sign in again and try once more.");
+                                  });
+                              }
+                            }}
+                          >
+                            Delete Account
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground mb-4">
+                          Please sign in to manage your account settings
+                        </p>
+                        <Button onClick={() => signInWithGoogle()}>
+                          <User className="mr-2 h-4 w-4" />
+                          Sign In with Google
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
