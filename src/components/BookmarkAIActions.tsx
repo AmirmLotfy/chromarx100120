@@ -26,7 +26,6 @@ const BookmarkAIActions = ({
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          // Combine title and URL into a single content string
           const content = `${bookmark.title}\n${bookmark.url || ""}`;
           const summary = await summarizeBookmark(content);
           return {
@@ -59,7 +58,7 @@ const BookmarkAIActions = ({
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
           ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", 'en'),
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
         }))
       );
 

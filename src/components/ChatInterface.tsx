@@ -35,7 +35,6 @@ const ChatInterface = () => {
   }, [messages, scrollToBottom]);
 
   useEffect(() => {
-    // Load chat history from storage if available
     const loadChatHistory = async () => {
       try {
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -44,7 +43,6 @@ const ChatInterface = () => {
             setChatHistory(result[STORAGE_KEY]);
           }
         } else {
-          // Fallback to localStorage when chrome.storage is not available
           const savedHistory = localStorage.getItem(STORAGE_KEY);
           if (savedHistory) {
             setChatHistory(JSON.parse(savedHistory));
@@ -62,12 +60,11 @@ const ChatInterface = () => {
     if (newMessages.length === 0) return;
     
     try {
-      const updatedHistory = [newMessages, ...chatHistory].slice(0, 10); // Keep last 10 conversations
+      const updatedHistory = [newMessages, ...chatHistory].slice(0, 10);
 
       if (typeof chrome !== 'undefined' && chrome.storage?.local) {
         await chrome.storage.local.set({ [STORAGE_KEY]: updatedHistory });
       } else {
-        // Fallback to localStorage when chrome.storage is not available
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
       }
       
@@ -115,7 +112,7 @@ const ChatInterface = () => {
       const chatContext = getContextFromHistory(messages, query);
       const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
 
-      const response = await summarizeContent(prompt, 'en');
+      const response = await summarizeContent(prompt);
 
       return {
         response,
