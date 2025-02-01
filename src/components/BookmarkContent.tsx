@@ -9,6 +9,7 @@ import { Filter } from "lucide-react";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { ScrollArea } from "./ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -54,45 +55,63 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Sort by</Label>
+        </div>
+        <Select defaultValue="dateAdded">
+          <SelectTrigger className="w-full h-8">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="dateAdded">Date Added</SelectItem>
+            <SelectItem value="title">Title</SelectItem>
+            <SelectItem value="url">URL</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label className="text-sm font-medium">Categories</Label>
-        <ScrollArea className="h-[120px]">
-          <BookmarkCategories
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={onSelectCategory}
-          />
+        <ScrollArea className="h-[180px] rounded-md border bg-background/50 backdrop-blur-sm">
+          <div className="p-2">
+            <BookmarkCategories
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={onSelectCategory}
+            />
+          </div>
         </ScrollArea>
       </div>
 
-      <Separator className="my-2" />
-
       <div className="space-y-2">
         <Label className="text-sm font-medium">Domains</Label>
-        <ScrollArea className="h-[120px]">
-          <BookmarkDomains
-            domains={domains}
-            selectedDomain={selectedDomain}
-            onSelectDomain={onSelectDomain}
-          />
+        <ScrollArea className="h-[180px] rounded-md border bg-background/50 backdrop-blur-sm">
+          <div className="p-2">
+            <BookmarkDomains
+              domains={domains}
+              selectedDomain={selectedDomain}
+              onSelectDomain={onSelectDomain}
+            />
+          </div>
         </ScrollArea>
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-3 w-full max-w-full px-2 md:px-4">
+    <div className="w-full max-w-full">
       <div className="flex flex-col md:flex-row gap-4">
         {isMobile ? (
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="w-full md:w-auto mb-2">
                 <Filter className="h-4 w-4 mr-2" />
-                Filters
+                Filters & Sort
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] sm:w-[320px] p-4">
+            <SheetContent side="left" className="w-[300px] p-4">
               <SheetHeader className="mb-4">
                 <SheetTitle>Filter Bookmarks</SheetTitle>
               </SheetHeader>
@@ -100,7 +119,7 @@ const BookmarkContent = ({
             </SheetContent>
           </Sheet>
         ) : (
-          <div className="hidden md:block w-[280px] bg-card rounded-lg border p-4 h-fit sticky top-4">
+          <div className="hidden md:block w-[300px] bg-background/50 backdrop-blur-sm rounded-lg border p-4 h-fit sticky top-4">
             <FilterPanel />
           </div>
         )}

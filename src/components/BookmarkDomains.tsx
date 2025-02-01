@@ -19,8 +19,8 @@ const BookmarkDomains = ({
         size="sm"
         onClick={() => onSelectDomain(null)}
         className={cn(
-          "justify-start h-8 px-2 font-normal text-sm",
-          selectedDomain === null && "bg-accent text-accent-foreground"
+          "justify-start h-8 px-2 font-normal text-sm rounded-md",
+          selectedDomain === null && "bg-primary/10 text-primary font-medium"
         )}
       >
         All Domains
@@ -32,8 +32,8 @@ const BookmarkDomains = ({
           size="sm"
           onClick={() => onSelectDomain(domain)}
           className={cn(
-            "justify-start h-8 px-2 font-normal text-sm",
-            selectedDomain === domain && "bg-accent text-accent-foreground"
+            "justify-start h-8 px-2 font-normal text-sm rounded-md",
+            selectedDomain === domain && "bg-primary/10 text-primary font-medium"
           )}
         >
           {domain} ({count})
