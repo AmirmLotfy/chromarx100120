@@ -15,7 +15,7 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-xl items-center justify-between">
+      <div className="container flex h-14 max-w-screen-xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <img 
             src="/lovable-uploads/c57439a4-ac35-4ae6-ac00-dd8f5ef8a360.png" 
