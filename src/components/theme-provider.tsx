@@ -7,6 +7,7 @@ import { useSettings } from "@/stores/settingsStore"
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const { colorScheme } = useSettings();
+  const [currentTheme, setCurrentTheme] = React.useState<string | undefined>(props.defaultTheme);
 
   React.useEffect(() => {
     // Apply color scheme classes to the root element
@@ -19,7 +20,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     // Set up system theme listener
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
-      if (props.theme === 'system') {
+      if (currentTheme === 'system') {
         document.documentElement.classList.toggle('dark', e.matches);
       }
     };
@@ -27,12 +28,17 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     mediaQuery.addEventListener('change', handleChange);
     
     // Initial system theme check
-    if (props.theme === 'system') {
+    if (currentTheme === 'system') {
       document.documentElement.classList.toggle('dark', mediaQuery.matches);
     }
 
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [colorScheme, props.theme]);
+  }, [colorScheme, currentTheme]);
+
+  // Update currentTheme when defaultTheme changes
+  React.useEffect(() => {
+    setCurrentTheme(props.defaultTheme);
+  }, [props.defaultTheme]);
 
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }
