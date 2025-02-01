@@ -42,7 +42,7 @@ const FocusMode = () => {
           <Switch
             checked={isActive}
             onCheckedChange={toggleFocusMode}
-            className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-4 w-7 md:h-5 md:w-9"
+            className="h-[22px] w-[36px] md:h-[24px] md:w-[42px] data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
           />
         </div>
 
@@ -52,12 +52,12 @@ const FocusMode = () => {
               placeholder="Enter website to block"
               value={newSite}
               onChange={(e) => setNewSite(e.target.value)}
-              className="h-10"
+              className="h-9 md:h-10"
             />
             <Button 
               onClick={addBlockedSite}
               size="sm"
-              className="h-10 w-10 p-0"
+              className="h-9 w-9 md:h-10 md:w-10 p-0"
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -74,9 +74,9 @@ const FocusMode = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => removeBlockedSite(site)}
-                  className="h-8 w-8 p-0"
+                  className="h-7 w-7 md:h-8 md:w-8 p-0"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </Button>
               </div>
             ))}
