@@ -23,8 +23,8 @@
   }
 
   .dark {
-    --background: 0 0% 8.5%;  /* Chrome's dark mode background */
-    --foreground: 0 0% 98%;
+    --background: 0 0% 11%;  /* Chrome's dark mode background - slightly lighter than pure black */
+    --foreground: 0 0% 95%;  /* Slightly off-white for better readability */
     --primary-color: #7E69AB;
     --primary-foreground: #ffffff;
     --secondary-color: #5D4D80;
@@ -35,7 +35,7 @@
     --accent-foreground: #ffffff;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
+    --border: 0 0% 18%;      /* Slightly visible borders */
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.9%;
   }
