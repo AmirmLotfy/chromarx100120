@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 const FocusMode = () => {
   const [isActive, setIsActive] = useState(false);
@@ -32,29 +32,35 @@ const FocusMode = () => {
   };
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
+    <Card className="p-4 md:p-6">
+      <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium">Focus Mode</h3>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-1">
+            <h3 className="text-base font-medium md:text-lg">Focus Mode</h3>
+            <p className="text-xs text-muted-foreground md:text-sm">
               Block distracting websites
             </p>
           </div>
           <Switch
             checked={isActive}
             onCheckedChange={toggleFocusMode}
+            className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-5 w-9"
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex space-x-2">
             <Input
               placeholder="Enter website to block"
               value={newSite}
               onChange={(e) => setNewSite(e.target.value)}
+              className="h-10"
             />
-            <Button onClick={addBlockedSite}>
+            <Button 
+              onClick={addBlockedSite}
+              size="sm"
+              className="h-10 w-10 p-0"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -63,13 +69,14 @@ const FocusMode = () => {
             {blockedSites.map((site) => (
               <div
                 key={site}
-                className="flex items-center justify-between bg-muted p-2 rounded"
+                className="flex items-center justify-between bg-muted p-2 rounded-md"
               >
-                <span>{site}</span>
+                <span className="text-sm">{site}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => removeBlockedSite(site)}
+                  className="h-8 w-8 p-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
