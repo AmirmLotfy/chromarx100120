@@ -16,8 +16,6 @@ const FocusMode = () => {
 
   const toggleFocusMode = () => {
     setIsActive(!isActive);
-    // In a real implementation, this would integrate with the Chrome extension
-    // to actually block the specified sites
   };
 
   const addBlockedSite = () => {
@@ -44,7 +42,7 @@ const FocusMode = () => {
           <Switch
             checked={isActive}
             onCheckedChange={toggleFocusMode}
-            className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-5 w-9"
+            className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input h-4 w-7 md:h-5 md:w-9"
           />
         </div>
 
