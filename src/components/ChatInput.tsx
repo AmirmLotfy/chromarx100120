@@ -37,7 +37,22 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    setOpen(value.length > 0);
+    if (value.length > 0) {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Close suggestions on Escape
+    if (e.key === 'Escape') {
+      setOpen(false);
+    }
+    // Allow using arrow keys to navigate suggestions when open
+    if (open && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+    }
   };
 
   return (
@@ -47,12 +62,18 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
           <Input
             value={inputValue}
             onChange={handleInputChange}
-            placeholder="Ask me anything about your bookmarks..."
-            className="flex-1 pr-24 bg-white dark:bg-accent text-foreground border-2 border-primary/20 focus:border-primary shadow-sm focus:ring-2 focus:ring-primary/20 rounded-xl h-12 text-base"
+            onKeyDown={handleKeyDown}
+            placeholder="Type your message and press Enter to send..."
+            className="flex-1 pr-24 bg-background text-foreground border border-input focus:border-primary focus:ring-1 focus:ring-primary rounded-md h-10"
             disabled={isProcessing}
+            autoFocus
           />
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[calc(100vw-2rem)] sm:w-[500px]" align="start">
+        <PopoverContent 
+          className="p-0 w-[400px]" 
+          align="start"
+          sideOffset={4}
+        >
           <Command>
             <CommandList>
               <CommandEmpty>No suggestions found.</CommandEmpty>
@@ -78,7 +99,7 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
         type="submit" 
         size="icon"
         disabled={isProcessing}
-        className="absolute right-1 top-1 h-10 w-10 bg-primary hover:bg-primary/90"
+        className="absolute right-1 top-1 h-8 w-8"
       >
         <Send className="h-4 w-4" />
       </Button>
