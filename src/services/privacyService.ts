@@ -1,4 +1,4 @@
-import { chromeDb } from '@/lib/chrome-storage';
+import { chromeDb, StorageData } from '@/lib/chrome-storage';
 import { toast } from 'sonner';
 
 export const savePrivacySettings = async (userId: string, settings: any) => {
@@ -17,7 +17,7 @@ export const savePrivacySettings = async (userId: string, settings: any) => {
 
 export const getPrivacySettings = async (userId: string) => {
   try {
-    const settings = await chromeDb.get('privacySettings');
+    const settings = await chromeDb.get<StorageData['privacySettings']>('privacySettings');
     return settings?.userId === userId ? settings : null;
   } catch (error) {
     console.error('Error getting privacy settings:', error);

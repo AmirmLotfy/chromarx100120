@@ -10,8 +10,8 @@ import { toast } from "sonner";
 
 interface SubscriptionData {
   status: string;
-  currentPlan: string;
-  startDate: string;
+  planId: string;
+  createdAt: string;
   endDate: string;
   usage: {
     bookmarks: number;
@@ -30,21 +30,10 @@ const SubscriptionDetails = () => {
       if (!user) return;
 
       try {
-        const userDoc = await chromeDb.get('user');
-        const subscriptionDoc = await chromeDb.get('subscriptions');
+        const subscriptionDoc = await chromeDb.get<SubscriptionData>('subscriptions');
         
         if (subscriptionDoc) {
-          setSubscriptionData({
-            status: subscriptionDoc.status,
-            currentPlan: subscriptionDoc.planId,
-            startDate: new Date(subscriptionDoc.createdAt).toLocaleDateString(),
-            endDate: new Date(subscriptionDoc.endDate).toLocaleDateString(),
-            usage: {
-              bookmarks: subscriptionDoc.usage?.bookmarks || 0,
-              tasks: subscriptionDoc.usage?.tasks || 0,
-              notes: subscriptionDoc.usage?.notes || 0,
-            }
-          });
+          setSubscriptionData(subscriptionDoc);
         }
       } catch (error) {
         console.error('Error fetching subscription data:', error);
@@ -57,10 +46,9 @@ const SubscriptionDetails = () => {
     fetchSubscriptionData();
   }, [user]);
 
-  const currentPlan = subscriptionData ? getPlanById(subscriptionData.currentPlan) : null;
+  const currentPlan = subscriptionData ? getPlanById(subscriptionData.planId) : null;
 
   const handleUpgrade = () => {
-    // Navigate to plans page
     window.location.href = '/plans';
   };
 
@@ -97,7 +85,7 @@ const SubscriptionDetails = () => {
               </div>
               <div className="space-y-2">
                 <div className="text-sm font-medium text-muted-foreground">Renewal Date</div>
-                <div className="font-medium">{subscriptionData.endDate}</div>
+                <div className="font-medium">{new Date(subscriptionData.endDate).toLocaleDateString()}</div>
               </div>
             </div>
 

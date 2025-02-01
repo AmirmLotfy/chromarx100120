@@ -1,9 +1,21 @@
-import { ChromeUser } from './chrome-utils';
-
 export interface StorageData {
   user: ChromeUser | null;
   settings: Record<string, any>;
   subscriptions: Record<string, any>;
+  history: any[];
+  privacySettings: {
+    userId: string;
+    [key: string]: any;
+  };
+  config: {
+    affiliateContent?: {
+      products: any[];
+    };
+    geminiApiKey?: string;
+    paypal?: {
+      clientId: string;
+    };
+  };
 }
 
 export const chromeDb = {
@@ -17,7 +29,7 @@ export const chromeDb = {
     }
   },
 
-  async set<T>(key: keyof StorageData, value: T): Promise<void> {
+  async set(key: keyof StorageData, value: any): Promise<void> {
     try {
       await chrome.storage.sync.set({ [key]: value });
     } catch (error) {
@@ -26,9 +38,9 @@ export const chromeDb = {
     }
   },
 
-  async update<T>(key: keyof StorageData, value: Partial<T>): Promise<void> {
+  async update(key: keyof StorageData, value: Partial<any>): Promise<void> {
     try {
-      const current = await this.get<T>(key);
+      const current = await this.get(key);
       await this.set(key, { ...current, ...value });
     } catch (error) {
       console.error(`Error updating ${key} in chrome storage:`, error);

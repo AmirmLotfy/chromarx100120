@@ -24,10 +24,9 @@ const AffiliateSettings = () => {
 
   const loadAffiliateContent = async () => {
     try {
-      const docRef = doc(chromeDb, "config", "affiliateContent");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProducts(docSnap.data().products || []);
+      const config = await chromeDb.get<StorageData['config']>('config');
+      if (config?.affiliateContent?.products) {
+        setProducts(config.affiliateContent.products);
       }
     } catch (error) {
       console.error("Error loading affiliate content:", error);
@@ -37,8 +36,9 @@ const AffiliateSettings = () => {
 
   const saveAffiliateContent = async () => {
     try {
-      const docRef = doc(chromeDb, "config", "affiliateContent");
-      await setDoc(docRef, { products });
+      await chromeDb.update('config', {
+        affiliateContent: { products }
+      });
       toast.success("Affiliate content saved successfully");
     } catch (error) {
       console.error("Error saving affiliate content:", error);
