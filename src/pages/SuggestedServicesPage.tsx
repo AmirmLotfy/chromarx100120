@@ -5,19 +5,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const SuggestedServicesPage = () => {
   return (
     <Layout>
-      <div className="space-y-6 px-4 md:px-6 pb-20 md:pb-6 pt-6 md:pt-8">
-        <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Suggested Services
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg">
-            Discover tools and services that can enhance your productivity
-          </p>
-        </div>
-        <ScrollArea className="h-[calc(100vh-12rem)]">
+      <ScrollArea className="h-[calc(100vh-4rem)] w-full">
+        <section className="p-6 space-y-6">
+          <header>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+              Suggested Services
+            </h1>
+            <p className="text-sm text-muted-foreground md:text-base">
+              Discover tools and services that can enhance your productivity
+            </p>
+          </header>
+
           <AffiliateSection showAll={true} />
-        </ScrollArea>
-      </div>
+
+          <footer className="text-xs text-center text-muted-foreground">
+            We may earn a commission when you purchase through these links.
+          </footer>
+        </section>
+      </ScrollArea>
     </Layout>
   );
 };
