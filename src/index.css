@@ -10,14 +10,14 @@
     --primary-foreground: #ffffff;
     --secondary-color: #7E69AB;
     --secondary-foreground: #ffffff;
-    --muted-color: #F1F0FB;
-    --muted-foreground: #403E43;
+    --muted-color: #F8F9FC;  /* Lighter muted background for better contrast */
+    --muted-foreground: #374151;  /* Darker muted text for better readability */
     --accent-color: #E5DEFF;
-    --accent-foreground: #403E43;
+    --accent-foreground: #2D2A35;  /* Darker accent text for better contrast */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --border: 220 13% 91%;  /* Slightly more visible borders */
+    --input: 220 13% 91%;
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
   }
