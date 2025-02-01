@@ -17,23 +17,49 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { MessageSquare, HelpCircle } from "lucide-react";
+import { useFirebase } from "@/contexts/FirebaseContext";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useFirebase();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Please sign in to submit feedback");
+      return;
+    }
+
+    if (!message.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
     setIsSubmitting(true);
+    console.log("Submitting feedback:", { type, message });
 
     try {
-      // Here you would typically send the feedback to your backend
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulated API call
+      const feedbackRef = collection(db, "feedback");
+      await addDoc(feedbackRef, {
+        type,
+        message,
+        userId: user.uid,
+        userEmail: user.email,
+        createdAt: serverTimestamp(),
+        status: "new"
+      });
+
+      console.log("Feedback submitted successfully");
       toast.success("Thank you for your feedback!");
       setMessage("");
       setType("suggestion");
     } catch (error) {
+      console.error("Error submitting feedback:", error);
       toast.error("Failed to submit feedback. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -81,7 +107,7 @@ const FeedbackForm = () => {
 
       <Button
         type="submit"
-        disabled={!message.trim() || isSubmitting}
+        disabled={!message.trim() || isSubmitting || !user}
         className="w-full"
       >
         <MessageSquare className="mr-2 h-4 w-4" />
