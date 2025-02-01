@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { useLanguage, SUPPORTED_LANGUAGES } from "@/stores/languageStore";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export const LanguageSelector = () => {
   const { currentLanguage, setLanguage, detectAndSetLanguage } = useLanguage();
@@ -15,27 +16,32 @@ export const LanguageSelector = () => {
     detectAndSetLanguage();
   }, [detectAndSetLanguage]);
 
+  const handleLanguageChange = (value: string) => {
+    const language = SUPPORTED_LANGUAGES.find((lang) => lang.code === value);
+    if (language) {
+      setLanguage(language);
+      toast.success(`Language changed to ${language.name}`);
+      console.log("Language changed:", language);
+    }
+  };
+
   return (
     <Select
       value={currentLanguage.code}
-      onValueChange={(value) => {
-        const language = SUPPORTED_LANGUAGES.find((lang) => lang.code === value);
-        if (language) {
-          setLanguage(language);
-        }
-      }}
+      onValueChange={handleLanguageChange}
     >
-      <SelectTrigger className="w-[90px] h-9">
+      <SelectTrigger className="w-[120px] h-9">
         <SelectValue placeholder="Select language">
-          <span className="flex items-center gap-2">
-            {currentLanguage.flag} {currentLanguage.code.toUpperCase()}
+          <span className="flex items-center gap-3">
+            <span>{currentLanguage.flag}</span>
+            <span>{currentLanguage.code.toUpperCase()}</span>
           </span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {SUPPORTED_LANGUAGES.map((language) => (
           <SelectItem key={language.code} value={language.code}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span>{language.flag}</span>
               <span>{language.name}</span>
               <span className="text-muted-foreground">({language.nativeName})</span>
