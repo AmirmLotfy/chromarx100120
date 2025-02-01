@@ -1,4 +1,6 @@
 export const findDuplicateBookmarks = (bookmarks: chrome.bookmarks.BookmarkTreeNode[]) => {
+  console.log('Finding duplicate bookmarks among:', bookmarks.length, 'bookmarks');
+  
   const urlMap = new Map<string, chrome.bookmarks.BookmarkTreeNode[]>();
   const titleMap = new Map<string, chrome.bookmarks.BookmarkTreeNode[]>();
 
@@ -20,14 +22,29 @@ export const findDuplicateBookmarks = (bookmarks: chrome.bookmarks.BookmarkTreeN
       .map(([title, bookmarks]) => ({ title, bookmarks })),
   };
 
+  console.log('Found duplicates:', {
+    byUrl: duplicates.byUrl.length,
+    byTitle: duplicates.byTitle.length
+  });
+
   return duplicates;
 };
 
 export const checkBrokenBookmark = async (url: string): Promise<boolean> => {
+  console.log('Checking if bookmark is broken:', url);
   try {
-    const response = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
-    return response.status === 200;
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      credentials: 'omit',
+      redirect: 'follow',
+    });
+    const isWorking = response.status === 200;
+    console.log('Bookmark status:', isWorking ? 'working' : 'broken');
+    return isWorking;
   } catch (error) {
+    console.error('Error checking bookmark:', url, error);
     return false;
   }
 };
@@ -35,6 +52,7 @@ export const checkBrokenBookmark = async (url: string): Promise<boolean> => {
 export const findBrokenBookmarks = async (
   bookmarks: chrome.bookmarks.BookmarkTreeNode[]
 ): Promise<chrome.bookmarks.BookmarkTreeNode[]> => {
+  console.log('Finding broken bookmarks among:', bookmarks.length, 'bookmarks');
   const brokenBookmarks: chrome.bookmarks.BookmarkTreeNode[] = [];
 
   for (const bookmark of bookmarks) {
@@ -46,5 +64,6 @@ export const findBrokenBookmarks = async (
     }
   }
 
+  console.log('Found broken bookmarks:', brokenBookmarks.length);
   return brokenBookmarks;
 };
