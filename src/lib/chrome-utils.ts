@@ -15,6 +15,16 @@ export interface ChromeStorageData {
   bookmarks: Record<string, any>;
 }
 
+export const getSecret = async (key: string): Promise<string | null> => {
+  try {
+    const result = await chrome.storage.sync.get(key);
+    return result[key] || null;
+  } catch (error) {
+    console.error(`Error getting secret ${key}:`, error);
+    return null;
+  }
+};
+
 export const storage = {
   async get<T>(key: keyof ChromeStorageData): Promise<T | null> {
     try {
