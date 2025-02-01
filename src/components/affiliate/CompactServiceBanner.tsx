@@ -61,12 +61,12 @@ const CompactServiceBanner = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-2">
             <a
               href={currentService.affiliateUrl}
               target="_blank"
               rel="noopener noreferrer sponsored"
-              className="group/link flex items-center gap-1.5 bg-accent/90 hover:bg-accent px-3 py-1.5 rounded-lg transition-all duration-300"
+              className="group/link flex items-center gap-1.5 bg-primary hover:bg-primary/90 px-3 py-1.5 rounded-lg transition-all duration-300"
               onClick={() => {
                 console.log(`Banner affiliate link clicked: ${currentService.id}`);
               }}
