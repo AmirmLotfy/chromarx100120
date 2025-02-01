@@ -5,6 +5,7 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 let aiSession: chrome.aiOriginTrial.AILanguageModelSession | null = null;
 let aiSummarizer: chrome.aiOriginTrial.AISummarizer | null = null;
 let aiLanguageDetector: chrome.aiOriginTrial.AILanguageDetector | null = null;
+let aiTranslator: chrome.aiOriginTrial.AITranslator | null = null;
 
 interface DownloadProgressEvent extends Event {
   loaded: number;
@@ -78,6 +79,61 @@ const initializeLanguageDetector = async () => {
   } catch (error) {
     console.error('Error initializing language detector:', error);
     return null;
+  }
+};
+
+const initializeTranslator = async (sourceLanguage: string, targetLanguage: string) => {
+  try {
+    if (chrome?.aiOriginTrial?.translator) {
+      const capabilities = await chrome.aiOriginTrial.translator.capabilities();
+      
+      if (capabilities.available !== 'no') {
+        console.log('Using Chrome AI Translator API');
+        const translator = await chrome.aiOriginTrial.translator.create({
+          sourceLanguage,
+          targetLanguage,
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e: DownloadProgressEvent) => {
+              console.log(`Translator model download progress: ${e.loaded}/${e.total} bytes`);
+            });
+          }
+        });
+        await translator.ready;
+        return translator;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error initializing translator:', error);
+    return null;
+  }
+};
+
+export const translateContent = async (content: string, sourceLanguage: string, targetLanguage: string): Promise<string> => {
+  try {
+    if (!aiTranslator || aiTranslator !== await initializeTranslator(sourceLanguage, targetLanguage)) {
+      aiTranslator = await initializeTranslator(sourceLanguage, targetLanguage);
+    }
+
+    if (aiTranslator) {
+      const translation = await aiTranslator.translate(content);
+      return translation;
+    }
+
+    // Fallback to using Gemini API for translation
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const prompt = `Translate the following text from ${sourceLanguage} to ${targetLanguage}:
+
+${content}
+
+Translation:`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error translating content:', error);
+    throw error;
   }
 };
 

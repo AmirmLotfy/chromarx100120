@@ -82,5 +82,27 @@ declare namespace chrome {
       export function capabilities(): Promise<AISummarizerCapabilities>;
       export function create(options?: AISummarizerOptions): Promise<AISummarizer>;
     }
+
+    export interface AITranslatorCapabilities {
+      available: 'no' | 'readily' | 'after-download';
+      languagePairAvailable(source: string, target: string): 'no' | 'readily' | 'after-download';
+    }
+
+    export interface AITranslatorOptions {
+      sourceLanguage: string;
+      targetLanguage: string;
+      monitor?(monitor: EventTarget): void;
+    }
+
+    export interface AITranslator {
+      translate(text: string): Promise<string>;
+      ready: Promise<void>;
+      addEventListener(type: 'downloadprogress', listener: (e: { loaded: number; total: number }) => void): void;
+    }
+
+    export namespace translator {
+      export function capabilities(): Promise<AITranslatorCapabilities>;
+      export function create(options: AITranslatorOptions): Promise<AITranslator>;
+    }
   }
 }
