@@ -48,7 +48,7 @@ const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
   const isMobile = useIsMobile();
-  const { user, isAdmin } = useFirebase();
+  const { user, isAdmin, signInWithGoogle } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
   const { currentPlan, usage, isLoading } = useSubscription();
 
