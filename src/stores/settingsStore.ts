@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { savePrivacySettings } from '@/services/privacyService';
 
 interface SettingsState {
   theme: 'light' | 'dark' | 'system';
@@ -15,8 +16,8 @@ interface SettingsState {
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
-  setDataCollection: (enabled: boolean) => void;
-  setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean) => void;
+  setDataCollection: (enabled: boolean, userId?: string) => void;
+  setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean, userId?: string) => void;
   setExperimentalFeatures: (enabled: boolean) => void;
   resetSettings: () => void;
 }
@@ -40,7 +41,6 @@ export const useSettings = create<SettingsState>()(
       ...initialState,
       setTheme: (theme) => {
         set({ theme });
-        // Apply theme immediately
         const root = document.documentElement;
         root.classList.remove('light', 'dark');
         if (theme !== 'system') {
@@ -49,7 +49,6 @@ export const useSettings = create<SettingsState>()(
       },
       setColorScheme: (colorScheme) => {
         set({ colorScheme });
-        // Apply color scheme immediately
         const root = document.documentElement;
         root.classList.remove('theme-default', 'theme-purple', 'theme-blue', 'theme-green');
         if (colorScheme !== 'default') {
@@ -57,18 +56,35 @@ export const useSettings = create<SettingsState>()(
         }
       },
       setHighContrast: (highContrast) => set({ highContrast }),
-      setDataCollection: (dataCollection) => set({ dataCollection }),
-      setNotifications: (type, enabled) =>
+      setDataCollection: async (dataCollection, userId) => {
+        set({ dataCollection });
+        if (userId) {
+          const settings = { dataCollection, notifications: initialState.notifications };
+          await savePrivacySettings(userId, settings);
+          console.log('Data collection setting saved:', dataCollection);
+        }
+      },
+      setNotifications: async (type, enabled, userId) => {
         set((state) => ({
           notifications: {
             ...state.notifications,
             [type]: enabled,
           },
-        })),
+        }));
+        
+        if (userId) {
+          const state = useSettings.getState();
+          const settings = {
+            dataCollection: state.dataCollection,
+            notifications: state.notifications,
+          };
+          await savePrivacySettings(userId, settings);
+          console.log(`Notification setting ${type} saved:`, enabled);
+        }
+      },
       setExperimentalFeatures: (experimentalFeatures) => set({ experimentalFeatures }),
       resetSettings: () => {
         set(initialState);
-        // Reset theme and color scheme classes
         const root = document.documentElement;
         root.classList.remove('light', 'dark', 'theme-default', 'theme-purple', 'theme-blue', 'theme-green');
       },

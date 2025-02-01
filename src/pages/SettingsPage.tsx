@@ -40,6 +40,7 @@ import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
 import AffiliateSettings from "@/components/settings/AffiliateSettings";
 import { useSubscription } from "@/hooks/use-subscription";
 import LegalAndFeedback from "@/components/settings/LegalAndFeedback";
+import { getPrivacySettings } from "@/services/privacyService";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
@@ -48,6 +49,23 @@ const SettingsPage = () => {
   const { user, isAdmin } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
   const { currentPlan, usage, isLoading } = useSubscription();
+
+  // Load privacy settings on component mount
+  React.useEffect(() => {
+    const loadPrivacySettings = async () => {
+      if (user?.uid) {
+        const savedSettings = await getPrivacySettings(user.uid);
+        if (savedSettings) {
+          settings.setDataCollection(savedSettings.dataCollection);
+          Object.entries(savedSettings.notifications).forEach(([key, value]) => {
+            settings.setNotifications(key as keyof typeof settings.notifications, value);
+          });
+        }
+      }
+    };
+    
+    loadPrivacySettings();
+  }, [user]);
 
   const handleReset = () => {
     settings.resetSettings();
@@ -200,7 +218,14 @@ const SettingsPage = () => {
                           <TooltipTrigger asChild>
                             <Switch
                               checked={settings.dataCollection}
-                              onCheckedChange={settings.setDataCollection}
+                              onCheckedChange={(checked) => {
+                                if (user?.uid) {
+                                  settings.setDataCollection(checked, user.uid);
+                                  toast.success('Data collection preference updated');
+                                } else {
+                                  toast.error('Please sign in to save preferences');
+                                }
+                              }}
                             />
                           </TooltipTrigger>
                           <TooltipContent>
@@ -217,9 +242,14 @@ const SettingsPage = () => {
                             <Switch
                               id="bookmarks"
                               checked={settings.notifications.bookmarks}
-                              onCheckedChange={(checked) =>
-                                settings.setNotifications("bookmarks", checked)
-                              }
+                              onCheckedChange={(checked) => {
+                                if (user?.uid) {
+                                  settings.setNotifications("bookmarks", checked, user.uid);
+                                  toast.success('Bookmark notifications updated');
+                                } else {
+                                  toast.error('Please sign in to save preferences');
+                                }
+                              }}
                             />
                           </div>
                           <div className="flex items-center justify-between">
@@ -227,9 +257,14 @@ const SettingsPage = () => {
                             <Switch
                               id="updates"
                               checked={settings.notifications.updates}
-                              onCheckedChange={(checked) =>
-                                settings.setNotifications("updates", checked)
-                              }
+                              onCheckedChange={(checked) => {
+                                if (user?.uid) {
+                                  settings.setNotifications("updates", checked, user.uid);
+                                  toast.success('Update notifications updated');
+                                } else {
+                                  toast.error('Please sign in to save preferences');
+                                }
+                              }}
                             />
                           </div>
                           <div className="flex items-center justify-between">
@@ -237,9 +272,14 @@ const SettingsPage = () => {
                             <Switch
                               id="reminders"
                               checked={settings.notifications.reminders}
-                              onCheckedChange={(checked) =>
-                                settings.setNotifications("reminders", checked)
-                              }
+                              onCheckedChange={(checked) => {
+                                if (user?.uid) {
+                                  settings.setNotifications("reminders", checked, user.uid);
+                                  toast.success('Reminder notifications updated');
+                                } else {
+                                  toast.error('Please sign in to save preferences');
+                                }
+                              }}
                             />
                           </div>
                         </div>
