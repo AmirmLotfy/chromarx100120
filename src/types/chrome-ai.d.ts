@@ -29,6 +29,26 @@ declare namespace chrome {
       }>;
     }
 
+    export interface AILanguageDetectorCapabilities {
+      available: 'no' | 'readily' | 'after-download';
+      languageAvailable(language: string): 'no' | 'readily';
+    }
+
+    export interface AILanguageDetectorOptions {
+      monitor?(monitor: EventTarget): void;
+    }
+
+    export interface AILanguageDetectionResult {
+      detectedLanguage: string;
+      confidence: number;
+    }
+
+    export interface AILanguageDetector {
+      detect(text: string): Promise<AILanguageDetectionResult[]>;
+      ready: Promise<void>;
+      addEventListener(type: 'downloadprogress', listener: (e: { loaded: number; total: number }) => void): void;
+    }
+
     export interface AISummarizerCapabilities {
       available: 'no' | 'readily' | 'after-download';
     }
@@ -51,6 +71,11 @@ declare namespace chrome {
     export namespace languageModel {
       export function capabilities(): Promise<AILanguageModelCapabilities>;
       export function create(options?: AILanguageModelOptions): Promise<AILanguageModelSession>;
+    }
+
+    export namespace languageDetector {
+      export function capabilities(): Promise<AILanguageDetectorCapabilities>;
+      export function create(options?: AILanguageDetectorOptions): Promise<AILanguageDetector>;
     }
 
     export namespace summarizer {

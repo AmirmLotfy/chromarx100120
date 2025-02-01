@@ -1,34 +1,32 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { extractPageContent } from "./contentExtractor";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
+let aiSession: chrome.aiOriginTrial.AILanguageModelSession | null = null;
+let aiSummarizer: chrome.aiOriginTrial.AISummarizer | null = null;
+let aiLanguageDetector: chrome.aiOriginTrial.AILanguageDetector | null = null;
+
 const initializeAISession = async () => {
   try {
-    // Check if Chrome Prompt API is available
     if (chrome?.aiOriginTrial?.languageModel) {
       const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
       
       if (capabilities.available !== 'no') {
-        console.log('Using Chrome Prompt API with Gemini Nano');
-        return await chrome.aiOriginTrial.languageModel.create({
-          systemPrompt: 'You are a helpful AI assistant specialized in analyzing and organizing bookmarks.',
-          temperature: capabilities.defaultTemperature,
-          topK: capabilities.defaultTopK
+        console.log('Using Chrome AI Language Model API');
+        const session = await chrome.aiOriginTrial.languageModel.create({
+          systemPrompt: "You are a helpful AI assistant for a Chrome extension that manages bookmarks.",
+          temperature: 0.7,
+          topK: 40,
         });
+        return session;
       }
     }
-    
-    console.log('Using Gemini API');
-    return null; // Fallback to regular Gemini API
+    return null;
   } catch (error) {
     console.error('Error initializing AI session:', error);
     return null;
   }
 };
-
-let aiSession: chrome.aiOriginTrial.AILanguageModelSession | null = null;
-let aiSummarizer: chrome.aiOriginTrial.AISummarizer | null = null;
 
 const initializeSummarizer = async () => {
   try {
@@ -36,13 +34,14 @@ const initializeSummarizer = async () => {
       const capabilities = await chrome.aiOriginTrial.summarizer.capabilities();
       
       if (capabilities.available !== 'no') {
-        console.log('Using Chrome Summarizer API');
-        return await chrome.aiOriginTrial.summarizer.create({
+        console.log('Using Chrome AI Summarizer API');
+        const summarizer = await chrome.aiOriginTrial.summarizer.create({
           type: 'key-points',
           format: 'markdown',
           length: 'medium',
-          sharedContext: 'This is a bookmark summary'
         });
+        await summarizer.ready;
+        return summarizer;
       }
     }
     return null;
@@ -52,121 +51,131 @@ const initializeSummarizer = async () => {
   }
 };
 
-const getAIResponse = async (prompt: string) => {
+const initializeLanguageDetector = async () => {
+  try {
+    if (chrome?.aiOriginTrial?.languageDetector) {
+      const capabilities = await chrome.aiOriginTrial.languageDetector.capabilities();
+      
+      if (capabilities.available !== 'no') {
+        console.log('Using Chrome Language Detector API');
+        const detector = await chrome.aiOriginTrial.languageDetector.create({
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e) => {
+              console.log(`Language detector model download progress: ${e.loaded}/${e.total} bytes`);
+            });
+          }
+        });
+        await detector.ready;
+        return detector;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error initializing language detector:', error);
+    return null;
+  }
+};
+
+export const detectLanguage = async (text: string): Promise<string> => {
+  try {
+    if (!aiLanguageDetector) {
+      aiLanguageDetector = await initializeLanguageDetector();
+    }
+
+    if (aiLanguageDetector) {
+      // Using Chrome Language Detector API
+      const results = await aiLanguageDetector.detect(text);
+      const topResult = results[0];
+      console.log('Detected language:', topResult.detectedLanguage, 'with confidence:', topResult.confidence);
+      return topResult.detectedLanguage;
+    }
+
+    // Fallback to using Gemini API for language detection
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const prompt = `Detect the language of the following text and respond with ONLY the ISO 639-1 language code (e.g. 'en' for English, 'es' for Spanish, etc.):
+
+Text: "${text}"
+
+Language code:`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const languageCode = response.text().trim().toLowerCase();
+    console.log('Detected language (Gemini fallback):', languageCode);
+    return languageCode;
+  } catch (error) {
+    console.error('Error detecting language:', error);
+    throw error;
+  }
+};
+
+export const getAIResponse = async (prompt: string, language: string = 'en'): Promise<string> => {
   try {
     if (!aiSession) {
       aiSession = await initializeAISession();
     }
 
     if (aiSession) {
-      // Using Chrome Prompt API
-      return await aiSession.prompt(prompt);
-    } else {
-      // Fallback to regular Gemini API
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      // Using Chrome AI Language Model API
+      const response = await aiSession.prompt(prompt);
+      return response;
     }
+
+    // Fallback to using Gemini API
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    return response.text();
   } catch (error) {
     console.error('Error getting AI response:', error);
     throw error;
   }
 };
 
-export const summarizeContent = async (content: string, language: string = 'en', contentType: string = 'general') => {
+export const summarizeContent = async (content: string, language: string = 'en'): Promise<string> => {
   try {
     if (!aiSummarizer) {
       aiSummarizer = await initializeSummarizer();
     }
 
     if (aiSummarizer) {
-      // Using Chrome Summarizer API
-      return await aiSummarizer.summarize(content, {
-        context: `This is ${contentType} content in ${language} language.`
-      });
+      // Using Chrome AI Summarizer API
+      const summary = await aiSummarizer.summarize(content);
+      return summary;
     }
 
-    // Fallback to using Prompt API or Gemini API
-    const prompt = `
-As an expert content summarizer, create a comprehensive yet concise summary of the following ${contentType} content in ${language}.
-Focus on the key points and main ideas while maintaining clarity and coherence.
-If the content is technical, preserve important technical details.
-If it's an article or blog post, capture the main arguments and conclusions.
+    // Fallback to using Gemini API for summarization
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const prompt = `Please provide a concise summary of the following content in ${language}:
 
-Content to summarize:
 ${content}
 
-Provide a summary that is:
-- Clear and well-structured
-- 2-3 sentences long
-- Captures the essential information
-- Maintains the original tone and technical accuracy where relevant
+Summary:`;
 
-Important: Generate the summary in ${language}.
-`;
-
-    return await getAIResponse(prompt);
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    return response.text();
   } catch (error) {
     console.error('Error summarizing content:', error);
     throw error;
   }
 };
 
-export const summarizeBookmark = async (
-  title: string,
-  url: string,
-  language: string = 'en'
-) => {
+export const suggestBookmarkCategory = async (title: string, url: string, language: string = 'en'): Promise<string> => {
   try {
-    // Extract page content
-    const pageContent = await extractPageContent(url);
-    
-    // Determine content type based on URL or content analysis
-    const contentType = url.includes('github.com') ? 'technical' : 
-                       url.includes('medium.com') ? 'article' : 'general';
-    
-    // Combine title and content for context
-    const fullContent = `
-Title: ${title}
-URL: ${url}
-Content: ${pageContent}
-    `.trim();
-    
-    return await summarizeContent(fullContent, language, contentType);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const prompt = `Given the following bookmark title and URL, suggest a single category that best describes it. Respond with ONLY the category name in ${language}, using one of these categories: Work, Personal, Shopping, News, Technology, Entertainment, Education, Finance, Travel, Social Media, Health, Reference.
+
+Title: "${title}"
+URL: "${url}"
+
+Category:`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    return response.text().trim();
   } catch (error) {
-    console.error('Error summarizing bookmark:', error);
-    // Fallback to title-only summary if content extraction fails
-    return summarizeContent(`${title}\n${url}`, language, 'general');
+    console.error('Error suggesting bookmark category:', error);
+    throw error;
   }
-};
-
-export const suggestBookmarkCategory = async (
-  title: string,
-  url: string,
-  language: string = 'en'
-) => {
-  const prompt = `
-Analyze this content and suggest the most appropriate single category in ${language}.
-Consider both the title and content when determining the category.
-Choose from common bookmark categories like:
-- Technology
-- Development
-- Business
-- Education
-- Entertainment
-- News
-- Science
-- Health
-- Travel
-Or suggest a more specific category if clearly warranted.
-
-Content to categorize:
-Title: ${title}
-URL: ${url}
-
-Important: Respond with just the category name in ${language}, no explanation.
-`;
-
-  return await getAIResponse(prompt);
 };
