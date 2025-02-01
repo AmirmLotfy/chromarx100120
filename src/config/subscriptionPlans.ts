@@ -1,5 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { chromeDb } from '@/lib/chrome-storage';
 
 export interface PlanFeature {
   name: string;
@@ -130,8 +129,8 @@ export const getPlanById = (planId: string): Plan | undefined => {
 
 export const checkFeatureAccess = async (userId: string, feature: string): Promise<boolean> => {
   try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    const currentPlan = userDoc.data()?.currentPlan || 'basic';
+    const userData = await chromeDb.get<{ currentPlan: string }>('user');
+    const currentPlan = userData?.currentPlan || 'basic';
     return getFeatureAvailability(currentPlan, feature);
   } catch (error) {
     console.error('Error checking feature access:', error);
