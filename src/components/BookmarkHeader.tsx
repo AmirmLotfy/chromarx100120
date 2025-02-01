@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Download, BookmarkPlus } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Download } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -54,12 +54,61 @@ const BookmarkHeader = ({
   const isMobile = useIsMobile();
   const [newSummariesCount, setNewSummariesCount] = useState(0);
 
+  const handleImportBookmarks = async () => {
+    if (!chrome.bookmarks) {
+      toast.error("Chrome bookmarks API not available");
+      return;
+    }
+
+    try {
+      const bookmarks = await chrome.bookmarks.getTree();
+      // Process the bookmarks tree
+      onImport();
+      toast.success("Bookmarks imported successfully!");
+    } catch (error) {
+      toast.error("Failed to import bookmarks");
+    }
+  };
+
+  const handleExportBookmarks = async () => {
+    if (selectedBookmarks.length === 0) {
+      toast.error("Please select bookmarks to export");
+      return;
+    }
+
+    try {
+      const bookmarksData = selectedBookmarks.map(bookmark => ({
+        title: bookmark.title,
+        url: bookmark.url,
+        dateAdded: bookmark.dateAdded,
+        category: bookmark.category
+      }));
+
+      // Create a Blob with the bookmarks data
+      const blob = new Blob([JSON.stringify(bookmarksData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a download link and trigger it
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bookmarks-export.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Bookmarks exported successfully!");
+    } catch (error) {
+      toast.error("Failed to export bookmarks");
+    }
+  };
+
   return (
-    <div className="space-y-4 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pt-4 pb-2 px-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Bookmark className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-semibold">Bookmarks</h1>
+    <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pt-4">
+      <div className="flex items-center justify-between gap-1.5 flex-wrap px-2">
+        <div className="flex items-center gap-1.5">
+          <Bookmark className="h-4 w-4 text-primary" />
+          <h1 className="text-base font-semibold">Bookmarks</h1>
           {selectedBookmarksCount > 0 && (
             <Badge variant="secondary" className="ml-1">
               {selectedBookmarksCount} selected
@@ -67,71 +116,86 @@ const BookmarkHeader = ({
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <SummariesButton newSummariesCount={newSummariesCount} />
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={onCreateFolder}
-                  className="h-9 w-9"
+                  onClick={handleImportBookmarks}
+                  className="h-7 w-7"
                 >
-                  <FolderPlus className="h-4 w-4" />
+                  <Import className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Create new folder</TooltipContent>
+              <TooltipContent>Import Chrome bookmarks</TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={onImport}
-                  className="h-9 w-9"
-                >
-                  <Import className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Import bookmarks</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => onViewChange(view === "grid" ? "list" : "grid")}
-                  className="h-9 w-9"
-                >
-                  {view === "grid" ? (
-                    <Grid className="h-4 w-4" />
-                  ) : (
-                    <List className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Toggle view</TooltipContent>
-            </Tooltip>
+            {selectedBookmarksCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleExportBookmarks}
+                    className="h-7 w-7"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Export selected bookmarks</TooltipContent>
+              </Tooltip>
+            )}
           </TooltipProvider>
+
+          {isMobile ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="h-7 w-7">
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <div className="space-y-4">
+                  <h2 className="font-medium">Actions</h2>
+                  <div className="grid grid-cols-1 gap-2">
+                    <AIActionButtons 
+                      selectedBookmarks={selectedBookmarks}
+                      onUpdateCategories={onUpdateCategories}
+                    />
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <div className="flex items-center gap-1">
+              <AIActionButtons 
+                selectedBookmarks={selectedBookmarks}
+                onUpdateCategories={onUpdateCategories}
+              />
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <div className="relative mt-2 px-2">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
-          className="pl-9 pr-4 h-10 text-base bg-muted/50"
+          className="pl-8 w-full h-8 text-sm"
+          aria-label="Search bookmarks"
         />
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-lg shadow-lg z-10">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
-                className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-lg last:rounded-b-lg text-sm"
+                className="w-full px-3 py-1.5 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md text-sm"
                 onClick={() => onSelectSuggestion(suggestion)}
               >
                 {suggestion}
@@ -140,15 +204,6 @@ const BookmarkHeader = ({
           </div>
         )}
       </div>
-
-      {selectedBookmarksCount > 0 && (
-        <div className="flex items-center gap-2 animate-fade-in">
-          <AIActionButtons 
-            selectedBookmarks={selectedBookmarks}
-            onUpdateCategories={onUpdateCategories}
-          />
-        </div>
-      )}
     </div>
   );
 };

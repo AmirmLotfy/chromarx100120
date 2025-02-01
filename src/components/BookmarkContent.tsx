@@ -10,7 +10,6 @@ import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
-import { ScrollArea } from "./ui/scroll-area";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -56,80 +55,95 @@ const BookmarkContent = ({
   const isMobile = useIsMobile();
 
   const FilterPanel = () => (
-    <ScrollArea className="h-[calc(100vh-6rem)]">
-      <div className="space-y-6 p-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Categories</Label>
-            <BookmarkCategories
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={onSelectCategory}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Domains</Label>
-            <BookmarkDomains
-              domains={domains}
-              selectedDomain={selectedDomain}
-              onSelectDomain={onSelectDomain}
-            />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Date Added</Label>
-            <Select defaultValue="all">
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by date" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="space-y-4 w-full max-w-full">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Search Bookmarks</Label>
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search..." className="pl-8" />
           </div>
         </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Date Added</Label>
+          <Select defaultValue="all">
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by date" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border">
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Categories</Label>
+          <BookmarkCategories
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={onSelectCategory}
+          />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Domains</Label>
+          <BookmarkDomains
+            domains={domains}
+            selectedDomain={selectedDomain}
+            onSelectDomain={onSelectDomain}
+          />
+        </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 
   return (
-    <div className="flex gap-6">
-      {isMobile ? (
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="mb-4">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] p-0">
+    <div className="space-y-1 sm:space-y-2 w-full max-w-full">
+      <div className="flex flex-row gap-1 sm:gap-1.5 items-center justify-between">
+        {isMobile ? (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+            </SheetTrigger>
+            <SheetContent 
+              side="left" 
+              className="w-[280px] sm:w-[320px] p-4"
+            >
+              <SheetHeader className="mb-4">
+                <SheetTitle>Filter Bookmarks</SheetTitle>
+              </SheetHeader>
+              <FilterPanel />
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <div className="bg-card rounded-lg border p-4 w-[280px]">
             <FilterPanel />
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <div className="w-[280px] border-r min-h-[calc(100vh-8rem)] hidden md:block">
-          <FilterPanel />
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
-      <div className="flex-1 min-h-[200px] pr-4">
+      <div className="min-h-[200px] w-full max-w-full overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-[200px] text-muted-foreground">
             Loading bookmarks...
           </div>
         ) : filteredBookmarks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground space-y-2">
-            <Bookmark className="h-8 w-8" />
-            <p>No bookmarks found</p>
+          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+            No bookmarks found
           </div>
         ) : (
           <BookmarkList
