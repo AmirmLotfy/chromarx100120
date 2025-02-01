@@ -10,56 +10,59 @@ const Navigation = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-primary/10 py-2 px-2 z-50 md:relative md:border-t-0 transition-all duration-200 ease-in-out"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:relative md:border-t-0"
       role="navigation"
       aria-label="Main navigation"
     >
-      <div className="container mx-auto flex justify-between items-center max-w-7xl gap-2">
+      <div className="container mx-auto flex max-w-screen-xl items-center justify-around py-2">
         <Link 
           to="/" 
-          className="flex-1"
+          className="flex flex-1 flex-col items-center"
           aria-label="Home"
           aria-current={isActive("/") ? "page" : undefined}
         >
           <Button
             variant={isActive("/") ? "default" : "ghost"}
             size="icon"
-            className={`w-full h-14 md:h-12 flex items-center justify-center transition-all duration-200 
-              ${isActive("/") ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-accent hover:text-accent-foreground"}`}
+            className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all md:h-10
+              ${isActive("/") ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
           >
-            <Home className="h-6 w-6" />
+            <Home className="h-5 w-5" />
+            <span className="text-xs font-medium">Home</span>
           </Button>
         </Link>
 
         <Link 
           to="/bookmarks" 
-          className="flex-1"
+          className="flex flex-1 flex-col items-center"
           aria-label="Bookmarks"
           aria-current={isActive("/bookmarks") ? "page" : undefined}
         >
           <Button
             variant={isActive("/bookmarks") ? "default" : "ghost"}
             size="icon"
-            className={`w-full h-14 md:h-12 flex items-center justify-center transition-all duration-200 
-              ${isActive("/bookmarks") ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-accent hover:text-accent-foreground"}`}
+            className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all md:h-10
+              ${isActive("/bookmarks") ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
           >
-            <BookmarkIcon className="h-6 w-6" />
+            <BookmarkIcon className="h-5 w-5" />
+            <span className="text-xs font-medium">Bookmarks</span>
           </Button>
         </Link>
 
         <Link 
           to="/settings" 
-          className="flex-1"
+          className="flex flex-1 flex-col items-center"
           aria-label="Settings"
           aria-current={isActive("/settings") ? "page" : undefined}
         >
           <Button
             variant={isActive("/settings") ? "default" : "ghost"}
             size="icon"
-            className={`w-full h-14 md:h-12 flex items-center justify-center transition-all duration-200 
-              ${isActive("/settings") ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-accent hover:text-accent-foreground"}`}
+            className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all md:h-10
+              ${isActive("/settings") ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
           >
-            <Settings className="h-6 w-6" />
+            <Settings className="h-5 w-5" />
+            <span className="text-xs font-medium">Settings</span>
           </Button>
         </Link>
       </div>

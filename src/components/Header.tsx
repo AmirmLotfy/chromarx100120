@@ -10,13 +10,12 @@ const Header = () => {
   const { user } = useFirebase();
 
   const toggleTheme = () => {
-    console.log("Current theme:", theme);
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between px-4 sm:px-6">
+      <div className="container flex h-14 max-w-screen-xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <img 
             src="/lovable-uploads/c57439a4-ac35-4ae6-ac00-dd8f5ef8a360.png" 
@@ -25,17 +24,17 @@ const Header = () => {
           />
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <LanguageSelector />
           
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            className="h-9 w-9 md:h-10 md:w-10"
+            className="h-9 w-9 rounded-full"
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
 
