@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { extractPageContent } from "./contentExtractor";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
 
@@ -26,7 +27,7 @@ const initializeAISession = async () => {
   }
 };
 
-let aiSession: any = null;
+let aiSession: chrome.aiOriginTrial.AILanguageModelSession | null = null;
 
 const getAIResponse = async (prompt: string) => {
   try {
