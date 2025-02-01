@@ -67,26 +67,24 @@ const CompactServiceBanner = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-end justify-center gap-2 h-full">
-            <div className="flex-1 flex items-center">
-              <a
-                href={currentService.affiliateUrl}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                className="group/link flex items-center gap-1.5 bg-primary hover:bg-primary/90 px-3 py-1.5 rounded-lg transition-all duration-300 shadow-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log(`Learn More button clicked: ${currentService.id}`);
-                }}
-              >
-                <span className="text-sm font-medium text-primary-foreground">
-                  Learn More
-                </span>
-                <ExternalLink 
-                  className="h-3.5 w-3.5 text-primary-foreground transition-transform group-hover/link:translate-x-0.5" 
-                />
-              </a>
-            </div>
+          <div className="flex flex-col items-end justify-between h-full py-2">
+            <a
+              href={currentService.affiliateUrl}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="group/link flex items-center gap-1.5 bg-primary hover:bg-primary/90 px-3 py-1.5 rounded-lg transition-all duration-300 shadow-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log(`Learn More button clicked: ${currentService.id}`);
+              }}
+            >
+              <span className="text-sm font-medium text-primary-foreground">
+                Learn More
+              </span>
+              <ExternalLink 
+                className="h-3.5 w-3.5 text-primary-foreground transition-transform group-hover/link:translate-x-0.5" 
+              />
+            </a>
             <Button
               variant="secondary"
               size="sm"
