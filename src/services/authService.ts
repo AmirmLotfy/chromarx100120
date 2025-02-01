@@ -1,13 +1,6 @@
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  User
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
 import { toast } from 'sonner';
+import { chromeDb } from '@/lib/chrome-storage';
+import { auth } from '@/lib/chrome-utils';
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
@@ -18,41 +11,38 @@ export interface UserPreferences {
 
 export const signInWithGoogle = async () => {
   try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+    const user = await auth.signIn();
     
-    // Create or update user document
-    const userRef = doc(db, 'users', result.user.uid);
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-      });
+    if (user) {
+      // Create or update user data in chrome storage
+      const userData = await chromeDb.get('user');
+      if (!userData) {
+        await chromeDb.set('user', {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+        });
 
-      // Set default preferences
-      const prefsRef = doc(db, 'preferences', result.user.uid);
-      await setDoc(prefsRef, {
-        theme: 'system',
-        notifications: true,
-        summarizationEnabled: true,
-        language: 'en',
-      });
-    } else {
-      // Update last login
-      await setDoc(userRef, {
-        lastLogin: new Date().toISOString()
-      }, { merge: true });
+        // Set default preferences
+        await chromeDb.set('settings', {
+          theme: 'system',
+          notifications: true,
+          summarizationEnabled: true,
+          language: 'en',
+        });
+      } else {
+        await chromeDb.update('user', {
+          lastLogin: new Date().toISOString()
+        });
+      }
     }
 
     toast.success('Successfully signed in!');
-    return result.user;
+    return user;
   } catch (error: any) {
-    console.error('Error signing in with Google:', error);
+    console.error('Error signing in:', error);
     toast.error(error.message || 'Failed to sign in');
     throw error;
   }
@@ -60,7 +50,8 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
-    await firebaseSignOut(auth);
+    await auth.signOut();
+    await chromeDb.remove('user');
     toast.success('Successfully signed out');
   } catch (error: any) {
     console.error('Error signing out:', error);
@@ -69,11 +60,15 @@ export const signOut = async () => {
   }
 };
 
-export const getCurrentUser = (): User | null => {
-  return auth.currentUser;
+export const getCurrentUser = () => {
+  return auth.getCurrentUser();
 };
 
-// Subscribe to auth state changes
-export const onAuthStateChange = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, callback);
+export const onAuthStateChange = (callback: (user: any) => void) => {
+  // Chrome doesn't have a direct auth state listener, so we'll check on storage changes
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.user) {
+      callback(changes.user.newValue);
+    }
+  });
 };

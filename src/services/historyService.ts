@@ -1,64 +1,31 @@
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
-  orderBy,
-  onSnapshot,
-  Timestamp 
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { chromeDb } from '@/lib/chrome-storage';
 
-interface TermsHistory {
-  userId: string;
-  url: string;
-  title: string;
-  timestamp: Timestamp;
-  summary?: string;
-}
-
-export const addToHistory = async (
-  userId: string,
-  url: string,
-  title: string,
-  summary?: string
-): Promise<void> => {
-  const historyRef = collection(db, 'history');
-  await addDoc(historyRef, {
-    userId,
-    url,
-    title,
-    timestamp: Timestamp.now(),
-    summary
-  });
+export const getHistory = async (userId: string) => {
+  try {
+    const history = await chromeDb.get('history');
+    return history || [];
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    throw new Error('Failed to fetch history');
+  }
 };
 
-export const getUserHistory = async (userId: string): Promise<TermsHistory[]> => {
-  const historyRef = collection(db, 'history');
-  const q = query(
-    historyRef,
-    where('userId', '==', userId),
-    orderBy('timestamp', 'desc')
-  );
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => doc.data() as TermsHistory);
+export const addHistoryItem = async (userId: string, item: any) => {
+  try {
+    const history = await getHistory(userId);
+    history.push(item);
+    await chromeDb.set('history', history);
+  } catch (error) {
+    console.error('Error adding history item:', error);
+    throw new Error('Failed to add history item');
+  }
 };
 
-export const subscribeToHistory = (
-  userId: string,
-  callback: (history: TermsHistory[]) => void
-) => {
-  const historyRef = collection(db, 'history');
-  const q = query(
-    historyRef,
-    where('userId', '==', userId),
-    orderBy('timestamp', 'desc')
-  );
-  
-  return onSnapshot(q, (querySnapshot) => {
-    const history = querySnapshot.docs.map(doc => doc.data() as TermsHistory);
-    callback(history);
-  });
+export const clearHistory = async (userId: string) => {
+  try {
+    await chromeDb.set('history', []);
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    throw new Error('Failed to clear history');
+  }
 };

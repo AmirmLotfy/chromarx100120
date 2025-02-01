@@ -1,36 +1,24 @@
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { chromeDb } from '@/lib/chrome-storage';
+import { toast } from 'sonner';
 
-export interface PrivacySettings {
-  dataCollection: boolean;
-  notifications: {
-    bookmarks: boolean;
-    updates: boolean;
-    reminders: boolean;
-  }
-}
-
-export const savePrivacySettings = async (userId: string, settings: PrivacySettings) => {
+export const savePrivacySettings = async (userId: string, settings: any) => {
   try {
-    console.log('Saving privacy settings:', settings);
-    const docRef = doc(db, 'preferences', userId);
-    await setDoc(docRef, { privacy: settings }, { merge: true });
-    return true;
+    await chromeDb.set('privacySettings', {
+      userId,
+      ...settings,
+      updatedAt: new Date().toISOString(),
+    });
+    toast.success('Privacy settings saved successfully');
   } catch (error) {
     console.error('Error saving privacy settings:', error);
-    return false;
+    toast.error('Failed to save privacy settings');
   }
 };
 
-export const getPrivacySettings = async (userId: string): Promise<PrivacySettings | null> => {
+export const getPrivacySettings = async (userId: string) => {
   try {
-    const docRef = doc(db, 'preferences', userId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      return data.privacy as PrivacySettings;
-    }
-    return null;
+    const settings = await chromeDb.get('privacySettings');
+    return settings?.userId === userId ? settings : null;
   } catch (error) {
     console.error('Error getting privacy settings:', error);
     return null;

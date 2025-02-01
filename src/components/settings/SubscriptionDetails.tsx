@@ -3,8 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useFirebase } from "@/contexts/FirebaseContext";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { chromeDb } from "@/lib/chrome-storage";
 import { getPlanById, subscriptionPlans } from "@/config/subscriptionPlans";
 import { ArrowUpCircle, Calendar, CreditCard } from "lucide-react";
 import { toast } from "sonner";
@@ -31,19 +30,19 @@ const SubscriptionDetails = () => {
       if (!user) return;
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const subscriptionDoc = await getDoc(doc(db, 'subscriptions', userDoc.data()?.currentSubscription || 'free'));
+        const userDoc = await chromeDb.get('user');
+        const subscriptionDoc = await chromeDb.get('subscriptions');
         
-        if (subscriptionDoc.exists()) {
+        if (subscriptionDoc) {
           setSubscriptionData({
-            status: subscriptionDoc.data().status,
-            currentPlan: subscriptionDoc.data().planId,
-            startDate: new Date(subscriptionDoc.data().createdAt).toLocaleDateString(),
-            endDate: new Date(subscriptionDoc.data().endDate).toLocaleDateString(),
+            status: subscriptionDoc.status,
+            currentPlan: subscriptionDoc.planId,
+            startDate: new Date(subscriptionDoc.createdAt).toLocaleDateString(),
+            endDate: new Date(subscriptionDoc.endDate).toLocaleDateString(),
             usage: {
-              bookmarks: subscriptionDoc.data().usage?.bookmarks || 0,
-              tasks: subscriptionDoc.data().usage?.tasks || 0,
-              notes: subscriptionDoc.data().usage?.notes || 0,
+              bookmarks: subscriptionDoc.usage?.bookmarks || 0,
+              tasks: subscriptionDoc.usage?.tasks || 0,
+              notes: subscriptionDoc.usage?.notes || 0,
             }
           });
         }

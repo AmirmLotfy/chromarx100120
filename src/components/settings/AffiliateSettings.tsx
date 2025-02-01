@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { chromeDb } from "@/lib/chrome-storage";
 import { AffiliateProduct } from "@/config/affiliateContent";
 
 const AffiliateSettings = () => {
@@ -25,7 +24,7 @@ const AffiliateSettings = () => {
 
   const loadAffiliateContent = async () => {
     try {
-      const docRef = doc(db, "config", "affiliateContent");
+      const docRef = doc(chromeDb, "config", "affiliateContent");
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setProducts(docSnap.data().products || []);
@@ -38,7 +37,7 @@ const AffiliateSettings = () => {
 
   const saveAffiliateContent = async () => {
     try {
-      const docRef = doc(db, "config", "affiliateContent");
+      const docRef = doc(chromeDb, "config", "affiliateContent");
       await setDoc(docRef, { products });
       toast.success("Affiliate content saved successfully");
     } catch (error) {

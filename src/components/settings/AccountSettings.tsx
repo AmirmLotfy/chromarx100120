@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { updateProfile } from "firebase/auth";
+import { chromeDb } from "@/lib/chrome-storage";
 
 const AccountSettings = () => {
   const { user } = useFirebase();
@@ -16,7 +16,7 @@ const AccountSettings = () => {
   const handleUpdateProfile = async () => {
     try {
       if (user) {
-        await updateProfile(user, {
+        await chromeDb.update('user', {
           displayName: displayName,
         });
         toast({

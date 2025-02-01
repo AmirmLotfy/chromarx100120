@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { MessageSquare, HelpCircle } from "lucide-react";
 import { useFirebase } from "@/contexts/FirebaseContext";
+import { chromeDb } from "@/lib/chrome-storage";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
