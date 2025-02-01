@@ -207,26 +207,29 @@ const SettingsPage = () => {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <TooltipProvider>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between p-4 bg-accent rounded-lg border border-accent-foreground/10 hover:border-accent-foreground/20 transition-colors">
                         <div className="space-y-1">
-                          <Label>Data Collection</Label>
+                          <Label className="text-lg font-semibold">Data Collection</Label>
                           <p className="text-sm text-muted-foreground">
                             Allow anonymous usage data collection
                           </p>
                         </div>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Switch
-                              checked={settings.dataCollection}
-                              onCheckedChange={(checked) => {
-                                if (user?.uid) {
-                                  settings.setDataCollection(checked, user.uid);
-                                  toast.success('Data collection preference updated');
-                                } else {
-                                  toast.error('Please sign in to save preferences');
-                                }
-                              }}
-                            />
+                            <div className="relative">
+                              <Switch
+                                className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                                checked={settings.dataCollection}
+                                onCheckedChange={(checked) => {
+                                  if (user?.uid) {
+                                    settings.setDataCollection(checked, user.uid);
+                                    toast.success('Data collection preference updated');
+                                  } else {
+                                    toast.error('Please sign in to save preferences');
+                                  }
+                                }}
+                              />
+                            </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Help improve ChroMarx by sharing anonymous usage data</p>
