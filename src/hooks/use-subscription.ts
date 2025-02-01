@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/contexts/FirebaseContext';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
-import { subscriptionPlans, getFeatureAvailability } from '@/config/subscriptionPlans';
 
 interface UsageData {
   bookmarks: number;
@@ -38,19 +35,15 @@ export const useSubscription = (): SubscriptionHook => {
       }
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const subscriptionId = userDoc.data()?.currentSubscription;
+        const { [`subscription_${user.id}`]: subscriptionData } = await chrome.storage.sync.get(`subscription_${user.id}`);
         
-        if (subscriptionId) {
-          const subscriptionDoc = await getDoc(doc(db, 'subscriptions', subscriptionId));
-          if (subscriptionDoc.exists()) {
-            setCurrentPlan(subscriptionDoc.data().planId);
-            setUsage(subscriptionDoc.data().usage || {
-              bookmarks: 0,
-              tasks: 0,
-              notes: 0
-            });
-          }
+        if (subscriptionData) {
+          setCurrentPlan(subscriptionData.planId);
+          setUsage(subscriptionData.usage || {
+            bookmarks: 0,
+            tasks: 0,
+            notes: 0
+          });
         }
       } catch (error) {
         console.error('Error fetching subscription data:', error);
@@ -67,20 +60,21 @@ export const useSubscription = (): SubscriptionHook => {
     if (!user) return false;
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const subscriptionId = userDoc.data()?.currentSubscription;
+      const { [`subscription_${user.id}`]: subscriptionData } = await chrome.storage.sync.get(`subscription_${user.id}`);
+      const newUsage = {
+        ...usage,
+        [type]: (usage[type] || 0) + 1
+      };
       
-      if (subscriptionId) {
-        await updateDoc(doc(db, 'subscriptions', subscriptionId), {
-          [`usage.${type}`]: increment(1)
-        });
-        setUsage(prev => ({
-          ...prev,
-          [type]: prev[type] + 1
-        }));
-        return true;
-      }
-      return false;
+      await chrome.storage.sync.set({
+        [`subscription_${user.id}`]: {
+          ...subscriptionData,
+          usage: newUsage
+        }
+      });
+      
+      setUsage(newUsage);
+      return true;
     } catch (error) {
       console.error('Error incrementing usage:', error);
       return false;
@@ -90,17 +84,8 @@ export const useSubscription = (): SubscriptionHook => {
   const checkFeatureAccess = async (feature: string): Promise<boolean> => {
     if (!user) return false;
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const subscriptionId = userDoc.data()?.currentSubscription;
-      
-      if (subscriptionId) {
-        const subscriptionDoc = await getDoc(doc(db, 'subscriptions', subscriptionId));
-        if (subscriptionDoc.exists()) {
-          const planId = subscriptionDoc.data().planId;
-          return getFeatureAvailability(planId, feature);
-        }
-      }
-      return false;
+      const { [`subscription_${user.id}`]: subscriptionData } = await chrome.storage.sync.get(`subscription_${user.id}`);
+      return subscriptionData?.features?.includes(feature) || false;
     } catch (error) {
       console.error('Error checking feature access:', error);
       return false;
@@ -108,12 +93,23 @@ export const useSubscription = (): SubscriptionHook => {
   };
 
   const hasReachedLimit = (type: keyof UsageData): boolean => {
-    const plan = subscriptionPlans.find(p => p.id === currentPlan);
-    if (!plan || !plan.limits) return true;
+    const limits = {
+      basic: {
+        bookmarks: 100,
+        tasks: 50,
+        notes: 25
+      },
+      pro: {
+        bookmarks: -1, // unlimited
+        tasks: -1,
+        notes: -1
+      }
+    };
     
-    const limit = plan.limits[type];
+    const currentLimits = limits[currentPlan as keyof typeof limits] || limits.basic;
+    const limit = currentLimits[type];
     if (limit === -1) return false; // Unlimited
-    return usage[type] >= limit;
+    return (usage[type] || 0) >= limit;
   };
 
   return {

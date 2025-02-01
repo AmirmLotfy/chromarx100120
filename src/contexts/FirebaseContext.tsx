@@ -1,9 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+
+interface User {
+  id: string;
+  email: string;
+  displayName: string | null;
+  photoURL: string | null;
+}
 
 interface FirebaseContextType {
   user: User | null;
@@ -27,66 +31,59 @@ export const FirebaseProvider = ({ children }: { children: React.ReactNode }) =>
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
-  const checkAdminStatus = async (uid: string) => {
+  const checkAdminStatus = async (userId: string) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      return userDoc.data()?.isAdmin || false;
+      const { adminUsers } = await chrome.storage.sync.get('adminUsers');
+      return adminUsers?.includes(userId) || false;
     } catch (error) {
       console.error('Error checking admin status:', error);
       return false;
     }
   };
 
-  useEffect(() => {
-    setPersistence(auth, browserLocalPersistence).catch((error) => {
-      console.error('Error setting persistence:', error);
-    });
-  }, []);
-
   const signInWithGoogle = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-
       console.log('Starting Google sign in process...');
-      const result = await signInWithPopup(auth, provider);
-      console.log('Sign in successful:', result.user.email);
+      const token = await chrome.identity.getAuthToken({ interactive: true });
       
-      const userRef = doc(db, 'users', result.user.uid);
-      const userDoc = await getDoc(userRef);
+      // Fetch user info from Google
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token.token}` }
+      });
       
-      if (!userDoc.exists()) {
-        console.log('Creating new user document...');
-        await setDoc(userRef, {
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
+      const userData = await response.json();
+      console.log('Sign in successful:', userData.email);
+      
+      const user = {
+        id: userData.sub,
+        email: userData.email,
+        displayName: userData.name,
+        photoURL: userData.picture
+      };
+
+      // Store user data
+      await chrome.storage.sync.set({
+        currentUser: user,
+        [`user_${user.id}`]: {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
           createdAt: new Date().toISOString(),
           subscriptionStatus: 'free',
           preferences: {},
           lastSyncedBookmarks: null,
-          isAdmin: false, // Default to non-admin
-        });
-      }
+        }
+      });
       
-      const adminStatus = await checkAdminStatus(result.user.uid);
+      const adminStatus = await checkAdminStatus(user.id);
       setIsAdmin(adminStatus);
+      setUser(user);
       
       toast.success('Successfully signed in!');
       navigate('/bookmarks');
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      
-      if (error.code === 'auth/popup-blocked') {
-        toast.error('Please allow popups for this site to sign in');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        toast.error('Sign in was cancelled');
-      } else {
-        toast.error('Failed to sign in with Google');
-      }
-      
+      toast.error('Failed to sign in with Google');
       throw error;
     }
   };
@@ -94,8 +91,10 @@ export const FirebaseProvider = ({ children }: { children: React.ReactNode }) =>
   const signOut = async () => {
     try {
       console.log('Starting sign out process...');
-      await auth.signOut();
+      await chrome.identity.removeCachedAuthToken({ token: await chrome.identity.getAuthToken({ interactive: false }) });
+      setUser(null);
       setIsAdmin(false);
+      await chrome.storage.sync.remove('currentUser');
       console.log('Sign out successful');
       toast.success('Successfully signed out');
       navigate('/');
@@ -106,18 +105,23 @@ export const FirebaseProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   useEffect(() => {
-    console.log('Setting up auth state listener...');
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      console.log('Auth state changed:', user?.email || 'No user');
-      setUser(user);
-      if (user) {
-        const adminStatus = await checkAdminStatus(user.uid);
-        setIsAdmin(adminStatus);
+    const initializeAuth = async () => {
+      try {
+        console.log('Checking auth state...');
+        const { currentUser } = await chrome.storage.sync.get('currentUser');
+        if (currentUser) {
+          setUser(currentUser);
+          const adminStatus = await checkAdminStatus(currentUser.id);
+          setIsAdmin(adminStatus);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
 
-    return unsubscribe;
+    initializeAuth();
   }, []);
 
   return (
