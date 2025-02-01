@@ -1,79 +1,18 @@
-import { ChromeBookmark } from "@/types/bookmark";
-
-export const summarizeContent = async (content: string): Promise<string> => {
+export const summarizeContent = async (prompt: string): Promise<string> => {
   try {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('PERPLEXITY_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant that provides concise and accurate summaries.'
-          },
-          {
-            role: 'user',
-            content: `Please summarize the following content: ${content}`
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to get AI response');
+    if (!chrome?.aiOriginTrial?.languageModel) {
+      throw new Error('Chrome AI API not available');
     }
 
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error summarizing content:', error);
-    throw error;
-  }
-};
-
-export const summarizeBookmark = async (content: string): Promise<string> => {
-  return summarizeContent(content);
-};
-
-export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
-  try {
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('PERPLEXITY_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-small-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant that suggests categories for bookmarks. Respond with just the category name.'
-          },
-          {
-            role: 'user',
-            content: `Suggest a single category for this bookmark:\nTitle: ${title}\nURL: ${url}`
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 100,
-      }),
+    const model = await chrome.aiOriginTrial.languageModel.create({
+      systemPrompt: "You are a helpful AI assistant that helps users find and understand their bookmarks. Always provide concise and relevant responses.",
+      temperature: 0.7
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to get AI response');
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
+    const response = await model.prompt(prompt);
+    return response;
   } catch (error) {
-    console.error('Error suggesting category:', error);
-    throw error;
+    console.error('Error using Chrome AI API:', error);
+    return "I apologize, but I'm having trouble accessing the AI service at the moment. Please try again later.";
   }
 };

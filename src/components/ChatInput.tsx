@@ -44,8 +44,8 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
               setInputValue(e.target.value);
               setOpen(e.target.value.length > 0);
             }}
-            placeholder="Ask me anything..."
-            className="flex-1 pr-24 bg-background/50 backdrop-blur-sm border-muted"
+            placeholder="Ask me anything about your bookmarks..."
+            className="flex-1 pr-24 bg-white dark:bg-accent text-foreground border-2 border-primary/20 focus:border-primary shadow-sm focus:ring-2 focus:ring-primary/20 rounded-xl h-12 text-base"
             disabled={isProcessing}
           />
         </PopoverTrigger>
@@ -73,9 +73,9 @@ const ChatInput = ({ onSendMessage, isProcessing, suggestions }: ChatInputProps)
       </Popover>
       <Button 
         type="submit" 
-        size="icon" 
+        size="icon"
         disabled={isProcessing}
-        className="absolute right-1 top-1 h-8 w-8"
+        className="absolute right-1 top-1 h-10 w-10 bg-primary hover:bg-primary/90"
       >
         <Send className="h-4 w-4" />
       </Button>
