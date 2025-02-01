@@ -32,10 +32,10 @@ const TimeManagement = () => {
   ];
 
   const renderContent = () => (
-    <ScrollArea className="h-[calc(100vh-22rem)]">
-      <div className="space-y-4 px-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] px-4 md:px-6">
+      <div className="space-y-6">
         {activeTab === "custom" && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <AITimerSuggestions onSuggestion={handleAISuggestion} />
             <CustomTimer initialMinutes={suggestedDuration} />
           </div>
@@ -48,11 +48,11 @@ const TimeManagement = () => {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {isMobile ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger className="w-full bg-background border-input">
+            <SelectTrigger className="w-full h-12 text-lg bg-background border-input">
               <SelectValue placeholder="Select timer type" />
             </SelectTrigger>
             <SelectContent className="bg-background border-2 shadow-lg">
@@ -60,7 +60,7 @@ const TimeManagement = () => {
                 <SelectItem 
                   key={tab.value} 
                   value={tab.value}
-                  className="hover:bg-accent focus:bg-accent"
+                  className="h-12 text-lg hover:bg-accent focus:bg-accent"
                 >
                   {tab.label}
                 </SelectItem>
@@ -70,10 +70,14 @@ const TimeManagement = () => {
           {renderContent()}
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 h-14">
             {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value}>
+              <TabsTrigger 
+                key={tab.value} 
+                value={tab.value}
+                className="text-base data-[state=active]:text-primary"
+              >
                 {tab.label}
               </TabsTrigger>
             ))}

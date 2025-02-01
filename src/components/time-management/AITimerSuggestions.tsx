@@ -63,17 +63,22 @@ const AITimerSuggestions = ({ onSuggestion }: { onSuggestion: (duration: number)
   };
 
   return (
-    <Card className="p-4">
+    <Card className="p-6 md:p-8">
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">AI Timer Suggestions</h3>
-        <div className="flex space-x-2">
+        <h3 className="text-xl font-medium">AI Timer Suggestions</h3>
+        <div className="flex flex-col sm:flex-row gap-4">
           <Input
             placeholder="Describe your task..."
             value={task}
             onChange={(e) => setTask(e.target.value)}
+            className="h-12 text-base"
           />
-          <Button onClick={getSuggestion} disabled={loading}>
-            <Brain className="mr-2 h-4 w-4" />
+          <Button 
+            onClick={getSuggestion} 
+            disabled={loading}
+            className="h-12 text-base whitespace-nowrap"
+          >
+            <Brain className="mr-2 h-5 w-5" />
             Get Suggestion
           </Button>
         </div>
