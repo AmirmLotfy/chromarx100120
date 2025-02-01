@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ import AffiliateSettings from "@/components/settings/AffiliateSettings";
 import { useSubscription } from "@/hooks/use-subscription";
 import LegalAndFeedback from "@/components/settings/LegalAndFeedback";
 import { getPrivacySettings } from "@/services/privacyService";
+import { sendEmailVerification } from "firebase/auth";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
@@ -363,12 +365,12 @@ const SettingsPage = () => {
                               </p>
                             </div>
                             {user.emailVerified ? (
-                              <Badge variant="success" className="bg-green-500">Verified</Badge>
+                              <Badge variant="secondary">Verified</Badge>
                             ) : (
                               <Button
                                 variant="outline"
                                 onClick={() => {
-                                  user.sendEmailVerification()
+                                  sendEmailVerification(user)
                                     .then(() => toast.success("Verification email sent!"))
                                     .catch(() => toast.error("Failed to send verification email"));
                                 }}
