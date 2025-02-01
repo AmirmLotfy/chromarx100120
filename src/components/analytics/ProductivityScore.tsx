@@ -2,20 +2,21 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 const ProductivityScore = () => {
-  // This would be calculated based on actual browsing data
   const score = 75;
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold tracking-tight">Productivity Score</h3>
+        <p className="text-sm text-muted-foreground">Based on your browsing patterns</p>
+      </div>
+      
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Productivity Score</h3>
-          <span className="text-2xl font-bold text-primary">{score}%</span>
+        <div className="flex items-center justify-between">
+          <span className="text-3xl font-bold text-primary">{score}%</span>
+          <span className="text-sm text-muted-foreground">Good</span>
         </div>
         <Progress value={score} className="h-2" />
-        <p className="text-sm text-muted-foreground">
-          Your productivity score is based on your browsing patterns and time management
-        </p>
       </div>
     </Card>
   );

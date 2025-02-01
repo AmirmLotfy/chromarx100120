@@ -14,7 +14,6 @@ interface DomainStatsProps {
 }
 
 const DomainStats = ({ detailed = false }: DomainStatsProps) => {
-  // This would be actual domain data from Chrome history/bookmarks
   const data = [
     { name: "Work", value: 40, color: "#9b87f5" },
     { name: "Social", value: 30, color: "#7E69AB" },
@@ -23,51 +22,58 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
   ];
 
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Domain Distribution</h3>
-        
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+    <Card className="p-6 space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold tracking-tight">Domain Distribution</h3>
+        <p className="text-sm text-muted-foreground">Your most visited website categories</p>
+      </div>
+      
+      <div className="h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={80}
+              paddingAngle={5}
+              dataKey="value"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
 
-        {detailed && (
+      {detailed && (
+        <div className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Domain</TableHead>
-                <TableHead>Visits</TableHead>
-                <TableHead>Time Spent</TableHead>
+                <TableHead className="text-right">Visits</TableHead>
+                <TableHead className="text-right">Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow>
-                <TableCell>example.com</TableCell>
-                <TableCell>150</TableCell>
-                <TableCell>2h 30m</TableCell>
+                <TableCell className="font-medium">example.com</TableCell>
+                <TableCell className="text-right">150</TableCell>
+                <TableCell className="text-right">2h 30m</TableCell>
               </TableRow>
-              {/* Add more rows with actual data */}
+              <TableRow>
+                <TableCell className="font-medium">work.com</TableCell>
+                <TableCell className="text-right">120</TableCell>
+                <TableCell className="text-right">1h 45m</TableCell>
+              </TableRow>
             </TableBody>
           </Table>
-        )}
-      </div>
+        </div>
+      )}
     </Card>
   );
 };
