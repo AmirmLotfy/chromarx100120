@@ -8,8 +8,10 @@ const Header = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useFirebase();
 
-  console.log("Current theme:", theme); // Debug log for theme
-  console.log("User data:", user); // Debug log for user data
+  const toggleTheme = () => {
+    console.log("Current theme:", theme);
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,10 +28,7 @@ const Header = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => {
-              console.log("Toggling theme from:", theme); // Debug log
-              setTheme(theme === "light" ? "dark" : "light");
-            }}
+            onClick={toggleTheme}
             className="h-9 w-9 md:h-10 md:w-10"
           >
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

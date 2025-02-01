@@ -40,5 +40,14 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     setCurrentTheme(props.defaultTheme);
   }, [props.defaultTheme]);
 
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  return (
+    <NextThemesProvider 
+      {...props}
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+    >
+      {children}
+    </NextThemesProvider>
+  );
 }

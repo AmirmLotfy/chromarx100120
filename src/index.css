@@ -23,21 +23,21 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 0 0% 8.5%;  /* Chrome's dark mode background */
     --foreground: 0 0% 98%;
     --primary-color: #7E69AB;
     --primary-foreground: #ffffff;
     --secondary-color: #5D4D80;
     --secondary-foreground: #ffffff;
-    --muted-color: #2A2D3E;
+    --muted-color: #202124;  /* Chrome's dark mode surface color */
     --muted-foreground: #9CA3AF;
-    --accent-color: #374151;
+    --accent-color: #292B2F;  /* Chrome's dark mode accent */
     --accent-foreground: #ffffff;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.9%;
   }
 
   /* Color scheme variations */
