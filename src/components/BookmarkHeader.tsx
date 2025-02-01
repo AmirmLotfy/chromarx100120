@@ -104,11 +104,11 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pt-4 border-b">
-      <div className="flex items-center justify-between gap-1.5 flex-wrap px-4 pb-4">
-        <div className="flex items-center gap-2">
-          <Bookmark className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Bookmarks</h1>
+    <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pt-4">
+      <div className="flex items-center justify-between gap-1.5 flex-wrap px-2">
+        <div className="flex items-center gap-1.5">
+          <Bookmark className="h-4 w-4 text-primary" />
+          <h1 className="text-base font-semibold">Bookmarks</h1>
           {selectedBookmarksCount > 0 && (
             <Badge variant="secondary" className="ml-1">
               {selectedBookmarksCount} selected
@@ -116,7 +116,7 @@ const BookmarkHeader = ({
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <SummariesButton newSummariesCount={newSummariesCount} />
           
           <TooltipProvider>
@@ -124,12 +124,11 @@ const BookmarkHeader = ({
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={handleImportBookmarks}
-                  className="h-9"
+                  className="h-7 w-7"
                 >
-                  <Import className="h-4 w-4 mr-2" />
-                  Import
+                  <Import className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Import Chrome bookmarks</TooltipContent>
@@ -140,12 +139,11 @@ const BookmarkHeader = ({
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={handleExportBookmarks}
-                    className="h-9"
+                    className="h-7 w-7"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
+                    <Download className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Export selected bookmarks</TooltipContent>
@@ -156,9 +154,8 @@ const BookmarkHeader = ({
           {isMobile ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                  <FolderPlus className="h-4 w-4 mr-2" />
-                  Actions
+                <Button variant="outline" size="icon" className="h-7 w-7">
+                  <FolderPlus className="h-3.5 w-3.5" />
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -174,7 +171,7 @@ const BookmarkHeader = ({
               </SheetContent>
             </Sheet>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <AIActionButtons 
                 selectedBookmarks={selectedBookmarks}
                 onUpdateCategories={onUpdateCategories}
@@ -184,21 +181,21 @@ const BookmarkHeader = ({
         </div>
       </div>
 
-      <div className="relative px-4 pb-4">
-        <Search className="absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <div className="relative mt-2 px-2">
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
-          className="pl-10 w-full h-9 text-sm"
+          className="pl-8 w-full h-8 text-sm"
           aria-label="Search bookmarks"
         />
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 mx-4">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10">
             {suggestions.map((suggestion, index) => (
               <button
                 key={index}
-                className="w-full px-4 py-2 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md text-sm"
+                className="w-full px-3 py-1.5 text-left hover:bg-accent first:rounded-t-md last:rounded-b-md text-sm"
                 onClick={() => onSelectSuggestion(suggestion)}
               >
                 {suggestion}
