@@ -11,6 +11,9 @@ const AnalyticsDashboard = () => {
   return (
     <ScrollArea className="h-[calc(100vh-16rem)]">
       <div className="space-y-4 px-2 pb-8">
+        {/* AI Tips - Moved to top for better visibility */}
+        <AITips />
+
         {/* Overview Cards */}
         <div className="grid grid-cols-1 gap-4">
           <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/10 dark:to-purple-800/10">
@@ -32,7 +35,6 @@ const AnalyticsDashboard = () => {
           <TimeDistribution />
           <DomainStats detailed={true} />
           <ProductivityTrends />
-          <AITips />
         </div>
       </div>
     </ScrollArea>

@@ -25,9 +25,9 @@ const TimeDistribution = () => {
         <p className="text-sm text-muted-foreground">Your daily browsing patterns</p>
       </div>
       
-      <div className="h-[300px]">
+      <div className="h-[300px] -ml-6">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
+          <BarChart data={data} margin={{ left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />

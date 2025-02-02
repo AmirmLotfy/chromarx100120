@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, HelpCircle } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getHistoryData } from "@/utils/analyticsUtils";
 import { getGeminiResponse } from "@/utils/geminiUtils";
@@ -30,7 +30,6 @@ const AITips = () => {
           contentType: 'productivity'
         });
 
-        // Split response into individual tips
         const generatedTips = response.result.split('\n').filter(tip => tip.trim());
         setTips(generatedTips);
       } catch (error) {
@@ -49,24 +48,26 @@ const AITips = () => {
   };
 
   return (
-    <Card className="p-6">
+    <Card className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/10 dark:to-purple-800/10 p-6">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <HelpCircle className="w-5 h-5 text-primary" />
+          <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+            <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          </div>
           <div>
-            <h3 className="text-lg font-semibold">AI-Powered Productivity Tips</h3>
-            <p className="text-sm text-muted-foreground">Personalized suggestions based on your browsing patterns</p>
+            <h3 className="text-lg font-semibold">AI-Powered Insights</h3>
+            <p className="text-sm text-muted-foreground">Personalized suggestions for better productivity</p>
           </div>
         </div>
 
         <div className="space-y-4">
           {loading ? (
-            <div className="text-center py-4 text-muted-foreground">
+            <div className="text-center py-4 text-muted-foreground animate-pulse">
               Analyzing your browsing patterns...
             </div>
           ) : (
             tips.map((tip, index) => (
-              <Card key={index} className="p-4 bg-muted/50">
+              <Card key={index} className="p-4 bg-white dark:bg-gray-800 shadow-sm">
                 <div className="flex justify-between items-start gap-4">
                   <p className="flex-1 text-sm">{tip}</p>
                   <div className="flex gap-2">
