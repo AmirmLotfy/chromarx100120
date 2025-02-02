@@ -1,8 +1,25 @@
+const SEARCH_ENGINE_ID = 'e0bab85862daf4c11';
+
 export const searchWebResults = async (query: string): Promise<Array<{ title: string; url: string }>> => {
   try {
-    const GOOGLE_SEARCH_CX = 'e0bab85862daf4c11';
+    // Use chrome.identity to get OAuth token
+    const token = await new Promise<string>((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive: true }, (token) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(token);
+        }
+      });
+    });
+
     const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${process.env.VITE_GOOGLE_API_KEY}&cx=${GOOGLE_SEARCH_CX}&q=${encodeURIComponent(query)}`
+      `https://www.googleapis.com/customsearch/v1?cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      }
     );
 
     if (!response.ok) {
