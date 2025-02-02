@@ -3,7 +3,7 @@ import { ChromeBookmark } from "@/types/bookmark";
 
 interface GeminiRequest {
   prompt: string;
-  type: 'summarize' | 'categorize';
+  type: 'summarize' | 'categorize' | 'timer';
   language: string;
   contentType?: string;
 }
