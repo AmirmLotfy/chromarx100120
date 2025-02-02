@@ -12,103 +12,38 @@ import {
 } from "lucide-react";
 
 const FeatureGrid = () => {
+  const features = [
+    { icon: BookmarkIcon, label: "Bookmarks", path: "/bookmarks" },
+    { icon: MessageSquare, label: "Chat", path: "/chat" },
+    { icon: FileText, label: "Summaries", path: "/summaries" },
+    { icon: BarChart, label: "Analytics", path: "/analytics" },
+    { icon: Timer, label: "Timer", path: "/timer" },
+    { icon: CheckSquare, label: "Tasks", path: "/tasks" },
+    { icon: StickyNote, label: "Notes", path: "/notes" },
+    { icon: Package, label: "Services", path: "/suggested-services" },
+  ];
+
   return (
-    <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-3 px-3 py-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:px-4 sm:gap-4 md:gap-5">
-      <Link to="/bookmarks" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
+    <div className="grid grid-cols-2 gap-3 px-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 md:gap-5 sm:px-4">
+      {features.map((feature) => (
+        <Link
+          key={feature.path}
+          to={feature.path}
+          className="no-underline hover:no-underline"
         >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <BookmarkIcon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Bookmarks</span>
-          </div>
-        </Button>
-      </Link>
-      
-      <Link to="/chat" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <MessageSquare className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Chat</span>
-          </div>
-        </Button>
-      </Link>
-
-      <Link to="/summaries" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <FileText className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Summaries</span>
-          </div>
-        </Button>
-      </Link>
-
-      <Link to="/analytics" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <BarChart className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Analytics</span>
-          </div>
-        </Button>
-      </Link>
-
-      <Link to="/timer" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <Timer className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Timer</span>
-          </div>
-        </Button>
-      </Link>
-
-      <Link to="/tasks" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <CheckSquare className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Tasks</span>
-          </div>
-        </Button>
-      </Link>
-
-      <Link to="/notes" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <StickyNote className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Notes</span>
-          </div>
-        </Button>
-      </Link>
-
-      <Link to="/suggested-services" className="no-underline hover:no-underline">
-        <Button
-          variant="outline"
-          className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
-        >
-          <div className="flex flex-col items-center justify-center gap-3">
-            <Package className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
-            <span className="font-medium tracking-wide text-sm sm:text-base">Services</span>
-          </div>
-        </Button>
-      </Link>
+          <Button
+            variant="outline"
+            className="group h-24 w-full rounded-2xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-32"
+          >
+            <div className="flex flex-col items-center justify-center gap-3">
+              <feature.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8" />
+              <span className="font-medium tracking-wide text-sm sm:text-base">
+                {feature.label}
+              </span>
+            </div>
+          </Button>
+        </Link>
+      ))}
     </div>
   );
 };

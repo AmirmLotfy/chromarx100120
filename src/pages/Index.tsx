@@ -34,12 +34,12 @@ const Index = () => {
   return (
     <Layout>
       <div className="space-y-6 pb-16 w-full max-w-6xl mx-auto">
-        <FeatureGrid />
         {subscriptionStatus === "free" && (
-          <div className="px-3 sm:px-4">
+          <div className="px-3 sm:px-4 -mt-4">
             <AffiliateBannerCarousel />
           </div>
         )}
+        <FeatureGrid />
       </div>
     </Layout>
   );
