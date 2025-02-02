@@ -1,13 +1,22 @@
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, User, LogOut, Settings, CreditCard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { LanguageSelector } from "./LanguageSelector";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const { theme, setTheme } = useTheme();
-  const { user } = useFirebase();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -38,13 +47,46 @@ const Header = () => {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          {user && (
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
-              <AvatarFallback>
-                {user.displayName?.charAt(0).toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
+                    <AvatarFallback>
+                      {user.displayName?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/subscription")}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Subscription</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate("/login")}
+            >
+              Sign in
+            </Button>
           )}
         </div>
       </div>
