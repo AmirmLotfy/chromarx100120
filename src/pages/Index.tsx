@@ -1,9 +1,9 @@
 import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
-import WelcomeCard from "../components/WelcomeCard";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useEffect, useState } from "react";
 import { storage } from "@/lib/chrome-utils";
+import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarousel";
 
 const Index = () => {
   const { user } = useFirebase();
@@ -33,11 +33,13 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 pb-16 w-full max-w-4xl mx-auto">
-        <div className="px-2 sm:px-4">
-          <WelcomeCard />
-        </div>
+      <div className="space-y-6 pb-16 w-full max-w-6xl mx-auto">
         <FeatureGrid />
+        {subscriptionStatus === "free" && (
+          <div className="px-3 sm:px-4">
+            <AffiliateBannerCarousel />
+          </div>
+        )}
       </div>
     </Layout>
   );
