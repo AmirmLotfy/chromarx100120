@@ -104,20 +104,34 @@ const BookmarkContent = ({
     <div className="w-full max-w-full">
       <div className="flex flex-col md:flex-row gap-4">
         {isMobile ? (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full md:w-auto mb-2">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters & Sort
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] p-4">
-              <SheetHeader className="mb-4">
-                <SheetTitle>Filter Bookmarks</SheetTitle>
-              </SheetHeader>
-              <FilterPanel />
-            </SheetContent>
-          </Sheet>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters & Sort
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] p-4">
+                <SheetHeader className="mb-4">
+                  <SheetTitle>Filter Bookmarks</SheetTitle>
+                </SheetHeader>
+                <FilterPanel />
+              </SheetContent>
+            </Sheet>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 transition-all duration-300 shadow-sm"
+              onClick={onRefresh}
+            >
+              Refresh
+            </Button>
+          </div>
         ) : (
           <div className="hidden md:block w-[300px] bg-background/50 backdrop-blur-sm rounded-lg border p-4 h-fit sticky top-4">
             <FilterPanel />

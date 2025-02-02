@@ -310,80 +310,73 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-1.5">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
-              className="flex-1 sm:flex-none"
+              className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
             >
               <CheckSquare className="h-4 w-4 mr-1.5" />
               {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
             </Button>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCleanup}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    Cleanup
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Find and remove duplicate or broken bookmarks
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleGenerateSummaries}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                  >
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    Summarize
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Generate summaries for selected bookmarks
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSuggestCategories}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                  >
+                    <Sparkles className="h-4 w-4 mr-1.5" />
+                    Categorize
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Suggest categories for selected bookmarks
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-
-          {selectedBookmarks.size > 0 && (
-            <div className="bg-accent/50 rounded-lg p-3 animate-fade-in">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">AI Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleCleanup}
-                        disabled={isProcessing}
-                        className="w-full"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1.5" />
-                        Cleanup
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Find and remove duplicate or broken bookmarks
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleGenerateSummaries}
-                        disabled={isProcessing}
-                        className="w-full"
-                      >
-                        <FileText className="h-4 w-4 mr-1.5" />
-                        Summarize
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Generate summaries for selected bookmarks
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleSuggestCategories}
-                        disabled={isProcessing}
-                        className="w-full"
-                      >
-                        <Sparkles className="h-4 w-4 mr-1.5" />
-                        Categorize
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Suggest categories for selected bookmarks
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
-          )}
 
           <div
             className={cn(
