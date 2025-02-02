@@ -48,13 +48,13 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
   }
 
   return (
-    <Card className="p-6 space-y-6">
+    <Card className="p-4 sm:p-6 w-full">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold tracking-tight">Domain Distribution</h3>
         <p className="text-sm text-muted-foreground">Your most visited websites</p>
       </div>
       
-      <div className="h-[300px] -ml-6">
+      <div className="h-[300px] -mx-4 sm:-mx-6 mt-4">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -77,7 +77,7 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
       </div>
 
       {detailed && visits.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-6 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

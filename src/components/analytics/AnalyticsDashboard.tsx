@@ -1,6 +1,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { ChartBar, TrendingUp, Signal, Info } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import ProductivityScore from "./ProductivityScore";
 import DomainStats from "./DomainStats";
 import TimeDistribution from "./TimeDistribution";
@@ -10,7 +10,7 @@ import AITips from "./AITips";
 const AnalyticsDashboard = () => {
   return (
     <ScrollArea className="h-[calc(100vh-16rem)]">
-      <div className="space-y-4 px-2 pb-8">
+      <div className="space-y-4 px-2 pb-8 max-w-full">
         {/* AI Tips - Moved to top for better visibility */}
         <AITips />
 
@@ -30,7 +30,7 @@ const AnalyticsDashboard = () => {
         </div>
 
         {/* Main Analytics Components */}
-        <div className="space-y-4">
+        <div className="space-y-4 w-full">
           <ProductivityScore />
           <TimeDistribution />
           <DomainStats detailed={true} />
