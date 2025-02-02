@@ -1,8 +1,9 @@
-import { AnalyticsData, VisitData } from "@/types/analytics";
+import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
 
 export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   try {
+    console.log("Fetching analytics data...");
     const [history, tabs] = await Promise.all([
       chrome.history.search({ text: "", maxResults: 10000, startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 }),
       chrome.tabs.query({})
@@ -12,7 +13,7 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       url: item.url || "",
       domain: extractDomain(item.url || ""),
       visitCount: item.visitCount || 0,
-      timeSpent: 0, // We'll calculate this from transitions
+      timeSpent: 0,
       lastVisitTime: item.lastVisitTime || 0
     }));
 
@@ -33,7 +34,7 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   }
 };
 
-const calculateDomainStats = (visitData: VisitData[]) => {
+const calculateDomainStats = (visitData: VisitData[]): DomainStat[] => {
   const stats = new Map<string, { visits: number; timeSpent: number }>();
   
   visitData.forEach(visit => {
@@ -54,7 +55,7 @@ const calculateDomainStats = (visitData: VisitData[]) => {
     .slice(0, 10);
 };
 
-const calculateTimeDistribution = (visitData: VisitData[]) => {
+const calculateTimeDistribution = (visitData: VisitData[]): TimeDistributionData[] => {
   const categories = new Map<string, number>();
   
   visitData.forEach(visit => {
@@ -79,7 +80,7 @@ const calculateProductivityScore = (visitData: VisitData[], tabs: chrome.tabs.Ta
   );
 };
 
-const calculateProductivityTrends = async (visitData: VisitData[]) => {
+const calculateProductivityTrends = async (visitData: VisitData[]): Promise<ProductivityTrend[]> => {
   const trends: ProductivityTrend[] = [];
   const days = 7;
 
