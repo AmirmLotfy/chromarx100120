@@ -6,18 +6,16 @@ import BookmarkCard from "./BookmarkCard";
 import BookmarkTable from "./BookmarkTable";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import FilterSort from "./FilterSort";
 import { SortOption } from "@/types/sort";
 import { FilterOptions } from "@/types/filter";
+import FilterSheet from "./FilterSheet";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
   view: "grid" | "list";
   selectedBookmarks: Set<string>;
   onToggleSelect: (id: string) => void;
-  onSelectAll: () => void;
   onUpdateBookmark: (bookmark: ChromeBookmark) => void;
-  onDeleteBookmark: (id: string) => void;
   sortOption: SortOption;
   onSortChange: (option: SortOption) => void;
   filterOptions: FilterOptions;
@@ -29,9 +27,7 @@ const BookmarkList = ({
   view,
   selectedBookmarks,
   onToggleSelect,
-  onSelectAll,
   onUpdateBookmark,
-  onDeleteBookmark,
   sortOption,
   onSortChange,
   filterOptions,
@@ -45,7 +41,18 @@ const BookmarkList = ({
   }, []);
 
   const handleSelectAll = () => {
-    onSelectAll();
+    const allIds = new Set(bookmarks.map(b => b.id));
+    if (selectedBookmarks.size === bookmarks.length) {
+      // Deselect all
+      allIds.forEach(id => onToggleSelect(id));
+    } else {
+      // Select all
+      allIds.forEach(id => {
+        if (!selectedBookmarks.has(id)) {
+          onToggleSelect(id);
+        }
+      });
+    }
   };
 
   if (!isClient) {
@@ -54,12 +61,12 @@ const BookmarkList = ({
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={handleSelectAll}
-          className="flex-1 bg-gradient-to-r from-accent/50 via-accent/70 to-accent/50 hover:from-accent/70 hover:via-accent/90 hover:to-accent/70 transition-all duration-300 shadow-sm hover:shadow-md"
+          className="bg-gradient-to-r from-accent/50 via-accent/70 to-accent/50 hover:from-accent/70 hover:via-accent/90 hover:to-accent/70 transition-all duration-300 shadow-sm hover:shadow-md"
         >
           <CheckSquare className="h-4 w-4 mr-1.5" />
           {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
@@ -70,14 +77,14 @@ const BookmarkList = ({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10 hover:from-primary/20 hover:via-primary/30 hover:to-primary/20 transition-all duration-300 shadow-sm hover:shadow-md"
+                className="bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10 hover:from-primary/20 hover:via-primary/30 hover:to-primary/20 transition-all duration-300 shadow-sm hover:shadow-md"
               >
                 <Filter className="h-4 w-4 mr-1.5" />
                 Filters & Sort
               </Button>
             </SheetTrigger>
             <SheetContent>
-              <FilterSort
+              <FilterSheet
                 sortOption={sortOption}
                 onSortChange={onSortChange}
                 filterOptions={filterOptions}
@@ -87,7 +94,7 @@ const BookmarkList = ({
           </Sheet>
         ) : (
           <div className="flex-1">
-            <FilterSort
+            <FilterSheet
               sortOption={sortOption}
               onSortChange={onSortChange}
               filterOptions={filterOptions}
@@ -106,7 +113,7 @@ const BookmarkList = ({
               isSelected={selectedBookmarks.has(bookmark.id)}
               onToggleSelect={() => onToggleSelect(bookmark.id)}
               onUpdate={onUpdateBookmark}
-              onDelete={() => onDeleteBookmark(bookmark.id)}
+              onDelete={() => {}}
             />
           ))}
         </div>
@@ -116,7 +123,7 @@ const BookmarkList = ({
           selectedBookmarks={selectedBookmarks}
           onToggleSelect={onToggleSelect}
           onUpdateBookmark={onUpdateBookmark}
-          onDeleteBookmark={onDeleteBookmark}
+          onDeleteBookmark={() => {}}
         />
       )}
     </div>

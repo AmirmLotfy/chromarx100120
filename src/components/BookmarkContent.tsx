@@ -12,7 +12,7 @@ import { FilterOptions } from "@/types/filter";
 interface BookmarkContentProps {
   bookmarks: ChromeBookmark[];
   selectedBookmarks: Set<string>;
-  onToggleBookmark: (id: string) => void;
+  onToggleSelect: (id: string) => void;
   onUpdateBookmark: (bookmark: ChromeBookmark) => void;
   view: "grid" | "list";
   sortOption: SortOption;
@@ -24,7 +24,7 @@ interface BookmarkContentProps {
 const BookmarkContent = ({
   bookmarks,
   selectedBookmarks,
-  onToggleBookmark,
+  onToggleSelect,
   onUpdateBookmark,
   view,
   sortOption,
@@ -33,13 +33,12 @@ const BookmarkContent = ({
   onFilterChange,
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   return (
     <div className="space-y-4">
       {isMobile ? (
         <Sheet>
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2">
             <SheetTrigger asChild className="flex-1">
               <Button 
                 variant="outline" 
@@ -74,9 +73,13 @@ const BookmarkContent = ({
       <BookmarkList
         bookmarks={bookmarks}
         selectedBookmarks={selectedBookmarks}
-        onToggleBookmark={onToggleBookmark}
+        onToggleSelect={onToggleSelect}
         onUpdateBookmark={onUpdateBookmark}
         view={view}
+        sortOption={sortOption}
+        onSortChange={onSortChange}
+        filterOptions={filterOptions}
+        onFilterChange={onFilterChange}
       />
     </div>
   );
