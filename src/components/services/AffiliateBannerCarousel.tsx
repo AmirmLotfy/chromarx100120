@@ -40,18 +40,18 @@ const AffiliateBannerCarousel = () => {
 
   if (isLoading) {
     return (
-      <div className="h-32 flex items-center justify-center mt-6">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="h-28 flex items-center justify-center mt-4">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="relative rounded-lg overflow-hidden shadow-md mt-6 mb-4">
+    <div className="relative rounded-lg overflow-hidden shadow-sm mt-6 mb-4">
       <Button
-        variant="secondary"
+        variant="ghost"
         size="sm"
-        className="absolute top-2 right-2 z-10 bg-background/95 hover:bg-background/100 shadow-md"
+        className="absolute top-2 right-2 z-10 bg-black/20 hover:bg-black/30 text-white text-xs px-2 py-1 h-auto"
         onClick={handleDismiss}
       >
         Remove Ads
@@ -69,30 +69,30 @@ const AffiliateBannerCarousel = () => {
               <div className="p-1">
                 <div 
                   className={cn(
-                    "relative group h-32 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer",
+                    "relative group h-28 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer",
                     "bg-gradient-to-r from-primary/5 to-primary/10"
                   )}
                   onClick={() => handleBannerClick(banner.affiliateUrl, banner.title)}
                   style={{
-                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.6)), url(${banner.imageUrl})`,
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), url(${banner.imageUrl})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                   }}
                 >
-                  <div className="absolute inset-0 flex flex-col justify-center p-4 group-hover:bg-black/40 transition-colors">
-                    <h3 className="text-white font-semibold text-base mb-1 line-clamp-1">
+                  <div className="absolute inset-0 flex flex-col justify-center p-3 group-hover:bg-black/40 transition-colors">
+                    <h3 className="text-white font-semibold text-sm mb-0.5 line-clamp-1">
                       {banner.title}
                     </h3>
-                    <p className="text-white/90 text-sm line-clamp-1 mb-2">
+                    <p className="text-white/80 text-xs line-clamp-1 mb-1.5">
                       {banner.description}
                     </p>
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="w-full sm:w-auto opacity-90 group-hover:opacity-100 mt-auto"
+                      className="w-full sm:w-auto opacity-80 group-hover:opacity-100 mt-auto h-7 text-xs"
                     >
                       Learn More
-                      <ExternalLink className="ml-2 h-3 w-3" />
+                      <ExternalLink className="ml-1.5 h-3 w-3" />
                     </Button>
                   </div>
                 </div>
