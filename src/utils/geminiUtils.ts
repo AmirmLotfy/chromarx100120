@@ -3,6 +3,12 @@ import { toast } from "sonner";
 
 const getGeminiModel = async () => {
   try {
+    // Check if running in Chrome extension context
+    if (typeof chrome === 'undefined' || !chrome.identity) {
+      toast.error("This feature requires running as a Chrome extension");
+      throw new Error("Chrome extension APIs not available");
+    }
+
     const { token } = await chrome.identity.getAuthToken({ interactive: true });
     if (!token) {
       throw new Error("Failed to get auth token");
