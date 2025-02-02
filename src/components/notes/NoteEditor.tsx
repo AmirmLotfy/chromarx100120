@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Note } from "@/types/note";
-import { Mic, Save, X } from "lucide-react";
+import { Mic, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type {} from "@/types/chrome-ai";
 
 interface NoteEditorProps {
   note?: Note;
@@ -17,22 +16,39 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.content || "");
   const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSave = () => {
+  useEffect(() => {
+    return () => {
+      if (recognition) {
+        recognition.stop();
+      }
+    };
+  }, [recognition]);
+
+  const handleSave = async () => {
     if (!title.trim()) {
       toast.error("Title is required");
       return;
     }
 
-    onSave({
-      title,
-      content,
-      updatedAt: new Date().toISOString(),
-    });
-    
-    toast.success("Note saved successfully");
-    onClose();
+    setIsProcessing(true);
+    try {
+      await onSave({
+        title,
+        content,
+        updatedAt: new Date().toISOString(),
+      });
+      
+      toast.success("Note saved successfully");
+      onClose();
+    } catch (error) {
+      toast.error("Failed to save note");
+      console.error("Error saving note:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const toggleVoiceRecording = () => {
@@ -43,14 +59,14 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        recognition.onresult = (event) => {
+        recognition.onresult = (event: any) => {
           const transcript = Array.from(event.results)
-            .map(result => result[0].transcript)
+            .map((result: any) => result[0].transcript)
             .join(" ");
           setContent(prev => prev + " " + transcript);
         };
 
-        recognition.onerror = (event) => {
+        recognition.onerror = (event: any) => {
           console.error("Speech recognition error:", event.error);
           toast.error("Error with voice recognition");
           setIsRecording(false);
@@ -97,12 +113,15 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
               placeholder="Start writing your note..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[200px] w-full resize-none"
+              className="min-h-[200px] w-full resize-none pr-10"
             />
             <Button
               variant="ghost"
               size="icon"
-              className={`absolute bottom-2 right-2 ${isRecording ? "text-red-500" : ""}`}
+              className={cn(
+                "absolute bottom-2 right-2",
+                isRecording && "text-red-500"
+              )}
               onClick={toggleVoiceRecording}
             >
               <Mic className="h-4 w-4" />
@@ -113,9 +132,18 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Note
+            <Button onClick={handleSave} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Note
+                </>
+              )}
             </Button>
           </div>
         </div>
