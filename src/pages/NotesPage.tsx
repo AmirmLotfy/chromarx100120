@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import Layout from "@/components/Layout";
-import { Note, NoteView } from "@/types/note";
+import { Note } from "@/types/note";
 import NoteGrid from "@/components/notes/NoteGrid";
+import NoteEditor from "@/components/notes/NoteEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -22,26 +23,46 @@ const NotesPage = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [view, setView] = useState<NoteView>("grid");
+  const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNotes, setSelectedNotes] = useState(new Set<string>());
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | undefined>();
   const { checkAccess, checkUsageLimit } = useFeatureAccess();
 
   const handleCreateNote = () => {
     if (!checkUsageLimit("notes")) return;
+    setEditingNote(undefined);
+    setIsEditorOpen(true);
+  };
 
-    const newNote: Note = {
-      id: crypto.randomUUID(),
-      title: "New Note",
-      content: "",
-      tags: [],
-      category: "uncategorized",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  const handleEditNote = (note: Note) => {
+    setEditingNote(note);
+    setIsEditorOpen(true);
+  };
 
-    setNotes((prev) => [...prev, newNote]);
-    toast.success("New note created");
+  const handleSaveNote = (noteData: Partial<Note>) => {
+    if (editingNote) {
+      // Update existing note
+      setNotes(prev => prev.map(note => 
+        note.id === editingNote.id 
+          ? { ...note, ...noteData }
+          : note
+      ));
+    } else {
+      // Create new note
+      const newNote: Note = {
+        id: crypto.randomUUID(),
+        title: noteData.title || "",
+        content: noteData.content || "",
+        tags: [],
+        category: "uncategorized",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setNotes(prev => [...prev, newNote]);
+    }
+    localStorage.setItem("notes", JSON.stringify(notes));
   };
 
   const handleDeleteNotes = () => {
@@ -164,15 +185,23 @@ const NotesPage = () => {
             });
             toast.success("Note deleted");
           }}
-          onEditNote={(note) => {
-            // To be implemented in the next phase
-            toast.info("Edit feature coming soon");
-          }}
+          onEditNote={handleEditNote}
           onAnalyzeNote={async (note) => {
             setSelectedNotes(new Set([note.id]));
             await handleAnalyzeNotes();
           }}
         />
+
+        {isEditorOpen && (
+          <NoteEditor
+            note={editingNote}
+            onSave={handleSaveNote}
+            onClose={() => {
+              setIsEditorOpen(false);
+              setEditingNote(undefined);
+            }}
+          />
+        )}
       </div>
     </Layout>
   );
