@@ -244,7 +244,7 @@ const BookmarkList = ({
 
       const summaries = await Promise.all(
         selectedBookmarksArray.map(async (bookmark) => {
-          const summary = await summarizeBookmark(bookmark, currentLanguage);
+          const summary = await summarizeBookmark(bookmark, currentLanguage.code);
           return {
             id: bookmark.id,
             title: bookmark.title,

@@ -112,9 +112,9 @@ const ChatInterface = () => {
         .join("\n");
 
       const chatContext = getContextFromHistory(messages, query);
-      const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage);
+      const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage.code);
 
-      const response = await summarizeContent(prompt, currentLanguage);
+      const response = await summarizeContent(prompt, currentLanguage.code);
 
       return {
         response,

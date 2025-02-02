@@ -28,7 +28,7 @@ const BookmarkAIActions = ({
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeBookmark(bookmark, currentLanguage);
+          const summary = await summarizeBookmark(bookmark, currentLanguage.code);
           return {
             id: bookmark.id,
             title: bookmark.title,
