@@ -17,12 +17,12 @@ const TimeManagement = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 max-w-2xl space-y-4">
-      <Card className="p-4 shadow-sm">
+    <div className="w-full px-2 md:px-4 max-w-2xl mx-auto space-y-4">
+      <Card className="w-full p-4">
         <AITimerSuggestions onSuggestion={handleAISuggestion} />
       </Card>
       
-      <Card className="p-4 shadow-sm">
+      <Card className="w-full p-4">
         <div className="space-y-6">
           <div className="flex justify-center gap-2">
             <Toggle
@@ -55,7 +55,7 @@ const TimeManagement = () => {
         </div>
       </Card>
 
-      <Card className="p-4 shadow-sm">
+      <Card className="w-full p-4">
         <div className="space-y-3">
           <div className="flex items-center gap-1.5">
             <Focus className="h-4 w-4" />
@@ -65,7 +65,7 @@ const TimeManagement = () => {
         </div>
       </Card>
 
-      <Card className="p-4 shadow-sm">
+      <Card className="w-full p-4">
         <div className="space-y-3">
           <div className="flex items-center gap-1.5">
             <BarChart className="h-4 w-4" />
