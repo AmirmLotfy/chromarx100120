@@ -10,6 +10,7 @@ import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { summarizeBookmark, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/stores/languageStore";
 
 interface BookmarkAIActionsProps {
   selectedBookmarks: ChromeBookmark[];
@@ -21,13 +22,13 @@ const BookmarkAIActions = ({
   onUpdateCategories,
 }: BookmarkAIActionsProps) => {
   const navigate = useNavigate();
+  const { currentLanguage } = useLanguage();
 
   const handleGenerateSummaries = async () => {
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const content = `${bookmark.title}\n${bookmark.url || ""}`;
-          const summary = await summarizeBookmark(content);
+          const summary = await summarizeBookmark(bookmark, currentLanguage);
           return {
             id: bookmark.id,
             title: bookmark.title,

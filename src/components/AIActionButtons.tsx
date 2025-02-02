@@ -12,6 +12,7 @@ import {
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
+import { useLanguage } from "@/stores/languageStore";
 
 interface AIActionButtonsProps {
   selectedBookmarks?: ChromeBookmark[];
@@ -21,6 +22,7 @@ interface AIActionButtonsProps {
 const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActionButtonsProps) => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { currentLanguage } = useLanguage();
 
   const handleGenerateSummaries = async () => {
     if (selectedBookmarks.length === 0) {
@@ -33,7 +35,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
           try {
-            const summary = await summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`);
+            const summary = await summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, currentLanguage);
             return {
               id: bookmark.id,
               title: bookmark.title,

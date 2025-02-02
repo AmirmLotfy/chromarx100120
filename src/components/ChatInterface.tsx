@@ -14,6 +14,7 @@ import {
 import ChatInput from "./ChatInput";
 import ChatMessages from "./ChatMessages";
 import { Message } from "@/types/chat";
+import { useLanguage } from "@/stores/languageStore";
 
 const STORAGE_KEY = 'chromarx_chat_history';
 
@@ -25,6 +26,7 @@ const ChatInterface = () => {
   const [chatHistory, setChatHistory] = useState<Message[][]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
+  const { currentLanguage } = useLanguage();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,7 +114,7 @@ const ChatInterface = () => {
       const chatContext = getContextFromHistory(messages, query);
       const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
 
-      const response = await summarizeContent(prompt);
+      const response = await summarizeContent(prompt, currentLanguage);
 
       return {
         response,
