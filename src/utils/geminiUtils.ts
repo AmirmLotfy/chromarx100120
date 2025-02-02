@@ -1,9 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { toast } from "sonner";
+import { extractPageContent } from "./contentExtractor";
+import { Language } from "@/stores/languageStore";
 
 const getGeminiModel = async () => {
   try {
-    // Check if running in Chrome extension context
     if (typeof chrome === 'undefined' || !chrome.identity) {
       toast.error("This feature requires running as a Chrome extension");
       throw new Error("Chrome extension APIs not available");
@@ -23,10 +24,12 @@ const getGeminiModel = async () => {
   }
 };
 
-export const summarizeContent = async (prompt: string): Promise<string> => {
+export const summarizeContent = async (prompt: string, language: Language): Promise<string> => {
   try {
     const model = await getGeminiModel();
-    const result = await model.generateContent(`Summarize this content in a concise way: ${prompt}`);
+    const result = await model.generateContent(
+      `Summarize this content in ${language.name} (${language.nativeName}). Focus on the main points and key information: ${prompt}`
+    );
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -51,6 +54,21 @@ export const suggestBookmarkCategory = async (title: string, url: string): Promi
   }
 };
 
-export const summarizeBookmark = async (content: string): Promise<string> => {
-  return summarizeContent(content);
+export const summarizeBookmark = async (bookmark: { title: string; url?: string }, language: Language): Promise<string> => {
+  try {
+    let content = `Title: ${bookmark.title}\n`;
+    
+    if (bookmark.url) {
+      toast.loading("Fetching webpage content...");
+      const pageContent = await extractPageContent(bookmark.url);
+      content += `\nContent:\n${pageContent}`;
+    }
+    
+    toast.loading("Generating summary...");
+    return await summarizeContent(content, language);
+  } catch (error) {
+    console.error('Error summarizing bookmark:', error);
+    toast.error("Failed to summarize bookmark");
+    throw error;
+  }
 };

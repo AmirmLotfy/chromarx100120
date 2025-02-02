@@ -20,7 +20,7 @@ import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
 import { CheckSquare, FileText, Globe, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { summarizeContent, suggestBookmarkCategory, summarizeBookmark } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
+import { useLanguage } from "@/stores/languageStore";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -234,6 +235,8 @@ const BookmarkList = ({
     }
 
     setIsProcessing(true);
+    const { currentLanguage } = useLanguage();
+    
     try {
       const selectedBookmarksArray = Array.from(selectedBookmarks)
         .map(id => bookmarks.find(b => b.id === id))
@@ -241,7 +244,7 @@ const BookmarkList = ({
 
       const summaries = await Promise.all(
         selectedBookmarksArray.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
+          const summary = await summarizeBookmark(bookmark, currentLanguage);
           return {
             id: bookmark.id,
             title: bookmark.title,
