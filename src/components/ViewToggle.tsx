@@ -7,10 +7,15 @@ interface ViewToggleProps {
 }
 
 const ViewToggle = ({ view, onViewChange }: ViewToggleProps) => {
+  console.log("ViewToggle rendered with view:", view);
+  
   return (
     <div className="flex gap-2">
       <Button 
-        onClick={() => onViewChange("grid")} 
+        onClick={() => {
+          console.log("Grid button clicked");
+          onViewChange("grid");
+        }} 
         variant={view === "grid" ? "default" : "outline"} 
         size="icon"
         aria-label="Grid view"
@@ -18,7 +23,10 @@ const ViewToggle = ({ view, onViewChange }: ViewToggleProps) => {
         <Grid className="h-4 w-4" />
       </Button>
       <Button 
-        onClick={() => onViewChange("list")} 
+        onClick={() => {
+          console.log("List button clicked");
+          onViewChange("list");
+        }} 
         variant={view === "list" ? "default" : "outline"} 
         size="icon"
         aria-label="List view"

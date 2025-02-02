@@ -25,27 +25,35 @@ const NoteGrid = ({
   onLinkBookmark,
   view = "grid",
 }: NoteGridProps) => {
+  console.log("NoteGrid rendered with view:", view);
+
   return (
     <div
       className={cn(
         "p-4",
         view === "grid"
           ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-          : "flex flex-col gap-4"
+          : "flex flex-col space-y-4"
       )}
     >
       {notes.map((note) => (
-        <NoteCard
+        <div
           key={note.id}
-          note={note}
-          isSelected={selectedNotes.has(note.id)}
-          onSelect={onSelectNote}
-          onDelete={onDeleteNote}
-          onEdit={onEditNote}
-          onAnalyze={onAnalyzeNote}
-          onConvertToTask={onConvertToTask}
-          onLinkBookmark={onLinkBookmark}
-        />
+          className={cn(
+            view === "list" && "w-full"
+          )}
+        >
+          <NoteCard
+            note={note}
+            isSelected={selectedNotes.has(note.id)}
+            onSelect={onSelectNote}
+            onDelete={onDeleteNote}
+            onEdit={onEditNote}
+            onAnalyze={onAnalyzeNote}
+            onConvertToTask={onConvertToTask}
+            onLinkBookmark={onLinkBookmark}
+          />
+        </div>
       ))}
       {notes.length === 0 && (
         <div className="col-span-full text-center py-8 text-muted-foreground">

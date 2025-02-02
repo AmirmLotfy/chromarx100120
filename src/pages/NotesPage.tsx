@@ -25,6 +25,13 @@ const NotesPage = () => {
   const [editingNote, setEditingNote] = useState<Note | undefined>();
   const { checkAccess, checkUsageLimit } = useFeatureAccess();
 
+  console.log("NotesPage rendered with view:", view);
+
+  const handleViewChange = (newView: "grid" | "list") => {
+    console.log("View change requested:", newView);
+    setView(newView);
+  };
+
   const handleCreateNote = () => {
     if (!checkUsageLimit("notes")) return;
     setEditingNote(undefined);
@@ -149,10 +156,6 @@ const NotesPage = () => {
     note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     note.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
-  const handleViewChange = (newView: "grid" | "list") => {
-    setView(newView);
-  };
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
