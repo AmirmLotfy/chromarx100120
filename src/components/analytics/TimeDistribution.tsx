@@ -19,15 +19,15 @@ const TimeDistribution = () => {
   ];
 
   return (
-    <Card className="p-4 sm:p-6 w-full">
+    <Card className="p-4 w-full">
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold tracking-tight">Time Distribution</h3>
+        <h3 className="text-lg font-semibold">Time Distribution</h3>
         <p className="text-sm text-muted-foreground">Your daily browsing patterns</p>
       </div>
       
-      <div className="h-[300px] -mx-4 sm:-mx-6 mt-4">
+      <div className="h-[300px] mt-4 -mx-4">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
+          <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />

@@ -41,20 +41,20 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
 
   if (loading) {
     return (
-      <Card className="p-6">
+      <Card className="p-4">
         <div className="text-center">Loading domain statistics...</div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-4 sm:p-6 w-full">
+    <Card className="p-4 w-full">
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold tracking-tight">Domain Distribution</h3>
+        <h3 className="text-lg font-semibold">Domain Distribution</h3>
         <p className="text-sm text-muted-foreground">Your most visited websites</p>
       </div>
       
-      <div className="h-[300px] -mx-4 sm:-mx-6 mt-4">
+      <div className="h-[300px] mt-4 -mx-4">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -71,7 +71,7 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
               ))}
             </Pie>
             <Tooltip />
-            <Legend />
+            <Legend verticalAlign="bottom" height={36} />
           </PieChart>
         </ResponsiveContainer>
       </div>
