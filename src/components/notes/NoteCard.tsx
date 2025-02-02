@@ -1,9 +1,8 @@
 import { Note } from "@/types/note";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit2, BarChart2, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Trash2, Edit2, BarChart2 } from "lucide-react";
+import NoteActions from "./NoteActions";
 
 interface NoteCardProps {
   note: Note;
@@ -12,6 +11,8 @@ interface NoteCardProps {
   onDelete: (id: string) => void;
   onEdit: (note: Note) => void;
   onAnalyze: (note: Note) => void;
+  onConvertToTask: (note: Note) => void;
+  onLinkBookmark: (note: Note) => void;
 }
 
 const NoteCard = ({
@@ -21,92 +22,71 @@ const NoteCard = ({
   onDelete,
   onEdit,
   onAnalyze,
+  onConvertToTask,
+  onLinkBookmark,
 }: NoteCardProps) => {
-  const sentimentColor = {
-    positive: 'bg-green-500/10 text-green-500 dark:bg-green-500/20',
-    negative: 'bg-red-500/10 text-red-500 dark:bg-red-500/20',
-    neutral: 'bg-blue-500/10 text-blue-500 dark:bg-blue-500/20',
-  }[note.sentiment || 'neutral'];
-
   return (
     <Card
-      className={cn(
-        "group relative p-4 cursor-pointer transition-all hover:shadow-lg dark:hover:shadow-accent/10",
-        "border border-border/50 hover:border-border",
-        "backdrop-blur-sm bg-background/95",
+      className={`relative transition-all hover:shadow-lg ${
         isSelected ? "ring-2 ring-primary" : ""
-      )}
+      }`}
       onClick={() => onSelect(note)}
     >
-      <div className="flex flex-col gap-2">
-        <div className="flex items-start justify-between">
-          <h3 className="font-semibold line-clamp-1 text-lg">{note.title}</h3>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(note);
-              }}
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(note.id);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {note.content}
-        </p>
-
-        {note.summary && (
-          <div className="mt-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
-            <FileText className="h-3 w-3 inline-block mr-1" />
-            {note.summary}
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2 mt-2">
-          {note.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-          {note.sentiment && (
-            <Badge className={cn("text-xs", sentimentColor)}>
-              {note.sentiment}
-            </Badge>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-          <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <h3 className="font-semibold">{note.title}</h3>
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
-            size="sm"
-            className="h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               onAnalyze(note);
             }}
           >
-            <BarChart2 className="h-4 w-4 mr-2" />
-            Analyze
+            <BarChart2 className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(note);
+            }}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(note.id);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <NoteActions
+            note={note}
+            onConvertToTask={onConvertToTask}
+            onLinkBookmark={onLinkBookmark}
+          />
         </div>
-      </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground line-clamp-3">{note.content}</p>
+        {note.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {note.tags.map((tag) => (
+              <span
+                key={tag}
+                className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

@@ -5,6 +5,7 @@ import NoteGrid from "@/components/notes/NoteGrid";
 import NoteEditor from "@/components/notes/NoteEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { 
   Grid, 
   List, 
@@ -16,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
 import { getGeminiResponse } from "@/utils/geminiUtils";
+import { useNavigate } from "react-router-dom";
 
 const NotesPage = () => {
   const [notes, setNotes] = useState<Note[]>(() => {
@@ -23,6 +25,7 @@ const NotesPage = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const navigate = useNavigate();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNotes, setSelectedNotes] = useState(new Set<string>());
@@ -34,6 +37,42 @@ const NotesPage = () => {
     if (!checkUsageLimit("notes")) return;
     setEditingNote(undefined);
     setIsEditorOpen(true);
+  };
+
+  const handleConvertToTask = async (note: Note) => {
+    if (!await checkAccess("task_creation")) return;
+
+    try {
+      // Store the note ID in localStorage to pre-fill the task form
+      localStorage.setItem("noteToTask", JSON.stringify({
+        title: note.title,
+        description: note.content,
+        noteId: note.id
+      }));
+      
+      // Navigate to the tasks page
+      navigate("/tasks");
+      toast.success("Note converted to task");
+    } catch (error) {
+      console.error("Error converting note to task:", error);
+      toast.error("Failed to convert note to task");
+    }
+  };
+
+  const handleLinkBookmark = async (note: Note) => {
+    if (!await checkAccess("bookmark_linking")) return;
+
+    try {
+      // Store the note ID in localStorage for the bookmarks page
+      localStorage.setItem("noteForBookmark", note.id);
+      
+      // Navigate to the bookmarks page
+      navigate("/bookmarks");
+      toast.success("Select a bookmark to link to this note");
+    } catch (error) {
+      console.error("Error linking bookmark:", error);
+      toast.error("Failed to link bookmark");
+    }
   };
 
   const handleEditNote = (note: Note) => {
@@ -190,6 +229,8 @@ const NotesPage = () => {
             setSelectedNotes(new Set([note.id]));
             await handleAnalyzeNotes();
           }}
+          onConvertToTask={handleConvertToTask}
+          onLinkBookmark={handleLinkBookmark}
         />
 
         {isEditorOpen && (

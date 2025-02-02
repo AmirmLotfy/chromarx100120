@@ -8,6 +8,8 @@ interface NoteGridProps {
   onDeleteNote: (id: string) => void;
   onEditNote: (note: Note) => void;
   onAnalyzeNote: (note: Note) => void;
+  onConvertToTask: (note: Note) => void;
+  onLinkBookmark: (note: Note) => void;
 }
 
 const NoteGrid = ({
@@ -17,6 +19,8 @@ const NoteGrid = ({
   onDeleteNote,
   onEditNote,
   onAnalyzeNote,
+  onConvertToTask,
+  onLinkBookmark,
 }: NoteGridProps) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
@@ -29,6 +33,8 @@ const NoteGrid = ({
           onDelete={onDeleteNote}
           onEdit={onEditNote}
           onAnalyze={onAnalyzeNote}
+          onConvertToTask={onConvertToTask}
+          onLinkBookmark={onLinkBookmark}
         />
       ))}
       {notes.length === 0 && (

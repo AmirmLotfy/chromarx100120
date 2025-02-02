@@ -1,3 +1,5 @@
+export type NoteSentiment = 'positive' | 'negative' | 'neutral';
+
 export interface Note {
   id: string;
   title: string;
@@ -6,8 +8,8 @@ export interface Note {
   category: string;
   createdAt: string;
   updatedAt: string;
-  sentiment?: 'positive' | 'negative' | 'neutral';
+  sentiment?: NoteSentiment;
   summary?: string;
+  taskId?: string;
+  bookmarkIds?: string[];
 }
-
-export type NoteView = 'grid' | 'list';
