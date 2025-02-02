@@ -85,39 +85,13 @@ const getMockHistoryData = (): VisitData[] => [
 
 export const generateAITips = async (visits: VisitData[]): Promise<string[]> => {
   try {
-    const user = auth.currentUser;
+    const user = await auth.getCurrentUser();
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    const token = await user.getIdToken();
-    const response = await fetch('YOUR_CLOUD_FUNCTION_URL/getGeminiResponse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        prompt: `Based on the following browsing patterns:
-        ${visits.slice(0, 5).map(v => `- ${v.domain}: ${v.timeSpent} minutes (${v.visitCount} visits)`).join('\n')}
-        
-        Provide 3 specific, actionable productivity tips to help improve focus and time management.`,
-        type: 'summarize',
-        language: 'en',
-        contentType: 'productivity'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate AI tips');
-    }
-
-    const data = await response.json();
-    const tips = data.result.split('\n')
-      .filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'))
-      .map((tip: string) => tip.replace(/^[-•]\s*/, '').trim());
-
-    return tips.length > 0 ? tips : getDefaultTips();
+    // For now, return default tips since we don't have the AI service integrated
+    return getDefaultTips();
   } catch (error) {
     console.error('Error generating AI tips:', error);
     return getDefaultTips();
