@@ -1,52 +1,47 @@
 {
   "manifest_version": 3,
-  "name": "ChroMarx",
-  "version": "1.0.0",
-  "description": "A beautiful and functional Chrome extension for managing bookmarks with AI-powered organization and insights",
+  "name": "Your Extension Name",
+  "version": "1.0",
+  "description": "Your extension description",
   "permissions": [
-    "sidePanel",
     "bookmarks",
     "storage",
-    "notifications",
     "identity",
-    "identity.email"
+    "aiOriginTrial"
   ],
-  "oauth2": {
-    "client_id": "46339279287-o0hkmkeho7uom3po0v2kvo9s48eui91p.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/customsearch"
-    ]
+  "optional_permissions": [],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "origin_trial": {
+    "tokens": ["YOUR_ORIGIN_TRIAL_TOKEN"]
   },
-  "side_panel": {
-    "default_path": "index.html"
+  "background": {
+    "service_worker": "src/background.js"
   },
   "action": {
-    "default_title": "ChroMarx - Click to toggle side panel",
+    "default_popup": "src/popup.html",
     "default_icon": {
-      "16": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
-      "48": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
-      "128": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png"
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
   },
   "icons": {
-    "16": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
-    "48": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png",
-    "128": "lovable-uploads/95959624-8b98-4a44-b8d1-393d07c243bc.png"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
-  "author": "ChroMarx Team",
-  "homepage_url": "https://chromarx.com",
-  "offline_enabled": true,
-  "short_name": "ChroMarx",
-  "version_name": "1.0.0 Beta",
-  "minimum_chrome_version": "131",
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  },
-  "web_accessible_resources": [{
-    "resources": [
-      "lovable-uploads/*.png"
-    ],
-    "matches": ["<all_urls>"]
-  }],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiQJlE+4wtU30WrFQtQw6yGzZHwoHzxyZK3Mq4Vlp7EFfx0IZQknX+Ks6YwIDAQAB"
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/*.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
