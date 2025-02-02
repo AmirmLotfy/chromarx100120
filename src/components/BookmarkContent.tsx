@@ -105,12 +105,18 @@ const BookmarkContent = ({
       <div className="flex flex-col md:flex-row gap-4">
         {isMobile ? (
           <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full md:w-auto mb-2">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters & Sort
-              </Button>
-            </SheetTrigger>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <SheetTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10 hover:from-primary/20 hover:via-primary/30 hover:to-primary/20 transition-all duration-300 shadow-sm hover:shadow-md"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters & Sort
+                </Button>
+              </SheetTrigger>
+            </div>
             <SheetContent side="left" className="w-[300px] p-4">
               <SheetHeader className="mb-4">
                 <SheetTitle>Filter Bookmarks</SheetTitle>

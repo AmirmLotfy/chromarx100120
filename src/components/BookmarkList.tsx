@@ -310,12 +310,12 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSelectAll}
-              className="flex-1 sm:flex-none"
+              className="w-full bg-gradient-to-r from-accent/50 via-accent/70 to-accent/50 hover:from-accent/70 hover:via-accent/90 hover:to-accent/70 transition-all duration-300 shadow-sm hover:shadow-md"
             >
               <CheckSquare className="h-4 w-4 mr-1.5" />
               {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
