@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { getHistoryData, calculateProductivityScore, VisitData } from "@/utils/analyticsUtils";
+import { getHistoryData, calculateProductivityScore } from "@/utils/analyticsUtils";
+import { VisitData } from "@/types/analytics";
 
 const ProductivityScore = () => {
   const [score, setScore] = useState(0);

@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { getHistoryData, VisitData } from "@/utils/analyticsUtils";
+import { getHistoryData } from "@/utils/analyticsUtils";
+import { VisitData } from "@/types/analytics";
 
 interface DomainStatsProps {
   detailed?: boolean;
