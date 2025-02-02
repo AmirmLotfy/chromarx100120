@@ -5,6 +5,7 @@ import { ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getHistoryData } from "@/utils/analyticsUtils";
 import { auth } from "@/lib/chrome-utils";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const AITips = () => {
   const [tips, setTips] = useState<string[]>([]);
@@ -27,26 +28,26 @@ const AITips = () => {
           .map(visit => `${visit.domain}: ${visit.visitCount} visits, ${Math.round(visit.timeSpent)} minutes`)
           .join('\n');
 
-        const response = await fetch('YOUR_CLOUD_FUNCTION_URL/getGeminiResponse', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            prompt: historyContext,
-            type: 'summarize',
-            language: 'en',
-            contentType: 'productivity'
-          }),
-        });
+        // Initialize Gemini with the token
+        const genAI = new GoogleGenerativeAI(token);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-        if (!response.ok) {
-          throw new Error('Failed to generate tips');
-        }
+        const summaryPrompt = `
+As an expert productivity analyst, analyze this browsing history and provide 3 actionable tips to improve productivity.
+Focus on patterns and suggest specific changes.
 
-        const data = await response.json();
-        const generatedTips = data.result.split('\n').filter((tip: string) => tip.trim());
+Browsing history:
+${historyContext}
+
+Provide 3 concise, practical tips that are:
+- Specific and actionable
+- Based on the actual browsing patterns
+- Focused on productivity improvement
+`;
+
+        const response = await model.generateContent(summaryPrompt);
+        const result = await response.response;
+        const generatedTips = result.text().split('\n').filter((tip: string) => tip.trim());
         setTips(generatedTips.slice(0, 3));
       } catch (error) {
         console.error('Error generating AI tips:', error);

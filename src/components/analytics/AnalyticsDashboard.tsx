@@ -10,7 +10,7 @@ import AITips from "./AITips";
 const AnalyticsDashboard = () => {
   return (
     <ScrollArea className="h-[calc(100vh-16rem)]">
-      <div className="space-y-4 px-2 pb-8">
+      <div className="space-y-4 px-4 pb-8 max-w-[100vw] overflow-x-hidden">
         {/* Overview Card */}
         <Card className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/10 dark:to-purple-800/10">
           <div className="flex items-center gap-4">
