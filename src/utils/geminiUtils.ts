@@ -3,12 +3,12 @@ import { toast } from "sonner";
 
 const getGeminiModel = async () => {
   try {
-    const authToken = await chrome.identity.getAuthToken({ interactive: true });
-    if (!authToken) {
+    const { token } = await chrome.identity.getAuthToken({ interactive: true });
+    if (!token) {
       throw new Error("Failed to get auth token");
     }
 
-    const genAI = new GoogleGenerativeAI();
+    const genAI = new GoogleGenerativeAI(token);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     return model;
   } catch (error) {
