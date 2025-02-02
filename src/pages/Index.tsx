@@ -1,7 +1,6 @@
 import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
 import WelcomeCard from "../components/WelcomeCard";
-import CompactServiceBanner from "../components/affiliate/CompactServiceBanner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { useEffect, useState } from "react";
 import { storage } from "@/lib/chrome-utils";
@@ -38,7 +37,6 @@ const Index = () => {
         <div className="px-2 sm:px-4">
           <WelcomeCard />
         </div>
-        {subscriptionStatus === "free" && <CompactServiceBanner />}
         <FeatureGrid />
       </div>
     </Layout>
