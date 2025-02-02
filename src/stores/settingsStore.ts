@@ -13,12 +13,14 @@ interface SettingsState {
     reminders: boolean;
   };
   experimentalFeatures: boolean;
+  affiliateBannersEnabled: boolean;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
   setDataCollection: (enabled: boolean, userId?: string) => void;
   setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean, userId?: string) => void;
   setExperimentalFeatures: (enabled: boolean) => void;
+  setAffiliateBannersEnabled: (enabled: boolean) => void;
   resetSettings: () => void;
 }
 
@@ -33,6 +35,7 @@ const initialState = {
     reminders: true,
   },
   experimentalFeatures: false,
+  affiliateBannersEnabled: true,
 };
 
 export const useSettings = create<SettingsState>()(
@@ -83,6 +86,10 @@ export const useSettings = create<SettingsState>()(
         }
       },
       setExperimentalFeatures: (experimentalFeatures) => set({ experimentalFeatures }),
+      setAffiliateBannersEnabled: (affiliateBannersEnabled) => {
+        set({ affiliateBannersEnabled });
+        console.log('Affiliate banners setting updated:', affiliateBannersEnabled);
+      },
       resetSettings: () => {
         set(initialState);
         const root = document.documentElement;
