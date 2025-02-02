@@ -19,8 +19,8 @@ const AITips = () => {
           throw new Error('User not authenticated');
         }
 
-        const token = await user.getIdToken();
-        const startTime = Date.now() - (7 * 24 * 60 * 60 * 1000); // Last 7 days
+        // Get last 7 days of history
+        const startTime = Date.now() - (7 * 24 * 60 * 60 * 1000);
         const historyData = await getHistoryData(startTime);
         
         // Format history data for Gemini
@@ -28,35 +28,34 @@ const AITips = () => {
           .map(visit => `${visit.domain}: ${visit.visitCount} visits, ${Math.round(visit.timeSpent)} minutes`)
           .join('\n');
 
-        // Initialize Gemini with the token
+        const token = await user.getIdToken();
         const genAI = new GoogleGenerativeAI(token);
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-        const summaryPrompt = `
-As an expert productivity analyst, analyze this browsing history and provide 3 actionable tips to improve productivity.
-Focus on patterns and suggest specific changes.
+        const prompt = `
+As a productivity expert, analyze this browsing history and provide 3 specific, actionable tips to improve productivity.
+Focus on patterns and suggest concrete changes.
 
-Browsing history:
+Browsing history from the last 7 days:
 ${historyContext}
 
 Provide 3 concise, practical tips that are:
-- Specific and actionable
-- Based on the actual browsing patterns
+- Based on the actual browsing patterns shown above
+- Specific and immediately actionable
 - Focused on productivity improvement
 `;
 
-        const response = await model.generateContent(summaryPrompt);
+        const response = await model.generateContent(prompt);
         const result = await response.response;
-        const generatedTips = result.text().split('\n').filter((tip: string) => tip.trim());
-        setTips(generatedTips.slice(0, 3));
+        const generatedTips = result.text()
+          .split('\n')
+          .filter(tip => tip.trim())
+          .slice(0, 3);
+        
+        setTips(generatedTips);
       } catch (error) {
         console.error('Error generating AI tips:', error);
         toast.error('Failed to generate productivity tips');
-        setTips([
-          "Consider using website blockers during focused work hours.",
-          "Try the Pomodoro Technique: 25 minutes of work, then 5 minutes break.",
-          "Schedule specific times for checking social media."
-        ]);
       } finally {
         setLoading(false);
       }
@@ -78,7 +77,7 @@ Provide 3 concise, practical tips that are:
           </div>
           <div>
             <h3 className="text-lg font-semibold">AI-Powered Insights</h3>
-            <p className="text-sm text-muted-foreground">Personalized suggestions for better productivity</p>
+            <p className="text-sm text-muted-foreground">Personalized suggestions based on your browsing patterns</p>
           </div>
         </div>
 

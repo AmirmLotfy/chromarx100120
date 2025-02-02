@@ -25,14 +25,14 @@ export const getHistoryData = async (startTime: number): Promise<VisitData[]> =>
 
       if (existing) {
         existing.visitCount += item.visitCount || 1;
-        existing.timeSpent += (item.visitCount || 1) * 2; // Estimate 2 minutes per visit
+        existing.timeSpent += calculateTimeSpent(item.lastVisitTime || 0, startTime);
         existing.lastVisitTime = Math.max(existing.lastVisitTime, item.lastVisitTime || 0);
       } else {
         domains.set(domain, {
           url: item.url,
           domain,
           visitCount: item.visitCount || 1,
-          timeSpent: (item.visitCount || 1) * 2,
+          timeSpent: calculateTimeSpent(item.lastVisitTime || 0, startTime),
           lastVisitTime: item.lastVisitTime || 0
         });
       }
@@ -41,7 +41,7 @@ export const getHistoryData = async (startTime: number): Promise<VisitData[]> =>
     return Array.from(domains.values());
   } catch (error) {
     console.error('Error fetching history:', error);
-    return getMockHistoryData();
+    throw error;
   }
 };
 
@@ -77,29 +77,15 @@ const extractDomain = (url: string): string => {
   }
 };
 
+const calculateTimeSpent = (lastVisitTime: number, startTime: number): number => {
+  // Calculate time spent in minutes, assuming average visit duration of 2 minutes
+  const visits = Math.ceil((lastVisitTime - startTime) / (2 * 60 * 1000));
+  return Math.max(visits * 2, 2); // Minimum 2 minutes per visit
+};
+
+// Only used in development when Chrome API is not available
 const getMockHistoryData = (): VisitData[] => [
   { url: 'https://github.com', domain: 'github.com', visitCount: 15, timeSpent: 30, lastVisitTime: Date.now() },
   { url: 'https://stackoverflow.com', domain: 'stackoverflow.com', visitCount: 12, timeSpent: 45, lastVisitTime: Date.now() },
   { url: 'https://youtube.com', domain: 'youtube.com', visitCount: 8, timeSpent: 20, lastVisitTime: Date.now() }
-];
-
-export const generateAITips = async (visits: VisitData[]): Promise<string[]> => {
-  try {
-    const user = await auth.getCurrentUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    // For now, return default tips since we don't have the AI service integrated
-    return getDefaultTips();
-  } catch (error) {
-    console.error('Error generating AI tips:', error);
-    return getDefaultTips();
-  }
-};
-
-const getDefaultTips = () => [
-  "Consider using website blockers during focused work hours to minimize distractions.",
-  "Try the Pomodoro Technique: 25 minutes of focused work followed by a 5-minute break.",
-  "Set specific time blocks for checking social media and entertainment sites."
 ];
