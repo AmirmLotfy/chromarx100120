@@ -17,7 +17,7 @@ export const TimerSuggestions = ({ onSelectDuration }: TimerSuggestionsProps) =>
       setLoading(true);
       const response = await getGeminiResponse({
         prompt: "I need to focus on coding and implementing new features",
-        type: "timer",
+        type: "summarize", // Changed from "timer" to "summarize"
         language: "en"
       });
       
