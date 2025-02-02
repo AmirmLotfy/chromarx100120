@@ -82,9 +82,13 @@ const ProductivityTrends = () => {
                 border: '1px solid var(--border)',
                 borderRadius: '12px',
                 padding: '12px',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                opacity: 1
               }}
-              cursor={{ stroke: 'var(--muted)' }}
+              itemStyle={{
+                color: 'var(--foreground)'
+              }}
+              cursor={{ stroke: 'var(--muted)', opacity: 0.1 }}
             />
             <Legend 
               verticalAlign="top"
