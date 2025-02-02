@@ -6,15 +6,20 @@
   "permissions": [
     "bookmarks",
     "storage",
-    "identity",
-    "aiOriginTrial"
+    "identity"
   ],
   "optional_permissions": [],
   "host_permissions": [
     "<all_urls>"
   ],
-  "origin_trial": {
-    "tokens": ["YOUR_ORIGIN_TRIAL_TOKEN"]
+  "oauth2": {
+    "client_id": "46339279287-o0hkmkeho7uom3po0v2kvo9s48eui91p.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/customsearch",
+      "https://www.googleapis.com/auth/generative-ai",
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
   },
   "background": {
     "service_worker": "src/background.js"
