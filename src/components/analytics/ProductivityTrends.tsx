@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
   LineChart,
@@ -8,35 +9,86 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { getHistoryData, calculateProductivityScore } from "@/utils/analyticsUtils";
+import { format, subDays } from "date-fns";
 
 const ProductivityTrends = () => {
-  const data = [
-    { date: "Mon", score: 65 },
-    { date: "Tue", score: 70 },
-    { date: "Wed", score: 68 },
-    { date: "Thu", score: 75 },
-    { date: "Fri", score: 72 },
-  ];
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const trends = [];
+        // Get productivity scores for last 7 days
+        for (let i = 6; i >= 0; i--) {
+          const endTime = Date.now() - (i * 24 * 60 * 60 * 1000);
+          const startTime = endTime - (24 * 60 * 60 * 1000);
+          const historyData = await getHistoryData(startTime);
+          const score = calculateProductivityScore(historyData);
+          
+          trends.push({
+            date: format(subDays(new Date(), i), 'EEE'),
+            score
+          });
+        }
+        
+        setData(trends);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching productivity trends:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="p-4">
+        <div className="text-center">Loading productivity trends...</div>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="p-4 w-full">
+    <Card className="p-4 w-full bg-gradient-to-br from-background to-muted">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Productivity Trends</h3>
         <p className="text-sm text-muted-foreground">Your productivity score over time</p>
       </div>
       
-      <div className="flex justify-center items-center h-[300px] mt-4">
+      <div className="flex justify-center items-center h-[300px] mt-4 md:h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
+          <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+            <XAxis 
+              dataKey="date" 
+              fontSize={12}
+              tickLine={false}
+            />
+            <YAxis 
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              domain={[0, 100]}
+              tickFormatter={(value) => `${value}%`}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px'
+              }}
+            />
             <Line
               type="monotone"
               dataKey="score"
-              stroke="#9b87f5"
+              stroke="var(--primary-color)"
               strokeWidth={2}
+              dot={{ fill: "var(--primary-color)", strokeWidth: 2 }}
+              activeDot={{ r: 6, fill: "var(--primary-color)" }}
             />
           </LineChart>
         </ResponsiveContainer>

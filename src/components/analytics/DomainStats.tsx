@@ -48,13 +48,13 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
   }
 
   return (
-    <Card className="p-4 w-full">
+    <Card className="p-4 w-full bg-gradient-to-br from-background to-muted">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Domain Distribution</h3>
         <p className="text-sm text-muted-foreground">Your most visited websites</p>
       </div>
       
-      <div className="flex justify-center items-center h-[300px] mt-4">
+      <div className="flex justify-center items-center h-[300px] mt-4 md:h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -67,20 +67,34 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
               dataKey="value"
             >
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.color}
+                  strokeWidth={0}
+                />
               ))}
             </Pie>
-            <Tooltip />
-            <Legend verticalAlign="bottom" height={36} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'var(--background)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px'
+              }}
+            />
+            <Legend 
+              verticalAlign="bottom" 
+              height={36}
+              formatter={(value) => <span className="text-sm">{value}</span>}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
       {detailed && visits.length > 0 && (
-        <div className="mt-6 overflow-x-auto">
+        <div className="mt-6 overflow-x-auto rounded-lg border border-border/50">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="hover:bg-muted/50">
                 <TableHead>Domain</TableHead>
                 <TableHead className="text-right">Visits</TableHead>
                 <TableHead className="text-right">Time Spent</TableHead>
@@ -88,7 +102,7 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
             </TableHeader>
             <TableBody>
               {visits.slice(0, 10).map((visit) => (
-                <TableRow key={visit.domain}>
+                <TableRow key={visit.domain} className="hover:bg-muted/50">
                   <TableCell className="font-medium">{visit.domain}</TableCell>
                   <TableCell className="text-right">{visit.visitCount}</TableCell>
                   <TableCell className="text-right">{Math.round(visit.timeSpent)} min</TableCell>
