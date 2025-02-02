@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { chromeDb } from '@/lib/chrome-storage';
 
 export interface User {
   id: string;
@@ -30,14 +31,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async () => {
     try {
+      console.log('Initiating Google OAuth sign-in...');
       const token = await chrome.identity.getAuthToken({ interactive: true });
+      console.log('OAuth token received');
+
       const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token.token}` }
       });
       
-      if (!response.ok) throw new Error('Failed to get user info');
+      if (!response.ok) {
+        throw new Error('Failed to get user info');
+      }
       
       const data = await response.json();
+      console.log('User info retrieved:', { email: data.email, name: data.name });
+
       const userData: User = {
         id: data.sub,
         email: data.email,
@@ -45,28 +53,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         photoURL: data.picture
       };
       
+      await chromeDb.set('user', userData);
       setUser(userData);
-      await chrome.storage.sync.set({ user: userData });
       toast.success('Successfully signed in!');
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error('Failed to sign in');
+      toast.error('Failed to sign in. Please try again.');
       throw error;
     }
   };
 
   const signOut = async () => {
     try {
+      console.log('Initiating sign-out process...');
       const token = await chrome.identity.getAuthToken({ interactive: false });
       if (token) {
         await chrome.identity.removeCachedAuthToken({ token: token.token });
+        console.log('OAuth token removed');
       }
-      await chrome.storage.sync.remove('user');
+      await chromeDb.remove('user');
       setUser(null);
       toast.success('Successfully signed out');
     } catch (error) {
       console.error('Sign out error:', error);
-      toast.error('Failed to sign out');
+      toast.error('Failed to sign out. Please try again.');
       throw error;
     }
   };
@@ -74,8 +84,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const { user: storedUser } = await chrome.storage.sync.get('user');
+        console.log('Initializing authentication...');
+        const storedUser = await chromeDb.get<User>('user');
         if (storedUser) {
+          console.log('Found stored user:', { email: storedUser.email });
           setUser(storedUser);
         }
       } catch (error) {
