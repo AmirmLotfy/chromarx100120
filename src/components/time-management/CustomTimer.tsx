@@ -80,57 +80,60 @@ const CustomTimer = ({ initialMinutes, onComplete }: CustomTimerProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-center space-x-3">
+      <div className="flex items-center justify-center gap-2">
         <Input
           type="number"
           value={minutes}
           onChange={handleMinutesChange}
-          className="w-20 h-10 text-lg text-center"
+          className="w-16 h-8 text-sm text-center"
           min="0"
           disabled={isActive}
         />
-        <span className="text-2xl font-medium">:</span>
-        <span className="text-2xl font-medium w-16 text-center">
+        <span className="text-xl font-medium">:</span>
+        <span className="text-xl font-medium w-12 text-center tabular-nums">
           {seconds.toString().padStart(2, "0")}
         </span>
       </div>
 
-      <div className="flex justify-center space-x-3">
+      <div className="flex justify-center gap-2">
         {!isActive ? (
           <Button 
             onClick={startTimer}
-            size="default"
-            className="h-10"
+            size="sm"
+            variant="outline"
+            className="h-8 px-3"
           >
-            <Play className="mr-1.5 h-4 w-4" />
+            <Play className="h-3.5 w-3.5 mr-1" />
             Start
           </Button>
         ) : isPaused ? (
           <Button 
             onClick={resumeTimer}
-            size="default"
-            className="h-10"
+            size="sm"
+            variant="outline"
+            className="h-8 px-3"
           >
-            <Play className="mr-1.5 h-4 w-4" />
+            <Play className="h-3.5 w-3.5 mr-1" />
             Resume
           </Button>
         ) : (
           <Button 
             onClick={pauseTimer}
-            size="default"
-            className="h-10"
+            size="sm"
+            variant="outline"
+            className="h-8 px-3"
           >
-            <Pause className="mr-1.5 h-4 w-4" />
+            <Pause className="h-3.5 w-3.5 mr-1" />
             Pause
           </Button>
         )}
         <Button 
           variant="outline" 
           onClick={resetTimer}
-          size="default"
-          className="h-10"
+          size="sm"
+          className="h-8 px-3"
         >
-          <RefreshCw className="mr-1.5 h-4 w-4" />
+          <RefreshCw className="h-3.5 w-3.5 mr-1" />
           Reset
         </Button>
       </div>

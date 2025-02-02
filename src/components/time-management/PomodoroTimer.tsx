@@ -86,35 +86,38 @@ const PomodoroTimer = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <h3 className="text-base font-medium">
+    <div className="space-y-6">
+      <div className="text-center space-y-2">
+        <h3 className="text-sm font-medium">
           {isBreak ? "Break Time" : "Focus Time"}
         </h3>
-        <div className="text-sm text-muted-foreground space-y-0.5">
+        <div className="text-xs text-muted-foreground space-y-0.5">
           <p>Sessions completed: {sessionsCompleted}</p>
           <p>Total work time: {formatTotalTime(totalWorkTime)}</p>
         </div>
       </div>
 
       <div className="flex justify-center">
-        <span className="text-3xl font-medium">{formatTime(timeLeft)}</span>
+        <span className="text-2xl font-medium tabular-nums">
+          {formatTime(timeLeft)}
+        </span>
       </div>
 
-      <div className="flex justify-center space-x-3">
+      <div className="flex justify-center gap-2">
         <Button 
           onClick={toggleTimer}
-          size="default"
-          className="h-10"
+          size="sm"
+          variant="outline"
+          className="h-8 px-3"
         >
           {!isActive || isPaused ? (
             <>
-              <Play className="mr-1.5 h-4 w-4" />
+              <Play className="h-3.5 w-3.5 mr-1" />
               {!isActive ? "Start" : "Resume"}
             </>
           ) : (
             <>
-              <Pause className="mr-1.5 h-4 w-4" />
+              <Pause className="h-3.5 w-3.5 mr-1" />
               Pause
             </>
           )}
@@ -122,10 +125,10 @@ const PomodoroTimer = () => {
         <Button 
           variant="outline" 
           onClick={resetTimer}
-          size="default"
-          className="h-10"
+          size="sm"
+          className="h-8 px-3"
         >
-          <RefreshCw className="mr-1.5 h-4 w-4" />
+          <RefreshCw className="h-3.5 w-3.5 mr-1" />
           Reset
         </Button>
       </div>

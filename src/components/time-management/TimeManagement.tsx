@@ -17,59 +17,59 @@ const TimeManagement = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
-      <div className="grid grid-cols-1 gap-4">
-        <Card className="p-4">
-          <AITimerSuggestions onSuggestion={handleAISuggestion} />
-        </Card>
-        
-        <Card className="p-4">
-          <div className="space-y-4">
-            <div className="flex justify-center gap-2">
-              <Toggle
-                pressed={timerType === 'custom'}
-                onPressedChange={() => setTimerType('custom')}
-                className="data-[state=on]:bg-primary/10 px-4 py-1.5 text-sm"
-              >
-                <Timer className="mr-1.5 h-4 w-4" />
-                Custom
-              </Toggle>
-              <Toggle
-                pressed={timerType === 'pomodoro'}
-                onPressedChange={() => setTimerType('pomodoro')}
-                className="data-[state=on]:bg-primary/10 px-4 py-1.5 text-sm"
-              >
-                <Brain className="mr-1.5 h-4 w-4" />
-                Pomodoro
-              </Toggle>
-            </div>
-            
-            <div className="transition-all duration-300">
-              {timerType === 'custom' ? (
-                <CustomTimer initialMinutes={suggestedDuration} />
-              ) : (
-                <PomodoroTimer />
-              )}
-            </div>
+    <div className="container mx-auto px-4 max-w-2xl space-y-4">
+      <Card className="p-4 shadow-sm">
+        <AITimerSuggestions onSuggestion={handleAISuggestion} />
+      </Card>
+      
+      <Card className="p-4 shadow-sm">
+        <div className="space-y-6">
+          <div className="flex justify-center gap-2">
+            <Toggle
+              pressed={timerType === 'custom'}
+              onPressedChange={() => setTimerType('custom')}
+              className="data-[state=on]:bg-primary/10 px-3 py-1 text-sm"
+              aria-label="Custom Timer"
+            >
+              <Timer className="h-4 w-4 mr-1.5" />
+              Custom
+            </Toggle>
+            <Toggle
+              pressed={timerType === 'pomodoro'}
+              onPressedChange={() => setTimerType('pomodoro')}
+              className="data-[state=on]:bg-primary/10 px-3 py-1 text-sm"
+              aria-label="Pomodoro Timer"
+            >
+              <Brain className="h-4 w-4 mr-1.5" />
+              Pomodoro
+            </Toggle>
           </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-1.5">
-              <Focus className="h-4 w-4" />
-              <h3 className="text-base font-medium">Focus Mode</h3>
-            </div>
-            <FocusMode />
+          
+          <div className="transition-all duration-300">
+            {timerType === 'custom' ? (
+              <CustomTimer initialMinutes={suggestedDuration} />
+            ) : (
+              <PomodoroTimer />
+            )}
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
-      <Card className="p-4">
+      <Card className="p-4 shadow-sm">
         <div className="space-y-3">
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center gap-1.5">
+            <Focus className="h-4 w-4" />
+            <h3 className="text-sm font-medium">Focus Mode</h3>
+          </div>
+          <FocusMode />
+        </div>
+      </Card>
+
+      <Card className="p-4 shadow-sm">
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5">
             <BarChart className="h-4 w-4" />
-            <h3 className="text-base font-medium">Time Analytics</h3>
+            <h3 className="text-sm font-medium">Time Analytics</h3>
           </div>
           <TimeAnalytics />
         </div>
