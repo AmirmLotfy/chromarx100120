@@ -1,6 +1,4 @@
 import Layout from "@/components/Layout";
-import TimeManagement from "@/components/time-management/TimeManagement";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const TimerPage = () => {
   return (
@@ -12,9 +10,6 @@ const TimerPage = () => {
             Manage your time effectively with AI-powered timers and focus tools
           </p>
         </div>
-        <ScrollArea className="h-[calc(100vh-12rem)]">
-          <TimeManagement />
-        </ScrollArea>
       </div>
     </Layout>
   );
