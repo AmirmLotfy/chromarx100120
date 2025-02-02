@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import Layout from "@/components/Layout";
 import { Note } from "@/types/note";
 import NoteGrid from "@/components/notes/NoteGrid";
 import NoteEditor from "@/components/notes/NoteEditor";
@@ -151,88 +150,91 @@ const NotesPage = () => {
     note.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const handleViewChange = (newView: "grid" | "list") => {
+    setView(newView);
+  };
+
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold">Notes</h1>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-3xl font-bold">Notes</h1>
+        <div className="flex gap-2">
+          <ViewToggle view={view} onViewChange={handleViewChange} />
+          <Button onClick={handleCreateNote}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Note
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {selectedNotes.size > 0 && (
           <div className="flex gap-2">
-            <ViewToggle view={view} onViewChange={setView} />
-            <Button onClick={handleCreateNote}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Note
+            <Button variant="destructive" onClick={handleDeleteNotes}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete ({selectedNotes.size})
+            </Button>
+            <Button onClick={handleAnalyzeNotes}>
+              <BarChart2 className="h-4 w-4 mr-2" />
+              Analyze ({selectedNotes.size})
             </Button>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          {selectedNotes.size > 0 && (
-            <div className="flex gap-2">
-              <Button variant="destructive" onClick={handleDeleteNotes}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete ({selectedNotes.size})
-              </Button>
-              <Button onClick={handleAnalyzeNotes}>
-                <BarChart2 className="h-4 w-4 mr-2" />
-                Analyze ({selectedNotes.size})
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <NoteGrid
-          notes={filteredNotes}
-          selectedNotes={selectedNotes}
-          onSelectNote={(note) => {
-            setSelectedNotes((prev) => {
-              const next = new Set(prev);
-              if (next.has(note.id)) {
-                next.delete(note.id);
-              } else {
-                next.add(note.id);
-              }
-              return next;
-            });
-          }}
-          onDeleteNote={(id) => {
-            setNotes((prev) => prev.filter((note) => note.id !== id));
-            setSelectedNotes((prev) => {
-              const next = new Set(prev);
-              next.delete(id);
-              return next;
-            });
-            toast.success("Note deleted");
-          }}
-          onEditNote={handleEditNote}
-          onAnalyzeNote={async (note) => {
-            setSelectedNotes(new Set([note.id]));
-            await handleAnalyzeNotes();
-          }}
-          onConvertToTask={handleConvertToTask}
-          onLinkBookmark={handleLinkBookmark}
-        />
-
-        {isEditorOpen && (
-          <NoteEditor
-            note={editingNote}
-            onSave={handleSaveNote}
-            onClose={() => {
-              setIsEditorOpen(false);
-              setEditingNote(undefined);
-            }}
-          />
         )}
       </div>
-    </Layout>
+
+      <NoteGrid
+        notes={filteredNotes}
+        selectedNotes={selectedNotes}
+        onSelectNote={(note) => {
+          setSelectedNotes((prev) => {
+            const next = new Set(prev);
+            if (next.has(note.id)) {
+              next.delete(note.id);
+            } else {
+              next.add(note.id);
+            }
+            return next;
+          });
+        }}
+        onDeleteNote={(id) => {
+          setNotes((prev) => prev.filter((note) => note.id !== id));
+          setSelectedNotes((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          toast.success("Note deleted");
+        }}
+        onEditNote={handleEditNote}
+        onAnalyzeNote={async (note) => {
+          setSelectedNotes(new Set([note.id]));
+          await handleAnalyzeNotes();
+        }}
+        onConvertToTask={handleConvertToTask}
+        onLinkBookmark={handleLinkBookmark}
+        view={view}
+      />
+
+      {isEditorOpen && (
+        <NoteEditor
+          note={editingNote}
+          onSave={handleSaveNote}
+          onClose={() => {
+            setIsEditorOpen(false);
+            setEditingNote(undefined);
+          }}
+        />
+      )}
+    </div>
   );
 };
 

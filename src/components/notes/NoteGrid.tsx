@@ -1,5 +1,6 @@
 import { Note } from "@/types/note";
 import NoteCard from "./NoteCard";
+import { cn } from "@/lib/utils";
 
 interface NoteGridProps {
   notes: Note[];
@@ -10,6 +11,7 @@ interface NoteGridProps {
   onAnalyzeNote: (note: Note) => void;
   onConvertToTask: (note: Note) => void;
   onLinkBookmark: (note: Note) => void;
+  view?: "grid" | "list";
 }
 
 const NoteGrid = ({
@@ -21,9 +23,17 @@ const NoteGrid = ({
   onAnalyzeNote,
   onConvertToTask,
   onLinkBookmark,
+  view = "grid",
 }: NoteGridProps) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+    <div
+      className={cn(
+        "p-4",
+        view === "grid"
+          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          : "flex flex-col gap-4"
+      )}
+    >
       {notes.map((note) => (
         <NoteCard
           key={note.id}
