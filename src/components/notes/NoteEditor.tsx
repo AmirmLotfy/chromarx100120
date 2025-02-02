@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Note } from "@/types/note";
 import { Mic, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import type {} from "@/types/chrome-ai"; // This imports the types without requiring a value import
 
 interface NoteEditorProps {
   note?: Note;
