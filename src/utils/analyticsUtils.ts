@@ -1,18 +1,11 @@
-import { extractDomain } from './domainUtils';
+import { getGeminiResponse } from "./geminiUtils";
 
 export interface VisitData {
   url: string;
   domain: string;
   visitCount: number;
-  timeSpent: number; // in minutes
-  lastVisitTime: number;
-}
-
-export interface DomainStats {
-  domain: string;
-  visitCount: number;
   timeSpent: number;
-  category: string;
+  lastVisitTime: number;
 }
 
 export const getHistoryData = async (startTime: number): Promise<VisitData[]> => {
@@ -59,22 +52,65 @@ export const getHistoryData = async (startTime: number): Promise<VisitData[]> =>
   }
 };
 
-const getMockHistoryData = (): VisitData[] => [
-  { url: 'https://example.com', domain: 'example.com', visitCount: 15, timeSpent: 30, lastVisitTime: Date.now() },
-  { url: 'https://work.com', domain: 'work.com', visitCount: 12, timeSpent: 45, lastVisitTime: Date.now() },
-  { url: 'https://social.com', domain: 'social.com', visitCount: 8, timeSpent: 20, lastVisitTime: Date.now() }
-];
-
 export const calculateProductivityScore = (visits: VisitData[]): number => {
   if (visits.length === 0) return 0;
 
-  const totalVisits = visits.reduce((sum, visit) => sum + visit.visitCount, 0);
-  const workRelatedDomains = visits.filter(visit => 
-    visit.domain.includes('docs') || 
-    visit.domain.includes('github') || 
-    visit.domain.includes('stackoverflow')
-  );
-  
-  const workVisits = workRelatedDomains.reduce((sum, visit) => sum + visit.visitCount, 0);
-  return Math.round((workVisits / totalVisits) * 100);
+  const productiveKeywords = ['docs', 'github', 'stackoverflow', 'learn', 'course', 'study'];
+  const unproductiveKeywords = ['social', 'game', 'entertainment', 'video'];
+
+  let productiveTime = 0;
+  let totalTime = 0;
+
+  visits.forEach(visit => {
+    const domain = visit.domain.toLowerCase();
+    const isProductive = productiveKeywords.some(keyword => domain.includes(keyword));
+    const isUnproductive = unproductiveKeywords.some(keyword => domain.includes(keyword));
+
+    if (isProductive) {
+      productiveTime += visit.timeSpent;
+    }
+    totalTime += visit.timeSpent;
+  });
+
+  return Math.round((productiveTime / totalTime) * 100) || 0;
 };
+
+const extractDomain = (url: string): string => {
+  try {
+    const domain = new URL(url).hostname;
+    return domain.replace('www.', '');
+  } catch {
+    return url;
+  }
+};
+
+const getMockHistoryData = (): VisitData[] => [
+  { url: 'https://github.com', domain: 'github.com', visitCount: 15, timeSpent: 30, lastVisitTime: Date.now() },
+  { url: 'https://stackoverflow.com', domain: 'stackoverflow.com', visitCount: 12, timeSpent: 45, lastVisitTime: Date.now() },
+  { url: 'https://youtube.com', domain: 'youtube.com', visitCount: 8, timeSpent: 20, lastVisitTime: Date.now() }
+];
+
+export const generateAITips = async (visits: VisitData[]): Promise<string[]> => {
+  try {
+    const prompt = `Based on the following browsing patterns:
+    ${visits.slice(0, 5).map(v => `- ${v.domain}: ${v.timeSpent} minutes (${v.visitCount} visits)`).join('\n')}
+    
+    Provide 3 specific, actionable productivity tips to help improve focus and time management. Format as a list.`;
+
+    const response = await getGeminiResponse(prompt);
+    const tips = response.split('\n')
+      .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'))
+      .map(tip => tip.replace(/^[-•]\s*/, '').trim());
+
+    return tips.length > 0 ? tips : getDefaultTips();
+  } catch (error) {
+    console.error('Error generating AI tips:', error);
+    return getDefaultTips();
+  }
+};
+
+const getDefaultTips = () => [
+  "Consider using website blockers during focused work hours to minimize distractions.",
+  "Try the Pomodoro Technique: 25 minutes of focused work followed by a 5-minute break.",
+  "Set specific time blocks for checking social media and entertainment sites."
+];
