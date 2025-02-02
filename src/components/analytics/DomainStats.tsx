@@ -54,7 +54,7 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
         <p className="text-sm text-muted-foreground">Your most visited websites</p>
       </div>
       
-      <div className="h-[300px] mt-4 -mx-4">
+      <div className="flex justify-center items-center h-[300px] mt-4">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
