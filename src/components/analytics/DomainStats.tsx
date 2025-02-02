@@ -83,12 +83,19 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
                 borderRadius: '12px',
                 padding: '12px',
                 boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                opacity: 1
+                opacity: 1,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
               itemStyle={{
-                color: 'var(--foreground)'
+                color: 'var(--foreground)',
+                padding: '4px 0',
               }}
-              cursor={{ fill: 'var(--muted)', opacity: 0.1 }}
+              cursor={{ fill: 'var(--muted)', opacity: 0.2 }}
+              wrapperStyle={{
+                outline: 'none',
+                zIndex: 100,
+              }}
             />
             <Legend 
               verticalAlign="bottom" 
