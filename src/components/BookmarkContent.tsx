@@ -19,6 +19,13 @@ interface BookmarkContentProps {
   onSortChange: (option: SortOption) => void;
   filterOptions: FilterOptions;
   onFilterChange: (options: FilterOptions) => void;
+  categories: { name: string; count: number; }[];
+  domains: { domain: string; count: number; }[];
+  selectedCategory: string | null;
+  selectedDomain: string | null;
+  onSelectCategory: (category: string | null) => void;
+  onSelectDomain: (domain: string | null) => void;
+  onUpdateCategories: (updatedBookmarks: ChromeBookmark[]) => void;
 }
 
 const BookmarkContent = ({
@@ -31,6 +38,13 @@ const BookmarkContent = ({
   onSortChange,
   filterOptions,
   onFilterChange,
+  categories,
+  domains,
+  selectedCategory,
+  selectedDomain,
+  onSelectCategory,
+  onSelectDomain,
+  onUpdateCategories,
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
 
