@@ -6,6 +6,7 @@ export interface ChromeUser {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  getIdToken: () => Promise<string>;
 }
 
 export interface ChromeStorageData {
@@ -75,7 +76,8 @@ export const auth = {
         uid: data.sub, // Set uid same as id for compatibility
         email: data.email,
         displayName: data.name,
-        photoURL: data.picture
+        photoURL: data.picture,
+        getIdToken: async () => token.token // Added getIdToken method
       };
       return user;
     } catch (error) {
@@ -101,7 +103,8 @@ export const auth = {
         uid: data.sub, // Set uid same as id for compatibility
         email: data.email,
         displayName: data.name,
-        photoURL: data.picture
+        photoURL: data.picture,
+        getIdToken: async () => token.token // Added getIdToken method
       };
 
       await storage.set('currentUser', user);

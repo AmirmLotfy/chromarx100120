@@ -1,4 +1,5 @@
 import { auth } from "@/lib/chrome-utils";
+import { ChromeBookmark } from "@/types/bookmark";
 
 interface GeminiRequest {
   prompt: string;
@@ -18,11 +19,12 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
       throw new Error('User not authenticated');
     }
 
+    const token = await user.getIdToken();
     const response = await fetch('YOUR_CLOUD_FUNCTION_URL/getGeminiResponse', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await auth.getIdToken()}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(request),
     });
@@ -36,4 +38,28 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
     console.error('Error getting Gemini response:', error);
     throw error;
   }
+};
+
+export const summarizeContent = async (content: string, language: string): Promise<string> => {
+  const response = await getGeminiResponse({
+    prompt: content,
+    type: 'summarize',
+    language,
+    contentType: 'general'
+  });
+  return response.result;
+};
+
+export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
+  const content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
+  return summarizeContent(content, language);
+};
+
+export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
+  const response = await getGeminiResponse({
+    prompt: `${title}\n${url}`,
+    type: 'categorize',
+    language: 'en'
+  });
+  return response.result;
 };
