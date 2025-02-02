@@ -3,17 +3,10 @@ import Layout from "@/components/Layout";
 import { Note } from "@/types/note";
 import NoteGrid from "@/components/notes/NoteGrid";
 import NoteEditor from "@/components/notes/NoteEditor";
+import ViewToggle from "@/components/ViewToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { 
-  Grid, 
-  List, 
-  Plus, 
-  Search,
-  Trash2,
-  BarChart2
-} from "lucide-react";
+import { Plus, Search, Trash2, BarChart2 } from "lucide-react";
 import { toast } from "sonner";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
 import { getGeminiResponse } from "@/utils/geminiUtils";
@@ -164,12 +157,7 @@ const NotesPage = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">Notes</h1>
           <div className="flex gap-2">
-            <Button onClick={() => setView("grid")} variant={view === "grid" ? "default" : "outline"} size="icon">
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button onClick={() => setView("list")} variant={view === "list" ? "default" : "outline"} size="icon">
-              <List className="h-4 w-4" />
-            </Button>
+            <ViewToggle view={view} onViewChange={setView} />
             <Button onClick={handleCreateNote}>
               <Plus className="h-4 w-4 mr-2" />
               New Note
