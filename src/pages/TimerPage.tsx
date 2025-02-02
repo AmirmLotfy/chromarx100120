@@ -1,6 +1,5 @@
 import Layout from "@/components/Layout";
 import TimeManagement from "@/components/time-management/TimeManagement";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const TimerPage = () => {

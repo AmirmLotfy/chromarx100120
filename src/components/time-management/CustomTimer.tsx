@@ -80,64 +80,62 @@ const CustomTimer = ({ initialMinutes, onComplete }: CustomTimerProps) => {
   };
 
   return (
-    <Card className="p-6 md:p-8">
-      <div className="space-y-8">
-        <div className="flex items-center justify-center space-x-4">
-          <Input
-            type="number"
-            value={minutes}
-            onChange={handleMinutesChange}
-            className="w-24 h-14 text-2xl text-center"
-            min="0"
-            disabled={isActive}
-          />
-          <span className="text-3xl font-semibold">:</span>
-          <span className="text-3xl font-semibold w-20 text-center">
-            {seconds.toString().padStart(2, "0")}
-          </span>
-        </div>
+    <div className="space-y-8">
+      <div className="flex items-center justify-center space-x-4">
+        <Input
+          type="number"
+          value={minutes}
+          onChange={handleMinutesChange}
+          className="w-24 h-14 text-2xl text-center"
+          min="0"
+          disabled={isActive}
+        />
+        <span className="text-3xl font-semibold">:</span>
+        <span className="text-3xl font-semibold w-20 text-center">
+          {seconds.toString().padStart(2, "0")}
+        </span>
+      </div>
 
-        <div className="flex justify-center space-x-4">
-          {!isActive ? (
-            <Button 
-              onClick={startTimer}
-              size="lg"
-              className="h-14 px-6 text-lg"
-            >
-              <Play className="mr-2 h-6 w-6" />
-              Start
-            </Button>
-          ) : isPaused ? (
-            <Button 
-              onClick={resumeTimer}
-              size="lg"
-              className="h-14 px-6 text-lg"
-            >
-              <Play className="mr-2 h-6 w-6" />
-              Resume
-            </Button>
-          ) : (
-            <Button 
-              onClick={pauseTimer}
-              size="lg"
-              className="h-14 px-6 text-lg"
-            >
-              <Pause className="mr-2 h-6 w-6" />
-              Pause
-            </Button>
-          )}
+      <div className="flex justify-center space-x-4">
+        {!isActive ? (
           <Button 
-            variant="outline" 
-            onClick={resetTimer}
+            onClick={startTimer}
             size="lg"
             className="h-14 px-6 text-lg"
           >
-            <RefreshCw className="mr-2 h-6 w-6" />
-            Reset
+            <Play className="mr-2 h-6 w-6" />
+            Start
           </Button>
-        </div>
+        ) : isPaused ? (
+          <Button 
+            onClick={resumeTimer}
+            size="lg"
+            className="h-14 px-6 text-lg"
+          >
+            <Play className="mr-2 h-6 w-6" />
+            Resume
+          </Button>
+        ) : (
+          <Button 
+            onClick={pauseTimer}
+            size="lg"
+            className="h-14 px-6 text-lg"
+          >
+            <Pause className="mr-2 h-6 w-6" />
+            Pause
+          </Button>
+        )}
+        <Button 
+          variant="outline" 
+          onClick={resetTimer}
+          size="lg"
+          className="h-14 px-6 text-lg"
+        >
+          <RefreshCw className="mr-2 h-6 w-6" />
+          Reset
+        </Button>
       </div>
-    </Card>
+    </div>
   );
 };
 

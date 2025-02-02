@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Timer, Pause, Play, RefreshCw, Coffee } from "lucide-react";
+import { Coffee, Pause, Play, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PomodoroTimer = () => {
@@ -87,49 +86,56 @@ const PomodoroTimer = () => {
   };
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
-        <div className="text-center">
-          <h3 className="text-lg font-medium">
-            {isBreak ? "Break Time" : "Focus Time"}
-          </h3>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>Sessions completed: {sessionsCompleted}</p>
-            <p>Total work time: {formatTotalTime(totalWorkTime)}</p>
-          </div>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-lg font-medium">
+          {isBreak ? "Break Time" : "Focus Time"}
+        </h3>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p>Sessions completed: {sessionsCompleted}</p>
+          <p>Total work time: {formatTotalTime(totalWorkTime)}</p>
         </div>
-
-        <div className="flex justify-center">
-          <span className="text-4xl font-bold">{formatTime(timeLeft)}</span>
-        </div>
-
-        <div className="flex justify-center space-x-4">
-          <Button onClick={toggleTimer}>
-            {!isActive || isPaused ? (
-              <>
-                <Play className="mr-2 h-4 w-4" />
-                {!isActive ? "Start" : "Resume"}
-              </>
-            ) : (
-              <>
-                <Pause className="mr-2 h-4 w-4" />
-                Pause
-              </>
-            )}
-          </Button>
-          <Button variant="outline" onClick={resetTimer}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-        </div>
-
-        {isBreak && (
-          <div className="flex justify-center">
-            <Coffee className="text-muted-foreground animate-bounce" />
-          </div>
-        )}
       </div>
-    </Card>
+
+      <div className="flex justify-center">
+        <span className="text-4xl font-bold">{formatTime(timeLeft)}</span>
+      </div>
+
+      <div className="flex justify-center space-x-4">
+        <Button 
+          onClick={toggleTimer}
+          size="lg"
+          className="h-14 px-6 text-lg"
+        >
+          {!isActive || isPaused ? (
+            <>
+              <Play className="mr-2 h-6 w-6" />
+              {!isActive ? "Start" : "Resume"}
+            </>
+          ) : (
+            <>
+              <Pause className="mr-2 h-6 w-6" />
+              Pause
+            </>
+          )}
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={resetTimer}
+          size="lg"
+          className="h-14 px-6 text-lg"
+        >
+          <RefreshCw className="mr-2 h-6 w-6" />
+          Reset
+        </Button>
+      </div>
+
+      {isBreak && (
+        <div className="flex justify-center">
+          <Coffee className="text-muted-foreground animate-bounce h-6 w-6" />
+        </div>
+      )}
+    </div>
   );
 };
 
