@@ -1,46 +1,78 @@
+import { getAuth } from "firebase/auth";
+
 export const summarizeContent = async (prompt: string): Promise<string> => {
   try {
-    const model = await chrome.aiOriginTrial.languageModel.create({
-      systemPrompt: "You are a helpful AI assistant that helps users find and understand their bookmarks. Always provide concise and relevant responses.",
-      temperature: 0.7
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const idToken = await user.getIdToken();
+    
+    const response = await fetch(`${import.meta.env.VITE_FIREBASE_FUNCTIONS_URL}/getGeminiResponse`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        prompt,
+        type: 'summarize',
+        language: 'en',
+        contentType: 'bookmark'
+      })
     });
 
-    const response = await model.prompt(prompt);
-    return response;
+    if (!response.ok) {
+      throw new Error('Failed to get summary');
+    }
+
+    const data = await response.json();
+    return data.result;
   } catch (error) {
-    console.error('Error using Chrome AI model:', error);
-    return "I apologize, but I'm having trouble accessing the AI service at the moment. Please try again later.";
+    console.error('Error summarizing content:', error);
+    throw error;
   }
 };
 
 export const summarizeBookmark = async (content: string): Promise<string> => {
-  try {
-    const model = await chrome.aiOriginTrial.languageModel.create({
-      systemPrompt: "You are a helpful AI assistant that provides concise summaries of bookmarks. Keep responses brief and informative.",
-      temperature: 0.5
-    });
-
-    const prompt = `Please provide a brief summary of this bookmark:\n${content}`;
-    const response = await model.prompt(prompt);
-    return response;
-  } catch (error) {
-    console.error('Error summarizing bookmark:', error);
-    return "Unable to generate summary at this time.";
-  }
+  return summarizeContent(content);
 };
 
 export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
   try {
-    const model = await chrome.aiOriginTrial.languageModel.create({
-      systemPrompt: "You are a helpful AI assistant that suggests categories for bookmarks. Respond with just the category name.",
-      temperature: 0.3
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    const idToken = await user.getIdToken();
+    
+    const response = await fetch(`${import.meta.env.VITE_FIREBASE_FUNCTIONS_URL}/getGeminiResponse`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({
+        prompt: `${title}\n${url}`,
+        type: 'categorize',
+        language: 'en'
+      })
     });
 
-    const prompt = `Suggest a single category for this bookmark:\nTitle: ${title}\nURL: ${url}\nRespond with just the category name.`;
-    const response = await model.prompt(prompt);
-    return response.trim();
+    if (!response.ok) {
+      throw new Error('Failed to get category suggestion');
+    }
+
+    const data = await response.json();
+    return data.result;
   } catch (error) {
     console.error('Error suggesting category:', error);
-    return "Uncategorized";
+    throw error;
   }
 };

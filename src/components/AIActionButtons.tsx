@@ -32,28 +32,41 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeContent(`${bookmark.title}\n${bookmark.url}`);
-          return {
-            id: bookmark.id,
-            title: bookmark.title,
-            content: summary,
-            url: bookmark.url || "",
-            date: new Date().toLocaleDateString(),
-          };
+          try {
+            const summary = await summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`);
+            return {
+              id: bookmark.id,
+              title: bookmark.title,
+              content: summary,
+              url: bookmark.url || "",
+              date: new Date().toLocaleDateString(),
+            };
+          } catch (error) {
+            console.error(`Error summarizing bookmark ${bookmark.title}:`, error);
+            toast.error(`Failed to summarize ${bookmark.title}`);
+            return null;
+          }
         })
       );
 
-      const existingSummaries = JSON.parse(
-        localStorage.getItem("bookmarkSummaries") || "[]"
-      );
-      localStorage.setItem(
-        "bookmarkSummaries",
-        JSON.stringify([...summaries, ...existingSummaries])
-      );
+      const validSummaries = summaries.filter((s): s is NonNullable<typeof s> => s !== null);
+      
+      if (validSummaries.length > 0) {
+        const existingSummaries = JSON.parse(
+          localStorage.getItem("bookmarkSummaries") || "[]"
+        );
+        localStorage.setItem(
+          "bookmarkSummaries",
+          JSON.stringify([...validSummaries, ...existingSummaries])
+        );
 
-      toast.success("Summaries generated successfully!");
-      navigate("/summaries");
+        toast.success(`Generated ${validSummaries.length} summaries successfully!`);
+        navigate("/summaries");
+      } else {
+        toast.error("Failed to generate any summaries");
+      }
     } catch (error) {
+      console.error("Failed to generate summaries:", error);
       toast.error("Failed to generate summaries");
     } finally {
       setIsProcessing(false);
@@ -139,7 +152,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
               className="w-full"
             >
               <FileText className="h-4 w-4 mr-1.5" />
-              Summarize
+              {isProcessing ? "Processing..." : "Summarize"}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
