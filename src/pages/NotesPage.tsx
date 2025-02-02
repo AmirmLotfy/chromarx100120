@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Layout from "@/components/Layout";
 import NoteEditor from "@/components/notes/NoteEditor";
 import NoteList from "@/components/notes/NoteList";
