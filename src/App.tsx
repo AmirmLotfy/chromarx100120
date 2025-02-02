@@ -1,23 +1,18 @@
-import { ThemeProvider } from "@/components/theme-provider";
-import Routes from "./Routes";
-import { FirebaseProvider } from "@/contexts/FirebaseContext";
-import { BrowserRouter } from "react-router-dom";
-import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
+import { BrowserRouter } from 'react-router-dom'
+import Routes from './Routes'
+import { ThemeProvider } from './components/theme-provider'
+import { Toaster } from './components/ui/toaster'
+import './App.css'
 
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider defaultTheme="system" storageKey="chromarx-theme" enableSystem>
-        <FirebaseProvider>
-          <OnboardingProvider>
-            <div className="min-h-screen bg-background">
-              <Routes />
-            </div>
-          </OnboardingProvider>
-        </FirebaseProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <Routes />
+        <Toaster />
       </ThemeProvider>
     </BrowserRouter>
-  );
+  )
 }
 
-export default App;
+export default App
