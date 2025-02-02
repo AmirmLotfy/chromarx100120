@@ -8,6 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend
 } from "recharts";
 import { getHistoryData } from "@/utils/analyticsUtils";
 import { format, subDays } from "date-fns";
@@ -20,14 +21,12 @@ const TimeDistribution = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get data for the last 7 days
         const timeData = [];
         for (let i = 6; i >= 0; i--) {
           const endTime = Date.now() - (i * 24 * 60 * 60 * 1000);
           const startTime = endTime - (24 * 60 * 60 * 1000);
           const historyData = await getHistoryData(startTime);
           
-          // Categorize visits
           const dayData = {
             name: format(subDays(new Date(), i), 'EEE'),
             work: 0,
@@ -64,20 +63,20 @@ const TimeDistribution = () => {
 
   if (loading) {
     return (
-      <Card className="p-4">
+      <Card className="p-6">
         <div className="text-center">Loading time distribution...</div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-4 w-full bg-gradient-to-br from-background to-muted">
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Time Distribution</h3>
+    <Card className="p-6 w-full bg-gradient-to-br from-background to-muted shadow-lg">
+      <div className="space-y-3">
+        <h3 className="text-xl font-semibold tracking-tight">Time Distribution</h3>
         <p className="text-sm text-muted-foreground">Your daily browsing patterns</p>
       </div>
       
-      <div className="flex justify-center items-center h-[300px] mt-4 md:h-[400px]">
+      <div className="flex justify-center items-center h-[300px] mt-6 sm:h-[400px] md:h-[500px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -85,6 +84,7 @@ const TimeDistribution = () => {
               dataKey="name" 
               fontSize={12}
               tickLine={false}
+              axisLine={{ stroke: 'var(--border)' }}
             />
             <YAxis 
               fontSize={12}
@@ -96,24 +96,32 @@ const TimeDistribution = () => {
               contentStyle={{ 
                 backgroundColor: 'var(--background)',
                 border: '1px solid var(--border)',
-                borderRadius: '8px'
+                borderRadius: '12px',
+                padding: '12px',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
               }}
+              cursor={{ fill: 'var(--muted)' }}
+            />
+            <Legend 
+              verticalAlign="top"
+              height={36}
+              formatter={(value) => <span className="text-sm font-medium capitalize">{value}</span>}
             />
             <Bar 
               dataKey="work" 
-              fill="var(--primary-color)" 
+              fill="#7E57C2" 
               radius={[4, 4, 0, 0]}
               maxBarSize={50}
             />
             <Bar 
               dataKey="social" 
-              fill="var(--secondary-color)" 
+              fill="#5C6BC0" 
               radius={[4, 4, 0, 0]}
               maxBarSize={50}
             />
             <Bar 
               dataKey="entertainment" 
-              fill="var(--accent-color)" 
+              fill="#42A5F5" 
               radius={[4, 4, 0, 0]}
               maxBarSize={50}
             />

@@ -31,7 +31,8 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
     fetchData();
   }, []);
 
-  const colors = ["#9b87f5", "#7E69AB", "#E5DEFF", "#F1F0FB"];
+  // Modern color palette inspired by Material You
+  const colors = ["#7E57C2", "#5C6BC0", "#42A5F5", "#26C6DA"];
 
   const chartData = visits.slice(0, 4).map((visit, index) => ({
     name: visit.domain,
@@ -41,20 +42,20 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
 
   if (loading) {
     return (
-      <Card className="p-4">
+      <Card className="p-6 w-full">
         <div className="text-center">Loading domain statistics...</div>
       </Card>
     );
   }
 
   return (
-    <Card className="p-4 w-full bg-gradient-to-br from-background to-muted">
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Domain Distribution</h3>
+    <Card className="p-6 w-full bg-gradient-to-br from-background to-muted shadow-lg">
+      <div className="space-y-3">
+        <h3 className="text-xl font-semibold tracking-tight">Domain Distribution</h3>
         <p className="text-sm text-muted-foreground">Your most visited websites</p>
       </div>
       
-      <div className="flex justify-center items-center h-[300px] mt-4 md:h-[400px]">
+      <div className="flex justify-center items-center h-[300px] mt-6 sm:h-[400px] md:h-[500px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -62,15 +63,16 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
               cx="50%"
               cy="50%"
               innerRadius={60}
-              outerRadius={80}
-              paddingAngle={5}
+              outerRadius={90}
+              paddingAngle={8}
               dataKey="value"
             >
               {chartData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={entry.color}
-                  strokeWidth={0}
+                  strokeWidth={2}
+                  stroke="var(--background)"
                 />
               ))}
             </Pie>
@@ -78,26 +80,28 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
               contentStyle={{ 
                 backgroundColor: 'var(--background)',
                 border: '1px solid var(--border)',
-                borderRadius: '8px'
+                borderRadius: '12px',
+                padding: '12px',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
               }}
             />
             <Legend 
               verticalAlign="bottom" 
-              height={36}
-              formatter={(value) => <span className="text-sm">{value}</span>}
+              height={48}
+              formatter={(value) => <span className="text-sm font-medium">{value}</span>}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
       {detailed && visits.length > 0 && (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-border/50">
+        <div className="mt-8 overflow-x-auto rounded-xl border border-border/50">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-muted/50">
-                <TableHead>Domain</TableHead>
-                <TableHead className="text-right">Visits</TableHead>
-                <TableHead className="text-right">Time Spent</TableHead>
+                <TableHead className="font-semibold">Domain</TableHead>
+                <TableHead className="text-right font-semibold">Visits</TableHead>
+                <TableHead className="text-right font-semibold">Time Spent</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
