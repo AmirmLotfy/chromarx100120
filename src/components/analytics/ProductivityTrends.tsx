@@ -20,7 +20,7 @@ const ProductivityTrends = () => {
     const fetchData = async () => {
       try {
         const trends = [];
-        // Get productivity scores for last 7 days
+        // Get productivity scores for last 7 days using real history data
         for (let i = 6; i >= 0; i--) {
           const endTime = Date.now() - (i * 24 * 60 * 60 * 1000);
           const startTime = endTime - (24 * 60 * 60 * 1000);

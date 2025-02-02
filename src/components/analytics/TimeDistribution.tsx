@@ -10,7 +10,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { getHistoryData } from "@/utils/analyticsUtils";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
+import { VisitData } from "@/types/analytics";
 
 const TimeDistribution = () => {
   const [data, setData] = useState<any[]>([]);
@@ -19,35 +20,38 @@ const TimeDistribution = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get last 7 days of history
-        const startTime = Date.now() - (7 * 24 * 60 * 60 * 1000);
-        const historyData = await getHistoryData(startTime);
-        
-        // Group data by day and category
-        const groupedData = historyData.reduce((acc: any, visit) => {
-          const day = format(new Date(visit.lastVisitTime), 'EEE');
-          if (!acc[day]) {
-            acc[day] = { work: 0, social: 0, entertainment: 0 };
-          }
+        // Get data for the last 7 days
+        const timeData = [];
+        for (let i = 6; i >= 0; i--) {
+          const endTime = Date.now() - (i * 24 * 60 * 60 * 1000);
+          const startTime = endTime - (24 * 60 * 60 * 1000);
+          const historyData = await getHistoryData(startTime);
           
-          // Categorize domains
-          if (visit.domain.includes('github.com') || visit.domain.includes('docs.') || visit.domain.includes('stackoverflow.com')) {
-            acc[day].work += visit.timeSpent;
-          } else if (visit.domain.includes('facebook.com') || visit.domain.includes('twitter.com') || visit.domain.includes('instagram.com')) {
-            acc[day].social += visit.timeSpent;
-          } else {
-            acc[day].entertainment += visit.timeSpent;
-          }
-          return acc;
-        }, {});
+          // Categorize visits
+          const dayData = {
+            name: format(subDays(new Date(), i), 'EEE'),
+            work: 0,
+            social: 0,
+            entertainment: 0
+          };
 
-        // Convert to array format for Recharts
-        const chartData = Object.entries(groupedData).map(([name, values]: [string, any]) => ({
-          name,
-          ...values
-        }));
+          historyData.forEach((visit: VisitData) => {
+            const domain = visit.domain.toLowerCase();
+            if (domain.includes('github.com') || domain.includes('docs.') || 
+                domain.includes('stackoverflow.com') || domain.includes('learn')) {
+              dayData.work += visit.timeSpent;
+            } else if (domain.includes('facebook.com') || domain.includes('twitter.com') || 
+                     domain.includes('instagram.com') || domain.includes('linkedin.com')) {
+              dayData.social += visit.timeSpent;
+            } else {
+              dayData.entertainment += visit.timeSpent;
+            }
+          });
 
-        setData(chartData);
+          timeData.push(dayData);
+        }
+        
+        setData(timeData);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching time distribution:', error);
