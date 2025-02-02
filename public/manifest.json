@@ -12,7 +12,7 @@
     "identity.email"
   ],
   "oauth2": {
-    "client_id": "${YOUR_CLIENT_ID}",
+    "client_id": "46339279287-o0hkmkeho7uom3po0v2kvo9s48eui91p.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/customsearch"
     ]
@@ -48,5 +48,5 @@
     ],
     "matches": ["<all_urls>"]
   }],
-  "key": "${YOUR_EXTENSION_KEY}"
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiQJlE+4wtU30WrFQtQw6yGzZHwoHzxyZK3Mq4Vlp7EFfx0IZQknX+Ks6YwIDAQAB"
 }
