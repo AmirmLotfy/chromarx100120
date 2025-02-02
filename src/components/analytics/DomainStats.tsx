@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -7,32 +8,56 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { getHistoryData, VisitData } from "@/utils/analyticsUtils";
 
 interface DomainStatsProps {
   detailed?: boolean;
 }
 
 const DomainStats = ({ detailed = false }: DomainStatsProps) => {
-  const data = [
-    { name: "Work", value: 40, color: "#9b87f5" },
-    { name: "Social", value: 30, color: "#7E69AB" },
-    { name: "Entertainment", value: 20, color: "#E5DEFF" },
-    { name: "Other", value: 10, color: "#F1F0FB" },
-  ];
+  const [visits, setVisits] = useState<VisitData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const startTime = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      const historyData = await getHistoryData(startTime);
+      setVisits(historyData.sort((a, b) => b.visitCount - a.visitCount));
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  const colors = ["#9b87f5", "#7E69AB", "#E5DEFF", "#F1F0FB"];
+
+  const chartData = visits.slice(0, 4).map((visit, index) => ({
+    name: visit.domain,
+    value: visit.visitCount,
+    color: colors[index]
+  }));
+
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="text-center">Loading domain statistics...</div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6 space-y-6">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold tracking-tight">Domain Distribution</h3>
-        <p className="text-sm text-muted-foreground">Your most visited website categories</p>
+        <p className="text-sm text-muted-foreground">Your most visited websites</p>
       </div>
       
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={chartData}
               cx="50%"
               cy="50%"
               innerRadius={60}
@@ -40,36 +65,34 @@ const DomainStats = ({ detailed = false }: DomainStatsProps) => {
               paddingAngle={5}
               dataKey="value"
             >
-              {data.map((entry, index) => (
+              {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
+            <Tooltip />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      {detailed && (
+      {detailed && visits.length > 0 && (
         <div className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Domain</TableHead>
                 <TableHead className="text-right">Visits</TableHead>
-                <TableHead className="text-right">Time</TableHead>
+                <TableHead className="text-right">Time Spent</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">example.com</TableCell>
-                <TableCell className="text-right">150</TableCell>
-                <TableCell className="text-right">2h 30m</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">work.com</TableCell>
-                <TableCell className="text-right">120</TableCell>
-                <TableCell className="text-right">1h 45m</TableCell>
-              </TableRow>
+              {visits.slice(0, 10).map((visit) => (
+                <TableRow key={visit.domain}>
+                  <TableCell className="font-medium">{visit.domain}</TableCell>
+                  <TableCell className="text-right">{visit.visitCount}</TableCell>
+                  <TableCell className="text-right">{Math.round(visit.timeSpent)} min</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
