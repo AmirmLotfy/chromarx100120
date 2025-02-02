@@ -112,18 +112,18 @@ const ChatInterface = () => {
         .join("\n");
 
       const chatContext = getContextFromHistory(messages, query);
-      const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
+      const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage);
 
       const response = await summarizeContent(prompt, currentLanguage);
 
       return {
         response,
-        bookmarks: relevantBookmarks.map((b) => ({
+        bookmarks: relevantBookmarks.slice(0, 5).map((b) => ({
           title: b.title,
           url: b.url || "",
           relevance: 1,
         })),
-        webResults,
+        webResults: webResults.slice(0, 3),
       };
     } catch (error) {
       console.error("Error processing query:", error);

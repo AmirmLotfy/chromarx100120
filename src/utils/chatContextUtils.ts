@@ -1,4 +1,5 @@
 import { Message } from "@/types/chat";
+import { Language } from "@/stores/languageStore";
 
 export const getContextFromHistory = (messages: Message[], currentQuery: string) => {
   const recentMessages = messages.slice(-5);
@@ -10,7 +11,8 @@ export const getContextFromHistory = (messages: Message[], currentQuery: string)
 export const generateChatPrompt = (
   query: string,
   bookmarkContext: string,
-  chatContext: string
+  chatContext: string,
+  language: Language
 ) => {
   return `Based on this conversation context:
 ${chatContext}
@@ -18,7 +20,7 @@ ${chatContext}
 And these relevant bookmarks:
 ${bookmarkContext}
 
-Please provide a helpful response that:
+Please provide a helpful response in ${language.name} (${language.nativeName}) that:
 1. Directly addresses the latest query
 2. References relevant bookmarks when applicable
 3. Maintains context from the previous messages
