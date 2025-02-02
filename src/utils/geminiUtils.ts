@@ -59,3 +59,18 @@ export const analyzeSentiment = async (content: string, language: string): Promi
   });
   return response.result;
 };
+
+export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
+  const content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
+  return await summarizeContent(content, language);
+};
+
+export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
+  const response = await getGeminiResponse({
+    prompt: `Title: ${title}\nURL: ${url}`,
+    type: 'categorize',
+    language: 'en',
+    contentType: 'bookmark'
+  });
+  return response.result;
+};
