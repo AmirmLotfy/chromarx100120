@@ -1,24 +1,8 @@
 export const searchWebResults = async (query: string): Promise<Array<{ title: string; url: string }>> => {
   try {
     const GOOGLE_SEARCH_CX = 'e0bab85862daf4c11';
-    let apiKey;
-
-    // Try to get API key from Chrome storage
-    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      const result = await chrome.storage.local.get(['googleApiKey']);
-      apiKey = result.googleApiKey;
-    } else {
-      // Fallback for development environment
-      apiKey = localStorage.getItem('googleApiKey');
-    }
-
-    if (!apiKey) {
-      console.error('Google API key not found');
-      return [];
-    }
-
     const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${GOOGLE_SEARCH_CX}&q=${encodeURIComponent(query)}`
+      `https://www.googleapis.com/customsearch/v1?key=${process.env.VITE_GOOGLE_API_KEY}&cx=${GOOGLE_SEARCH_CX}&q=${encodeURIComponent(query)}`
     );
 
     if (!response.ok) {
@@ -34,18 +18,5 @@ export const searchWebResults = async (query: string): Promise<Array<{ title: st
   } catch (error) {
     console.error('Error searching web results:', error);
     return [];
-  }
-};
-
-export const setGoogleApiKey = async (key: string): Promise<void> => {
-  try {
-    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      await chrome.storage.local.set({ googleApiKey: key });
-    } else {
-      localStorage.setItem('googleApiKey', key);
-    }
-  } catch (error) {
-    console.error('Error saving Google API key:', error);
-    throw error;
   }
 };
