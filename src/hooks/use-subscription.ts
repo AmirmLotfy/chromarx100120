@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useFirebase } from '@/contexts/FirebaseContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { chromeDb } from '@/lib/chrome-storage';
+import { PlanLimits, subscriptionPlans } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
 
 interface UsageData {
   bookmarks: number;
   tasks: number;
   notes: number;
+  aiRequests: number;
 }
 
 interface SubscriptionHook {
@@ -18,13 +21,14 @@ interface SubscriptionHook {
 }
 
 export const useSubscription = (): SubscriptionHook => {
-  const { user } = useFirebase();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPlan, setCurrentPlan] = useState('basic');
+  const [currentPlan, setCurrentPlan] = useState('free');
   const [usage, setUsage] = useState<UsageData>({
     bookmarks: 0,
     tasks: 0,
-    notes: 0
+    notes: 0,
+    aiRequests: 0
   });
 
   useEffect(() => {
@@ -35,14 +39,14 @@ export const useSubscription = (): SubscriptionHook => {
       }
 
       try {
-        const { [`subscription_${user.id}`]: subscriptionData } = await chrome.storage.sync.get(`subscription_${user.id}`);
-        
-        if (subscriptionData) {
-          setCurrentPlan(subscriptionData.planId);
-          setUsage(subscriptionData.usage || {
+        const userData = await chromeDb.get('user');
+        if (userData?.subscription) {
+          setCurrentPlan(userData.subscription.planId);
+          setUsage(userData.subscription.usage || {
             bookmarks: 0,
             tasks: 0,
-            notes: 0
+            notes: 0,
+            aiRequests: 0
           });
         }
       } catch (error) {
@@ -60,19 +64,21 @@ export const useSubscription = (): SubscriptionHook => {
     if (!user) return false;
 
     try {
-      const { [`subscription_${user.id}`]: subscriptionData } = await chrome.storage.sync.get(`subscription_${user.id}`);
+      const userData = await chromeDb.get('user');
+      if (!userData?.subscription) return false;
+
       const newUsage = {
         ...usage,
         [type]: (usage[type] || 0) + 1
       };
-      
-      await chrome.storage.sync.set({
-        [`subscription_${user.id}`]: {
-          ...subscriptionData,
+
+      await chromeDb.update('user', {
+        subscription: {
+          ...userData.subscription,
           usage: newUsage
         }
       });
-      
+
       setUsage(newUsage);
       return true;
     } catch (error) {
@@ -83,9 +89,16 @@ export const useSubscription = (): SubscriptionHook => {
 
   const checkFeatureAccess = async (feature: string): Promise<boolean> => {
     if (!user) return false;
+    
     try {
-      const { [`subscription_${user.id}`]: subscriptionData } = await chrome.storage.sync.get(`subscription_${user.id}`);
-      return subscriptionData?.features?.includes(feature) || false;
+      const userData = await chromeDb.get('user');
+      if (!userData?.subscription) return false;
+
+      const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
+      if (!plan) return false;
+
+      const featureObj = plan.features.find(f => f.name === feature);
+      return featureObj?.included || false;
     } catch (error) {
       console.error('Error checking feature access:', error);
       return false;
@@ -93,21 +106,10 @@ export const useSubscription = (): SubscriptionHook => {
   };
 
   const hasReachedLimit = (type: keyof UsageData): boolean => {
-    const limits = {
-      basic: {
-        bookmarks: 100,
-        tasks: 50,
-        notes: 25
-      },
-      pro: {
-        bookmarks: -1, // unlimited
-        tasks: -1,
-        notes: -1
-      }
-    };
-    
-    const currentLimits = limits[currentPlan as keyof typeof limits] || limits.basic;
-    const limit = currentLimits[type];
+    const plan = subscriptionPlans.find(p => p.id === currentPlan);
+    if (!plan) return true;
+
+    const limit = plan.limits[type];
     if (limit === -1) return false; // Unlimited
     return (usage[type] || 0) >= limit;
   };
