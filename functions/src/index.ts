@@ -108,6 +108,24 @@ export const getGeminiResponse = functions.https.onRequest(async (req, res) => {
 
     let response;
     switch (type) {
+      case 'timer':
+        const timerPrompt = `
+As an AI time management expert, analyze this task and suggest an optimal duration in minutes:
+
+Task description: ${prompt}
+
+Consider:
+- Task complexity
+- Required focus level
+- Common completion times
+- Best practices for time management
+
+Respond with ONLY a number representing the suggested minutes (e.g., "25" or "45").
+No explanation or additional text.
+`;
+        response = await model.generateContent(timerPrompt);
+        break;
+
       case 'summarize':
         const summaryPrompt = `
 As an expert content summarizer, create a comprehensive yet concise summary of the following ${contentType} content in ${language}.
