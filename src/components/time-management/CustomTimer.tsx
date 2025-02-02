@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Timer, Pause, Play, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -80,58 +79,58 @@ const CustomTimer = ({ initialMinutes, onComplete }: CustomTimerProps) => {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-center space-x-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-center space-x-3">
         <Input
           type="number"
           value={minutes}
           onChange={handleMinutesChange}
-          className="w-24 h-14 text-2xl text-center"
+          className="w-20 h-10 text-lg text-center"
           min="0"
           disabled={isActive}
         />
-        <span className="text-3xl font-semibold">:</span>
-        <span className="text-3xl font-semibold w-20 text-center">
+        <span className="text-2xl font-medium">:</span>
+        <span className="text-2xl font-medium w-16 text-center">
           {seconds.toString().padStart(2, "0")}
         </span>
       </div>
 
-      <div className="flex justify-center space-x-4">
+      <div className="flex justify-center space-x-3">
         {!isActive ? (
           <Button 
             onClick={startTimer}
-            size="lg"
-            className="h-14 px-6 text-lg"
+            size="default"
+            className="h-10"
           >
-            <Play className="mr-2 h-6 w-6" />
+            <Play className="mr-1.5 h-4 w-4" />
             Start
           </Button>
         ) : isPaused ? (
           <Button 
             onClick={resumeTimer}
-            size="lg"
-            className="h-14 px-6 text-lg"
+            size="default"
+            className="h-10"
           >
-            <Play className="mr-2 h-6 w-6" />
+            <Play className="mr-1.5 h-4 w-4" />
             Resume
           </Button>
         ) : (
           <Button 
             onClick={pauseTimer}
-            size="lg"
-            className="h-14 px-6 text-lg"
+            size="default"
+            className="h-10"
           >
-            <Pause className="mr-2 h-6 w-6" />
+            <Pause className="mr-1.5 h-4 w-4" />
             Pause
           </Button>
         )}
         <Button 
           variant="outline" 
           onClick={resetTimer}
-          size="lg"
-          className="h-14 px-6 text-lg"
+          size="default"
+          className="h-10"
         >
-          <RefreshCw className="mr-2 h-6 w-6" />
+          <RefreshCw className="mr-1.5 h-4 w-4" />
           Reset
         </Button>
       </div>

@@ -86,35 +86,35 @@ const PomodoroTimer = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="text-center">
-        <h3 className="text-lg font-medium">
+        <h3 className="text-base font-medium">
           {isBreak ? "Break Time" : "Focus Time"}
         </h3>
-        <div className="text-sm text-muted-foreground space-y-1">
+        <div className="text-sm text-muted-foreground space-y-0.5">
           <p>Sessions completed: {sessionsCompleted}</p>
           <p>Total work time: {formatTotalTime(totalWorkTime)}</p>
         </div>
       </div>
 
       <div className="flex justify-center">
-        <span className="text-4xl font-bold">{formatTime(timeLeft)}</span>
+        <span className="text-3xl font-medium">{formatTime(timeLeft)}</span>
       </div>
 
-      <div className="flex justify-center space-x-4">
+      <div className="flex justify-center space-x-3">
         <Button 
           onClick={toggleTimer}
-          size="lg"
-          className="h-14 px-6 text-lg"
+          size="default"
+          className="h-10"
         >
           {!isActive || isPaused ? (
             <>
-              <Play className="mr-2 h-6 w-6" />
+              <Play className="mr-1.5 h-4 w-4" />
               {!isActive ? "Start" : "Resume"}
             </>
           ) : (
             <>
-              <Pause className="mr-2 h-6 w-6" />
+              <Pause className="mr-1.5 h-4 w-4" />
               Pause
             </>
           )}
@@ -122,17 +122,17 @@ const PomodoroTimer = () => {
         <Button 
           variant="outline" 
           onClick={resetTimer}
-          size="lg"
-          className="h-14 px-6 text-lg"
+          size="default"
+          className="h-10"
         >
-          <RefreshCw className="mr-2 h-6 w-6" />
+          <RefreshCw className="mr-1.5 h-4 w-4" />
           Reset
         </Button>
       </div>
 
       {isBreak && (
         <div className="flex justify-center">
-          <Coffee className="text-muted-foreground animate-bounce h-6 w-6" />
+          <Coffee className="text-muted-foreground animate-bounce h-4 w-4" />
         </div>
       )}
     </div>
