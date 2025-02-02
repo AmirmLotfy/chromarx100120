@@ -1,12 +1,5 @@
-import { getGeminiResponse } from "./geminiUtils";
-
-export interface VisitData {
-  url: string;
-  domain: string;
-  visitCount: number;
-  timeSpent: number;
-  lastVisitTime: number;
-}
+import { auth } from "@/lib/firebase";
+import { VisitData } from "@/types/analytics";
 
 export const getHistoryData = async (startTime: number): Promise<VisitData[]> => {
   if (typeof chrome === 'undefined' || !chrome.history) {
@@ -92,15 +85,37 @@ const getMockHistoryData = (): VisitData[] => [
 
 export const generateAITips = async (visits: VisitData[]): Promise<string[]> => {
   try {
-    const prompt = `Based on the following browsing patterns:
-    ${visits.slice(0, 5).map(v => `- ${v.domain}: ${v.timeSpent} minutes (${v.visitCount} visits)`).join('\n')}
-    
-    Provide 3 specific, actionable productivity tips to help improve focus and time management. Format as a list.`;
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
-    const response = await getGeminiResponse(prompt);
-    const tips = response.split('\n')
-      .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'))
-      .map(tip => tip.replace(/^[-•]\s*/, '').trim());
+    const token = await user.getIdToken();
+    const response = await fetch('YOUR_CLOUD_FUNCTION_URL/getGeminiResponse', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        prompt: `Based on the following browsing patterns:
+        ${visits.slice(0, 5).map(v => `- ${v.domain}: ${v.timeSpent} minutes (${v.visitCount} visits)`).join('\n')}
+        
+        Provide 3 specific, actionable productivity tips to help improve focus and time management.`,
+        type: 'summarize',
+        language: 'en',
+        contentType: 'productivity'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate AI tips');
+    }
+
+    const data = await response.json();
+    const tips = data.result.split('\n')
+      .filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'))
+      .map((tip: string) => tip.replace(/^[-•]\s*/, '').trim());
 
     return tips.length > 0 ? tips : getDefaultTips();
   } catch (error) {
