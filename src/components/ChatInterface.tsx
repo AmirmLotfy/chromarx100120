@@ -3,9 +3,10 @@ import { toast } from "sonner";
 import { Trash2, ChevronDown } from "lucide-react";
 import { useBookmarkState } from "./BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
-import { searchWebResults } from "@/utils/searchUtils";
+import { searchWebResults, setGoogleApiKey } from "@/utils/searchUtils";
 import { getContextFromHistory, generateChatPrompt, extractTopicsFromMessages } from "@/utils/chatContextUtils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -23,8 +24,48 @@ const ChatInterface = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<Message[][]>([]);
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          const result = await chrome.storage.local.get(['googleApiKey']);
+          if (!result.googleApiKey) {
+            setShowApiKeyInput(true);
+          }
+        } else {
+          const key = localStorage.getItem('googleApiKey');
+          if (!key) {
+            setShowApiKeyInput(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking API key:', error);
+        setShowApiKeyInput(true);
+      }
+    };
+
+    checkApiKey();
+  }, []);
+
+  const handleSaveApiKey = async () => {
+    if (!apiKey.trim()) {
+      toast.error('Please enter a valid API key');
+      return;
+    }
+
+    try {
+      await setGoogleApiKey(apiKey);
+      setShowApiKeyInput(false);
+      toast.success('API key saved successfully');
+    } catch (error) {
+      toast.error('Failed to save API key');
+    }
+  };
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -207,6 +248,28 @@ const ChatInterface = () => {
 
     return () => clearTimeout(debounce);
   }, [messages, generateSuggestions]);
+
+  if (showApiKeyInput) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
+        <div className="text-center space-y-2">
+          <h2 className="text-lg font-semibold">Google API Key Required</h2>
+          <p className="text-sm text-muted-foreground">
+            Please enter your Google API key to enable search functionality
+          </p>
+        </div>
+        <div className="flex w-full max-w-sm space-x-2">
+          <Input
+            type="password"
+            placeholder="Enter Google API key"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
+          <Button onClick={handleSaveApiKey}>Save</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm">
