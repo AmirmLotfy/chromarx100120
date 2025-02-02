@@ -1,26 +1,54 @@
-import * as React from "react"
-import * as ProgressPrimitive from "@radix-ui/react-progress"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
+interface CircularProgressProps
+  extends React.HTMLAttributes<SVGSVGElement> {
+  value: number;
+  size?: number;
+  strokeWidth?: number;
+}
 
-const Progress = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative h-4 w-full overflow-hidden rounded-full bg-secondary",
-      className
-    )}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-primary transition-all"
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
-  </ProgressPrimitive.Root>
-))
-Progress.displayName = ProgressPrimitive.Root.displayName
+export const CircularProgress = React.forwardRef<
+  SVGSVGElement,
+  CircularProgressProps
+>(({ value, size = 256, strokeWidth = 8, className, ...props }, ref) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / 100) * circumference;
 
-export { Progress }
+  return (
+    <svg
+      ref={ref}
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className={cn("animate-in fade-in duration-1000", className)}
+      {...props}
+    >
+      {/* Background circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        strokeWidth={strokeWidth}
+        className="stroke-muted fill-none"
+      />
+      {/* Progress circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        className="stroke-primary fill-none transition-all duration-500 ease-in-out"
+        style={{
+          transform: `rotate(-90deg)`,
+          transformOrigin: "50% 50%",
+        }}
+      />
+    </svg>
+  );
+});
+CircularProgress.displayName = "CircularProgress";
