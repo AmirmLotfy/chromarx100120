@@ -169,6 +169,17 @@ Respond with just the category name, no explanation.
         response = await model.generateContent(categoryPrompt);
         break;
 
+      case 'sentiment':
+        const sentimentPrompt = `
+Analyze the sentiment of the following text and respond with ONLY one of these words: "positive", "negative", or "neutral".
+No explanation or additional text.
+
+Text to analyze:
+${prompt}
+`;
+        response = await model.generateContent(sentimentPrompt);
+        break;
+
       default:
         throw new Error('Invalid request type');
     }

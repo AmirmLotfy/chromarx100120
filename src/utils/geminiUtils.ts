@@ -3,7 +3,7 @@ import { ChromeBookmark } from "@/types/bookmark";
 
 interface GeminiRequest {
   prompt: string;
-  type: 'summarize' | 'categorize' | 'timer';
+  type: 'summarize' | 'categorize' | 'timer' | 'sentiment';
   language: string;
   contentType?: string;
 }
@@ -50,16 +50,12 @@ export const summarizeContent = async (content: string, language: string): Promi
   return response.result;
 };
 
-export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
-  const content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
-  return summarizeContent(content, language);
-};
-
-export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
+export const analyzeSentiment = async (content: string, language: string): Promise<string> => {
   const response = await getGeminiResponse({
-    prompt: `${title}\n${url}`,
-    type: 'categorize',
-    language: 'en'
+    prompt: content,
+    type: 'sentiment',
+    language,
+    contentType: 'general'
   });
   return response.result;
 };
