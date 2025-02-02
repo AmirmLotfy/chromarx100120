@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chromeDb } from '@/lib/chrome-storage';
-import { PlanLimits, subscriptionPlans } from '@/config/subscriptionPlans';
+import { PlanLimits, subscriptionPlans, UserData } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
 
 interface UsageData {
@@ -39,7 +39,7 @@ export const useSubscription = (): SubscriptionHook => {
       }
 
       try {
-        const userData = await chromeDb.get('user');
+        const userData = await chromeDb.get<UserData>('user');
         if (userData?.subscription) {
           setCurrentPlan(userData.subscription.planId);
           setUsage(userData.subscription.usage || {
@@ -64,7 +64,7 @@ export const useSubscription = (): SubscriptionHook => {
     if (!user) return false;
 
     try {
-      const userData = await chromeDb.get('user');
+      const userData = await chromeDb.get<UserData>('user');
       if (!userData?.subscription) return false;
 
       const newUsage = {
@@ -91,7 +91,7 @@ export const useSubscription = (): SubscriptionHook => {
     if (!user) return false;
     
     try {
-      const userData = await chromeDb.get('user');
+      const userData = await chromeDb.get<UserData>('user');
       if (!userData?.subscription) return false;
 
       const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);

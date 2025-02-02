@@ -28,6 +28,26 @@ export interface Plan {
   limits: PlanLimits;
 }
 
+export interface UserSubscription {
+  planId: string;
+  status: string;
+  createdAt: string;
+  endDate: string;
+  usage: {
+    bookmarks: number;
+    tasks: number;
+    notes: number;
+    aiRequests: number;
+  };
+}
+
+export interface UserData {
+  subscription?: UserSubscription;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+}
+
 export const subscriptionPlans: Plan[] = [
   {
     id: "free",
@@ -109,7 +129,7 @@ export const subscriptionPlans: Plan[] = [
 
 export const getFeatureAvailability = async (feature: string): Promise<boolean> => {
   try {
-    const userData = await chromeDb.get('user');
+    const userData = await chromeDb.get<UserData>('user');
     if (!userData?.subscription) return false;
     
     const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
@@ -125,7 +145,7 @@ export const getFeatureAvailability = async (feature: string): Promise<boolean> 
 
 export const checkUsageLimit = async (type: keyof PlanLimits): Promise<boolean> => {
   try {
-    const userData = await chromeDb.get('user');
+    const userData = await chromeDb.get<UserData>('user');
     if (!userData?.subscription) return false;
     
     const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
@@ -144,7 +164,7 @@ export const checkUsageLimit = async (type: keyof PlanLimits): Promise<boolean> 
 
 export const incrementUsage = async (type: keyof PlanLimits): Promise<boolean> => {
   try {
-    const userData = await chromeDb.get('user');
+    const userData = await chromeDb.get<UserData>('user');
     if (!userData?.subscription) return false;
     
     const currentUsage = userData.subscription.usage?.[type] || 0;
