@@ -47,6 +47,7 @@ const DraggableBookmark = ({
         throw new Error("No URL to share");
       }
 
+      // Try Web Share API first
       if (navigator.share) {
         await navigator.share({
           title: bookmark.title,
@@ -55,11 +56,14 @@ const DraggableBookmark = ({
         });
         toast.success("Bookmark shared successfully!");
       } else {
+        // Fallback to clipboard
         await navigator.clipboard.writeText(bookmark.url);
         toast.success("Bookmark URL copied to clipboard!");
       }
     } catch (error) {
+      // If clipboard fails too, show error
       toast.error("Failed to share bookmark");
+      console.error("Share failed:", error);
     }
   };
 
@@ -120,7 +124,7 @@ const DraggableBookmark = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 hover:bg-accent/50 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               window.open(bookmark.url, "_blank");
@@ -131,7 +135,7 @@ const DraggableBookmark = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 hover:bg-accent/50 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               handleShare();
@@ -142,7 +146,7 @@ const DraggableBookmark = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 hover:bg-accent/50 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(bookmark.id);
