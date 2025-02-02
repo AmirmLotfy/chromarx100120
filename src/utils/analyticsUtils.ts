@@ -1,4 +1,4 @@
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/chrome-utils";
 import { VisitData } from "@/types/analytics";
 
 export const getHistoryData = async (startTime: number): Promise<VisitData[]> => {
