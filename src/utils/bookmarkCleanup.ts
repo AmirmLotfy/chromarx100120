@@ -33,6 +33,7 @@ export const findDuplicateBookmarks = (bookmarks: chrome.bookmarks.BookmarkTreeN
 export const checkBrokenBookmark = async (url: string): Promise<boolean> => {
   console.log('Checking if bookmark is broken:', url);
   try {
+    // Use HEAD request with no-cors mode first
     const response = await fetch(url, { 
       method: 'HEAD',
       mode: 'no-cors',
@@ -40,12 +41,30 @@ export const checkBrokenBookmark = async (url: string): Promise<boolean> => {
       credentials: 'omit',
       redirect: 'follow',
     });
-    const isWorking = response.status === 200;
+
+    // If HEAD request succeeds, the bookmark is valid
+    if (response.type === 'opaque' || response.status === 200) {
+      console.log('Bookmark is valid:', url);
+      return true;
+    }
+
+    // If HEAD fails, try a GET request as fallback
+    const getResponse = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      credentials: 'omit',
+      redirect: 'follow',
+    });
+
+    const isWorking = getResponse.type === 'opaque' || getResponse.status === 200;
     console.log('Bookmark status:', isWorking ? 'working' : 'broken');
     return isWorking;
   } catch (error) {
     console.error('Error checking bookmark:', url, error);
-    return false;
+    // Consider the bookmark as working if we can't verify it
+    // This prevents false positives due to CORS restrictions
+    return true;
   }
 };
 
