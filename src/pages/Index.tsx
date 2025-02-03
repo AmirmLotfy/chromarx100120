@@ -33,9 +33,9 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6 w-full max-w-6xl mx-auto">
+      <div className="w-full space-y-4">
         {subscriptionStatus === "free" && (
-          <div className="px-0 sm:px-3 -mt-2 sm:-mt-4">
+          <div className="w-full">
             <AffiliateBannerCarousel />
           </div>
         )}
