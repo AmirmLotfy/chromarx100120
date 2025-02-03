@@ -12,26 +12,26 @@ const Navigation = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 shadow-sm"
       role="navigation"
       aria-label="Main navigation"
     >
       <div className="container h-full mx-auto max-w-screen-xl flex items-center justify-around px-4">
         <NavItem 
           to="/" 
-          icon={<Home className="h-5 w-5" />}
+          icon={<Home className="h-[22px] w-[22px]" />}
           label="Home"
           isActive={isActive("/")}
         />
         <NavItem 
           to="/bookmarks" 
-          icon={<BookmarkIcon className="h-5 w-5" />}
+          icon={<BookmarkIcon className="h-[22px] w-[22px]" />}
           label="Bookmarks"
           isActive={isActive("/bookmarks")}
         />
         <NavItem 
           to="/settings" 
-          icon={<Settings className="h-5 w-5" />}
+          icon={<Settings className="h-[22px] w-[22px]" />}
           label="Settings"
           isActive={isActive("/settings")}
         />
@@ -55,13 +55,16 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => (
     aria-current={isActive ? "page" : undefined}
   >
     <Button
-      variant={isActive ? "default" : "ghost"}
+      variant="ghost"
       size="icon"
-      className={`flex h-12 w-full flex-col items-center justify-center gap-1 rounded-xl transition-all
-        ${isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
+      className={`flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200
+        ${isActive 
+          ? "text-primary bg-primary/10" 
+          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+        }`}
     >
       {icon}
-      <span className="text-xs font-medium">{label}</span>
+      <span className="text-[10px] font-medium mt-0.5">{label}</span>
     </Button>
   </Link>
 );
