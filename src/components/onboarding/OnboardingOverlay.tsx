@@ -9,14 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon, CreditCard, Upload } from "lucide-react";
+import { Check, ArrowRight, Info, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
-import { subscriptionPlans } from "@/config/subscriptionPlans";
-import PlanCard from "@/components/subscription/PlanCard";
 
 interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
   isSelected?: boolean;
@@ -25,32 +23,32 @@ interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
 
 const onboardingSteps = [
   {
-    title: "Welcome to ChroMarx!",
-    description: "Your all-in-one browser productivity companion",
-    content: "Let's get you set up with ChroMarx to enhance your browsing experience.",
+    title: "Welcome to ChroMarx",
+    description: "Your smart browser companion",
+    content: "Let's set up ChroMarx to enhance your browsing experience with AI-powered features and smart organization.",
     requiresAuth: false,
   },
   {
-    title: "Sign in to Get Started",
-    description: "Secure your data and sync across devices",
-    content: "Sign in with your Google account to unlock all features and keep your data synced across devices.",
+    title: "Sign in Securely",
+    description: "Keep your data synced across devices",
+    content: "Sign in with your Google account to unlock all features and ensure your data is safely backed up.",
     requiresAuth: true,
   },
   {
-    title: "Choose Your Plan",
+    title: "Choose Your Experience",
     description: "Select the perfect plan for your needs",
-    content: "Pick a subscription plan that matches your productivity goals.",
+    content: "Pick a subscription plan that matches your productivity goals and usage requirements.",
     requiresAuth: true,
   },
   {
-    title: "Import Your Bookmarks",
-    description: "Bring your existing bookmarks",
-    content: "Select the bookmark folders you'd like to import to ChroMarx.",
+    title: "Import Your Data",
+    description: "Bring your bookmarks with you",
+    content: "Select which bookmark folders you'd like to import to ChroMarx. We'll help you organize them intelligently.",
     requiresAuth: true,
   },
   {
-    title: "Ready to Start!",
-    description: "You're all set to boost your productivity",
+    title: "All Set!",
+    description: "You're ready to boost your productivity",
     content: "Start exploring ChroMarx's powerful features and make the most of your browsing experience.",
     requiresAuth: true,
   },
@@ -58,17 +56,10 @@ const onboardingSteps = [
 
 export const OnboardingOverlay = () => {
   const { currentStep, setCurrentStep, completeOnboarding, isOnboardingComplete } = useOnboarding();
-  const { user, signInWithGoogle } = useFirebase();
-  const [isImporting, setIsImporting] = useState(false);
+  const { user } = useFirebase();
   const [bookmarkTree, setBookmarkTree] = useState<BookmarkNode[]>([]);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [isLoadingBookmarks, setIsLoadingBookmarks] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [selectAll, setSelectAll] = useState(false);
-
-  if (isOnboardingComplete || currentStep === 0) return null;
-
   const currentStepData = onboardingSteps[currentStep - 1];
   const isLastStep = currentStep === onboardingSteps.length;
   const progress = (currentStep / onboardingSteps.length) * 100;
@@ -77,160 +68,27 @@ export const OnboardingOverlay = () => {
     setIsLoadingBookmarks(true);
     try {
       if (typeof chrome !== 'undefined' && chrome.bookmarks) {
-        console.log("Loading real Chrome bookmarks...");
         const tree = await chrome.bookmarks.getTree();
-        console.log("Loaded bookmark tree:", tree);
         setBookmarkTree(tree);
-        
-        if (tree[0]?.children) {
-          const rootFolders = new Set(tree[0].children.map(node => node.id));
-          setSelectedBookmarks(rootFolders);
-        }
-        
         toast.success("Bookmarks loaded successfully!");
-        return true;
       } else {
-        console.log("Running in development mode - loading demo bookmarks");
-        const demoTree = [{
-          id: "1",
-          title: "Bookmarks Bar",
-          children: [
-            {
-              id: "2",
-              title: "Development",
-              children: [
-                {
-                  id: "3",
-                  title: "React Documentation",
-                  url: "https://react.dev",
-                },
-                {
-                  id: "4",
-                  title: "TypeScript Handbook",
-                  url: "https://www.typescriptlang.org/docs/",
-                }
-              ]
-            },
-            {
-              id: "5",
-              title: "Productivity",
-              children: [
-                {
-                  id: "6",
-                  title: "ChatGPT",
-                  url: "https://chat.openai.com",
-                },
-                {
-                  id: "7",
-                  title: "Google Calendar",
-                  url: "https://calendar.google.com",
-                }
-              ]
-            }
-          ]
-        }];
-        
-        setBookmarkTree(demoTree);
-        const rootFolders = new Set(demoTree[0].children?.map(node => node.id) || []);
-        setSelectedBookmarks(rootFolders);
-        
-        toast.success("Demo bookmarks loaded successfully!");
-        return true;
+        toast.error("Failed to load bookmarks. Please try again.");
       }
     } catch (error) {
       console.error("Error loading bookmarks:", error);
       toast.error("Failed to load bookmarks. Please try again.");
-      return false;
     } finally {
       setIsLoadingBookmarks(false);
     }
   };
 
-  const processSelectedBookmarks = async () => {
-    setIsImporting(true);
-    try {
-      if (selectedBookmarks.size === 0) {
-        toast.error("Please select at least one bookmark folder to import");
-        return false;
-      }
-
-      const getBookmarksFromNode = async (nodeId: string): Promise<chrome.bookmarks.BookmarkTreeNode[]> => {
-        try {
-          const subtree = await chrome.bookmarks.getSubTree(nodeId);
-          return subtree;
-        } catch (error) {
-          console.error(`Error getting subtree for node ${nodeId}:`, error);
-          return [];
-        }
-      };
-
-      const selectedBookmarkNodes = await Promise.all(
-        Array.from(selectedBookmarks).map(id => getBookmarksFromNode(id))
-      );
-
-      console.log("Processing selected bookmarks:", selectedBookmarkNodes);
-      toast.success(`Successfully imported ${selectedBookmarks.size} bookmark folders!`);
-      return true;
-    } catch (error) {
-      console.error("Error processing bookmarks:", error);
-      toast.error("Failed to process bookmarks. Please try again.");
-      return false;
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-    if (!selectAll && bookmarkTree[0]?.children) {
-      const allBookmarkIds = new Set<string>();
-      const collectIds = (node: BookmarkNode) => {
-        if (node.id) allBookmarkIds.add(node.id);
-        node.children?.forEach(collectIds);
-      };
-      bookmarkTree[0].children.forEach(collectIds);
-      setSelectedBookmarks(allBookmarkIds);
-    } else {
-      setSelectedBookmarks(new Set());
-    }
-  };
-
   const handleNext = async () => {
-    if (currentStep === 1) {
-      const termsAccepted = localStorage.getItem('termsAccepted');
-      if (!termsAccepted) {
-        const confirmed = window.confirm(
-          "By continuing, you agree to our Terms of Service and Privacy Policy. Would you like to proceed?"
-        );
-        if (!confirmed) return;
-        localStorage.setItem('termsAccepted', 'true');
-      }
-    }
-    
-    if (currentStepData.requiresAuth && !user) {
-      try {
-        await signInWithGoogle();
-      } catch (error) {
-        toast.error("Please sign in to continue");
-        return;
-      }
-    }
-
-    if (currentStep === 3 && !selectedPlan) {
-      toast.error("Please select a plan to continue");
-      return;
+    if (currentStep === 1 && !user) {
+      // Handle sign-in logic here
     }
 
     if (currentStep === 4) {
-      if (bookmarkTree.length === 0) {
-        const success = await loadBookmarkTree();
-        if (!success) return;
-      } else {
-        const success = await processSelectedBookmarks();
-        if (!success) return;
-        setCurrentStep(currentStep + 1);
-      }
-      return;
+      await loadBookmarkTree();
     }
 
     if (isLastStep) {
@@ -308,49 +166,39 @@ export const OnboardingOverlay = () => {
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <div className="w-full bg-muted rounded-full h-2 mb-4">
+      <Card className="w-full max-w-2xl animate-scale-in">
+        <CardHeader className="space-y-4">
+          <div className="w-full bg-muted rounded-full h-2">
             <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
+              className="bg-primary h-2 rounded-full transition-all duration-500 ease-in-out"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-2xl">
             {currentStepData.title}
             <Info className="h-5 w-5 text-muted-foreground" />
           </CardTitle>
-          <CardDescription>{currentStepData.description}</CardDescription>
+          <CardDescription className="text-base">
+            {currentStepData.description}
+          </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {currentStep === 4 && (
             <>
-              <div className="flex items-center justify-between mb-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectAll}
-                  className="flex items-center gap-2"
-                >
-                  <Check className="h-4 w-4" />
-                  {selectAll ? "Deselect All" : "Select All"}
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {selectedBookmarks.size} selected
-                </span>
-              </div>
-              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px] rounded-md border p-4">
+              <ScrollArea className="h-[calc(100vh-400px)] min-h-[300px] rounded-md border">
                 {isLoadingBookmarks ? (
                   <div className="flex items-center justify-center h-full">
                     <Spinner className="h-6 w-6" />
                   </div>
                 ) : bookmarkTree.length > 0 ? (
-                  bookmarkTree.map(node => renderBookmarkTree(node))
+                  <div className="p-4">
+                    {bookmarkTree.map(node => renderBookmarkTree(node))}
+                  </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground p-8">
                     <Upload className="h-12 w-12" />
-                    <p>Click Next to load your bookmarks</p>
+                    <p className="text-center">Click Next to load your bookmarks</p>
                   </div>
                 )}
               </ScrollArea>
@@ -362,18 +210,19 @@ export const OnboardingOverlay = () => {
           </p>
         </CardContent>
 
-        <CardFooter className="flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">
-            {currentStep === 4 && `${selectedBookmarks.size} bookmarks selected`}
-          </p>
+        <CardFooter className="flex justify-between items-center border-t pt-6">
+          <Button
+            variant="ghost"
+            onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+            disabled={currentStep === 1}
+            className="hover:bg-primary/5"
+          >
+            Back
+          </Button>
           <Button 
             onClick={handleNext}
-            disabled={isProcessingPayment || isLoadingBookmarks}
-            className="px-4 py-2"
+            className="px-6 py-2 shadow-sm hover:shadow-md transition-all duration-300"
           >
-            {isProcessingPayment || isLoadingBookmarks ? (
-              <Spinner className="mr-2 h-4 w-4" />
-            ) : null}
             {currentStepData.requiresAuth && !user ? (
               "Sign in to Continue"
             ) : isLastStep ? (
@@ -383,7 +232,7 @@ export const OnboardingOverlay = () => {
               </>
             ) : (
               <>
-                Next
+                Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}

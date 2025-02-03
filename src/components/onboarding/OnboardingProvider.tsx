@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useSettings } from "@/stores/settingsStore";
 import { useFirebase } from "@/contexts/FirebaseContext";
+import { toast } from "sonner";
 
 interface OnboardingContextType {
   currentStep: number;
@@ -8,6 +9,8 @@ interface OnboardingContextType {
   isOnboardingComplete: boolean;
   completeOnboarding: () => void;
   startOnboarding: () => void;
+  skipOnboarding: () => void;
+  resumeOnboarding: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -27,17 +30,40 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   const { user } = useFirebase();
 
   useEffect(() => {
-    const onboardingStatus = localStorage.getItem("onboardingComplete");
-    if (onboardingStatus === "true") {
-      setIsOnboardingComplete(true);
-      setCurrentStep(0);
-    }
+    const initOnboarding = async () => {
+      try {
+        const onboardingStatus = await chrome.storage.sync.get(['onboardingStatus']);
+        if (onboardingStatus.onboardingComplete === true) {
+          setIsOnboardingComplete(true);
+          setCurrentStep(0);
+        } else if (onboardingStatus.lastStep) {
+          // Resume from last saved step
+          setCurrentStep(onboardingStatus.lastStep);
+          setIsOnboardingComplete(false);
+        }
+      } catch (error) {
+        console.error('Error initializing onboarding:', error);
+      }
+    };
+
+    initOnboarding();
   }, []);
 
-  const completeOnboarding = () => {
-    localStorage.setItem("onboardingComplete", "true");
-    setIsOnboardingComplete(true);
-    setCurrentStep(0);
+  const completeOnboarding = async () => {
+    try {
+      await chrome.storage.sync.set({
+        onboardingStatus: {
+          onboardingComplete: true,
+          completedAt: new Date().toISOString()
+        }
+      });
+      setIsOnboardingComplete(true);
+      setCurrentStep(0);
+      toast.success("Welcome to ChroMarx! 🎉");
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      toast.error("Failed to save onboarding status");
+    }
   };
 
   const startOnboarding = () => {
@@ -45,12 +71,49 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
     setCurrentStep(1);
   };
 
+  const skipOnboarding = async () => {
+    try {
+      await chrome.storage.sync.set({
+        onboardingStatus: {
+          onboardingComplete: true,
+          skippedAt: new Date().toISOString()
+        }
+      });
+      setIsOnboardingComplete(true);
+      setCurrentStep(0);
+      toast.success("You can always access features through the settings menu");
+    } catch (error) {
+      console.error('Error skipping onboarding:', error);
+      toast.error("Failed to skip onboarding");
+    }
+  };
+
+  const resumeOnboarding = () => {
+    setIsOnboardingComplete(false);
+  };
+
+  // Save current step to storage when it changes
+  useEffect(() => {
+    if (currentStep > 0) {
+      chrome.storage.sync.set({
+        onboardingStatus: {
+          lastStep: currentStep,
+          updatedAt: new Date().toISOString()
+        }
+      }).catch(error => {
+        console.error('Error saving onboarding step:', error);
+      });
+    }
+  }, [currentStep]);
+
   const value = {
     currentStep,
     setCurrentStep,
     isOnboardingComplete,
     completeOnboarding,
     startOnboarding,
+    skipOnboarding,
+    resumeOnboarding,
   };
 
   return (
