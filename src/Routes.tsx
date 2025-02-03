@@ -13,23 +13,108 @@ import SubscriptionPage from "@/pages/SubscriptionPage";
 import SuggestedServicesPage from "@/pages/SuggestedServicesPage";
 import UserPage from "@/pages/UserPage";
 import NotFound from "@/pages/NotFound";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const Routes = () => {
   return (
     <RouterRoutes>
       <Route path="/" element={<Index />} />
-      <Route path="/bookmarks" element={<BookmarksPage />} />
-      <Route path="/chat" element={<ChatPage />} />
-      <Route path="/summaries" element={<SummariesPage />} />
-      <Route path="/analytics" element={<AnalyticsPage />} />
-      <Route path="/timer" element={<TimerPage />} />
-      <Route path="/tasks" element={<TaskPage />} />
-      <Route path="/notes" element={<NotesPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/plans" element={<PlansPage />} />
-      <Route path="/subscription" element={<SubscriptionPage />} />
-      <Route path="/suggested-services" element={<SuggestedServicesPage />} />
-      <Route path="/user" element={<UserPage />} />
+      <Route
+        path="/bookmarks"
+        element={
+          <ProtectedRoute>
+            <BookmarksPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <ProtectedRoute>
+            <ChatPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/summaries"
+        element={
+          <ProtectedRoute>
+            <SummariesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <AnalyticsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/timer"
+        element={
+          <ProtectedRoute>
+            <TimerPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <ProtectedRoute>
+            <TaskPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notes"
+        element={
+          <ProtectedRoute>
+            <NotesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plans"
+        element={
+          <ProtectedRoute>
+            <PlansPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription"
+        element={
+          <ProtectedRoute>
+            <SubscriptionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/suggested-services"
+        element={
+          <ProtectedRoute>
+            <SuggestedServicesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user"
+        element={
+          <ProtectedRoute>
+            <UserPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );

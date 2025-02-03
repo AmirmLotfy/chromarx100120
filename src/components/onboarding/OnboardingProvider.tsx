@@ -27,17 +27,32 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   const { user } = useFirebase();
 
   useEffect(() => {
-    const onboardingStatus = localStorage.getItem("onboardingComplete");
-    if (onboardingStatus === "true") {
+    const checkOnboardingStatus = async () => {
+      if (user) {
+        const onboardingStatus = localStorage.getItem("onboardingComplete");
+        if (onboardingStatus === "true") {
+          setIsOnboardingComplete(true);
+          setCurrentStep(0);
+        } else {
+          setIsOnboardingComplete(false);
+          setCurrentStep(1);
+        }
+      } else {
+        // Force onboarding for non-logged in users
+        setIsOnboardingComplete(false);
+        setCurrentStep(1);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user]);
+
+  const completeOnboarding = () => {
+    if (user) {
+      localStorage.setItem("onboardingComplete", "true");
       setIsOnboardingComplete(true);
       setCurrentStep(0);
     }
-  }, []);
-
-  const completeOnboarding = () => {
-    localStorage.setItem("onboardingComplete", "true");
-    setIsOnboardingComplete(true);
-    setCurrentStep(0);
   };
 
   const startOnboarding = () => {
