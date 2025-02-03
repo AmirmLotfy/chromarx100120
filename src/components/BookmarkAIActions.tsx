@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { summarizeBookmark, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/stores/languageStore";
+import { LoadingOverlay } from "./ui/loading-overlay";
+import { useState } from "react";
 
 interface BookmarkAIActionsProps {
   selectedBookmarks: ChromeBookmark[];
@@ -23,9 +25,14 @@ const BookmarkAIActions = ({
 }: BookmarkAIActionsProps) => {
   const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
 
   const handleGenerateSummaries = async () => {
     try {
+      setIsProcessing(true);
+      setProcessingMessage("Generating summaries...");
+      
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
           const summary = await summarizeBookmark(bookmark, currentLanguage.code);
@@ -51,11 +58,17 @@ const BookmarkAIActions = ({
       navigate("/summaries");
     } catch (error) {
       toast.error("Failed to generate summaries");
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
     }
   };
 
   const handleSuggestCategories = async () => {
     try {
+      setIsProcessing(true);
+      setProcessingMessage("Suggesting categories...");
+      
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
           ...bookmark,
@@ -67,32 +80,39 @@ const BookmarkAIActions = ({
       toast.success("Categories suggested successfully!");
     } catch (error) {
       toast.error("Failed to suggest categories");
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
     }
   };
 
   if (selectedBookmarks.length === 0) return null;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="animate-fade-in"
-        >
-          <Sparkles className="h-4 w-4 mr-2" />
-          AI Actions
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handleGenerateSummaries}>
-          Generate Summaries
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleSuggestCategories}>
-          Suggest Categories
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <LoadingOverlay isLoading={isProcessing} message={processingMessage} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="animate-fade-in"
+            disabled={isProcessing}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI Actions
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleGenerateSummaries}>
+            Generate Summaries
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleSuggestCategories}>
+            Suggest Categories
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 };
 

@@ -13,6 +13,7 @@ import {
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
 import { useLanguage } from "@/stores/languageStore";
+import { LoadingOverlay } from "./ui/loading-overlay";
 
 interface AIActionButtonsProps {
   selectedBookmarks?: ChromeBookmark[];
@@ -22,7 +23,34 @@ interface AIActionButtonsProps {
 const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActionButtonsProps) => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
   const { currentLanguage } = useLanguage();
+
+  const handleCleanup = async () => {
+    if (selectedBookmarks.length === 0) {
+      toast.error("Please select bookmarks to clean up");
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingMessage("Analyzing bookmarks...");
+    try {
+      const duplicates = findDuplicateBookmarks(selectedBookmarks);
+      const brokenBookmarks = await findBrokenBookmarks(selectedBookmarks);
+      
+      if (duplicates.byUrl.length === 0 && duplicates.byTitle.length === 0 && brokenBookmarks.length === 0) {
+        toast.info("No issues found in selected bookmarks");
+        return;
+      }
+
+      toast.success("Cleanup completed successfully");
+    } catch (error) {
+      toast.error("Failed to clean up bookmarks");
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
+    }
+  };
 
   const handleGenerateSummaries = async () => {
     if (selectedBookmarks.length === 0) {
@@ -31,6 +59,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     }
 
     setIsProcessing(true);
+    setProcessingMessage("Generating summaries...");
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
@@ -72,6 +101,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       toast.error("Failed to generate summaries");
     } finally {
       setIsProcessing(false);
+      setProcessingMessage("");
     }
   };
 
@@ -82,6 +112,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     }
 
     setIsProcessing(true);
+    setProcessingMessage("Suggesting categories...");
     try {
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => ({
@@ -96,91 +127,71 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       toast.error("Failed to suggest categories");
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleCleanup = async () => {
-    if (selectedBookmarks.length === 0) {
-      toast.error("Please select bookmarks to clean up");
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const duplicates = findDuplicateBookmarks(selectedBookmarks);
-      const brokenBookmarks = await findBrokenBookmarks(selectedBookmarks);
-      
-      if (duplicates.byUrl.length === 0 && duplicates.byTitle.length === 0 && brokenBookmarks.length === 0) {
-        toast.info("No issues found in selected bookmarks");
-        return;
-      }
-
-      toast.success("Cleanup completed successfully");
-    } catch (error) {
-      toast.error("Failed to clean up bookmarks");
-    } finally {
-      setIsProcessing(false);
+      setProcessingMessage("");
     }
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleCleanup}
-              disabled={isProcessing}
-              className="w-full"
-            >
-              <Trash2 className="h-4 w-4 mr-1.5" />
-              Cleanup
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Find and remove duplicate or broken bookmarks
-          </TooltipContent>
-        </Tooltip>
+    <>
+      <LoadingOverlay isLoading={isProcessing} message={processingMessage} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCleanup}
+                disabled={isProcessing}
+                className="w-full"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Cleanup
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Find and remove duplicate or broken bookmarks
+            </TooltipContent>
+          </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleGenerateSummaries}
-              disabled={isProcessing}
-              className="w-full"
-            >
-              <FileText className="h-4 w-4 mr-1.5" />
-              {isProcessing ? "Processing..." : "Summarize"}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Generate summaries for selected bookmarks
-          </TooltipContent>
-        </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleGenerateSummaries}
+                disabled={isProcessing}
+                className="w-full"
+              >
+                <FileText className="h-4 w-4 mr-1.5" />
+                {isProcessing ? "Processing..." : "Summarize"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Generate summaries for selected bookmarks
+            </TooltipContent>
+          </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleSuggestCategories}
-              disabled={isProcessing}
-              className="w-full"
-            >
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              Categorize
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            Suggest categories for selected bookmarks
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleSuggestCategories}
+                disabled={isProcessing}
+                className="w-full"
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Categorize
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Suggest categories for selected bookmarks
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </>
   );
 };
 
