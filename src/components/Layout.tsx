@@ -1,5 +1,6 @@
 import Navigation from "./Navigation";
 import Header from "./Header";
+import { FloatingIcon } from "./FloatingIcon";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </main>
       <Navigation />
+      <FloatingIcon />
     </div>
   );
 };
