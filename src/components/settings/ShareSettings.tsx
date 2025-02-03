@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Share2, Copy, Twitter, Facebook, Linkedin, MessageCircle } from "lucide-react";
+import { Share2, Copy, Twitter, Facebook, Linkedin, MessageCircle, Mail, Globe } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 const ShareSettings = () => {
   const extensionUrl = `https://chrome.google.com/webstore/detail/chromarx/mdebkkihajajcidfnljlkkbcidcfbnii`;
+  const supportEmail = "support@chromarx.it.com";
+  const websiteUrl = "https://chromarx.it.com";
 
   const handleCopyLink = async () => {
     try {
@@ -40,6 +42,14 @@ const ShareSettings = () => {
     toast.success(`Sharing on ${platform}...`);
   };
 
+  const handleEmailClick = () => {
+    window.location.href = `mailto:${supportEmail}`;
+  };
+
+  const handleWebsiteClick = () => {
+    window.open(websiteUrl, "_blank");
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="space-y-1">
@@ -48,7 +58,7 @@ const ShareSettings = () => {
           Help others discover ChroMarx by sharing it with your network
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-6 space-y-6">
         <div className="space-y-4">
           {/* Quick Share Button */}
           <Button
@@ -107,6 +117,40 @@ const ShareSettings = () => {
             >
               <MessageCircle className="h-5 w-5" />
               <span className="sr-only md:not-sr-only">WhatsApp</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="space-y-3 pt-4">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Contact Us
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            <Button
+              variant="outline"
+              className="flex h-14 items-center justify-center gap-2 rounded-xl bg-accent/50 font-normal text-accent-foreground hover:bg-accent"
+              onClick={handleEmailClick}
+            >
+              <Mail className="h-5 w-5" />
+              <span>support@chromarx.it.com</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="flex h-14 items-center justify-center gap-2 rounded-xl bg-accent/50 font-normal text-accent-foreground hover:bg-accent"
+              onClick={handleWebsiteClick}
+            >
+              <Globe className="h-5 w-5" />
+              <span>Visit Our Website</span>
             </Button>
           </div>
         </div>
