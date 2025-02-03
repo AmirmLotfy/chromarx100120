@@ -14,6 +14,7 @@ interface SettingsState {
   };
   experimentalFeatures: boolean;
   affiliateBannersEnabled: boolean;
+  autoDetectBookmarks: boolean;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
@@ -21,6 +22,7 @@ interface SettingsState {
   setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean, userId?: string) => void;
   setExperimentalFeatures: (enabled: boolean) => void;
   setAffiliateBannersEnabled: (enabled: boolean) => void;
+  setAutoDetectBookmarks: (enabled: boolean) => void;
   resetSettings: () => void;
 }
 
@@ -36,6 +38,7 @@ const initialState = {
   },
   experimentalFeatures: false,
   affiliateBannersEnabled: true,
+  autoDetectBookmarks: true,
 };
 
 export const useSettings = create<SettingsState>()(
@@ -90,6 +93,7 @@ export const useSettings = create<SettingsState>()(
         set({ affiliateBannersEnabled });
         console.log('Affiliate banners setting updated:', affiliateBannersEnabled);
       },
+      setAutoDetectBookmarks: (autoDetectBookmarks) => set({ autoDetectBookmarks }),
       resetSettings: () => {
         set(initialState);
         const root = document.documentElement;

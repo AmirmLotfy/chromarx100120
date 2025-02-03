@@ -2,13 +2,8 @@ import * as React from "react";
 import Layout from "@/components/Layout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFirebase } from "@/contexts/FirebaseContext";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Sun, User, RefreshCw, FileText, HelpCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sun, User, RefreshCw, FileText, HelpCircle, Share2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,6 +18,9 @@ import LegalAndFeedback from "@/components/settings/LegalAndFeedback";
 import SubscriptionDetails from "@/components/settings/SubscriptionDetails";
 import AccountSettings from "@/components/settings/AccountSettings";
 import AffiliateSettings from "@/components/settings/AffiliateSettings";
+import ShareSettings from "@/components/settings/ShareSettings";
+import RatingPrompt from "@/components/settings/RatingPrompt";
+import BookmarkAutoDetection from "@/components/settings/BookmarkAutoDetection";
 
 const SettingsPage = () => {
   const isMobile = useIsMobile();
@@ -35,10 +33,10 @@ const SettingsPage = () => {
     { value: "subscription", label: "Subscription", icon: RefreshCw },
     { value: "account", label: "Account", icon: User },
     { value: "advanced", label: "Advanced", icon: RefreshCw },
+    { value: "share", label: "Share & Support", icon: Share2 },
     { value: "legal", label: "Legal & Feedback", icon: FileText },
   ];
 
-  // Only add affiliate tab if user is admin
   if (isAdmin) {
     tabs.push({ value: "affiliate", label: "Affiliate", icon: HelpCircle });
   }
@@ -52,6 +50,8 @@ const SettingsPage = () => {
             Manage your preferences and customize your experience
           </p>
         </div>
+
+        <RatingPrompt />
 
         <div className="flex-1 overflow-hidden mt-4">
           <Tabs 
@@ -76,7 +76,7 @@ const SettingsPage = () => {
                 </SelectContent>
               </Select>
             ) : (
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 mb-4">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 mb-4">
                 {tabs.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>
                     {tab.label}
@@ -92,6 +92,7 @@ const SettingsPage = () => {
 
               <TabsContent value="privacy" className="space-y-4">
                 <PrivacySettings />
+                <BookmarkAutoDetection />
               </TabsContent>
 
               <TabsContent value="subscription" className="space-y-4">
@@ -104,6 +105,10 @@ const SettingsPage = () => {
 
               <TabsContent value="advanced" className="space-y-4">
                 <AdvancedSettings />
+              </TabsContent>
+
+              <TabsContent value="share" className="space-y-4">
+                <ShareSettings />
               </TabsContent>
 
               <TabsContent value="legal" className="space-y-4">
