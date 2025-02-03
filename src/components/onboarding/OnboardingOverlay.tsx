@@ -34,21 +34,21 @@ const onboardingSteps = [
     description: "Your all-in-one browser productivity companion",
     content: "Let's get you set up with ChroMarx to enhance your browsing experience.",
     icon: Globe,
-    requiresAuth: false,
+    requiresAuth: false
   },
   {
     title: "Sign in to Get Started",
     description: "Secure your data and sync across devices",
     content: "Sign in with your Google account to unlock all features and keep your data synced.",
     icon: Check,
-    requiresAuth: true,
+    requiresAuth: true
   },
   {
     title: "Import Your Bookmarks",
     description: "Bring your existing bookmarks",
     content: "Select the bookmark folders you'd like to import to ChroMarx.",
     icon: BookmarkIcon,
-    requiresAuth: true,
+    requiresAuth: true
   },
   {
     title: "Discover Key Features",
@@ -60,35 +60,35 @@ const onboardingSteps = [
       {
         title: "Smart Bookmarks",
         description: "Organize and access your bookmarks efficiently",
-        icon: BookmarkIcon,
+        icon: BookmarkIcon
       },
       {
         title: "Productivity Analytics",
         description: "Track your browsing habits and productivity",
-        icon: BarChart3,
+        icon: BarChart3
       },
       {
         title: "Focus Timer",
         description: "Stay focused with built-in time management",
-        icon: Timer,
-      },
-    ],
+        icon: Timer
+      }
+    ]
   },
   {
     title: "Choose Your Plan",
     description: "Select the perfect plan for your needs",
     content: "Pick a subscription plan that matches your productivity goals.",
     icon: Check,
-    requiresAuth: true,
+    requiresAuth: true
   },
   {
     title: "Ready to Start!",
     description: "You're all set to boost your productivity",
     content: "Start exploring ChroMarx's powerful features and make the most of your browsing.",
     icon: Check,
-    requiresAuth: true,
-  },
-};
+    requiresAuth: true
+  }
+];
 
 interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
   isSelected?: boolean;
@@ -438,3 +438,4 @@ export const OnboardingOverlay = () => {
     </div>
   );
 };
+
