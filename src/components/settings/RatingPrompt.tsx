@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
 import { storage } from "@/lib/chrome-utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+const EXTENSION_ID = 'mdebkkihajajcidfnljlkkbcidcfbnii';
+const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
 const RatingPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -18,12 +21,14 @@ const RatingPrompt = () => {
         return;
       }
 
-      if (hasRated || lastPrompt) {
-        return;
-      }
+      // Show prompt if:
+      // 1. User hasn't rated yet
+      // 2. It's been at least a week since installation
+      // 3. It's been at least a week since last prompt (if any)
+      const timeSinceInstall = Date.now() - installDate;
+      const timeSinceLastPrompt = lastPrompt ? Date.now() - lastPrompt : Infinity;
 
-      const oneWeek = 7 * 24 * 60 * 60 * 1000;
-      if (Date.now() - installDate > oneWeek) {
+      if (!hasRated && timeSinceInstall >= WEEK_IN_MS && timeSinceLastPrompt >= WEEK_IN_MS) {
         setShowPrompt(true);
       }
     };
@@ -32,37 +37,45 @@ const RatingPrompt = () => {
   }, []);
 
   const handleRate = () => {
-    const storeUrl = "https://chrome.google.com/webstore/detail/chromarx/your-extension-id/reviews";
-    window.open(storeUrl, "_blank");
+    chrome.tabs.create({
+      url: `https://chrome.google.com/webstore/detail/${EXTENSION_ID}`
+    });
     storage.set('hasRated', true);
     setShowPrompt(false);
+    toast.success("Thank you for rating ChroMarx!");
   };
 
   const handleRemindLater = () => {
     storage.set('lastRatingPrompt', Date.now());
     setShowPrompt(false);
+    toast("We'll remind you later!");
+  };
+
+  const handleDismiss = () => {
+    storage.set('hasRated', true);
+    setShowPrompt(false);
   };
 
   return (
     <Dialog open={showPrompt} onOpenChange={setShowPrompt}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-yellow-400" />
-            Enjoying ChroMarx?
-          </DialogTitle>
+          <DialogTitle>Enjoying ChroMarx?</DialogTitle>
           <DialogDescription>
-            If you're finding ChroMarx helpful, please consider rating us on the Chrome Web Store. Your feedback helps us improve!
+            If you're finding ChroMarx helpful, we'd really appreciate your rating on the Chrome Web Store. It helps us grow and improve!
           </DialogDescription>
         </DialogHeader>
-        <div className="flex justify-end gap-2 mt-4">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={handleRemindLater}>
-            Remind Me Later
+            Remind me later
           </Button>
-          <Button onClick={handleRate} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600">
+          <Button variant="outline" onClick={handleDismiss}>
+            Don't ask again
+          </Button>
+          <Button onClick={handleRate}>
             Rate ChroMarx
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
