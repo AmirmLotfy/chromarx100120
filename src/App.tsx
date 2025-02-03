@@ -4,7 +4,6 @@ import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/toaster'
 import { OnboardingProvider } from './components/onboarding/OnboardingProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { SidebarProvider } from './components/ui/sidebar'
 import './App.css'
 
 function App() {
@@ -13,10 +12,8 @@ function App() {
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <AuthProvider>
           <OnboardingProvider>
-            <SidebarProvider>
-              <Routes />
-              <Toaster />
-            </SidebarProvider>
+            <Routes />
+            <Toaster />
           </OnboardingProvider>
         </AuthProvider>
       </ThemeProvider>
