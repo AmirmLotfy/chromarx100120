@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useSettings } from "@/stores/settingsStore";
 import { useFirebase } from "@/contexts/FirebaseContext";
 
 interface OnboardingContextType {
@@ -23,24 +22,19 @@ export const useOnboarding = () => {
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const settings = useSettings();
   const { user } = useFirebase();
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (user) {
-        const onboardingStatus = localStorage.getItem("onboardingComplete");
-        if (onboardingStatus === "true") {
-          setIsOnboardingComplete(true);
-          setCurrentStep(0);
-        } else {
-          setIsOnboardingComplete(false);
-          setCurrentStep(1);
-        }
-      } else {
+      const onboardingStatus = localStorage.getItem("onboardingComplete");
+      
+      if (!user) {
         // Force onboarding for non-logged in users
         setIsOnboardingComplete(false);
         setCurrentStep(1);
+      } else if (onboardingStatus === "true") {
+        setIsOnboardingComplete(true);
+        setCurrentStep(0);
       }
     };
 
@@ -50,9 +44,9 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   const completeOnboarding = () => {
     if (user) {
       localStorage.setItem("onboardingComplete", "true");
-      setIsOnboardingComplete(true);
-      setCurrentStep(0);
     }
+    setIsOnboardingComplete(true);
+    setCurrentStep(0);
   };
 
   const startOnboarding = () => {
