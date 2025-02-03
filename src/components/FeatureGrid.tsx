@@ -64,7 +64,7 @@ const FeatureGrid = () => {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 w-full">
+    <div className="grid grid-cols-2 gap-3 px-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 md:gap-5">
       {features.map((feature) => (
         <Link
           key={feature.path}
@@ -73,11 +73,11 @@ const FeatureGrid = () => {
         >
           <Button
             variant="outline"
-            className={`group h-20 w-full rounded-xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 ${feature.hoverClass}`}
+            className={`group h-24 w-full rounded-xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 ${feature.hoverClass} sm:h-28`}
           >
-            <div className="flex flex-col items-center justify-center gap-2">
-              <feature.icon className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-              <span className="font-medium tracking-wide text-xs">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <feature.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-7 sm:w-7" />
+              <span className="font-medium tracking-wide text-sm">
                 {feature.label}
               </span>
             </div>
