@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { defaultAffiliateBanners } from "@/config/affiliateContent";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const AffiliateBannerCarousel = () => {
@@ -51,10 +51,11 @@ const AffiliateBannerCarousel = () => {
       <Button
         variant="ghost"
         size="sm"
-        className="absolute top-2 right-2 z-10 bg-black/20 hover:bg-black/30 text-white text-xs px-2 py-1 h-auto"
+        className="absolute top-2 right-2 z-10 bg-black/20 hover:bg-black/30 text-white h-6 w-6 p-0 sm:w-auto sm:px-2 sm:h-7"
         onClick={handleDismiss}
       >
-        Remove Ads
+        <X className="h-3 w-3 sm:hidden" />
+        <span className="hidden sm:inline text-xs">Remove Ads</span>
       </Button>
       <Carousel
         opts={{
