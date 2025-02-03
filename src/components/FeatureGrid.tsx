@@ -64,7 +64,7 @@ const FeatureGrid = () => {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 px-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 md:gap-5">
+    <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 md:gap-5">
       {features.map((feature) => (
         <Link
           key={feature.path}
