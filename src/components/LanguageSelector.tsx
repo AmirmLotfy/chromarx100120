@@ -32,7 +32,7 @@ export const LanguageSelector = () => {
     >
       <SelectTrigger className="w-[90px] h-8 px-1.5">
         <SelectValue placeholder="Select language">
-          <div className="flex items-center space-x-0.5">
+          <div className="flex items-center gap-2">
             {currentLanguage.flag}
             <span className="text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
           </div>
@@ -41,7 +41,7 @@ export const LanguageSelector = () => {
       <SelectContent>
         {SUPPORTED_LANGUAGES.map((language) => (
           <SelectItem key={language.code} value={language.code}>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span>{language.flag}</span>
               <span>{language.name}</span>
               <span className="text-muted-foreground">({language.nativeName})</span>

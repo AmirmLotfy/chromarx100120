@@ -9,7 +9,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, ArrowRight, Info, FolderIcon, BookmarkIcon, CreditCard, Upload } from "lucide-react";
+import { 
+  Check, 
+  ArrowRight, 
+  Info, 
+  Upload,
+  Globe,
+  BookmarkIcon,
+  NotebookPen,
+  BarChart3,
+  Timer
+} from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,43 +28,72 @@ import { Spinner } from "@/components/ui/spinner";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import PlanCard from "@/components/subscription/PlanCard";
 
-interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
-  isSelected?: boolean;
-  children?: BookmarkNode[];
-}
-
 const onboardingSteps = [
   {
-    title: "Welcome to ChroMarx!",
+    title: "Welcome to ChroMarx",
     description: "Your all-in-one browser productivity companion",
     content: "Let's get you set up with ChroMarx to enhance your browsing experience.",
+    icon: Globe,
     requiresAuth: false,
   },
   {
     title: "Sign in to Get Started",
     description: "Secure your data and sync across devices",
-    content: "Sign in with your Google account to unlock all features and keep your data synced across devices.",
-    requiresAuth: true,
-  },
-  {
-    title: "Choose Your Plan",
-    description: "Select the perfect plan for your needs",
-    content: "Pick a subscription plan that matches your productivity goals.",
+    content: "Sign in with your Google account to unlock all features and keep your data synced.",
+    icon: Check,
     requiresAuth: true,
   },
   {
     title: "Import Your Bookmarks",
     description: "Bring your existing bookmarks",
     content: "Select the bookmark folders you'd like to import to ChroMarx.",
+    icon: BookmarkIcon,
+    requiresAuth: true,
+  },
+  {
+    title: "Discover Key Features",
+    description: "Explore what ChroMarx can do for you",
+    content: "Let's walk through the main features that will boost your productivity.",
+    icon: NotebookPen,
+    requiresAuth: true,
+    features: [
+      {
+        title: "Smart Bookmarks",
+        description: "Organize and access your bookmarks efficiently",
+        icon: BookmarkIcon,
+      },
+      {
+        title: "Productivity Analytics",
+        description: "Track your browsing habits and productivity",
+        icon: BarChart3,
+      },
+      {
+        title: "Focus Timer",
+        description: "Stay focused with built-in time management",
+        icon: Timer,
+      },
+    ],
+  },
+  {
+    title: "Choose Your Plan",
+    description: "Select the perfect plan for your needs",
+    content: "Pick a subscription plan that matches your productivity goals.",
+    icon: Check,
     requiresAuth: true,
   },
   {
     title: "Ready to Start!",
     description: "You're all set to boost your productivity",
-    content: "Start exploring ChroMarx's powerful features and make the most of your browsing experience.",
+    content: "Start exploring ChroMarx's powerful features and make the most of your browsing.",
+    icon: Check,
     requiresAuth: true,
   },
-];
+};
+
+interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
+  isSelected?: boolean;
+  children?: BookmarkNode[];
+}
 
 export const OnboardingOverlay = () => {
   const { currentStep, setCurrentStep, completeOnboarding, isOnboardingComplete } = useOnboarding();
@@ -316,10 +355,12 @@ export const OnboardingOverlay = () => {
               style={{ width: `${progress}%` }}
             />
           </div>
-          <CardTitle className="flex items-center gap-2">
-            {currentStepData.title}
-            <Info className="h-5 w-5 text-muted-foreground" />
-          </CardTitle>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-full bg-primary/10">
+              <currentStepData.icon className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>{currentStepData.title}</CardTitle>
+          </div>
           <CardDescription>{currentStepData.description}</CardDescription>
         </CardHeader>
         
@@ -363,13 +404,17 @@ export const OnboardingOverlay = () => {
         </CardContent>
 
         <CardFooter className="flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">
-            {currentStep === 4 && `${selectedBookmarks.size} bookmarks selected`}
-          </p>
+          <Button 
+            variant="ghost"
+            onClick={() => setCurrentStep(currentStep - 1)}
+            disabled={currentStep === 1}
+          >
+            Back
+          </Button>
           <Button 
             onClick={handleNext}
             disabled={isProcessingPayment || isLoadingBookmarks}
-            className="px-4 py-2"
+            className="min-w-[100px]"
           >
             {isProcessingPayment || isLoadingBookmarks ? (
               <Spinner className="mr-2 h-4 w-4" />
@@ -383,7 +428,7 @@ export const OnboardingOverlay = () => {
               </>
             ) : (
               <>
-                Next
+                Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}
