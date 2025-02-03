@@ -14,6 +14,9 @@ export interface ChromeStorageData {
   preferences: Record<string, any>;
   subscriptions: Record<string, any>;
   bookmarks: Record<string, any>;
+  installDate: number;
+  hasRated: boolean;
+  lastRatingPrompt: number;
 }
 
 export const getSecret = async (key: string): Promise<string | null> => {

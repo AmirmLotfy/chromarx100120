@@ -9,9 +9,9 @@ const RatingPrompt = () => {
 
   useEffect(() => {
     const checkRatingPrompt = async () => {
-      const installDate = await storage.get('installDate');
-      const hasRated = await storage.get('hasRated');
-      const lastPrompt = await storage.get('lastRatingPrompt');
+      const installDate = await storage.get<number>('installDate');
+      const hasRated = await storage.get<boolean>('hasRated');
+      const lastPrompt = await storage.get<number>('lastRatingPrompt');
       
       if (!installDate) {
         await storage.set('installDate', Date.now());
