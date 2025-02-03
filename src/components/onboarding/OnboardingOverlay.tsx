@@ -7,7 +7,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, BookOpen, Pen } from "lucide-react";
 import { toast } from "sonner";
 import { useFirebase } from "@/contexts/FirebaseContext";
 import OnboardingProgress from "./OnboardingProgress";
@@ -30,14 +30,14 @@ const onboardingSteps = [
     title: "Import Your Bookmarks",
     description: "Bring your existing bookmarks",
     content: "Select the bookmark folders you'd like to import to ChroMarx.",
-    icon: BookmarkIcon,
+    icon: BookOpen,
     requiresAuth: true,
   },
   {
     title: "Discover Key Features",
     description: "Explore what ChroMarx can do for you",
     content: "Let's walk through the main features that will boost your productivity.",
-    icon: NotebookPen,
+    icon: Pen,
     requiresAuth: true,
   },
   {
