@@ -11,7 +11,10 @@ export default tseslint.config(
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        chrome: "readonly"
+      },
     },
     plugins: {
       "react-hooks": reactHooks,
@@ -23,7 +26,16 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "react-hooks/exhaustive-deps": "warn",
+      "prefer-const": "warn",
+      "no-duplicate-imports": "error",
+      "no-var": "error",
+      "eqeqeq": ["error", "always"],
+      "no-unused-expressions": "error",
+      "no-shadow": "error"
     },
   }
 );
