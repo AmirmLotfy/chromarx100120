@@ -11,6 +11,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import PlansPage from "@/pages/PlansPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import SuggestedServicesPage from "@/pages/SuggestedServicesPage";
+import UserPage from "@/pages/UserPage";
 import NotFound from "@/pages/NotFound";
 
 const Routes = () => {
@@ -28,6 +29,7 @@ const Routes = () => {
       <Route path="/plans" element={<PlansPage />} />
       <Route path="/subscription" element={<SubscriptionPage />} />
       <Route path="/suggested-services" element={<SuggestedServicesPage />} />
+      <Route path="/user" element={<UserPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );

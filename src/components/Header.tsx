@@ -68,7 +68,7 @@ const Header = () => {
                 >
                   <DropdownMenuItem 
                     className="flex items-center py-2"
-                    onClick={() => navigate("/settings")}
+                    onClick={() => navigate("/user")}
                   >
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
