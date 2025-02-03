@@ -30,9 +30,9 @@ export const LanguageSelector = () => {
       value={currentLanguage.code}
       onValueChange={handleLanguageChange}
     >
-      <SelectTrigger className="w-[120px] h-9">
+      <SelectTrigger className="w-[120px] h-9 px-2">
         <SelectValue placeholder="Select language">
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1">
             <span>{currentLanguage.flag}</span>
             <span>{currentLanguage.code.toUpperCase()}</span>
           </span>
