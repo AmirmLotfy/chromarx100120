@@ -100,11 +100,12 @@ const Header = () => {
             ) : (
               <Button 
                 variant="ghost" 
-                size="sm"
+                size="icon"
                 onClick={() => navigate("/login")}
-                className="h-8 text-sm font-medium"
+                className="h-8 w-8 rounded-full"
               >
-                Sign in
+                <User className="h-[1.1rem] w-[1.1rem]" />
+                <span className="sr-only">Sign in</span>
               </Button>
             )}
           </div>

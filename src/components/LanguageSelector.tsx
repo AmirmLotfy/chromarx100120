@@ -32,7 +32,7 @@ export const LanguageSelector = () => {
     >
       <SelectTrigger className="w-[120px] h-9">
         <SelectValue placeholder="Select language">
-          <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
             <span>{currentLanguage.flag}</span>
             <span>{currentLanguage.code.toUpperCase()}</span>
           </span>
