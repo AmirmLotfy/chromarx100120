@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Share2, Star, StarOff, Trash2, Copy, MessageSquare, FileText, ChevronDown } from "lucide-react";
+import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -30,30 +30,20 @@ const SummariesPage = () => {
   });
   const [activeTab, setActiveTab] = useState<'current' | 'new' | 'history'>('current');
 
-  const handleShare = async (summary: Summary, type: 'copy' | 'whatsapp' | 'notes') => {
+  const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
+    const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
+    
     try {
-      const summaryText = `${summary.title}\n\n${summary.content}\n\n${summary.url}`;
-      
       switch (type) {
         case 'copy':
           await navigator.clipboard.writeText(summaryText);
           toast.success("Summary copied to clipboard!");
           break;
-        case 'whatsapp':
-          window.open(`https://wa.me/?text=${encodeURIComponent(summaryText)}`);
+        case 'email':
+          window.location.href = `mailto:?subject=${encodeURIComponent(summary.title)}&body=${encodeURIComponent(summaryText)}`;
           break;
-        case 'notes':
-          const notes = JSON.parse(localStorage.getItem("notes") || "[]");
-          const newNote = {
-            id: crypto.randomUUID(),
-            title: `Summary: ${summary.title}`,
-            content: summaryText,
-            category: "Summaries",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          localStorage.setItem("notes", JSON.stringify([...notes, newNote]));
-          toast.success("Added to notes!");
+        case 'whatsapp':
+          window.open(`https://wa.me/?text=${encodeURIComponent(summaryText)}`, '_blank');
           break;
       }
     } catch (error) {
@@ -107,6 +97,75 @@ const SummariesPage = () => {
     new: `New${newSummaries.length > 0 ? ` (${newSummaries.length})` : ''}`,
     history: 'History'
   };
+
+  const SummaryCard = ({ summary }: { summary: Summary }) => (
+    <div className="p-4 rounded-lg border bg-card animate-fade-in">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1 flex-1">
+          <h3 className="font-medium line-clamp-1">{summary.title}</h3>
+          <p className="text-sm text-muted-foreground">{summary.content}</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => toggleStar(summary.id)}
+            className="h-8 w-8"
+          >
+            {summary.isStarred ? (
+              <Star className="h-4 w-4 fill-primary text-primary" />
+            ) : (
+              <StarOff className="h-4 w-4" />
+            )}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleShare(summary, 'copy')}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy to Clipboard
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleShare(summary, 'email')}>
+                <Mail className="h-4 w-4 mr-2" />
+                Share via Email
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleShare(summary, 'whatsapp')}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Share via WhatsApp
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => deleteSummary(summary.id)}
+            className="h-8 w-8 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        <a
+          href={summary.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:underline"
+        >
+          View Original
+        </a>
+        <span>{summary.date}</span>
+      </div>
+    </div>
+  );
 
   return (
     <Layout>
@@ -203,9 +262,6 @@ const SummariesPage = () => {
                   <SummaryCard
                     key={summary.id}
                     summary={summary}
-                    onShare={handleShare}
-                    onToggleStar={toggleStar}
-                    onDelete={deleteSummary}
                   />
                 ))
               )}
@@ -216,83 +272,5 @@ const SummariesPage = () => {
     </Layout>
   );
 };
-
-interface SummaryCardProps {
-  summary: Summary;
-  onShare: (summary: Summary, type: 'copy' | 'whatsapp' | 'notes') => void;
-  onToggleStar: (id: string) => void;
-  onDelete: (id: string) => void;
-}
-
-const SummaryCard = ({ summary, onShare, onToggleStar, onDelete }: SummaryCardProps) => (
-  <div className="p-4 rounded-lg border bg-card animate-fade-in">
-    <div className="flex items-start justify-between gap-4">
-      <div className="space-y-1 flex-1">
-        <h3 className="font-medium line-clamp-1">{summary.title}</h3>
-        <p className="text-sm text-muted-foreground">{summary.content}</p>
-      </div>
-      <div className="flex gap-2 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onToggleStar(summary.id)}
-          className="h-8 w-8"
-        >
-          {summary.isStarred ? (
-            <Star className="h-4 w-4 fill-primary text-primary" />
-          ) : (
-            <StarOff className="h-4 w-4" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onShare(summary, 'copy')}
-          className="h-8 w-8"
-          title="Copy to clipboard"
-        >
-          <Copy className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onShare(summary, 'whatsapp')}
-          className="h-8 w-8"
-          title="Share via WhatsApp"
-        >
-          <MessageSquare className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onShare(summary, 'notes')}
-          className="h-8 w-8"
-          title="Add to notes"
-        >
-          <FileText className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDelete(summary.id)}
-          className="h-8 w-8 text-destructive hover:text-destructive"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-    <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-      <a
-        href={summary.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hover:underline"
-      >
-        View Original
-      </a>
-      <span>{summary.date}</span>
-    </div>
-  </div>
-);
 
 export default SummariesPage;
