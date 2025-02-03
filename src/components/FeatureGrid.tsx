@@ -13,14 +13,54 @@ import {
 
 const FeatureGrid = () => {
   const features = [
-    { icon: BookmarkIcon, label: "Bookmarks", path: "/bookmarks" },
-    { icon: MessageSquare, label: "Chat", path: "/chat" },
-    { icon: FileText, label: "Summaries", path: "/summaries" },
-    { icon: BarChart, label: "Analytics", path: "/analytics" },
-    { icon: Timer, label: "Timer", path: "/timer" },
-    { icon: CheckSquare, label: "Tasks", path: "/tasks" },
-    { icon: StickyNote, label: "Notes", path: "/notes" },
-    { icon: Package, label: "Services", path: "/suggested-services" },
+    { 
+      icon: BookmarkIcon, 
+      label: "Bookmarks", 
+      path: "/bookmarks",
+      hoverClass: "hover:bg-[#9b87f5]/10 hover:border-[#9b87f5]/30" 
+    },
+    { 
+      icon: MessageSquare, 
+      label: "Chat", 
+      path: "/chat",
+      hoverClass: "hover:bg-[#33C3F0]/10 hover:border-[#33C3F0]/30"
+    },
+    { 
+      icon: FileText, 
+      label: "Summaries", 
+      path: "/summaries",
+      hoverClass: "hover:bg-[#D946EF]/10 hover:border-[#D946EF]/30"
+    },
+    { 
+      icon: BarChart, 
+      label: "Analytics", 
+      path: "/analytics",
+      hoverClass: "hover:bg-[#F97316]/10 hover:border-[#F97316]/30"
+    },
+    { 
+      icon: Timer, 
+      label: "Timer", 
+      path: "/timer",
+      hoverClass: "hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/30"
+    },
+    { 
+      icon: CheckSquare, 
+      label: "Tasks", 
+      path: "/tasks",
+      hoverClass: "hover:bg-[#1EAEDB]/10 hover:border-[#1EAEDB]/30"
+    },
+    { 
+      icon: StickyNote, 
+      label: "Notes", 
+      path: "/notes",
+      hoverClass: "hover:bg-[#0FA0CE]/10 hover:border-[#0FA0CE]/30"
+    },
+    { 
+      icon: Package, 
+      label: "Services", 
+      path: "/suggested-services",
+      hoverClass: "hover:bg-[#8E9196]/10 hover:border-[#8E9196]/30"
+    },
   ];
 
   return (
@@ -33,7 +73,7 @@ const FeatureGrid = () => {
         >
           <Button
             variant="outline"
-            className="group h-24 w-full rounded-xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 hover:border-primary/20 hover:bg-primary/10 sm:h-28"
+            className={`group h-24 w-full rounded-xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 ${feature.hoverClass} sm:h-28`}
           >
             <div className="flex flex-col items-center justify-center gap-3">
               <feature.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-7 sm:w-7" />
