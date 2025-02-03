@@ -22,6 +22,15 @@ const Header = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Failed to sign out:", error);
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container h-full max-w-screen-xl mx-auto px-3 sm:px-4">
@@ -51,10 +60,16 @@ const Header = () => {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button 
+                    variant="ghost" 
+                    className="h-8 w-8 rounded-full p-0 relative focus-visible:ring-0"
+                  >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
-                      <AvatarFallback>
+                      <AvatarImage 
+                        src={user.photoURL || undefined} 
+                        alt={user.displayName || "User"} 
+                      />
+                      <AvatarFallback className="text-xs">
                         {user.displayName?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
@@ -66,33 +81,44 @@ const Header = () => {
                   forceMount
                   sideOffset={8}
                 >
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      {user.displayName && (
+                        <p className="font-medium">{user.displayName}</p>
+                      )}
+                      {user.email && (
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    className="flex items-center py-2"
+                    className="flex items-center gap-2 cursor-pointer"
                     onClick={() => navigate("/user")}
                   >
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    className="flex items-center py-2"
+                    className="flex items-center gap-2 cursor-pointer"
                     onClick={() => navigate("/subscription")}
                   >
-                    <CreditCard className="mr-2 h-4 w-4" />
+                    <CreditCard className="h-4 w-4" />
                     <span>Subscription</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    className="flex items-center py-2"
+                    className="flex items-center gap-2 cursor-pointer"
                     onClick={() => navigate("/settings")}
                   >
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings className="h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    className="flex items-center py-2"
-                    onClick={signOut}
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={handleSignOut}
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
