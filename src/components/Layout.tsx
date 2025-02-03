@@ -10,7 +10,7 @@ const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
       <main className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-16 md:pb-0">
-        <div className="w-full mx-auto">
+        <div className="w-full mx-auto px-0">
           {children}
         </div>
       </main>
