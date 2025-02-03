@@ -40,6 +40,11 @@
     "type": "module"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.paypal.com"
+  },
+  "web_accessible_resources": [{
+    "resources": ["icons/*"],
+    "matches": ["<all_urls>"]
+  }],
+  "minimum_chrome_version": "88"
 }

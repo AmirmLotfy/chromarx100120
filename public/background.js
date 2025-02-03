@@ -1,46 +1,76 @@
 // Handle installation
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    // Set initial installation data
+    // Set initial installation data with privacy-conscious defaults
     chrome.storage.sync.set({
       installDate: new Date().toISOString(),
       hasRated: false,
-      lastRatingPrompt: null
+      lastRatingPrompt: null,
+      privacySettings: {
+        dataCollection: false,
+        analyticsEnabled: false,
+        notificationsEnabled: true
+      }
     });
   }
 });
 
-// Handle messages from content scripts
+// Handle messages from content scripts with improved security
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Validate sender origin
+  if (!sender.url?.startsWith('chrome-extension://')) {
+    console.error('Invalid sender origin');
+    return;
+  }
+
   if (request.type === 'NOTIFICATION') {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon128.png',
       title: request.title || 'ChroMarx',
       message: request.message,
-      priority: 1
+      priority: 1,
+      requireInteraction: false
     });
   }
   return true;
 });
 
-// Handle notification clicks
+// Handle notification clicks with user privacy in mind
 chrome.notifications.onClicked.addListener((notificationId) => {
-  // Open the extension popup when notification is clicked
   chrome.action.openPopup();
 });
 
-// Handle chrome.storage errors
+// Monitor storage changes for security
 chrome.storage.onChanged.addListener((changes, namespace) => {
+  // Only log non-sensitive information
   for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
-    console.log(
-      `Storage key "${key}" in namespace "${namespace}" changed.`,
-      `Old value was "${oldValue}", new value is "${newValue}".`
-    );
+    if (!key.includes('password') && !key.includes('token')) {
+      console.log(
+        `Storage key "${key}" in namespace "${namespace}" changed.`,
+        `Old value was "${oldValue}", new value is "${newValue}".`
+      );
+    }
   }
 });
 
-// Keep service worker alive
-const keepAlive = () => setInterval(chrome.runtime.getPlatformInfo, 20e3);
-chrome.runtime.onStartup.addListener(keepAlive);
-keepAlive();
+// Implement efficient keep-alive mechanism
+const KEEP_ALIVE_INTERVAL = 20000; // 20 seconds
+let keepAliveInterval;
+
+const startKeepAlive = () => {
+  if (keepAliveInterval) {
+    clearInterval(keepAliveInterval);
+  }
+  keepAliveInterval = setInterval(chrome.runtime.getPlatformInfo, KEEP_ALIVE_INTERVAL);
+};
+
+chrome.runtime.onStartup.addListener(startKeepAlive);
+startKeepAlive();
+
+// Clean up on shutdown
+chrome.runtime.onSuspend.addListener(() => {
+  if (keepAliveInterval) {
+    clearInterval(keepAliveInterval);
+  }
+});
