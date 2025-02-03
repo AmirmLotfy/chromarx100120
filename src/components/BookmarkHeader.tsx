@@ -23,6 +23,7 @@ import {
 } from "./ui/tooltip";
 import { importBookmarks, importFromFile } from "@/utils/bookmarkImport";
 import { Progress } from "./ui/progress";
+import { Spinner } from "./ui/spinner";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -264,3 +265,4 @@ const BookmarkHeader = ({
 };
 
 export default BookmarkHeader;
+
