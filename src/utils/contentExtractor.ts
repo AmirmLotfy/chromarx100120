@@ -1,4 +1,4 @@
-// Function to fetch and extract main content from a webpage
+// Enhanced content extraction utility
 export const extractPageContent = async (url: string): Promise<string> => {
   try {
     const response = await fetch(url);
@@ -9,7 +9,9 @@ export const extractPageContent = async (url: string): Promise<string> => {
     const doc = parser.parseFromString(html, 'text/html');
     
     // Remove unwanted elements
-    const elementsToRemove = doc.querySelectorAll('script, style, nav, header, footer, iframe, [role="banner"], [role="navigation"], .advertisement, .ads, #comments');
+    const elementsToRemove = doc.querySelectorAll(
+      'script, style, nav, header, footer, iframe, [role="banner"], [role="navigation"], .advertisement, .ads, #comments'
+    );
     elementsToRemove.forEach(el => el.remove());
     
     // Get main content (prioritize main content areas)
@@ -27,7 +29,7 @@ export const extractPageContent = async (url: string): Promise<string> => {
   }
 };
 
-// Function to clean and format extracted content
+// Clean and format extracted content
 export const cleanContent = (content: string): string => {
   return content
     .replace(/\s+/g, ' ')
