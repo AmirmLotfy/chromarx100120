@@ -8,13 +8,15 @@
     "storage",
     "bookmarks",
     "sidePanel",
-    "tabs"
+    "tabs",
+    "identity.email"
   ],
   "oauth2": {
-    "client_id": "${CHROME_CLIENT_ID}",
+    "client_id": "YOUR_CLIENT_ID_HERE",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile"
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "openid"
     ]
   },
   "side_panel": {
