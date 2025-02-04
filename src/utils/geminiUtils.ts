@@ -1,63 +1,44 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@/lib/chrome-utils";
-import { ChromeBookmark } from "@/types/bookmark";
 
-interface GeminiRequest {
-  prompt: string;
-  type: 'summarize' | 'categorize' | 'timer' | 'sentiment';
-  language: string;
-  contentType?: string;
-}
-
-interface GeminiResponse {
-  result: string;
-}
-
-export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
+const getGeminiClient = async () => {
   try {
     const user = await auth.getCurrentUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
+    if (!user) throw new Error('User not authenticated');
+    
     const token = await user.getIdToken();
-    const response = await fetch('YOUR_CLOUD_FUNCTION_URL/getGeminiResponse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to get Gemini response');
-    }
-
-    return await response.json();
+    const genAI = new GoogleGenerativeAI(token);
+    return genAI.getGenerativeModel({ model: "gemini-pro" });
   } catch (error) {
-    console.error('Error getting Gemini response:', error);
+    console.error('Error initializing Gemini client:', error);
     throw error;
   }
 };
 
 export const summarizeContent = async (content: string, language: string): Promise<string> => {
-  const response = await getGeminiResponse({
-    prompt: content,
-    type: 'summarize',
-    language,
-    contentType: 'general'
-  });
-  return response.result;
+  try {
+    const model = await getGeminiClient();
+    const prompt = `Summarize the following content in ${language}:\n${content}`;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error summarizing content:', error);
+    throw error;
+  }
 };
 
 export const analyzeSentiment = async (content: string, language: string): Promise<string> => {
-  const response = await getGeminiResponse({
-    prompt: content,
-    type: 'sentiment',
-    language,
-    contentType: 'general'
-  });
-  return response.result;
+  try {
+    const model = await getGeminiClient();
+    const prompt = `Analyze the sentiment of the following content in ${language}:\n${content}`;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('Error analyzing sentiment:', error);
+    throw error;
+  }
 };
 
 export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
@@ -66,11 +47,14 @@ export const summarizeBookmark = async (bookmark: ChromeBookmark, language: stri
 };
 
 export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
-  const response = await getGeminiResponse({
-    prompt: `Title: ${title}\nURL: ${url}`,
-    type: 'categorize',
-    language: 'en',
-    contentType: 'bookmark'
-  });
-  return response.result;
+  try {
+    const model = await getGeminiClient();
+    const prompt = `Suggest a category for this bookmark:\nTitle: ${title}\nURL: ${url}\nProvide only the category name, nothing else.`;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('Error suggesting category:', error);
+    throw error;
+  }
 };
