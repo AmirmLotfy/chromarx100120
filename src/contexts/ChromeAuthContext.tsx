@@ -1,13 +1,18 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ChromeUser } from '@/lib/chrome-utils';
+
+export interface ChromeUser {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
 
 interface ChromeAuthContextType {
   user: ChromeUser | null;
   loading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  isAdmin?: boolean;
 }
 
 const ChromeAuthContext = createContext<ChromeAuthContextType>({
@@ -15,7 +20,6 @@ const ChromeAuthContext = createContext<ChromeAuthContextType>({
   loading: true,
   signIn: async () => {},
   signOut: async () => {},
-  isAdmin: false
 });
 
 export const useChromeAuth = () => useContext(ChromeAuthContext);
@@ -23,7 +27,6 @@ export const useChromeAuth = () => useContext(ChromeAuthContext);
 export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<ChromeUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const signIn = async () => {
     try {
@@ -39,11 +42,9 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       const data = await response.json();
       const userData: ChromeUser = {
         id: data.sub,
-        uid: data.sub,
         email: data.email,
         displayName: data.name,
-        photoURL: data.picture,
-        getIdToken: async () => token.token
+        photoURL: data.picture
       };
       
       setUser(userData);
@@ -83,11 +84,9 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
             const data = await response.json();
             const userData: ChromeUser = {
               id: data.sub,
-              uid: data.sub,
               email: data.email,
               displayName: data.name,
-              photoURL: data.picture,
-              getIdToken: async () => token.token
+              photoURL: data.picture
             };
             setUser(userData);
           }
@@ -103,7 +102,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
   }, []);
 
   return (
-    <ChromeAuthContext.Provider value={{ user, loading, signIn, signOut, isAdmin }}>
+    <ChromeAuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </ChromeAuthContext.Provider>
   );

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 
 interface OnboardingContextType {
   currentStep: number;
@@ -22,14 +22,13 @@ export const useOnboarding = () => {
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const { user } = useFirebase();
+  const { user } = useChromeAuth();
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       const onboardingStatus = localStorage.getItem("onboardingComplete");
       
       if (!user) {
-        // Force onboarding for non-logged in users
         setIsOnboardingComplete(false);
         setCurrentStep(1);
       } else if (onboardingStatus === "true") {
