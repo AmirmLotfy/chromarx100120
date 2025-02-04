@@ -41,9 +41,22 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
   }
 };
 
+export const summarizeContent = async (content: string, language: string): Promise<string> => {
+  const response = await getGeminiResponse({
+    prompt: `Summarize this content concisely in ${language}, focusing on key points:\n\n${content}`,
+    type: 'summarize',
+    language
+  });
+  return response.result || 'Failed to generate summary';
+};
+
 export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
   try {
     const pageContent = await fetchPageContent(bookmark.url || '');
+    if (!pageContent) {
+      return summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, language);
+    }
+
     const prompt = `
 Title: ${bookmark.title}
 URL: ${bookmark.url}
@@ -63,7 +76,7 @@ Please provide a comprehensive summary of this content in ${language}, focusing 
     return response.result || 'Failed to generate summary';
   } catch (error) {
     console.error('Error summarizing bookmark:', error);
-    return `Failed to summarize ${bookmark.title}`;
+    return summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, language);
   }
 };
 
