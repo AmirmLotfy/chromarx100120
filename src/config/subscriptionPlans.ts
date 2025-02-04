@@ -28,6 +28,26 @@ export interface Plan {
   limits: PlanLimits;
 }
 
+export interface UserSubscription {
+  planId: string;
+  status: string;
+  createdAt: string;
+  endDate: string;
+  usage: {
+    bookmarks: number;
+    tasks: number;
+    notes: number;
+    aiRequests: number;
+  };
+}
+
+export interface UserData {
+  subscription?: UserSubscription;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+}
+
 export const subscriptionPlans: Plan[] = [
   {
     id: "free",
