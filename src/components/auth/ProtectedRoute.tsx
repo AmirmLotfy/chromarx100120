@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useOnboarding } from "../onboarding/OnboardingProvider";
 
 interface ProtectedRouteProps {
@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user } = useFirebase();
+  const { user } = useAuth();
   const { isOnboardingComplete } = useOnboarding();
 
   if (!user || !isOnboardingComplete) {

@@ -1,15 +1,14 @@
-import { BrowserRouter } from 'react-router-dom'
-import Routes from './Routes'
-import { ThemeProvider } from './components/theme-provider'
-import { Toaster } from './components/ui/toaster'
-import { OnboardingProvider } from './components/onboarding/OnboardingProvider'
-import { AuthProvider } from '@/contexts/AuthContext'
-import './App.css'
+import { BrowserRouter } from "react-router-dom";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
+import Routes from "./Routes";
 
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
         <AuthProvider>
           <OnboardingProvider>
             <Routes />
@@ -18,7 +17,7 @@ function App() {
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
