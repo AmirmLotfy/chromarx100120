@@ -16,19 +16,17 @@ const Layout = ({ children }: LayoutProps) => {
         .catch(console.error);
     }
 
-    // Listen for panel visibility changes
-    const handleVisibilityChange = (isVisible: boolean) => {
-      setIsPanelOpen(isVisible);
+    // Listen for panel visibility changes using chrome.runtime.onMessage
+    const handleVisibilityChange = (message: any) => {
+      if (message.type === 'sidepanel-visibility-changed') {
+        setIsPanelOpen(message.isVisible);
+      }
     };
 
-    if (chrome.sidePanel) {
-      chrome.sidePanel.onVisibilityChanged.addListener(handleVisibilityChange);
-    }
+    chrome.runtime.onMessage.addListener(handleVisibilityChange);
 
     return () => {
-      if (chrome.sidePanel) {
-        chrome.sidePanel.onVisibilityChanged.removeListener(handleVisibilityChange);
-      }
+      chrome.runtime.onMessage.removeListener(handleVisibilityChange);
     };
   }, []);
 
