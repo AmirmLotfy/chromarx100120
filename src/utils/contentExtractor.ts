@@ -1,6 +1,7 @@
 // Enhanced content extraction utility
 export const extractPageContent = async (url: string): Promise<string> => {
   try {
+    // First try using fetch
     const response = await fetch(url);
     const html = await response.text();
     

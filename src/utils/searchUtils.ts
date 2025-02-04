@@ -33,20 +33,19 @@ export const searchWebResults = async (query: string): Promise<Array<{ title: st
         title: item.title,
         url: item.link,
       })) || [];
-    } else {
-      // Development mode - return mock results
-      console.log('Running in development mode - returning mock search results');
-      return [
-        {
-          title: 'Mock Search Result 1',
-          url: 'https://example.com/1',
-        },
-        {
-          title: 'Mock Search Result 2',
-          url: 'https://example.com/2',
-        },
-      ];
     }
+    
+    // Development mode - return mock results
+    return [
+      {
+        title: 'Mock Search Result 1',
+        url: 'https://example.com/1',
+      },
+      {
+        title: 'Mock Search Result 2',
+        url: 'https://example.com/2',
+      },
+    ];
   } catch (error) {
     console.error('Error searching web results:', error);
     return [];
