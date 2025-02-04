@@ -4,11 +4,11 @@ import { ArrowRight } from "lucide-react";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 
 const WelcomeCard = () => {
-  const { isOnboardingComplete, startOnboarding } = useOnboarding();
+  const { startOnboarding } = useOnboarding();
   const { user } = useChromeAuth();
 
-  // Show welcome card for non-logged in users or if onboarding is not complete
-  if (user && isOnboardingComplete) return null;
+  // Only show welcome card for non-logged in users
+  if (user) return null;
 
   return (
     <div className="bg-accent rounded-lg p-6 mb-4 animate-fade-in">

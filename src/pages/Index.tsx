@@ -35,11 +35,10 @@ const Index = () => {
     fetchSubscriptionStatus();
   }, [user]);
 
-  // Force onboarding for non-logged in users
-  if (!user || !isOnboardingComplete) {
+  // Show only the overlay during active onboarding
+  if (!isOnboardingComplete) {
     return (
       <Layout>
-        <WelcomeCard />
         <OnboardingOverlay />
       </Layout>
     );
@@ -48,6 +47,8 @@ const Index = () => {
   return (
     <Layout>
       <div className="w-full">
+        {/* Show welcome card only when logged out */}
+        {!user && <WelcomeCard />}
         {subscriptionStatus === "free" && (
           <div className="w-full">
             <AffiliateBannerCarousel />
