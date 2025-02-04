@@ -9,7 +9,7 @@ export const extractPageContent = async (url: string): Promise<string> => {
     const doc = parser.parseFromString(html, 'text/html');
     
     // Remove unwanted elements
-    const elementsToRemove = doc.querySelectorAll('script, style, nav, header, footer, iframe, [role="banner"], [role="navigation"]');
+    const elementsToRemove = doc.querySelectorAll('script, style, nav, header, footer, iframe, [role="banner"], [role="navigation"], .advertisement, .ads, #comments');
     elementsToRemove.forEach(el => el.remove());
     
     // Get main content (prioritize main content areas)
@@ -20,9 +20,17 @@ export const extractPageContent = async (url: string): Promise<string> => {
     
     // Fallback to body content if no main content area is found
     const bodyContent = doc.body.textContent?.trim() || '';
-    return bodyContent.slice(0, 5000); // Limit content length
+    return bodyContent.slice(0, 5000); // Limit content length for API constraints
   } catch (error) {
     console.error('Error extracting page content:', error);
     return ''; // Return empty string if extraction fails
   }
+};
+
+// Function to clean and format extracted content
+export const cleanContent = (content: string): string => {
+  return content
+    .replace(/\s+/g, ' ')
+    .replace(/\n+/g, '\n')
+    .trim();
 };
