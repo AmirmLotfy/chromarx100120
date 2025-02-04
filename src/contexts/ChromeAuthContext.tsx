@@ -11,6 +11,7 @@ export interface ChromeUser {
 interface ChromeAuthContextType {
   user: ChromeUser | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ interface ChromeAuthContextType {
 const ChromeAuthContext = createContext<ChromeAuthContextType>({
   user: null,
   loading: true,
+  isAdmin: false,
   signIn: async () => {},
   signOut: async () => {},
 });
@@ -27,6 +29,7 @@ export const useChromeAuth = () => useContext(ChromeAuthContext);
 export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<ChromeUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const signIn = async () => {
     try {
@@ -48,6 +51,8 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       };
       
       setUser(userData);
+      // Set admin status based on email domain or other criteria
+      setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
       toast.success('Successfully signed in!');
     } catch (error) {
       console.error('Sign in error:', error);
@@ -63,6 +68,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
         await chrome.identity.removeCachedAuthToken({ token: token.token });
       }
       setUser(null);
+      setIsAdmin(false);
       toast.success('Successfully signed out');
     } catch (error) {
       console.error('Sign out error:', error);
@@ -89,6 +95,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
               photoURL: data.picture
             };
             setUser(userData);
+            setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
           }
         }
       } catch (error) {
@@ -102,7 +109,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
   }, []);
 
   return (
-    <ChromeAuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <ChromeAuthContext.Provider value={{ user, loading, isAdmin, signIn, signOut }}>
       {children}
     </ChromeAuthContext.Provider>
   );
