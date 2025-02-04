@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChroMarx",
   "version": "1.0.0",
-  "description": "A powerful bookmark manager for Chrome",
+  "description": "Your Gemini-Powered Bookmark Manager – Organize, Optimize, Excel!",
   "permissions": [
     "bookmarks",
     "storage",
