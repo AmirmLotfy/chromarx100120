@@ -12,33 +12,51 @@ import { useState, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { CreditCard, Download, Settings, Trash2, Upload, User, LogOut } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { chromeDb } from "@/lib/chrome-storage";
+import { chromeDb, StorageData } from "@/lib/chrome-storage";
+
+interface UserSettings {
+  dataCollection: boolean;
+  experimentalFeatures: boolean;
+}
+
+interface UsageStats {
+  bookmarks: number;
+  notes: number;
+  aiRequests: number;
+}
 
 const UserPage = () => {
   const { user, signOut } = useChromeAuth();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [usage, setUsage] = useState({
+  const [settings, setSettings] = useState<UserSettings>({
+    dataCollection: false,
+    experimentalFeatures: false
+  });
+  const [usage, setUsage] = useState<UsageStats>({
     bookmarks: 0,
     notes: 0,
     aiRequests: 0
-  });
-  const [settings, setSettings] = useState({
-    dataCollection: false,
-    experimentalFeatures: false
   });
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const storedSettings = await chromeDb.get('settings');
+        const storedSettings = await chromeDb.get<StorageData['settings']>('settings');
         if (storedSettings) {
-          setSettings(storedSettings);
+          setSettings({
+            dataCollection: storedSettings.dataCollection || false,
+            experimentalFeatures: storedSettings.experimentalFeatures || false
+          });
         }
 
-        const usageData = await chromeDb.get('usage');
+        const usageData = await chromeDb.get<StorageData['usage']>('usage');
         if (usageData) {
-          setUsage(usageData);
+          setUsage({
+            bookmarks: usageData.bookmarks || 0,
+            notes: usageData.notes || 0,
+            aiRequests: usageData.aiRequests || 0
+          });
         }
       } catch (error) {
         console.error('Error loading user data:', error);

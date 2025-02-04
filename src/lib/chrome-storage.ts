@@ -23,6 +23,13 @@ export interface StorageData {
       clientId: string;
       secretKey: string;
     };
+    dataCollection: boolean;
+    experimentalFeatures: boolean;
+  };
+  usage: {
+    bookmarks: number;
+    notes: number;
+    aiRequests: number;
   };
   subscriptions: Record<string, any>;
   history: any[];
