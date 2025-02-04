@@ -6,7 +6,9 @@
   "permissions": [
     "identity",
     "storage",
-    "bookmarks"
+    "bookmarks",
+    "sidePanel",
+    "tabs"
   ],
   "oauth2": {
     "client_id": "46339279287-o0hkmkeho7uom3po0v2kvo9s48eui91p.apps.googleusercontent.com",
@@ -14,6 +16,9 @@
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
     ]
+  },
+  "side_panel": {
+    "default_path": "index.html"
   },
   "action": {
     "default_popup": "index.html",
@@ -33,6 +38,6 @@
   },
   "homepage_url": "https://chromarx.it.com",
   "author": "ChroMarx Team",
-  "minimum_chrome_version": "88",
+  "minimum_chrome_version": "114",
   "offline_enabled": true
 }

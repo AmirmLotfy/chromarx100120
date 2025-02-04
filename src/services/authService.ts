@@ -1,6 +1,5 @@
 import { toast } from 'sonner';
 import { chromeDb } from '@/lib/chrome-storage';
-import { auth } from '@/lib/chrome-utils';
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
@@ -11,33 +10,32 @@ export interface UserPreferences {
 
 export const signInWithGoogle = async () => {
   try {
-    const user = await auth.signIn();
+    const token = await chrome.identity.getAuthToken({ interactive: true });
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token.token}` }
+    });
     
-    if (user) {
-      // Create or update user data in chrome storage
-      const userData = await chromeDb.get('user');
-      if (!userData) {
-        await chromeDb.set('user', {
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-        });
-
-        // Set default preferences
-        await chromeDb.set('settings', {
-          theme: 'system',
-          notifications: true,
-          summarizationEnabled: true,
-          language: 'en',
-        });
-      } else {
-        await chromeDb.update('user', {
-          lastLogin: new Date().toISOString()
-        });
-      }
+    if (!response.ok) {
+      throw new Error('Failed to get user info');
     }
+    
+    const data = await response.json();
+    const user = {
+      id: data.sub,
+      email: data.email,
+      displayName: data.name,
+      photoURL: data.picture,
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+    };
+
+    await chromeDb.set('user', user);
+    await chromeDb.set('settings', {
+      theme: 'system',
+      notifications: true,
+      summarizationEnabled: true,
+      language: 'en',
+    });
 
     toast.success('Successfully signed in!');
     return user;
@@ -50,7 +48,10 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
-    await auth.signOut();
+    const token = await chrome.identity.getAuthToken({ interactive: false });
+    if (token) {
+      await chrome.identity.removeCachedAuthToken({ token: token.token });
+    }
     await chromeDb.remove('user');
     toast.success('Successfully signed out');
   } catch (error: any) {
@@ -60,15 +61,11 @@ export const signOut = async () => {
   }
 };
 
-export const getCurrentUser = () => {
-  return auth.getCurrentUser();
-};
-
-export const onAuthStateChange = (callback: (user: any) => void) => {
-  // Chrome doesn't have a direct auth state listener, so we'll check on storage changes
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes.user) {
-      callback(changes.user.newValue);
-    }
-  });
+export const getCurrentUser = async () => {
+  try {
+    return await chromeDb.get('user');
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
 };
