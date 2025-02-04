@@ -3,14 +3,15 @@ import { useOnboarding } from "./OnboardingProvider";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import OnboardingStep from "./OnboardingStep";
 import OnboardingProgress from "./OnboardingProgress";
-import { Sparkles } from "lucide-react"; // Import a Lucide icon
+import { Sparkles } from "lucide-react";
 
 const OnboardingOverlay = () => {
   const { currentStep, isOnboardingComplete } = useOnboarding();
   const { user } = useChromeAuth();
-  const totalSteps = 3; // Assuming 3 steps in the onboarding process
+  const totalSteps = 3;
 
-  if (isOnboardingComplete || user) return null;
+  // Show overlay for non-logged in users or if onboarding is not complete
+  if (user && isOnboardingComplete) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">

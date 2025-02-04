@@ -7,7 +7,8 @@ const WelcomeCard = () => {
   const { isOnboardingComplete, startOnboarding } = useOnboarding();
   const { user } = useChromeAuth();
 
-  if (isOnboardingComplete || user) return null;
+  // Show welcome card for non-logged in users or if onboarding is not complete
+  if (user && isOnboardingComplete) return null;
 
   return (
     <div className="bg-accent rounded-lg p-6 mb-4 animate-fade-in">

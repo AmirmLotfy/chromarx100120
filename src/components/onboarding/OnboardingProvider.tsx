@@ -20,7 +20,7 @@ export const useOnboarding = () => {
 };
 
 export const OnboardingProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(1);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const { user } = useChromeAuth();
 
@@ -28,12 +28,12 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
     const checkOnboardingStatus = async () => {
       const onboardingStatus = localStorage.getItem("onboardingComplete");
       
-      if (!user) {
-        setIsOnboardingComplete(false);
-        setCurrentStep(1);
-      } else if (onboardingStatus === "true") {
+      if (user && onboardingStatus === "true") {
         setIsOnboardingComplete(true);
         setCurrentStep(0);
+      } else {
+        setIsOnboardingComplete(false);
+        setCurrentStep(1);
       }
     };
 
@@ -43,8 +43,8 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   const completeOnboarding = () => {
     if (user) {
       localStorage.setItem("onboardingComplete", "true");
+      setIsOnboardingComplete(true);
     }
-    setIsOnboardingComplete(true);
     setCurrentStep(0);
   };
 
