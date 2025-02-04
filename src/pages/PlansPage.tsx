@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useFirebase } from "@/contexts/FirebaseContext";
 import { toast } from "sonner";
 
 interface PlanFeature {
@@ -72,7 +72,7 @@ const plans: Plan[] = [
 ];
 
 const PlansPage = () => {
-  const { user } = useAuth();
+  const { user } = useFirebase();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleSubscribe = async (planId: string) => {
@@ -82,7 +82,7 @@ const PlansPage = () => {
     }
 
     try {
-      // TODO: Implement subscription logic
+      // TODO: Implement Stripe checkout
       toast.info("Subscription feature coming soon!");
     } catch (error) {
       console.error("Error subscribing to plan:", error);

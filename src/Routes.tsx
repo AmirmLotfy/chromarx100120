@@ -18,11 +18,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 const Routes = () => {
   return (
     <RouterRoutes>
-      <Route path="/" element={
-        <ProtectedRoute>
-          <BookmarksPage />
-        </ProtectedRoute>
-      } />
+      <Route path="/" element={<Index />} />
       <Route
         path="/bookmarks"
         element={

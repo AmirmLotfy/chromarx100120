@@ -3,12 +3,12 @@ import PlanCard from "@/components/subscription/PlanCard";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { chromeDb } from "@/lib/chrome-storage";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useFirebase } from "@/contexts/FirebaseContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SubscriptionSettings = () => {
-  const { user } = useAuth();
+  const { user } = useFirebase();
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

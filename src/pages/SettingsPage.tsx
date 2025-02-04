@@ -1,7 +1,7 @@
 import * as React from "react";
 import Layout from "@/components/Layout";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/contexts/AuthContext";
+import { useFirebase } from "@/contexts/FirebaseContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sun, User, RefreshCw, FileText, HelpCircle, Share2 } from "lucide-react";
 import {
@@ -24,7 +24,7 @@ import BookmarkAutoDetection from "@/components/settings/BookmarkAutoDetection";
 
 const SettingsPage = () => {
   const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const { isAdmin } = useFirebase();
   const [activeTab, setActiveTab] = React.useState("appearance");
 
   const tabs = [
@@ -37,7 +37,7 @@ const SettingsPage = () => {
     { value: "legal", label: "Legal & Feedback", icon: FileText },
   ];
 
-  if (user?.id === "admin") {
+  if (isAdmin) {
     tabs.push({ value: "affiliate", label: "Affiliate", icon: HelpCircle });
   }
 
@@ -115,7 +115,7 @@ const SettingsPage = () => {
                 <LegalAndFeedback />
               </TabsContent>
 
-              {user?.id === "admin" && (
+              {isAdmin && (
                 <TabsContent value="affiliate">
                   <AffiliateSettings />
                 </TabsContent>

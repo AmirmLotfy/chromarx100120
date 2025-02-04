@@ -12,14 +12,14 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  signInWithGoogle: async () => {},
+  signIn: async () => {},
   signOut: async () => {},
 });
 
@@ -29,9 +29,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const signInWithGoogle = async () => {
+  const signIn = async () => {
     try {
+      console.log('Initiating Google OAuth sign-in...');
       const token = await chrome.identity.getAuthToken({ interactive: true });
+      console.log('OAuth token received');
+
       const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token.token}` }
       });
@@ -41,6 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       const data = await response.json();
+      console.log('User info retrieved:', { email: data.email, name: data.name });
+
       const userData: User = {
         id: data.sub,
         email: data.email,
@@ -60,9 +65,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log('Initiating sign-out process...');
       const token = await chrome.identity.getAuthToken({ interactive: false });
       if (token) {
         await chrome.identity.removeCachedAuthToken({ token: token.token });
+        console.log('OAuth token removed');
       }
       await chromeDb.remove('user');
       setUser(null);
@@ -77,8 +84,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        console.log('Initializing authentication...');
         const storedUser = await chromeDb.get<User>('user');
         if (storedUser) {
+          console.log('Found stored user:', { email: storedUser.email });
           setUser(storedUser);
         }
       } catch (error) {
@@ -92,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

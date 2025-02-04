@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
-import { useAuth } from "@/contexts/AuthContext";
+import { useFirebase } from "@/contexts/FirebaseContext";
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +14,7 @@ import {
 
 const PrivacySettings = () => {
   const settings = useSettings();
-  const { user } = useAuth();
+  const { user } = useFirebase();
 
   return (
     <Card>
@@ -40,8 +40,8 @@ const PrivacySettings = () => {
                     className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
                     checked={settings.dataCollection}
                     onCheckedChange={(checked) => {
-                      if (user?.id) {
-                        settings.setDataCollection(checked, user.id);
+                      if (user?.uid) {
+                        settings.setDataCollection(checked, user.uid);
                         toast.success('Data collection preference updated');
                       } else {
                         toast.error('Please sign in to save preferences');
@@ -65,8 +65,8 @@ const PrivacySettings = () => {
                   id="bookmarks"
                   checked={settings.notifications.bookmarks}
                   onCheckedChange={(checked) => {
-                    if (user?.id) {
-                      settings.setNotifications("bookmarks", checked, user.id);
+                    if (user?.uid) {
+                      settings.setNotifications("bookmarks", checked, user.uid);
                       toast.success('Bookmark notifications updated');
                     } else {
                       toast.error('Please sign in to save preferences');
@@ -80,8 +80,8 @@ const PrivacySettings = () => {
                   id="updates"
                   checked={settings.notifications.updates}
                   onCheckedChange={(checked) => {
-                    if (user?.id) {
-                      settings.setNotifications("updates", checked, user.id);
+                    if (user?.uid) {
+                      settings.setNotifications("updates", checked, user.uid);
                       toast.success('Update notifications updated');
                     } else {
                       toast.error('Please sign in to save preferences');
@@ -95,8 +95,8 @@ const PrivacySettings = () => {
                   id="reminders"
                   checked={settings.notifications.reminders}
                   onCheckedChange={(checked) => {
-                    if (user?.id) {
-                      settings.setNotifications("reminders", checked, user.id);
+                    if (user?.uid) {
+                      settings.setNotifications("reminders", checked, user.uid);
                       toast.success('Reminder notifications updated');
                     } else {
                       toast.error('Please sign in to save preferences');

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useFirebase } from "@/contexts/FirebaseContext";
 import { chromeDb } from "@/lib/chrome-storage";
 import { getPlanById, subscriptionPlans } from "@/config/subscriptionPlans";
 import { ArrowUpCircle, Calendar, CreditCard } from "lucide-react";
@@ -21,7 +21,7 @@ interface SubscriptionData {
 }
 
 const SubscriptionDetails = () => {
-  const { user } = useAuth();
+  const { user } = useFirebase();
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
 
