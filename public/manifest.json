@@ -29,7 +29,7 @@
     "128": "icons/icon128.png"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' https://cdn.gpteng.co; object-src 'self'; frame-ancestors 'none'"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-ancestors 'none'"
   },
   "homepage_url": "https://chromarx.it.com",
   "author": "ChroMarx Team",
