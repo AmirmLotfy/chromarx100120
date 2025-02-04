@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Check, ArrowRight, BookOpen, Pen } from "lucide-react";
 import { toast } from "sonner";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useAuth } from "@/contexts/AuthContext";
 import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
 import WelcomeStep from "./steps/WelcomeStep";
@@ -58,9 +58,8 @@ const onboardingSteps = [
 
 export const OnboardingOverlay = () => {
   const { currentStep, setCurrentStep, completeOnboarding, isOnboardingComplete } = useOnboarding();
-  const { user, signInWithGoogle } = useFirebase();
+  const { user, signInWithGoogle } = useAuth();
 
-  // Show onboarding if not completed and user is not logged in
   if (isOnboardingComplete || (user && currentStep === 0)) return null;
 
   const currentStepData = onboardingSteps[currentStep - 1];
