@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { toast } from "sonner";
 
 interface PlanFeature {
@@ -72,7 +72,7 @@ const plans: Plan[] = [
 ];
 
 const PlansPage = () => {
-  const { user } = useFirebase();
+  const { user } = useChromeAuth();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleSubscribe = async (planId: string) => {

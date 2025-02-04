@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +14,7 @@ import {
 
 const PrivacySettings = () => {
   const settings = useSettings();
-  const { user } = useFirebase();
+  const { user } = useChromeAuth();
 
   return (
     <Card>

@@ -1,7 +1,7 @@
 import * as React from "react";
 import Layout from "@/components/Layout";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sun, User, RefreshCw, FileText, HelpCircle, Share2 } from "lucide-react";
 import {
@@ -24,7 +24,7 @@ import BookmarkAutoDetection from "@/components/settings/BookmarkAutoDetection";
 
 const SettingsPage = () => {
   const isMobile = useIsMobile();
-  const { isAdmin } = useFirebase();
+  const { isAdmin } = useChromeAuth();
   const [activeTab, setActiveTab] = React.useState("appearance");
 
   const tabs = [

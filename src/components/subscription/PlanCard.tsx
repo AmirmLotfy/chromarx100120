@@ -12,7 +12,7 @@ import { Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useEffect } from "react";
-import { getPayPalClientId } from "@/utils/firebaseUtils";
+import { getPayPalClientId } from "@/utils/chromeUtils";
 import type { Plan } from "@/config/subscriptionPlans";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";

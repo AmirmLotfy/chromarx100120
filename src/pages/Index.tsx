@@ -1,12 +1,12 @@
 import Layout from "../components/Layout";
 import FeatureGrid from "../components/FeatureGrid";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useEffect, useState } from "react";
 import { storage } from "@/lib/chrome-utils";
 import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarousel";
 
 const Index = () => {
-  const { user } = useFirebase();
+  const { user } = useChromeAuth();
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("free");
 
   useEffect(() => {
