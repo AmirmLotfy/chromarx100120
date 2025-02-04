@@ -14,26 +14,26 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: undefined,
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]'
       }
     },
-    sourcemap: false,
-    assetsDir: '.',
-    minify: 'terser',
+    sourcemap: process.env.MODE === 'development',
+    minify: process.env.MODE === 'development' ? false : 'terser',
     terserOptions: {
       compress: {
-        drop_console: false, // Keep console logs in development mode
-        drop_debugger: false
-      },
-      format: {
-        comments: false
+        drop_console: process.env.MODE !== 'development',
+        drop_debugger: process.env.MODE !== 'development'
       }
-    }
+    },
+    watch: null
   },
   server: {
     port: 8080,
     strictPort: true,
+    hmr: {
+      port: 8080
+    }
   }
 });
