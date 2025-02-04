@@ -1,4 +1,3 @@
-// Enhanced content extraction utility
 export const extractPageContent = async (url: string): Promise<string> => {
   try {
     // First try using fetch
@@ -36,4 +35,33 @@ export const cleanContent = (content: string): string => {
     .replace(/\s+/g, ' ')
     .replace(/\n+/g, '\n')
     .trim();
+};
+
+// Add new utility functions
+export const fetchPageContent = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch(url);
+    const html = await response.text();
+    return extractContentFromHtml(html);
+  } catch (error) {
+    console.error('Error fetching page content:', error);
+    return '';
+  }
+};
+
+export const extractContentFromHtml = (html: string): string => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Remove unwanted elements
+  const elementsToRemove = doc.querySelectorAll(
+    'script, style, nav, header, footer, iframe, .ad, .advertisement, .social-share'
+  );
+  elementsToRemove.forEach(el => el.remove());
+
+  // Extract main content
+  const mainContent = doc.querySelector('main, article, [role="main"], .content, #content');
+  const content = mainContent ? mainContent.textContent : doc.body.textContent;
+
+  return cleanContent(content || '');
 };
