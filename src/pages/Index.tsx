@@ -4,7 +4,6 @@ import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useEffect, useState } from "react";
 import { storage } from "@/lib/chrome-utils";
 import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarousel";
-import WelcomeCard from "@/components/WelcomeCard";
 import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 import { useOnboarding } from "@/components/onboarding/OnboardingProvider";
 
@@ -35,8 +34,8 @@ const Index = () => {
     fetchSubscriptionStatus();
   }, [user]);
 
-  // Show only the overlay during active onboarding
-  if (!isOnboardingComplete) {
+  // Show onboarding for non-logged in users or if onboarding is not complete
+  if (!user || !isOnboardingComplete) {
     return (
       <Layout>
         <OnboardingOverlay />
@@ -47,8 +46,6 @@ const Index = () => {
   return (
     <Layout>
       <div className="w-full">
-        {/* Show welcome card only when logged out */}
-        {!user && <WelcomeCard />}
         {subscriptionStatus === "free" && (
           <div className="w-full">
             <AffiliateBannerCarousel />

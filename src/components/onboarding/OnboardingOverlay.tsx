@@ -2,7 +2,7 @@ import { useOnboarding } from "./OnboardingProvider";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
-import { ArrowRight, BookMarked, Sparkles, User } from "lucide-react";
+import { BookMarked, User } from "lucide-react";
 import { toast } from "sonner";
 
 const OnboardingOverlay = () => {
@@ -42,7 +42,7 @@ const OnboardingOverlay = () => {
     {
       title: "Welcome to ChroMarx",
       description: "Your all-in-one browser productivity companion",
-      icon: Sparkles,
+      icon: "/lovable-uploads/cab9ee44-1599-487e-86b9-4c7b064cf78e.png",
       primaryAction: {
         label: "Get Started",
         onClick: () => setCurrentStep(2),
@@ -73,7 +73,7 @@ const OnboardingOverlay = () => {
     {
       title: "You're All Set!",
       description: "Start exploring ChroMarx's powerful features",
-      icon: Sparkles,
+      icon: "/lovable-uploads/cab9ee44-1599-487e-86b9-4c7b064cf78e.png",
       primaryAction: {
         label: "Get Started",
         onClick: handleComplete,

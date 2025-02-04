@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 interface OnboardingStepProps {
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: LucideIcon | string;
   primaryAction?: {
     label: string;
     onClick: () => void;
@@ -31,7 +31,11 @@ const OnboardingStep = ({
     <div className={cn("space-y-6 animate-fade-in", className)}>
       <div className="space-y-4">
         <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-          <Icon className="w-8 h-8 text-primary" />
+          {typeof Icon === 'string' ? (
+            <img src={Icon} alt="" className="w-8 h-8" />
+          ) : (
+            <Icon className="w-8 h-8 text-primary" />
+          )}
         </div>
         <div className="space-y-2 text-center">
           <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
