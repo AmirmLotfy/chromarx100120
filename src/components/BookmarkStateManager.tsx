@@ -4,6 +4,9 @@ import { toast } from "sonner";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { dummyBookmarks } from "@/utils/dummyBookmarks";
 
+const CACHE_KEY = 'bookmark_cache';
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,53 +14,90 @@ export const useBookmarkState = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const getCachedBookmarks = () => {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_EXPIRY) {
+        return data;
+      }
+    }
+    return null;
+  };
+
+  const setCachedBookmarks = (data: ChromeBookmark[]) => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  };
+
   const loadBookmarks = async () => {
     try {
-      if (chrome.bookmarks) {
-        const results = await chrome.bookmarks.getRecent(100);
-        const previousCount = bookmarks.length;
+      setLoading(true);
+      
+      // Try to get cached bookmarks first
+      const cached = getCachedBookmarks();
+      if (cached) {
+        setBookmarks(cached);
+        setLoading(false);
         
-        const categorizedResults = await Promise.all(
-          results.map(async (bookmark): Promise<ChromeBookmark> => {
-            const chromeBookmark: ChromeBookmark = {
-              ...bookmark,
-              category: undefined
-            };
-            
-            if (!chromeBookmark.category && chromeBookmark.url) {
-              try {
-                chromeBookmark.category = await suggestBookmarkCategory(
-                  chromeBookmark.title,
-                  chromeBookmark.url
-                );
-              } catch (error) {
-                console.error("Error suggesting category:", error);
-              }
-            }
-            return chromeBookmark;
-          })
-        );
-        
-        setBookmarks(categorizedResults);
-
-        if (previousCount < categorizedResults.length) {
-          const newOnes = categorizedResults.slice(0, categorizedResults.length - previousCount);
-          setNewBookmarks(newOnes);
-
-          if (chrome.action) {
-            const unreadCount = newOnes.length;
-            chrome.action.setBadgeText({ text: unreadCount > 0 ? unreadCount.toString() : "" });
-            chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
-          }
-        }
-      } else {
-        setBookmarks(dummyBookmarks);
+        // Load fresh data in background
+        loadFreshBookmarks();
+        return;
       }
+
+      await loadFreshBookmarks();
     } catch (error) {
       console.error("Error loading bookmarks:", error);
       toast.error("Failed to load bookmarks");
+      if (!chrome.bookmarks) {
+        setBookmarks(dummyBookmarks);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFreshBookmarks = async () => {
+    if (chrome.bookmarks) {
+      const results = await chrome.bookmarks.getRecent(100);
+      const previousCount = bookmarks.length;
+      
+      const categorizedResults = await Promise.all(
+        results.map(async (bookmark): Promise<ChromeBookmark> => {
+          const chromeBookmark: ChromeBookmark = {
+            ...bookmark,
+            category: undefined
+          };
+          
+          if (!chromeBookmark.category && chromeBookmark.url) {
+            try {
+              chromeBookmark.category = await suggestBookmarkCategory(
+                chromeBookmark.title,
+                chromeBookmark.url
+              );
+            } catch (error) {
+              console.error("Error suggesting category:", error);
+            }
+          }
+          return chromeBookmark;
+        })
+      );
+      
+      setBookmarks(categorizedResults);
+      setCachedBookmarks(categorizedResults);
+
+      if (previousCount < categorizedResults.length) {
+        const newOnes = categorizedResults.slice(0, categorizedResults.length - previousCount);
+        setNewBookmarks(newOnes);
+
+        if (chrome.action) {
+          const unreadCount = newOnes.length;
+          chrome.action.setBadgeText({ text: unreadCount > 0 ? unreadCount.toString() : "" });
+          chrome.action.setBadgeBackgroundColor({ color: "#10B981" });
+        }
+      }
     }
   };
 
