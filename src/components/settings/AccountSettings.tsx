@@ -2,13 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { chromeDb } from "@/lib/chrome-storage";
 
 const AccountSettings = () => {
-  const { user } = useFirebase();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");

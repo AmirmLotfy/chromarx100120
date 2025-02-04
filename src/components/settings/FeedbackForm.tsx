@@ -17,14 +17,14 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { MessageSquare, HelpCircle } from "lucide-react";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { chromeDb, FeedbackItem } from "@/lib/chrome-storage";
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useFirebase();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
