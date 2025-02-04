@@ -28,26 +28,6 @@ export interface Plan {
   limits: PlanLimits;
 }
 
-export interface UserSubscription {
-  planId: string;
-  status: string;
-  createdAt: string;
-  endDate: string;
-  usage: {
-    bookmarks: number;
-    tasks: number;
-    notes: number;
-    aiRequests: number;
-  };
-}
-
-export interface UserData {
-  subscription?: UserSubscription;
-  email?: string;
-  displayName?: string;
-  photoURL?: string;
-}
-
 export const subscriptionPlans: Plan[] = [
   {
     id: "free",
@@ -127,6 +107,7 @@ export const subscriptionPlans: Plan[] = [
   }
 ];
 
+// Utility functions for subscription management
 export const getFeatureAvailability = async (feature: string): Promise<boolean> => {
   try {
     const userData = await chromeDb.get<UserData>('user');
