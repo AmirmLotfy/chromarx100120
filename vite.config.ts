@@ -7,9 +7,15 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: undefined,
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]'
       }
-    }
+    },
+    sourcemap: false,
+    // Ensure clean URLs work
+    assetsDir: '.',
   },
   server: {
     port: 8080,

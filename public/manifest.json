@@ -21,7 +21,7 @@
     "default_path": "index.html"
   },
   "action": {
-    "default_popup": "index.html",
+    "default_title": "ChroMarx",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
