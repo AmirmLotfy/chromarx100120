@@ -1,5 +1,25 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@/lib/chrome-utils";
+import { ChromeBookmark } from "@/types/bookmark";
+
+interface GeminiRequest {
+  prompt: string;
+  type: 'summarize' | 'categorize' | 'timer' | 'sentiment';
+  language: string;
+  contentType?: string;
+}
+
+export const getGeminiResponse = async (request: GeminiRequest) => {
+  try {
+    const model = await getGeminiClient();
+    const result = await model.generateContent(request.prompt);
+    const response = await result.response;
+    return { result: response.text() };
+  } catch (error) {
+    console.error('Error getting Gemini response:', error);
+    throw error;
+  }
+};
 
 const getGeminiClient = async () => {
   try {
