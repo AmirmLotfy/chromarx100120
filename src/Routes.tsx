@@ -18,7 +18,12 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 const Routes = () => {
   return (
     <RouterRoutes>
+      {/* Public Routes */}
       <Route path="/" element={<Index />} />
+      <Route path="/plans" element={<PlansPage />} />
+      <Route path="/suggested-services" element={<SuggestedServicesPage />} />
+      
+      {/* Protected Routes - Require Authentication */}
       <Route
         path="/bookmarks"
         element={
@@ -84,26 +89,10 @@ const Routes = () => {
         }
       />
       <Route
-        path="/plans"
-        element={
-          <ProtectedRoute>
-            <PlansPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/subscription"
         element={
           <ProtectedRoute>
             <SubscriptionPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/suggested-services"
-        element={
-          <ProtectedRoute>
-            <SuggestedServicesPage />
           </ProtectedRoute>
         }
       />
