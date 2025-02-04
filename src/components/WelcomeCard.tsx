@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "./onboarding/OnboardingProvider";
 import { ArrowRight } from "lucide-react";
-import { useFirebase } from "@/contexts/FirebaseContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 
 const WelcomeCard = () => {
   const { isOnboardingComplete, startOnboarding } = useOnboarding();
-  const { user } = useFirebase();
+  const { user } = useChromeAuth();
 
-  // Don't render if onboarding is complete or user is signed in
   if (isOnboardingComplete || user) return null;
 
   return (
