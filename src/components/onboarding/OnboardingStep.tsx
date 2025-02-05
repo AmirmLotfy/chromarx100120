@@ -32,7 +32,7 @@ const OnboardingStep = ({
       <div className="space-y-4">
         <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
           {typeof Icon === 'string' ? (
-            <img src={Icon} alt="" className="w-8 h-8" />
+            <img src={Icon} alt="" className="w-8 h-8 animate-spin" />
           ) : (
             <Icon className="w-8 h-8 text-primary" />
           )}
