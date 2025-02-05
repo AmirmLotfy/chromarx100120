@@ -8,12 +8,17 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const [isSidePanel, setIsSidePanel] = useState(false);
+  const [isPopup, setIsPopup] = useState(false);
 
   useEffect(() => {
-    // Check if running in Chrome extension side panel
+    // Check if running in Chrome extension side panel or popup
     const checkEnvironment = async () => {
       if (chrome?.sidePanel) {
         setIsSidePanel(true);
+      }
+      // Check if we're in a popup window
+      if (window.innerWidth < 800 && window.innerHeight < 600) {
+        setIsPopup(true);
       }
     };
     checkEnvironment();
@@ -21,7 +26,8 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className={`min-h-screen bg-background text-foreground flex flex-col ${
-      isSidePanel ? 'w-[25vw] max-w-[400px] min-w-[300px]' : 'w-full'
+      isSidePanel ? 'w-[25vw] max-w-[400px] min-w-[300px]' : 
+      isPopup ? 'w-[350px] h-[500px]' : 'w-full'
     }`}>
       <Header />
       <main className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-16 md:pb-0">
