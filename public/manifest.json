@@ -1,3 +1,4 @@
+
 {
   "manifest_version": 3,
   "name": "ChroMarx",
@@ -6,7 +7,8 @@
   "permissions": [
     "identity",
     "storage",
-    "bookmarks"
+    "bookmarks",
+    "sidePanel"
   ],
   "oauth2": {
     "client_id": "46339279287-o0hkmkeho7uom3po0v2kvo9s48eui91p.apps.googleusercontent.com",
@@ -15,13 +17,8 @@
       "https://www.googleapis.com/auth/userinfo.profile"
     ]
   },
-  "action": {
-    "default_popup": "index.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
-    }
+  "side_panel": {
+    "default_path": "index.html"
   },
   "icons": {
     "16": "icon16.png",

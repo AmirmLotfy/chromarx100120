@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -36,18 +37,20 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       console.log('Starting Google sign-in process...');
       
       if (!chrome.identity) {
+        console.error('Chrome identity API not available');
         throw new Error('Chrome identity API not available. Make sure the extension has the identity permission.');
       }
 
-      const token = await chrome.identity.getAuthToken({ interactive: true });
-      console.log('Auth token received:', token ? 'success' : 'failed');
+      const authToken = await chrome.identity.getAuthToken({ interactive: true });
+      console.log('Auth token received:', authToken ? 'success' : 'failed');
       
-      if (!token) {
+      if (!authToken) {
+        console.error('Failed to get auth token');
         throw new Error('Failed to get auth token');
       }
 
       const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${token.token}` }
+        headers: { Authorization: `Bearer ${authToken.token}` }
       });
       
       if (!response.ok) {
@@ -68,6 +71,8 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       setUser(userData);
       setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
       toast.success('Successfully signed in!');
+      
+      return userData;
     } catch (error) {
       console.error('Sign in error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.');
@@ -113,6 +118,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
             };
             setUser(userData);
             setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
+            console.log('User authenticated:', userData.email);
           }
         }
       } catch (error) {

@@ -1,3 +1,4 @@
+
 import { useOnboarding } from "./OnboardingProvider";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import OnboardingProgress from "./OnboardingProgress";
@@ -12,10 +13,12 @@ const OnboardingOverlay = () => {
 
   const handleSignIn = async () => {
     try {
+      console.log("Starting sign in process...");
       await signIn();
+      console.log("Sign in successful, user:", user);
       setCurrentStep(2);
-      toast.success("Successfully signed in!");
     } catch (error) {
+      console.error("Sign in error:", error);
       toast.error("Failed to sign in. Please try again.");
     }
   };
