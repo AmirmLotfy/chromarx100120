@@ -9,7 +9,16 @@ export interface UserPreferences {
   language: string;
 }
 
-export const signInWithGoogle = async () => {
+export interface ChromeUser {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  createdAt: string;
+  lastLogin: string;
+}
+
+export const signInWithGoogle = async (): Promise<ChromeUser> => {
   try {
     console.log('Starting Google sign-in process...');
     
@@ -46,7 +55,7 @@ export const signInWithGoogle = async () => {
     const data = await response.json();
     console.log('User info received:', data);
 
-    const user = {
+    const user: ChromeUser = {
       id: data.sub,
       email: data.email,
       displayName: data.name,
@@ -83,7 +92,7 @@ export const signInWithGoogle = async () => {
   }
 };
 
-export const signOut = async () => {
+export const signOut = async (): Promise<void> => {
   try {
     console.log('Starting sign-out process...');
     const token = await chrome.identity.getAuthToken({ interactive: false });
@@ -100,6 +109,7 @@ export const signOut = async () => {
     
     // Clear stored data
     await chromeDb.remove('user');
+    await chromeDb.remove('settings');
     console.log('Sign-out completed');
     toast.success('Successfully signed out');
   } catch (error: any) {
@@ -109,9 +119,19 @@ export const signOut = async () => {
   }
 };
 
-export const getCurrentUser = async () => {
+export const getCurrentUser = async (): Promise<ChromeUser | null> => {
   try {
-    return await chromeDb.get('user');
+    const user = await chromeDb.get<ChromeUser>('user');
+    if (!user) return null;
+
+    // Verify token is still valid
+    const token = await chrome.identity.getAuthToken({ interactive: false });
+    if (!token?.token) {
+      await chromeDb.remove('user');
+      return null;
+    }
+
+    return user;
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
