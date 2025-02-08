@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chromeDb } from '@/lib/chrome-storage';
@@ -18,6 +19,7 @@ interface SubscriptionHook {
   incrementUsage: (type: keyof UsageData) => Promise<boolean>;
   checkFeatureAccess: (feature: string) => Promise<boolean>;
   hasReachedLimit: (type: keyof UsageData) => boolean;
+  setSubscriptionPlan: (planId: string) => Promise<void>;
 }
 
 export const useSubscription = (): SubscriptionHook => {
@@ -114,12 +116,43 @@ export const useSubscription = (): SubscriptionHook => {
     return (usage[type] || 0) >= limit;
   };
 
+  const setSubscriptionPlan = async (planId: string): Promise<void> => {
+    if (!user) throw new Error('User must be logged in to set subscription plan');
+
+    try {
+      const plan = subscriptionPlans.find(p => p.id === planId);
+      if (!plan) throw new Error('Invalid plan ID');
+
+      const userData = await chromeDb.get<UserData>('user');
+      await chromeDb.update('user', {
+        subscription: {
+          planId,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          usage: userData?.subscription?.usage || {
+            bookmarks: 0,
+            tasks: 0,
+            notes: 0,
+            aiRequests: 0
+          }
+        }
+      });
+
+      setCurrentPlan(planId);
+    } catch (error) {
+      console.error('Error setting subscription plan:', error);
+      throw error;
+    }
+  };
+
   return {
     isLoading,
     currentPlan,
     usage,
     incrementUsage,
     checkFeatureAccess,
-    hasReachedLimit
+    hasReachedLimit,
+    setSubscriptionPlan
   };
 };
