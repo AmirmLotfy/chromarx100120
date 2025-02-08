@@ -32,66 +32,89 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const getUserInfo = async (token: string): Promise<ChromeUser> => {
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch user info');
+    }
+    
+    const data = await response.json();
+    return {
+      id: data.sub,
+      email: data.email,
+      displayName: data.name,
+      photoURL: data.picture
+    };
+  };
+
   const signIn = async () => {
     try {
-      console.log('Starting Google sign-in process...');
+      console.log('Starting Google sign-in...');
       
       if (!chrome.identity) {
-        console.error('Chrome identity API not available');
-        throw new Error('Chrome identity API not available. Make sure the extension has the identity permission.');
+        throw new Error('Chrome identity API not available');
       }
 
-      const authResult = await chrome.identity.getAuthToken({ interactive: true });
-      console.log('Auth token received:', authResult ? 'success' : 'failed');
+      // Request token with interactive prompt
+      const auth = await chrome.identity.getAuthToken({ 
+        interactive: true,
+        scopes: [
+          'https://www.googleapis.com/auth/userinfo.email',
+          'https://www.googleapis.com/auth/userinfo.profile'
+        ]
+      });
+
+      console.log('Auth token received:', auth ? 'Yes' : 'No');
       
-      if (!authResult) {
-        console.error('Failed to get auth token');
+      if (!auth?.token) {
         throw new Error('Failed to get auth token');
       }
 
-      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${authResult.token}` }
-      });
-      
-      if (!response.ok) {
-        console.error('User info fetch failed:', response.status, response.statusText);
-        throw new Error('Failed to get user info');
-      }
-      
-      const data = await response.json();
-      console.log('User info retrieved:', { email: data.email });
+      // Get user info with token
+      const userData = await getUserInfo(auth.token);
+      console.log('User info retrieved:', { email: userData.email });
 
-      const userData: ChromeUser = {
-        id: data.sub,
-        email: data.email,
-        displayName: data.name,
-        photoURL: data.picture
-      };
-      
+      // Update state
       setUser(userData);
       setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
       toast.success('Successfully signed in!');
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.');
+      // Remove cached token if auth failed
+      try {
+        const token = await chrome.identity.getAuthToken({ interactive: false });
+        if (token) {
+          await chrome.identity.removeCachedAuthToken({ token: token.token });
+        }
+      } catch (e) {
+        console.error('Error removing cached token:', e);
+      }
+      toast.error(error instanceof Error ? error.message : 'Failed to sign in');
       throw error;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('Starting sign-out process...');
+      console.log('Starting sign-out...');
       const token = await chrome.identity.getAuthToken({ interactive: false });
       if (token) {
         await chrome.identity.removeCachedAuthToken({ token: token.token });
-        console.log('Auth token removed');
+        // Revoke access
+        const response = await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token.token}`);
+        if (!response.ok) {
+          console.warn('Token revocation failed:', response.status);
+        }
       }
       setUser(null);
       setIsAdmin(false);
       toast.success('Successfully signed out');
     } catch (error) {
       console.error('Sign out error:', error);
-      toast.error('Failed to sign out. Please try again.');
+      toast.error('Failed to sign out');
       throw error;
     }
   };
@@ -101,26 +124,23 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       try {
         console.log('Initializing authentication...');
         const token = await chrome.identity.getAuthToken({ interactive: false });
-        if (token) {
-          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${token.token}` }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            const userData: ChromeUser = {
-              id: data.sub,
-              email: data.email,
-              displayName: data.name,
-              photoURL: data.picture
-            };
-            setUser(userData);
-            setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
-            console.log('User authenticated:', userData.email);
-          }
+        if (token?.token) {
+          const userData = await getUserInfo(token.token);
+          setUser(userData);
+          setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
+          console.log('User authenticated:', userData.email);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        // Clear any invalid tokens
+        try {
+          const token = await chrome.identity.getAuthToken({ interactive: false });
+          if (token) {
+            await chrome.identity.removeCachedAuthToken({ token: token.token });
+          }
+        } catch (e) {
+          console.error('Error removing cached token:', e);
+        }
       } finally {
         setLoading(false);
       }

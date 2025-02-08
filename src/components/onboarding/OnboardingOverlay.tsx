@@ -23,7 +23,7 @@ const OnboardingOverlay = () => {
     try {
       console.log("Starting sign in process...");
       await signIn();
-      console.log("Sign in completed, user state:", user);
+      console.log("Sign in completed, user:", user);
       // Note: We don't need to setCurrentStep here as the useEffect will handle it
     } catch (error) {
       console.error("Sign in error:", error);
