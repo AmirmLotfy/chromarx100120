@@ -3,6 +3,9 @@
 chrome.runtime.onInstalled.addListener(async () => {
   // Configure the side panel to open when the action button is clicked
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  
+  // Verify command shortcuts are registered
+  checkCommandShortcuts();
 });
 
 // Listen for extension icon click
@@ -36,3 +39,48 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     }
   }
 });
+
+// Handle keyboard commands
+chrome.commands.onCommand.addListener(async (command, tab) => {
+  switch (command) {
+    case 'toggle-theme':
+      // Send message to the side panel to toggle theme
+      chrome.runtime.sendMessage({ type: 'TOGGLE_THEME' });
+      break;
+      
+    case 'quick-add':
+      if (tab?.url) {
+        try {
+          const bookmark = await chrome.bookmarks.create({
+            title: tab.title || 'New Bookmark',
+            url: tab.url
+          });
+          // Notify user of successful bookmark creation
+          chrome.runtime.sendMessage({ 
+            type: 'BOOKMARK_ADDED',
+            bookmark
+          });
+        } catch (error) {
+          console.error('Error creating bookmark:', error);
+        }
+      }
+      break;
+  }
+});
+
+// Check if commands are properly registered
+function checkCommandShortcuts() {
+  chrome.commands.getAll((commands) => {
+    let missingShortcuts = [];
+    
+    for (let { name, shortcut } of commands) {
+      if (shortcut === '') {
+        missingShortcuts.push(name);
+      }
+    }
+    
+    if (missingShortcuts.length > 0) {
+      console.warn('Some keyboard shortcuts were not registered:', missingShortcuts);
+    }
+  });
+}
