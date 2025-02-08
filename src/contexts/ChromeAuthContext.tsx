@@ -71,8 +71,6 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       setUser(userData);
       setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
       toast.success('Successfully signed in!');
-      
-      return userData;
     } catch (error) {
       console.error('Sign in error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign in. Please try again.');
