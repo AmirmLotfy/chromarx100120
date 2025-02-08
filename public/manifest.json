@@ -6,6 +6,7 @@
   "description": "Your Gemini-Powered Bookmark Manager – Organize, Optimize, Excel!",
   "permissions": [
     "identity",
+    "identity.email",
     "storage",
     "bookmarks",
     "sidePanel"

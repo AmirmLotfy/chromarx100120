@@ -15,6 +15,7 @@ const OnboardingOverlay = () => {
   useEffect(() => {
     // Auto-advance to next step if user is already signed in
     if (user && currentStep === 2) {
+      console.log('User already signed in, advancing to next step');
       setCurrentStep(3);
     }
   }, [user, currentStep, setCurrentStep]);
@@ -23,7 +24,7 @@ const OnboardingOverlay = () => {
     try {
       console.log("Starting sign in process...");
       await signIn();
-      console.log("Sign in completed, user:", user);
+      console.log("Sign in completed successfully");
       // Note: We don't need to setCurrentStep here as the useEffect will handle it
     } catch (error) {
       console.error("Sign in error:", error);
