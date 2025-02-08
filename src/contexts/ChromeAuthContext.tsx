@@ -41,16 +41,16 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
         throw new Error('Chrome identity API not available. Make sure the extension has the identity permission.');
       }
 
-      const authToken = await chrome.identity.getAuthToken({ interactive: true });
-      console.log('Auth token received:', authToken ? 'success' : 'failed');
+      const authResult = await chrome.identity.getAuthToken({ interactive: true });
+      console.log('Auth token received:', authResult ? 'success' : 'failed');
       
-      if (!authToken) {
+      if (!authResult) {
         console.error('Failed to get auth token');
         throw new Error('Failed to get auth token');
       }
 
       const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${authToken.token}` }
+        headers: { Authorization: `Bearer ${authResult.token}` }
       });
       
       if (!response.ok) {

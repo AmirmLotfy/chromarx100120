@@ -5,18 +5,26 @@ import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
 import { BookMarked, User } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 const OnboardingOverlay = () => {
   const { currentStep, isOnboardingComplete, setCurrentStep, completeOnboarding } = useOnboarding();
   const { user, signIn } = useChromeAuth();
   const totalSteps = 3;
 
+  useEffect(() => {
+    // Auto-advance to next step if user is already signed in
+    if (user && currentStep === 2) {
+      setCurrentStep(3);
+    }
+  }, [user, currentStep, setCurrentStep]);
+
   const handleSignIn = async () => {
     try {
       console.log("Starting sign in process...");
       await signIn();
-      console.log("Sign in successful, user:", user);
-      setCurrentStep(2);
+      console.log("Sign in completed, user state:", user);
+      // Note: We don't need to setCurrentStep here as the useEffect will handle it
     } catch (error) {
       console.error("Sign in error:", error);
       toast.error("Failed to sign in. Please try again.");
@@ -25,10 +33,12 @@ const OnboardingOverlay = () => {
 
   const handleImportBookmarks = async () => {
     try {
-      // Implement bookmark import logic here
+      const bookmarks = await chrome.bookmarks.getTree();
+      console.log("Bookmarks imported:", bookmarks);
       setCurrentStep(3);
       toast.success("Bookmarks imported successfully!");
     } catch (error) {
+      console.error("Bookmark import error:", error);
       toast.error("Failed to import bookmarks. Please try again.");
     }
   };
