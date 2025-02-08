@@ -1,8 +1,9 @@
+
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, User, LogOut, Settings, CreditCard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { LanguageSelector } from "./LanguageSelector";
 import {
   DropdownMenu,
@@ -15,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const { theme, setTheme } = useTheme();
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useChromeAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {

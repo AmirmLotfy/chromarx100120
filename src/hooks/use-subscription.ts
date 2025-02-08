@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useChromeAuth } from '@/contexts/ChromeAuthContext';
 import { chromeDb } from '@/lib/chrome-storage';
 import { PlanLimits, subscriptionPlans, UserData } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
@@ -23,7 +23,7 @@ interface SubscriptionHook {
 }
 
 export const useSubscription = (): SubscriptionHook => {
-  const { user } = useAuth();
+  const { user } = useChromeAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState('free');
   const [usage, setUsage] = useState<UsageData>({
