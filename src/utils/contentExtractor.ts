@@ -1,3 +1,4 @@
+
 export const extractPageContent = async (url: string): Promise<string> => {
   try {
     const response = await fetch(url);

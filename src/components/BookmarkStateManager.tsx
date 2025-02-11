@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { dummyBookmarks } from "@/utils/dummyBookmarks";
+import { fetchPageContent } from "@/utils/contentExtractor";
 
 const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
@@ -71,14 +73,21 @@ export const useBookmarkState = () => {
             category: undefined
           };
           
-          if (!chromeBookmark.category && chromeBookmark.url) {
+          if (chromeBookmark.url) {
             try {
+              // Extract content from the bookmark URL
+              console.log('Fetching content for:', chromeBookmark.url);
+              const content = await fetchPageContent(chromeBookmark.url);
+              chromeBookmark.content = content;
+
+              // Use content for category suggestion
               chromeBookmark.category = await suggestBookmarkCategory(
                 chromeBookmark.title,
-                chromeBookmark.url
+                chromeBookmark.url,
+                content
               );
             } catch (error) {
-              console.error("Error suggesting category:", error);
+              console.error("Error processing bookmark content:", error);
             }
           }
           return chromeBookmark;
