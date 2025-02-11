@@ -15,23 +15,16 @@ interface GeminiResponse {
   error?: string;
 }
 
-const getGeminiClient = async () => {
-  try {
-    const user = await auth.getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
-    
-    const token = await user.getIdToken();
-    const genAI = new GoogleGenerativeAI(token);
-    return genAI.getGenerativeModel({ model: "gemini-pro" });
-  } catch (error) {
-    console.error('Error initializing Gemini client:', error);
-    throw error;
-  }
+const API_KEY = 'YOUR_API_KEY'; // Replace with your API key
+
+const getGeminiClient = () => {
+  const genAI = new GoogleGenerativeAI(API_KEY);
+  return genAI.getGenerativeModel({ model: "gemini-pro" });
 };
 
 export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
   try {
-    const model = await getGeminiClient();
+    const model = getGeminiClient();
     const result = await model.generateContent(request.prompt);
     const response = await result.response;
     return { result: response.text() };
