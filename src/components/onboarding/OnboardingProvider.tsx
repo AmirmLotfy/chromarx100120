@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 
@@ -41,14 +42,13 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   }, [user]);
 
   const completeOnboarding = () => {
-    if (user) {
-      localStorage.setItem("onboardingComplete", "true");
-      setIsOnboardingComplete(true);
-    }
+    localStorage.setItem("onboardingComplete", "true");
+    setIsOnboardingComplete(true);
     setCurrentStep(0);
   };
 
   const startOnboarding = () => {
+    localStorage.setItem("onboardingComplete", "false");
     setIsOnboardingComplete(false);
     setCurrentStep(1);
   };
