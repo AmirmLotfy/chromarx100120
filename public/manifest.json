@@ -16,7 +16,7 @@
     "type": "module"
   },
   "oauth2": {
-    "client_id": "46339279287-o0hkmkeho7uom3po0v2kvo9s48eui91p.apps.googleusercontent.com",
+    "client_id": "46339279287-egph5d4pqcvv116drdh1tsvfjq5db81o.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile"
