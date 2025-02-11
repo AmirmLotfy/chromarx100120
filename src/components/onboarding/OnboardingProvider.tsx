@@ -25,29 +25,35 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const { user } = useChromeAuth();
 
+  // Check onboarding status whenever user state changes
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      const onboardingStatus = localStorage.getItem("onboardingComplete");
-      
-      if (user && onboardingStatus === "true") {
-        setIsOnboardingComplete(true);
-        setCurrentStep(0);
-      } else {
-        setIsOnboardingComplete(false);
-        setCurrentStep(1);
-      }
-    };
-
-    checkOnboardingStatus();
+    console.log('Checking onboarding status, user:', user);
+    const onboardingStatus = localStorage.getItem("onboardingComplete");
+    
+    if (user && onboardingStatus === "true") {
+      console.log('User exists and onboarding is complete');
+      setIsOnboardingComplete(true);
+      setCurrentStep(0);
+    } else {
+      console.log('Onboarding incomplete or no user');
+      setIsOnboardingComplete(false);
+      setCurrentStep(1);
+    }
   }, [user]);
 
   const completeOnboarding = () => {
-    localStorage.setItem("onboardingComplete", "true");
-    setIsOnboardingComplete(true);
-    setCurrentStep(0);
+    if (user) {
+      console.log('Completing onboarding for user:', user);
+      localStorage.setItem("onboardingComplete", "true");
+      setIsOnboardingComplete(true);
+      setCurrentStep(0);
+    } else {
+      console.warn('Attempted to complete onboarding without user');
+    }
   };
 
   const startOnboarding = () => {
+    console.log('Starting onboarding');
     localStorage.setItem("onboardingComplete", "false");
     setIsOnboardingComplete(false);
     setCurrentStep(1);

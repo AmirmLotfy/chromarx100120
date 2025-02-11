@@ -54,6 +54,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
       await signOut();
       setUser(null);
       setIsAdmin(false);
+      localStorage.removeItem("onboardingComplete"); // Clear onboarding state on signout
       toast.success('Successfully signed out');
     } catch (error) {
       console.error('Sign out error:', error);
@@ -76,6 +77,7 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
           setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
         } else {
           console.log('No existing user found');
+          localStorage.removeItem("onboardingComplete"); // Clear onboarding state if no user
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -102,4 +104,3 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
     </ChromeAuthContext.Provider>
   );
 };
-
