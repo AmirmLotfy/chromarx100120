@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { dummyBookmarks } from "@/utils/dummyBookmarks";
 import { fetchPageContent } from "@/utils/contentExtractor";
+import { useLanguage } from "@/utils/language";
 
 const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
@@ -65,6 +65,7 @@ export const useBookmarkState = () => {
     if (chrome.bookmarks) {
       const results = await chrome.bookmarks.getRecent(100);
       const previousCount = bookmarks.length;
+      const { currentLanguage } = useLanguage();
       
       const categorizedResults = await Promise.all(
         results.map(async (bookmark): Promise<ChromeBookmark> => {
@@ -75,16 +76,16 @@ export const useBookmarkState = () => {
           
           if (chromeBookmark.url) {
             try {
-              // Extract content from the bookmark URL
               console.log('Fetching content for:', chromeBookmark.url);
               const content = await fetchPageContent(chromeBookmark.url);
               chromeBookmark.content = content;
 
-              // Use content for category suggestion
+              // Use content for category suggestion with language
               chromeBookmark.category = await suggestBookmarkCategory(
                 chromeBookmark.title,
                 chromeBookmark.url,
-                content
+                content,
+                currentLanguage.code
               );
             } catch (error) {
               console.error("Error processing bookmark content:", error);

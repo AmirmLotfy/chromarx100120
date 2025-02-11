@@ -280,6 +280,7 @@ const BookmarkList = ({
     }
 
     setIsProcessing(true);
+    const { currentLanguage } = useLanguage();
     try {
       const selectedBookmarksArray = Array.from(selectedBookmarks)
         .map(id => bookmarks.find(b => b.id === id))
@@ -293,7 +294,8 @@ const BookmarkList = ({
             category: await suggestBookmarkCategory(
               bookmark.title,
               bookmark.url || "",
-              content
+              content,
+              currentLanguage.code
             ),
           };
         })

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,7 +23,7 @@ interface BookmarkAIActionsProps {
 }
 
 const BookmarkAIActions = ({
-  selectedBookmarks,
+  selectedBookmarks = [],
   onUpdateCategories,
 }: BookmarkAIActionsProps) => {
   const navigate = useNavigate();
@@ -122,28 +121,15 @@ const BookmarkAIActions = ({
             const category = await suggestBookmarkCategory(
               bookmark.title,
               bookmark.url || "",
-              content
+              content,
+              currentLanguage.code
             );
             console.log(`Category suggested for ${bookmark.title}:`, category);
             
-            // Store the categorized bookmark
-            const updatedBookmark = {
+            return {
               ...bookmark,
               category,
             };
-            
-            // Update in Chrome bookmarks
-            if (chrome.bookmarks) {
-              await chrome.bookmarks.update(bookmark.id, {
-                title: bookmark.title,
-                url: bookmark.url,
-              });
-            }
-            
-            // Store category in local storage
-            await chromeDb.set(`bookmark-category-${bookmark.id}`, category);
-            
-            return updatedBookmark;
           } catch (error) {
             console.error(`Error categorizing bookmark ${bookmark.title}:`, error);
             toast.error(`Failed to categorize ${bookmark.title}`);

@@ -122,7 +122,8 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
           const category = await suggestBookmarkCategory(
             bookmark.title, 
             bookmark.url || "",
-            content
+            content,
+            currentLanguage.code
           );
           return {
             ...bookmark,
