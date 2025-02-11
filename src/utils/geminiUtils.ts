@@ -92,7 +92,7 @@ Please provide a comprehensive summary of this content in ${language}, focusing 
   }
 };
 
-export const suggestBookmarkCategory = async (title: string, url: string, content: string): Promise<string> => {
+export const suggestBookmarkCategory = async (title: string, url: string, content: string, language: string): Promise<string> => {
   try {
     const prompt = `
 Based on this content:
@@ -114,13 +114,13 @@ Suggest a single, specific category that best describes this bookmark. Choose fr
 - Reference
 - Other (with specific suggestion)
 
-Respond with ONLY the category name, nothing else.
+Respond in ${language} with ONLY the category name, nothing else.
     `.trim();
 
     const response = await getGeminiResponse({
       prompt,
       type: 'categorize',
-      language: 'en'
+      language
     });
     return response.result.trim() || 'uncategorized';
   } catch (error) {
@@ -172,39 +172,39 @@ Based on the provided bookmark contents, please provide a detailed response in $
   }
 };
 
-export const generateTaskSuggestions = async (content: string): Promise<string> => {
+export const generateTaskSuggestions = async (content: string, language: string): Promise<string> => {
   const response = await getGeminiResponse({
-    prompt: `Based on this content, suggest actionable tasks:\n\n${content}`,
+    prompt: `Based on this content, suggest actionable tasks in ${language}:\n\n${content}`,
     type: 'task',
-    language: 'en'
+    language
   });
   return response.result || 'Failed to generate task suggestions';
 };
 
-export const analyzeProductivity = async (data: any): Promise<string> => {
+export const analyzeProductivity = async (data: any, language: string): Promise<string> => {
   const response = await getGeminiResponse({
-    prompt: `Analyze this productivity data and provide insights:\n\n${JSON.stringify(data)}`,
+    prompt: `Analyze this productivity data and provide insights in ${language}:\n\n${JSON.stringify(data)}`,
     type: 'analytics',
-    language: 'en'
+    language
   });
   return response.result || 'Failed to analyze productivity';
 };
 
-export const suggestTimerDuration = async (task: string): Promise<number> => {
+export const suggestTimerDuration = async (task: string, language: string): Promise<number> => {
   const response = await getGeminiResponse({
-    prompt: `Suggest an optimal duration in minutes for this task:\n\n${task}`,
+    prompt: `Suggest an optimal duration in minutes for this task, responding in ${language}:\n\n${task}`,
     type: 'timer',
-    language: 'en'
+    language
   });
   const minutes = parseInt(response.result);
   return isNaN(minutes) ? 25 : minutes;
 };
 
-export const analyzeSentiment = async (content: string): Promise<'positive' | 'negative' | 'neutral'> => {
+export const analyzeSentiment = async (content: string, language: string): Promise<'positive' | 'negative' | 'neutral'> => {
   const response = await getGeminiResponse({
-    prompt: `Analyze the sentiment of this content and respond with exactly one word (positive, negative, or neutral):\n\n${content}`,
+    prompt: `Analyze the sentiment of this content and respond with exactly one word in ${language} (positive, negative, or neutral):\n\n${content}`,
     type: 'sentiment',
-    language: 'en'
+    language
   });
   const sentiment = response.result.toLowerCase().trim();
   return sentiment === 'positive' || sentiment === 'negative' ? sentiment : 'neutral';
