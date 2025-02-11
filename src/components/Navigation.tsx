@@ -1,7 +1,8 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Home, BookmarkIcon, Settings } from "lucide-react";
+import { ButtonCta } from "@/components/ui/button-shiny";
+import { cn } from "@/lib/utils";
 
 const Navigation = () => {
   const location = useLocation();
@@ -51,18 +52,19 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => (
     aria-label={label}
     aria-current={isActive ? "page" : undefined}
   >
-    <Button
-      variant="ghost"
-      size="icon"
-      className={`flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200
-        ${isActive 
-          ? "text-primary bg-primary/10" 
-          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-        }`}
+    <ButtonCta
+      className={cn(
+        "w-14 h-14 p-0",
+        isActive ? "opacity-100" : "opacity-80 hover:opacity-100"
+      )}
     >
-      {icon}
-      <span className="text-[10px] font-medium mt-0.5">{label}</span>
-    </Button>
+      <div className="flex flex-col items-center justify-center gap-1">
+        {icon}
+        <span className="text-[10px] font-medium mt-0.5">
+          {label}
+        </span>
+      </div>
+    </ButtonCta>
   </Link>
 );
 
