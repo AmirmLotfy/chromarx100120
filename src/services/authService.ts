@@ -18,17 +18,17 @@ export interface ChromeUser {
   lastLogin: string;
 }
 
-export const signInWithGoogle = async (): Promise<ChromeUser> => {
+export const getCurrentUser = async (): Promise<ChromeUser | null> => {
   try {
-    console.log('Starting Google sign-in process...');
+    console.log('Getting current user identity...');
     
     // Clear any existing cached tokens first
     await chrome.identity.clearAllCachedAuthTokens();
     
-    // Get auth token with interactive prompt
+    // Get auth token without interactive prompt
     console.log('Requesting auth token...');
     const authResult = await chrome.identity.getAuthToken({ 
-      interactive: true,
+      interactive: false,
       scopes: [
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile'
@@ -36,8 +36,8 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
     });
     
     if (!authResult?.token) {
-      console.error('No token received');
-      throw new Error('Failed to get authentication token');
+      console.log('No token available, user needs to grant permissions');
+      return null;
     }
 
     console.log('Token received, fetching user info...');
@@ -51,7 +51,7 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
     if (!response.ok) {
       console.error('User info fetch failed:', response.status);
       await chrome.identity.removeCachedAuthToken({ token: authResult.token });
-      throw new Error('Failed to get user information');
+      return null;
     }
     
     const data = await response.json();
@@ -59,7 +59,7 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
 
     if (!data.sub || !data.email) {
       console.error('Invalid user data received:', data);
-      throw new Error('Invalid user data received from Google');
+      return null;
     }
 
     const user: ChromeUser = {
@@ -81,14 +81,11 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
     });
 
     console.log('User data stored successfully:', user);
-    toast.success('Successfully signed in!');
     return user;
   } catch (error: any) {
-    console.error('Error in signInWithGoogle:', error);
-    // Clear any cached tokens on error
+    console.error('Error getting user identity:', error);
     await chrome.identity.clearAllCachedAuthTokens();
-    toast.error(error.message || 'Failed to sign in with Google');
-    throw error;
+    return null;
   }
 };
 
@@ -122,38 +119,5 @@ export const signOut = async (): Promise<void> => {
     console.error('Error in signOut:', error);
     toast.error(error.message || 'Failed to sign out');
     throw error;
-  }
-};
-
-export const getCurrentUser = async (): Promise<ChromeUser | null> => {
-  try {
-    console.log('Getting current user...');
-    const user = await chromeDb.get<ChromeUser>('user');
-    
-    if (!user) {
-      console.log('No user found in storage');
-      return null;
-    }
-
-    // Verify token is still valid
-    try {
-      const authResult = await chrome.identity.getAuthToken({ interactive: false });
-      if (!authResult?.token) {
-        console.log('No valid token found, clearing user data');
-        await chromeDb.remove('user');
-        return null;
-      }
-      console.log('Valid token found for current user');
-    } catch (error) {
-      console.error('Error verifying token:', error);
-      await chromeDb.remove('user');
-      return null;
-    }
-
-    console.log('Returning current user:', user);
-    return user;
-  } catch (error) {
-    console.error('Error in getCurrentUser:', error);
-    return null;
   }
 };
