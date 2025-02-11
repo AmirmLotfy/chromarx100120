@@ -30,6 +30,7 @@ import {
 } from "./ui/tooltip";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { useLanguage } from "@/stores/languageStore";
+import { fetchPageContent } from "@/utils/contentExtractor";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
