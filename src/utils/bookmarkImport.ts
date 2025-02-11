@@ -16,6 +16,7 @@ export const importBookmarks = async (
   }
 
   try {
+    // Get the entire bookmark tree
     const tree = await chrome.bookmarks.getTree();
     const bookmarks: ChromeBookmark[] = [];
     const existing = new Set<string>();
@@ -78,11 +79,13 @@ export const importBookmarks = async (
       await processNode(root);
     }
 
-    console.log(`Imported ${bookmarks.length} bookmarks, skipped ${skipped} duplicates`);
+    console.log(`Successfully imported ${bookmarks.length} bookmarks, skipped ${skipped} duplicates`);
+    toast.success(`Imported ${bookmarks.length} bookmarks`);
     return { imported: bookmarks, skipped };
 
   } catch (error) {
     console.error("Error importing bookmarks:", error);
+    toast.error("Failed to import bookmarks");
     throw error;
   }
 };
@@ -91,6 +94,10 @@ export const importFromFile = async (
   file: File,
   onProgress?: (progress: ImportProgress) => void
 ): Promise<{ imported: ChromeBookmark[]; skipped: number }> => {
+  if (!chrome.bookmarks) {
+    throw new Error("Chrome bookmarks API not available");
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -123,7 +130,7 @@ export const importFromFile = async (
             continue;
           }
 
-          // Create Chrome bookmark
+          // Create Chrome bookmark using the API
           try {
             const bookmark = await chrome.bookmarks.create({
               parentId: '1', // Default to bookmarks bar
@@ -133,7 +140,7 @@ export const importFromFile = async (
 
             const chromeBookmark: ChromeBookmark = {
               id: bookmark.id,
-              title: bookmark.title,
+              title: bookmark.title || "",
               url: bookmark.url,
               dateAdded: bookmark.dateAdded,
               category: link.closest('h3')?.textContent || 'Imported'
@@ -141,6 +148,7 @@ export const importFromFile = async (
 
             existing.add(url);
             bookmarks.push(chromeBookmark);
+            console.log(`Created bookmark: ${chromeBookmark.title}`);
 
           } catch (error) {
             console.error(`Failed to create bookmark for ${url}:`, error);
@@ -148,13 +156,20 @@ export const importFromFile = async (
           }
         }
 
+        toast.success(`Successfully imported ${bookmarks.length} bookmarks`);
         resolve({ imported: bookmarks, skipped });
       } catch (error) {
+        console.error("Error importing bookmarks from file:", error);
+        toast.error("Failed to import bookmarks from file");
         reject(error);
       }
     };
 
-    reader.onerror = () => reject(reader.error);
+    reader.onerror = () => {
+      toast.error("Failed to read bookmark file");
+      reject(reader.error);
+    };
+    
     reader.readAsText(file);
   });
 };
