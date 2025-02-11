@@ -4,43 +4,23 @@ import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
-import { BookMarked, Bookmark, User, Sparkles, Settings, Zap } from "lucide-react";
+import { BookMarked, Bookmark, Sparkles, Settings, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 
 const OnboardingOverlay = () => {
   const { currentStep, isOnboardingComplete, setCurrentStep, completeOnboarding } = useOnboarding();
-  const { user, signIn } = useChromeAuth();
+  const { user } = useChromeAuth();
   const { setSubscriptionPlan } = useSubscription();
-  const totalSteps = 6;
-
-  useEffect(() => {
-    // Auto-advance to next step if user is already signed in
-    if (user && currentStep === 2) {
-      console.log('User already signed in, advancing to next step');
-      setCurrentStep(3);
-    }
-  }, [user, currentStep, setCurrentStep]);
-
-  const handleSignIn = async () => {
-    try {
-      console.log("Starting sign in process...");
-      await signIn();
-      console.log("Sign in completed successfully");
-      // useEffect will handle advancing to next step
-    } catch (error) {
-      console.error("Sign in error:", error);
-      toast.error("Failed to sign in. Please try again.");
-    }
-  };
+  const totalSteps = 5; // Reduced from 6 to 5 steps
 
   const handleImportBookmarks = async () => {
     try {
       console.log("Starting bookmark import...");
       const bookmarks = await chrome.bookmarks.getTree();
       console.log("Bookmarks retrieved:", bookmarks);
-      setCurrentStep(4);
+      setCurrentStep(3);
       toast.success("Bookmarks imported successfully!");
     } catch (error) {
       console.error("Bookmark import error:", error);
@@ -52,7 +32,7 @@ const OnboardingOverlay = () => {
     try {
       console.log("Setting subscription plan:", planId);
       await setSubscriptionPlan(planId);
-      setCurrentStep(5);
+      setCurrentStep(4);
       toast.success(`${planId.charAt(0).toUpperCase() + planId.slice(1)} plan selected!`);
     } catch (error) {
       console.error("Plan selection error:", error);
@@ -79,15 +59,6 @@ const OnboardingOverlay = () => {
       },
     },
     {
-      title: "Sign in to Continue",
-      description: "Use your Google account to sign in securely and sync your data across devices",
-      icon: User,
-      primaryAction: {
-        label: "Sign in with Google",
-        onClick: handleSignIn,
-      },
-    },
-    {
       title: "Import Your Bookmarks",
       description: "Bring your existing bookmarks into ChroMarx for better organization",
       icon: BookMarked,
@@ -97,7 +68,7 @@ const OnboardingOverlay = () => {
       },
       secondaryAction: {
         label: "Skip for now",
-        onClick: () => setCurrentStep(4),
+        onClick: () => setCurrentStep(3),
       },
     },
     {
@@ -146,7 +117,7 @@ const OnboardingOverlay = () => {
       ),
       primaryAction: {
         label: "Next",
-        onClick: () => setCurrentStep(6),
+        onClick: () => setCurrentStep(5),
       },
     },
     {
@@ -173,3 +144,4 @@ const OnboardingOverlay = () => {
 };
 
 export default OnboardingOverlay;
+
