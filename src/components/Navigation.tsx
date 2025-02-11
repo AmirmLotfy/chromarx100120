@@ -1,14 +1,11 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, BookmarkIcon, Settings } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navigation = () => {
   const location = useLocation();
-  const isMobile = useIsMobile();
   const isActive = (path: string) => location.pathname === path;
-
-  if (!isMobile) return null;
 
   return (
     <nav 
