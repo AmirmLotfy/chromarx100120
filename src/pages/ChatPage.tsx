@@ -1,3 +1,4 @@
+
 import Layout from "@/components/Layout";
 import ChatInterface from "@/components/ChatInterface";
 import { Card } from "@/components/ui/card";

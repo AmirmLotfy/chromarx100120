@@ -1,3 +1,4 @@
+
 import { Message } from "@/types/chat";
 import { ScrollArea } from "./ui/scroll-area";
 import { ExternalLink } from "lucide-react";
