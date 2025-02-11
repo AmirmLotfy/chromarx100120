@@ -1,5 +1,7 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import {
   BookmarkIcon,
   MessageSquare,
@@ -10,6 +12,7 @@ import {
   StickyNote,
   Package,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const FeatureGrid = () => {
   const features = [
@@ -17,71 +20,79 @@ const FeatureGrid = () => {
       icon: BookmarkIcon, 
       label: "Bookmarks", 
       path: "/bookmarks",
-      hoverClass: "hover:bg-[#9b87f5]/10 hover:border-[#9b87f5]/30" 
+      colors: ["#8B5CF6", "#6366F1", "#A78BFA"]
     },
     { 
       icon: MessageSquare, 
       label: "Chat", 
       path: "/chat",
-      hoverClass: "hover:bg-[#33C3F0]/10 hover:border-[#33C3F0]/30"
+      colors: ["#3B82F6", "#60A5FA", "#93C5FD"]
     },
     { 
       icon: FileText, 
       label: "Summaries", 
       path: "/summaries",
-      hoverClass: "hover:bg-[#D946EF]/10 hover:border-[#D946EF]/30"
+      colors: ["#EC4899", "#F472B6", "#FBCFE8"]
     },
     { 
       icon: BarChart, 
       label: "Analytics", 
       path: "/analytics",
-      hoverClass: "hover:bg-[#F97316]/10 hover:border-[#F97316]/30"
+      colors: ["#F59E0B", "#FBBF24", "#FCD34D"]
     },
     { 
       icon: Timer, 
       label: "Timer", 
       path: "/timer",
-      hoverClass: "hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6]/30"
+      colors: ["#10B981", "#34D399", "#6EE7B7"]
     },
     { 
       icon: CheckSquare, 
       label: "Tasks", 
       path: "/tasks",
-      hoverClass: "hover:bg-[#1EAEDB]/10 hover:border-[#1EAEDB]/30"
+      colors: ["#6366F1", "#818CF8", "#A5B4FC"]
     },
     { 
       icon: StickyNote, 
       label: "Notes", 
       path: "/notes",
-      hoverClass: "hover:bg-[#0FA0CE]/10 hover:border-[#0FA0CE]/30"
+      colors: ["#9333EA", "#A855F7", "#C084FC"]
     },
     { 
       icon: Package, 
       label: "Services", 
       path: "/suggested-services",
-      hoverClass: "hover:bg-[#8E9196]/10 hover:border-[#8E9196]/30"
+      colors: ["#475569", "#64748B", "#94A3B8"]
     },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-4 md:gap-5">
-      {features.map((feature) => (
+      {features.map((feature, index) => (
         <Link
           key={feature.path}
           to={feature.path}
           className="no-underline hover:no-underline"
         >
-          <Button
-            variant="outline"
-            className={`group h-24 w-full rounded-xl border-2 border-primary/10 bg-primary/5 transition-all duration-200 ${feature.hoverClass} sm:h-28`}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className="relative h-24 sm:h-28 rounded-xl overflow-hidden"
           >
-            <div className="flex flex-col items-center justify-center gap-3">
-              <feature.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-7 sm:w-7" />
-              <span className="font-medium tracking-wide text-sm">
-                {feature.label}
-              </span>
-            </div>
-          </Button>
+            <AnimatedGradient colors={feature.colors} speed={0.05} blur="medium" />
+            <Button
+              variant="ghost"
+              className="relative z-10 h-full w-full rounded-xl bg-background/50 backdrop-blur-sm border-2 border-primary/10 transition-all duration-200 hover:bg-background/60 hover:scale-[1.02]"
+            >
+              <div className="flex flex-col items-center justify-center gap-3">
+                <feature.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110 sm:h-7 sm:w-7" />
+                <span className="font-medium tracking-wide text-sm">
+                  {feature.label}
+                </span>
+              </div>
+            </Button>
+          </motion.div>
         </Link>
       ))}
     </div>
