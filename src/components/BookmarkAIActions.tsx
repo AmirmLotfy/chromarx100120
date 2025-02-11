@@ -15,6 +15,7 @@ import { useLanguage } from "@/stores/languageStore";
 import { LoadingOverlay } from "./ui/loading-overlay";
 import { useState } from "react";
 import { auth } from "@/lib/chrome-utils";
+import { chromeDb } from "@/lib/chrome-storage";
 
 interface BookmarkAIActionsProps {
   selectedBookmarks: ChromeBookmark[];
@@ -36,6 +37,7 @@ const BookmarkAIActions = ({
       const user = await auth.getCurrentUser();
       if (!user) {
         toast.error("Please sign in to use AI features");
+        navigate("/");
         return;
       }
 
@@ -50,7 +52,9 @@ const BookmarkAIActions = ({
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
           try {
+            console.log(`Summarizing bookmark: ${bookmark.title}`);
             const summary = await summarizeBookmark(bookmark, currentLanguage.code);
+            console.log(`Summary generated for ${bookmark.title}:`, summary);
             return {
               id: bookmark.id,
               title: bookmark.title,
@@ -97,6 +101,7 @@ const BookmarkAIActions = ({
       const user = await auth.getCurrentUser();
       if (!user) {
         toast.error("Please sign in to use AI features");
+        navigate("/");
         return;
       }
 
@@ -108,15 +113,41 @@ const BookmarkAIActions = ({
       setIsProcessing(true);
       setProcessingMessage("Suggesting categories...");
       
-      const updatedBookmarks = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => ({
-          ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
-        }))
+      const categorizedBookmarks = await Promise.all(
+        selectedBookmarks.map(async (bookmark) => {
+          try {
+            console.log(`Categorizing bookmark: ${bookmark.title}`);
+            const category = await suggestBookmarkCategory(bookmark.title, bookmark.url || "");
+            console.log(`Category suggested for ${bookmark.title}:`, category);
+            
+            // Store the categorized bookmark
+            const updatedBookmark = {
+              ...bookmark,
+              category,
+            };
+            
+            // Update in Chrome bookmarks
+            if (chrome.bookmarks) {
+              await chrome.bookmarks.update(bookmark.id, {
+                title: bookmark.title,
+                url: bookmark.url,
+              });
+            }
+            
+            // Store category in local storage
+            await chromeDb.set(`bookmark-category-${bookmark.id}`, category);
+            
+            return updatedBookmark;
+          } catch (error) {
+            console.error(`Error categorizing bookmark ${bookmark.title}:`, error);
+            toast.error(`Failed to categorize ${bookmark.title}`);
+            return bookmark;
+          }
+        })
       );
 
-      onUpdateCategories(updatedBookmarks);
-      toast.success("Categories suggested successfully!");
+      onUpdateCategories(categorizedBookmarks);
+      toast.success("Categories suggested and saved successfully!");
     } catch (error) {
       console.error("Failed to suggest categories:", error);
       toast.error("Failed to suggest categories");
