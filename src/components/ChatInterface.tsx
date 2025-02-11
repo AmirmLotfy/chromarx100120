@@ -103,6 +103,7 @@ const ChatInterface = () => {
 
   const processQuery = async (query: string) => {
     try {
+      // Run bookmark search and web search in parallel
       const [relevantBookmarks, webResults] = await Promise.all([
         Promise.resolve(searchBookmarks(query)),
         searchWebResults(query),
