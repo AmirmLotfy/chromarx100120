@@ -4,12 +4,17 @@ import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
-import { BookMarked, Bookmark, Sparkles, Settings, Zap, ArrowDown } from "lucide-react";
+import { BookMarked, Bookmark, Sparkles, Settings, Zap, ArrowDown, Check, Info } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 const OnboardingOverlay = () => {
   const { currentStep, isOnboardingComplete, setCurrentStep, completeOnboarding } = useOnboarding();
@@ -92,33 +97,85 @@ const OnboardingOverlay = () => {
       content: (
         <div className="space-y-4">
           {isMobile && (
-            <div className="flex items-center justify-center text-muted-foreground mb-2">
+            <div className="flex items-center justify-center text-muted-foreground mb-4">
               <ArrowDown className="w-4 h-4 mr-1" />
               <span className="text-sm">Scroll to see more</span>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto px-1 py-2">
             {subscriptionPlans.map((plan) => (
-              <button
+              <div
                 key={plan.id}
-                onClick={() => handlePlanSelection(plan.id)}
-                className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-primary hover:shadow-md active:scale-95 text-left relative ${
-                  selectedPlanId === plan.id ? 'border-primary bg-primary/5' : 'border-border'
-                } ${plan.isPopular ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                className={`relative flex flex-col h-full rounded-lg border transition-all cursor-pointer
+                  ${selectedPlanId === plan.id ? 'border-primary ring-2 ring-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+                  ${plan.isPopular ? 'md:scale-105 shadow-lg' : ''}`}
               >
-                <h3 className="font-semibold">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground">{plan.description}</p>
-                <p className="mt-2 font-medium">${plan.pricing.monthly}/month</p>
                 {plan.isPopular && (
-                  <span className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded-full">
-                    Popular
-                  </span>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full font-medium">
+                      Most Popular
+                    </span>
+                  </div>
                 )}
-              </button>
+
+                <div 
+                  onClick={() => handlePlanSelection(plan.id)}
+                  className="flex-1 p-6 space-y-4"
+                >
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">{plan.description}</p>
+                  </div>
+
+                  <div className="flex items-baseline">
+                    <span className="text-3xl font-bold">${plan.pricing.monthly}</span>
+                    <span className="text-muted-foreground ml-1">/month</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {plan.features.map((feature, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        {feature.included ? (
+                          <Check className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
+                        ) : (
+                          <div className="w-4 h-4 border-2 rounded-full mt-1 flex-shrink-0" />
+                        )}
+                        <div>
+                          <span className="text-sm">
+                            {feature.name}
+                          </span>
+                          {feature.description && (
+                            <HoverCard>
+                              <HoverCardTrigger>
+                                <Info className="w-3 h-3 inline-block ml-1 text-muted-foreground" />
+                              </HoverCardTrigger>
+                              <HoverCardContent className="text-xs">
+                                {feature.description}
+                              </HoverCardContent>
+                            </HoverCard>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-6 pt-0">
+                  <Button
+                    variant={selectedPlanId === plan.id ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => handlePlanSelection(plan.id)}
+                  >
+                    {selectedPlanId === plan.id ? "Selected" : "Select Plan"}
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
-          <div className="flex justify-center mt-6">
+
+          <div className="flex justify-center pt-6">
             <Button
+              size="lg"
               onClick={handleContinueWithPlan}
               disabled={!selectedPlanId}
               className="w-full sm:w-auto"
@@ -171,7 +228,7 @@ const OnboardingOverlay = () => {
 
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-card w-full max-w-md rounded-lg border shadow-lg p-6 space-y-6 my-8">
+      <div className="bg-card w-full max-w-4xl rounded-lg border shadow-lg p-6 space-y-6 my-8">
         <OnboardingProgress currentStep={currentStep} totalSteps={totalSteps} />
         <OnboardingStep {...currentStepData} />
       </div>
@@ -180,4 +237,3 @@ const OnboardingOverlay = () => {
 };
 
 export default OnboardingOverlay;
-
