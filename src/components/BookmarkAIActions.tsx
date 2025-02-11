@@ -16,6 +16,7 @@ import { LoadingOverlay } from "./ui/loading-overlay";
 import { useState } from "react";
 import { auth } from "@/lib/chrome-utils";
 import { chromeDb } from "@/lib/chrome-storage";
+import { fetchPageContent } from "@/utils/contentExtractor";
 
 interface BookmarkAIActionsProps {
   selectedBookmarks: ChromeBookmark[];
@@ -117,7 +118,12 @@ const BookmarkAIActions = ({
         selectedBookmarks.map(async (bookmark) => {
           try {
             console.log(`Categorizing bookmark: ${bookmark.title}`);
-            const category = await suggestBookmarkCategory(bookmark.title, bookmark.url || "");
+            const content = await fetchPageContent(bookmark.url || "");
+            const category = await suggestBookmarkCategory(
+              bookmark.title,
+              bookmark.url || "",
+              content
+            );
             console.log(`Category suggested for ${bookmark.title}:`, category);
             
             // Store the categorized bookmark

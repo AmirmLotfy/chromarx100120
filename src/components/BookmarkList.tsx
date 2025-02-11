@@ -285,10 +285,17 @@ const BookmarkList = ({
         .filter((b): b is ChromeBookmark => b !== undefined);
 
       const updatedBookmarks = await Promise.all(
-        selectedBookmarksArray.map(async (bookmark) => ({
-          ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
-        }))
+        selectedBookmarksArray.map(async (bookmark) => {
+          const content = await fetchPageContent(bookmark.url || "");
+          return {
+            ...bookmark,
+            category: await suggestBookmarkCategory(
+              bookmark.title,
+              bookmark.url || "",
+              content
+            ),
+          };
+        })
       );
 
       onUpdateCategories(updatedBookmarks);

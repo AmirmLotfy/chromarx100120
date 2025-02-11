@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Sparkles, Trash2 } from "lucide-react";
@@ -14,6 +15,7 @@ import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCle
 import { ChromeBookmark } from "@/types/bookmark";
 import { useLanguage } from "@/stores/languageStore";
 import { LoadingOverlay } from "./ui/loading-overlay";
+import { fetchPageContent } from "@/utils/contentExtractor";
 
 interface AIActionButtonsProps {
   selectedBookmarks?: ChromeBookmark[];
@@ -115,10 +117,18 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     setProcessingMessage("Suggesting categories...");
     try {
       const updatedBookmarks = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => ({
-          ...bookmark,
-          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || ""),
-        }))
+        selectedBookmarks.map(async (bookmark) => {
+          const content = await fetchPageContent(bookmark.url || "");
+          const category = await suggestBookmarkCategory(
+            bookmark.title, 
+            bookmark.url || "",
+            content
+          );
+          return {
+            ...bookmark,
+            category,
+          };
+        })
       );
 
       onUpdateCategories(updatedBookmarks);
