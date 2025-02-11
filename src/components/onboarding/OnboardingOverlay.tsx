@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "../ui/button";
 
 const OnboardingOverlay = () => {
   const { currentStep, isOnboardingComplete, setCurrentStep, completeOnboarding } = useOnboarding();
@@ -31,15 +32,22 @@ const OnboardingOverlay = () => {
     }
   };
 
-  const handleSelectPlan = async (planId: string) => {
+  const handlePlanSelection = (planId: string) => {
+    console.log("Plan selected:", planId);
+    setSelectedPlanId(planId);
+  };
+
+  const handleContinueWithPlan = async () => {
+    if (!selectedPlanId) {
+      toast.error("Please select a plan to continue");
+      return;
+    }
+
     try {
-      console.log("Setting subscription plan:", planId);
-      setSelectedPlanId(planId);
-      await setSubscriptionPlan(planId);
-      setTimeout(() => {
-        setCurrentStep(4);
-        toast.success(`${planId.charAt(0).toUpperCase() + planId.slice(1)} plan selected!`);
-      }, 500); // Small delay for better UX
+      console.log("Setting subscription plan:", selectedPlanId);
+      await setSubscriptionPlan(selectedPlanId);
+      toast.success(`${selectedPlanId.charAt(0).toUpperCase() + selectedPlanId.slice(1)} plan selected!`);
+      setCurrentStep(4);
     } catch (error) {
       console.error("Plan selection error:", error);
       toast.error("Failed to select plan. Please try again.");
@@ -89,12 +97,12 @@ const OnboardingOverlay = () => {
               <span className="text-sm">Scroll to see more</span>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
             {subscriptionPlans.map((plan) => (
               <button
                 key={plan.id}
-                onClick={() => handleSelectPlan(plan.id)}
-                className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-primary hover:shadow-md active:scale-95 text-left ${
+                onClick={() => handlePlanSelection(plan.id)}
+                className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-primary hover:shadow-md active:scale-95 text-left relative ${
                   selectedPlanId === plan.id ? 'border-primary bg-primary/5' : 'border-border'
                 } ${plan.isPopular ? 'ring-2 ring-primary ring-offset-2' : ''}`}
               >
@@ -108,6 +116,15 @@ const OnboardingOverlay = () => {
                 )}
               </button>
             ))}
+          </div>
+          <div className="flex justify-center mt-6">
+            <Button
+              onClick={handleContinueWithPlan}
+              disabled={!selectedPlanId}
+              className="w-full sm:w-auto"
+            >
+              Continue with {selectedPlanId ? subscriptionPlans.find(p => p.id === selectedPlanId)?.name : 'selected plan'}
+            </Button>
           </div>
         </div>
       ),
