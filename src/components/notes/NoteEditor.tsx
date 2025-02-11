@@ -1,11 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Note } from "@/types/note";
-import { Mic, Save, X, Loader2 } from "lucide-react";
+import { Mic, Save, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { analyzeSentiment, summarizeContent } from "@/utils/geminiUtils";
+import { useLanguage } from "@/stores/languageStore";
 
 interface NoteEditorProps {
   note?: Note;
@@ -19,6 +22,7 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { currentLanguage } = useLanguage();
 
   useEffect(() => {
     return () => {
@@ -28,6 +32,20 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
     };
   }, [recognition]);
 
+  const analyzeNote = async (noteContent: string) => {
+    try {
+      const [sentiment, summary] = await Promise.all([
+        analyzeSentiment(noteContent, currentLanguage.code),
+        summarizeContent(noteContent, currentLanguage.code)
+      ]);
+
+      return { sentiment, summary };
+    } catch (error) {
+      console.error("Error analyzing note:", error);
+      return { sentiment: 'neutral' as const, summary: '' };
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error("Title is required");
@@ -36,10 +54,13 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
 
     setIsProcessing(true);
     try {
+      const analysis = await analyzeNote(content);
+      
       await onSave({
         title,
         content,
         updatedAt: new Date().toISOString(),
+        ...analysis
       });
       
       toast.success("Note saved successfully");

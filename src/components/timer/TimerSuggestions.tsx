@@ -1,8 +1,10 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
-import { getGeminiResponse } from "@/utils/geminiUtils";
+import { suggestTimerDuration } from "@/utils/geminiUtils";
+import { useLanguage } from "@/stores/languageStore";
 
 interface TimerSuggestionsProps {
   onSelectDuration: (minutes: number) => void;
@@ -11,17 +13,16 @@ interface TimerSuggestionsProps {
 export const TimerSuggestions = ({ onSelectDuration }: TimerSuggestionsProps) => {
   const [suggestion, setSuggestion] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const { currentLanguage } = useLanguage();
 
   const getSuggestion = async () => {
     try {
       setLoading(true);
-      const response = await getGeminiResponse({
-        prompt: "I need to focus on coding and implementing new features",
-        type: "summarize", // Changed from "timer" to "summarize"
-        language: "en"
-      });
+      const suggestedMinutes = await suggestTimerDuration(
+        "I need to focus on coding and implementing new features",
+        currentLanguage.code
+      );
       
-      const suggestedMinutes = parseInt(response.result);
       if (!isNaN(suggestedMinutes)) {
         setSuggestion(suggestedMinutes);
       }

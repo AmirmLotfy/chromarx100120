@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,9 @@ import {
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getGeminiResponse } from "@/utils/geminiUtils";
+import { generateTaskSuggestions, suggestTimerDuration } from "@/utils/geminiUtils";
 import { toast } from "sonner";
+import { useLanguage } from "@/stores/languageStore";
 
 interface TaskFormProps {
   onSubmit: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration">) => void;
@@ -33,17 +35,26 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
   const [category, setCategory] = useState<TaskCategory>("work");
   const [dueDate, setDueDate] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
+  const { currentLanguage } = useLanguage();
 
   const getAIRecommendations = async () => {
     setIsLoading(true);
     try {
-      const response = await getGeminiResponse({
-        prompt: `Task: ${title}\nDescription: ${description}`,
-        type: "timer",
-        language: "en"
-      });
+      const [duration, suggestions] = await Promise.all([
+        suggestTimerDuration(
+          `Task: ${title}\nDescription: ${description}`,
+          currentLanguage.code
+        ),
+        generateTaskSuggestions(
+          `Task: ${title}\nDescription: ${description}`,
+          currentLanguage.code
+        )
+      ]);
+
+      if (suggestions) {
+        toast.success("AI has provided task suggestions!");
+      }
       
-      const duration = parseInt(response.result);
       return {
         estimatedDuration: duration,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`
