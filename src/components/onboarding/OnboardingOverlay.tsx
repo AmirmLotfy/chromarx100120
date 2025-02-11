@@ -6,7 +6,7 @@ import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
 import { BookMarked, Bookmark, Sparkles, Settings, Zap, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -15,6 +15,7 @@ const OnboardingOverlay = () => {
   const { user } = useChromeAuth();
   const { setSubscriptionPlan } = useSubscription();
   const isMobile = useIsMobile();
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const totalSteps = 5;
 
   const handleImportBookmarks = async () => {
@@ -33,9 +34,12 @@ const OnboardingOverlay = () => {
   const handleSelectPlan = async (planId: string) => {
     try {
       console.log("Setting subscription plan:", planId);
+      setSelectedPlanId(planId);
       await setSubscriptionPlan(planId);
-      setCurrentStep(4);
-      toast.success(`${planId.charAt(0).toUpperCase() + planId.slice(1)} plan selected!`);
+      setTimeout(() => {
+        setCurrentStep(4);
+        toast.success(`${planId.charAt(0).toUpperCase() + planId.slice(1)} plan selected!`);
+      }, 500); // Small delay for better UX
     } catch (error) {
       console.error("Plan selection error:", error);
       toast.error("Failed to select plan. Please try again.");
@@ -91,12 +95,17 @@ const OnboardingOverlay = () => {
                 key={plan.id}
                 onClick={() => handleSelectPlan(plan.id)}
                 className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-primary hover:shadow-md active:scale-95 text-left ${
-                  plan.isPopular ? 'border-primary' : 'border-border'
-                }`}
+                  selectedPlanId === plan.id ? 'border-primary bg-primary/5' : 'border-border'
+                } ${plan.isPopular ? 'ring-2 ring-primary ring-offset-2' : ''}`}
               >
                 <h3 className="font-semibold">{plan.name}</h3>
                 <p className="text-sm text-muted-foreground">{plan.description}</p>
                 <p className="mt-2 font-medium">${plan.pricing.monthly}/month</p>
+                {plan.isPopular && (
+                  <span className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                    Popular
+                  </span>
+                )}
               </button>
             ))}
           </div>
