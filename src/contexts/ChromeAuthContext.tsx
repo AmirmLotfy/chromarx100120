@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { signInWithGoogle, signOut, getCurrentUser, type ChromeUser } from '@/services/authService';
+import { getCurrentUser, signOut, type ChromeUser } from '@/services/authService';
 import { toast } from 'sonner';
 
 interface ChromeAuthContextType {
@@ -30,7 +30,10 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
     setLoading(true);
     try {
       console.log('Initiating sign in process...');
-      const userData = await signInWithGoogle();
+      const userData = await getCurrentUser();
+      if (!userData) {
+        throw new Error('Could not get user data');
+      }
       console.log('Sign in successful:', userData);
       setUser(userData);
       setIsAdmin(userData.email?.endsWith('@chromarx.com') || false);
@@ -99,3 +102,4 @@ export const ChromeAuthProvider = ({ children }: { children: React.ReactNode }) 
     </ChromeAuthContext.Provider>
   );
 };
+
