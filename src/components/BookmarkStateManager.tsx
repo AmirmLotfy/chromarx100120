@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { dummyBookmarks } from "@/utils/dummyBookmarks";
 import { fetchPageContent } from "@/utils/contentExtractor";
-import { useLanguage } from "@/utils/language";
+import { useLanguage } from "@/stores/languageStore";
 
 const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
