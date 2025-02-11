@@ -1,3 +1,4 @@
+
 /// <reference types="chrome"/>
 
 export interface ChromeBookmark extends Omit<chrome.bookmarks.BookmarkTreeNode, 'children'> {

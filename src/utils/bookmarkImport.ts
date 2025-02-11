@@ -1,3 +1,4 @@
+
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 
@@ -40,24 +41,30 @@ export const importBookmarks = async (
         current++;
         onProgress?.({ total, current, skipped });
 
-        // Check for duplicates
+        // Skip duplicates
         if (existing.has(node.url)) {
           skipped++;
           return;
         }
 
+        // Create a ChromeBookmark object
         const bookmark: ChromeBookmark = {
           id: node.id,
-          title: node.title,
+          title: node.title || "",
           url: node.url,
           dateAdded: node.dateAdded,
-          category: parentCategory
+          category: parentCategory || undefined
         };
 
+        // Add to the bookmarks list and mark URL as existing
         existing.add(node.url);
         bookmarks.push(bookmark);
+
+        // Log the imported bookmark
+        console.log(`Imported bookmark: ${bookmark.title} (${bookmark.url})`);
       }
 
+      // Recursively process children if they exist
       if (node.children) {
         const category = node.title || parentCategory;
         for (const child of node.children) {
@@ -66,13 +73,14 @@ export const importBookmarks = async (
       }
     };
 
-    // Start processing from root
+    // Start processing from root nodes
     for (const root of tree) {
       await processNode(root);
     }
 
     console.log(`Imported ${bookmarks.length} bookmarks, skipped ${skipped} duplicates`);
     return { imported: bookmarks, skipped };
+
   } catch (error) {
     console.error("Error importing bookmarks:", error);
     throw error;
@@ -109,21 +117,35 @@ export const importFromFile = async (
             skipped
           });
 
+          // Skip duplicates
           if (existing.has(url)) {
             skipped++;
             continue;
           }
 
-          const bookmark: ChromeBookmark = {
-            id: crypto.randomUUID(),
-            title: link.textContent || url,
-            url: url,
-            dateAdded: Date.now(),
-            category: link.closest('h3')?.textContent || 'Imported'
-          };
+          // Create Chrome bookmark
+          try {
+            const bookmark = await chrome.bookmarks.create({
+              parentId: '1', // Default to bookmarks bar
+              title: link.textContent || url,
+              url: url
+            });
 
-          existing.add(url);
-          bookmarks.push(bookmark);
+            const chromeBookmark: ChromeBookmark = {
+              id: bookmark.id,
+              title: bookmark.title,
+              url: bookmark.url,
+              dateAdded: bookmark.dateAdded,
+              category: link.closest('h3')?.textContent || 'Imported'
+            };
+
+            existing.add(url);
+            bookmarks.push(chromeBookmark);
+
+          } catch (error) {
+            console.error(`Failed to create bookmark for ${url}:`, error);
+            continue;
+          }
         }
 
         resolve({ imported: bookmarks, skipped });
