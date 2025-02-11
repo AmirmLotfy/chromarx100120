@@ -6,7 +6,7 @@ import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
 import { BookMarked, Bookmark, Sparkles, Settings, Zap, ArrowDown, Check, Info } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
@@ -23,6 +23,14 @@ const OnboardingOverlay = () => {
   const isMobile = useIsMobile();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const totalSteps = 5;
+
+  // Set basic plan as default when component mounts
+  useEffect(() => {
+    const basicPlan = subscriptionPlans.find(plan => plan.id === 'basic');
+    if (basicPlan) {
+      setSelectedPlanId('basic');
+    }
+  }, []);
 
   const handleImportBookmarks = async () => {
     try {
@@ -102,13 +110,13 @@ const OnboardingOverlay = () => {
               <span className="text-sm">Scroll to see more</span>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto px-1 py-2">
+          <div className="flex flex-nowrap gap-4 overflow-x-auto pb-6 px-2 -mx-2 snap-x">
             {subscriptionPlans.map((plan) => (
               <div
                 key={plan.id}
-                className={`relative flex flex-col h-full rounded-lg border transition-all cursor-pointer
+                className={`flex-none w-[300px] snap-center flex flex-col rounded-lg border transition-all cursor-pointer
                   ${selectedPlanId === plan.id ? 'border-primary ring-2 ring-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                  ${plan.isPopular ? 'md:scale-105 shadow-lg' : ''}`}
+                  ${plan.isPopular ? 'scale-105 shadow-lg' : ''}`}
               >
                 {plan.isPopular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -149,7 +157,7 @@ const OnboardingOverlay = () => {
                               <HoverCardTrigger>
                                 <Info className="w-3 h-3 inline-block ml-1 text-muted-foreground" />
                               </HoverCardTrigger>
-                              <HoverCardContent className="text-xs">
+                              <HoverCardContent className="text-xs w-64">
                                 {feature.description}
                               </HoverCardContent>
                             </HoverCard>
