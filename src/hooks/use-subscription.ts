@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useChromeAuth } from '@/contexts/ChromeAuthContext';
 import { chromeDb } from '@/lib/chrome-storage';
-import { PlanLimits, subscriptionPlans, UserData } from '@/config/subscriptionPlans';
+import { PlanLimits, subscriptionPlans } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
 
 interface UsageData {
@@ -23,7 +22,6 @@ interface SubscriptionHook {
 }
 
 export const useSubscription = (): SubscriptionHook => {
-  const { user } = useChromeAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState('free');
   const [usage, setUsage] = useState<UsageData>({
@@ -35,22 +33,12 @@ export const useSubscription = (): SubscriptionHook => {
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const userData = await chromeDb.get<UserData>('user');
-        if (userData?.subscription) {
-          setCurrentPlan(userData.subscription.planId);
-          setUsage(userData.subscription.usage || {
-            bookmarks: 0,
-            tasks: 0,
-            notes: 0,
-            aiRequests: 0
-          });
+        const storedUsage = await chromeDb.get('usage');
+        if (storedUsage) {
+          setUsage(storedUsage);
         }
+        setCurrentPlan('free'); // Default to free plan
       } catch (error) {
         console.error('Error fetching subscription data:', error);
         toast.error('Failed to load subscription data');
@@ -60,27 +48,16 @@ export const useSubscription = (): SubscriptionHook => {
     };
 
     fetchSubscriptionData();
-  }, [user]);
+  }, []);
 
   const incrementUsage = async (type: keyof UsageData): Promise<boolean> => {
-    if (!user) return false;
-
     try {
-      const userData = await chromeDb.get<UserData>('user');
-      if (!userData?.subscription) return false;
-
       const newUsage = {
         ...usage,
         [type]: (usage[type] || 0) + 1
       };
 
-      await chromeDb.update('user', {
-        subscription: {
-          ...userData.subscription,
-          usage: newUsage
-        }
-      });
-
+      await chromeDb.set('usage', newUsage);
       setUsage(newUsage);
       return true;
     } catch (error) {
@@ -90,21 +67,11 @@ export const useSubscription = (): SubscriptionHook => {
   };
 
   const checkFeatureAccess = async (feature: string): Promise<boolean> => {
-    if (!user) return false;
-    
-    try {
-      const userData = await chromeDb.get<UserData>('user');
-      if (!userData?.subscription) return false;
+    const plan = subscriptionPlans.find(p => p.id === currentPlan);
+    if (!plan) return false;
 
-      const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
-      if (!plan) return false;
-
-      const featureObj = plan.features.find(f => f.name === feature);
-      return featureObj?.included || false;
-    } catch (error) {
-      console.error('Error checking feature access:', error);
-      return false;
-    }
+    const featureObj = plan.features.find(f => f.name === feature);
+    return featureObj?.included || false;
   };
 
   const hasReachedLimit = (type: keyof UsageData): boolean => {
@@ -117,26 +84,15 @@ export const useSubscription = (): SubscriptionHook => {
   };
 
   const setSubscriptionPlan = async (planId: string): Promise<void> => {
-    if (!user) throw new Error('User must be logged in to set subscription plan');
-
     try {
       const plan = subscriptionPlans.find(p => p.id === planId);
       if (!plan) throw new Error('Invalid plan ID');
 
-      const userData = await chromeDb.get<UserData>('user');
-      await chromeDb.update('user', {
-        subscription: {
-          planId,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-          usage: userData?.subscription?.usage || {
-            bookmarks: 0,
-            tasks: 0,
-            notes: 0,
-            aiRequests: 0
-          }
-        }
+      await chromeDb.set('subscription', {
+        planId,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
       });
 
       setCurrentPlan(planId);
