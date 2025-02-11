@@ -22,10 +22,17 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
   try {
     console.log('Starting Google sign-in process...');
     
+    // Clear any existing cached tokens first
+    await chrome.identity.clearAllCachedAuthTokens();
+    
     // Get auth token with interactive prompt
     console.log('Requesting auth token...');
     const authResult = await chrome.identity.getAuthToken({ 
-      interactive: true 
+      interactive: true,
+      scopes: [
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile'
+      ]
     });
     
     if (!authResult?.token) {
@@ -78,6 +85,8 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
     return user;
   } catch (error: any) {
     console.error('Error in signInWithGoogle:', error);
+    // Clear any cached tokens on error
+    await chrome.identity.clearAllCachedAuthTokens();
     toast.error(error.message || 'Failed to sign in with Google');
     throw error;
   }
