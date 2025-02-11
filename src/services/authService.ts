@@ -58,8 +58,10 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
             reject(new Error('No token received'));
             return;
           }
-          // Handle both string and GetAuthTokenResult types
-          const actualToken = typeof tokenResult === 'string' ? tokenResult : tokenResult.token;
+          
+          // Explicitly type tokenResult as GetAuthTokenResult | string
+          const result = tokenResult as chrome.identity.GetAuthTokenResult | string;
+          const actualToken = typeof result === 'string' ? result : result.token;
           resolve(actualToken);
         });
       });
