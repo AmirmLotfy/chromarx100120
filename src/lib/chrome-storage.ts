@@ -1,3 +1,4 @@
+
 export interface ChromeUser {
   id: string;
   uid: string;
@@ -15,6 +16,13 @@ export interface FeedbackItem {
   status: string;
 }
 
+export interface StorageSubscription {
+  planId: string;
+  status: string;
+  createdAt: string;
+  endDate: string;
+}
+
 export interface StorageData {
   user: ChromeUser | null;
   settings: {
@@ -30,7 +38,9 @@ export interface StorageData {
     bookmarks: number;
     notes: number;
     aiRequests: number;
+    tasks: number;
   };
+  user_subscription: StorageSubscription;
   subscriptions: Record<string, any>;
   history: any[];
   feedback: FeedbackItem[];
