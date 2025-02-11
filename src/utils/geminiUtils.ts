@@ -1,3 +1,4 @@
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@/lib/chrome-utils";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -15,16 +16,24 @@ interface GeminiResponse {
   error?: string;
 }
 
-const API_KEY = 'YOUR_API_KEY'; // Replace with your API key
-
-const getGeminiClient = () => {
-  const genAI = new GoogleGenerativeAI(API_KEY);
-  return genAI.getGenerativeModel({ model: "gemini-pro" });
+const getGeminiClient = async () => {
+  try {
+    const user = await auth.getCurrentUser();
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    const token = await user.getIdToken();
+    const genAI = new GoogleGenerativeAI(token);
+    return genAI.getGenerativeModel({ model: "gemini-pro" });
+  } catch (error) {
+    console.error("Error getting Gemini client:", error);
+    throw error;
+  }
 };
 
 export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
   try {
-    const model = getGeminiClient();
+    const model = await getGeminiClient();
     const result = await model.generateContent(request.prompt);
     const response = await result.response;
     return { result: response.text() };
@@ -35,25 +44,30 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
 };
 
 export const summarizeContent = async (content: string, language: string): Promise<string> => {
-  const response = await getGeminiResponse({
-    prompt: `Summarize this content concisely in ${language}, focusing on key points:\n\n${content}`,
-    type: 'summarize',
-    language
-  });
-  return response.result || 'Failed to generate summary';
+  try {
+    const response = await getGeminiResponse({
+      prompt: `Summarize this content concisely in ${language}, focusing on key points:\n\n${content}`,
+      type: 'summarize',
+      language
+    });
+    return response.result || 'Failed to generate summary';
+  } catch (error) {
+    console.error('Error summarizing content:', error);
+    throw error;
+  }
 };
 
 export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
   try {
-    const pageContent = await fetchPageContent(bookmark.url || '');
-    if (!pageContent) {
-      return summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, language);
+    let content = await fetchPageContent(bookmark.url || '');
+    if (!content) {
+      content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
     }
 
     const prompt = `
 Title: ${bookmark.title}
 URL: ${bookmark.url}
-Content: ${pageContent}
+Content: ${content}
 
 Please provide a comprehensive summary of this content in ${language}, focusing on:
 1. Main topics and key points
@@ -66,21 +80,26 @@ Please provide a comprehensive summary of this content in ${language}, focusing 
       type: 'summarize',
       language
     });
-    return response.result || 'Failed to generate summary';
+    
+    if (!response.result) {
+      throw new Error('Failed to generate summary');
+    }
+    
+    return response.result;
   } catch (error) {
     console.error('Error summarizing bookmark:', error);
-    return summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, language);
+    throw error;
   }
 };
 
 export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
   try {
-    const pageContent = await fetchPageContent(url);
+    const content = await fetchPageContent(url);
     const prompt = `
 Based on this content:
 Title: ${title}
 URL: ${url}
-Content: ${pageContent}
+Content: ${content}
 
 Suggest a single, specific category that best describes this bookmark. Choose from common categories like:
 - Technology
@@ -117,7 +136,6 @@ export const generateChatResponse = async (
   language: string
 ): Promise<string> => {
   try {
-    // Fetch content for relevant bookmarks
     const bookmarkContents = await Promise.all(
       bookmarks.map(async bookmark => ({
         title: bookmark.title,

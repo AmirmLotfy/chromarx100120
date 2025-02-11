@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/stores/languageStore";
 import { LoadingOverlay } from "./ui/loading-overlay";
 import { useState } from "react";
+import { auth } from "@/lib/chrome-utils";
 
 interface BookmarkAIActionsProps {
   selectedBookmarks: ChromeBookmark[];
@@ -30,33 +32,58 @@ const BookmarkAIActions = ({
 
   const handleGenerateSummaries = async () => {
     try {
+      // Check authentication first
+      const user = await auth.getCurrentUser();
+      if (!user) {
+        toast.error("Please sign in to use AI features");
+        return;
+      }
+
+      if (selectedBookmarks.length === 0) {
+        toast.error("Please select bookmarks to summarize");
+        return;
+      }
+
       setIsProcessing(true);
       setProcessingMessage("Generating summaries...");
       
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
-          const summary = await summarizeBookmark(bookmark, currentLanguage.code);
-          return {
-            id: bookmark.id,
-            title: bookmark.title,
-            content: summary,
-            url: bookmark.url || "",
-            date: new Date().toLocaleDateString(),
-          };
+          try {
+            const summary = await summarizeBookmark(bookmark, currentLanguage.code);
+            return {
+              id: bookmark.id,
+              title: bookmark.title,
+              content: summary,
+              url: bookmark.url || "",
+              date: new Date().toLocaleDateString(),
+            };
+          } catch (error) {
+            console.error(`Error summarizing bookmark ${bookmark.title}:`, error);
+            toast.error(`Failed to summarize ${bookmark.title}`);
+            return null;
+          }
         })
       );
 
-      const existingSummaries = JSON.parse(
-        localStorage.getItem("bookmarkSummaries") || "[]"
-      );
-      localStorage.setItem(
-        "bookmarkSummaries",
-        JSON.stringify([...summaries, ...existingSummaries])
-      );
+      const validSummaries = summaries.filter((s): s is NonNullable<typeof s> => s !== null);
 
-      toast.success("Summaries generated successfully!");
-      navigate("/summaries");
+      if (validSummaries.length > 0) {
+        const existingSummaries = JSON.parse(
+          localStorage.getItem("bookmarkSummaries") || "[]"
+        );
+        localStorage.setItem(
+          "bookmarkSummaries",
+          JSON.stringify([...validSummaries, ...existingSummaries])
+        );
+
+        toast.success(`Generated ${validSummaries.length} summaries successfully!`);
+        navigate("/summaries");
+      } else {
+        toast.error("Failed to generate any summaries");
+      }
     } catch (error) {
+      console.error("Failed to generate summaries:", error);
       toast.error("Failed to generate summaries");
     } finally {
       setIsProcessing(false);
@@ -66,6 +93,18 @@ const BookmarkAIActions = ({
 
   const handleSuggestCategories = async () => {
     try {
+      // Check authentication first
+      const user = await auth.getCurrentUser();
+      if (!user) {
+        toast.error("Please sign in to use AI features");
+        return;
+      }
+
+      if (selectedBookmarks.length === 0) {
+        toast.error("Please select bookmarks to categorize");
+        return;
+      }
+
       setIsProcessing(true);
       setProcessingMessage("Suggesting categories...");
       
@@ -79,14 +118,13 @@ const BookmarkAIActions = ({
       onUpdateCategories(updatedBookmarks);
       toast.success("Categories suggested successfully!");
     } catch (error) {
+      console.error("Failed to suggest categories:", error);
       toast.error("Failed to suggest categories");
     } finally {
       setIsProcessing(false);
       setProcessingMessage("");
     }
   };
-
-  if (selectedBookmarks.length === 0) return null;
 
   return (
     <>
