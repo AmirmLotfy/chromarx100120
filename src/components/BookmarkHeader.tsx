@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus, Download } from "lucide-react";
+import { Bookmark, Grid, List, Search, Trash2, Import, Share2, FolderPlus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -21,9 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { importBookmarks, importFromFile } from "@/utils/bookmarkImport";
-import { Progress } from "./ui/progress";
-import { Spinner } from "./ui/spinner";
+import BookmarkImport from "./BookmarkImport";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -56,72 +54,7 @@ const BookmarkHeader = ({
 }: BookmarkHeaderProps) => {
   const isMobile = useIsMobile();
   const [newSummariesCount, setNewSummariesCount] = useState(0);
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<{ current: number; total: number; skipped: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImportBookmarks = async () => {
-    if (!chrome.bookmarks) {
-      toast.error("Chrome bookmarks API not available");
-      return;
-    }
-
-    try {
-      setImporting(true);
-      const { imported, skipped } = await importBookmarks((progress) => {
-        setImportProgress(progress);
-      });
-
-      if (imported.length > 0) {
-        onUpdateCategories(imported);
-        toast.success(
-          `Successfully imported ${imported.length} bookmarks${
-            skipped > 0 ? ` (${skipped} duplicates skipped)` : ""
-          }`
-        );
-      } else {
-        toast.info("No new bookmarks to import");
-      }
-    } catch (error) {
-      console.error("Error importing bookmarks:", error);
-      toast.error("Failed to import bookmarks");
-    } finally {
-      setImporting(false);
-      setImportProgress(null);
-    }
-  };
-
-  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setImporting(true);
-      const { imported, skipped } = await importFromFile(file, (progress) => {
-        setImportProgress(progress);
-      });
-
-      if (imported.length > 0) {
-        onUpdateCategories(imported);
-        toast.success(
-          `Successfully imported ${imported.length} bookmarks from file${
-            skipped > 0 ? ` (${skipped} duplicates skipped)` : ""
-          }`
-        );
-      } else {
-        toast.info("No new bookmarks found in file");
-      }
-    } catch (error) {
-      console.error("Error importing bookmarks from file:", error);
-      toast.error("Failed to import bookmarks from file");
-    } finally {
-      setImporting(false);
-      setImportProgress(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   return (
     <div className="space-y-2 sticky top-0 bg-background/80 backdrop-blur-sm z-20 pt-4">
@@ -142,30 +75,7 @@ const BookmarkHeader = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      disabled={importing}
-                    >
-                      {importing ? (
-                        <Spinner className="h-3.5 w-3.5" />
-                      ) : (
-                        <Import className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={handleImportBookmarks}>
-                      Import from Chrome
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                      Import from file
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <BookmarkImport />
               </TooltipTrigger>
               <TooltipContent>Import bookmarks</TooltipContent>
             </Tooltip>
@@ -217,26 +127,6 @@ const BookmarkHeader = ({
         </div>
       </div>
 
-      {importProgress && (
-        <div className="px-2 py-1">
-          <div className="text-xs text-muted-foreground mb-1">
-            Importing bookmarks... ({importProgress.current}/{importProgress.total})
-          </div>
-          <Progress
-            value={(importProgress.current / importProgress.total) * 100}
-            className="h-1"
-          />
-        </div>
-      )}
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".html"
-        onChange={handleFileImport}
-        className="hidden"
-      />
-
       <div className="relative mt-2 px-2">
         <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
@@ -265,4 +155,3 @@ const BookmarkHeader = ({
 };
 
 export default BookmarkHeader;
-
