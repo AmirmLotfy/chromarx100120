@@ -1,3 +1,4 @@
+
 import { useOnboarding } from "./OnboardingProvider";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -25,10 +26,7 @@ const OnboardingOverlay = () => {
 
   // Set basic plan as default when component mounts
   useEffect(() => {
-    const basicPlan = subscriptionPlans.find(plan => plan.id === 'basic');
-    if (basicPlan) {
-      setSelectedPlanId('basic');
-    }
+    setSelectedPlanId('basic');
   }, []);
 
   const handleImportBookmarks = async () => {
@@ -242,3 +240,4 @@ const OnboardingOverlay = () => {
 };
 
 export default OnboardingOverlay;
+
