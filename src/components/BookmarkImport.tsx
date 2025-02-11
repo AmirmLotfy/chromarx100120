@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -30,10 +29,6 @@ interface BookmarkTreeProps {
 const BookmarkTree = ({ node, level = 0, onToggle }: BookmarkTreeProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const handleToggle = () => {
-    onToggle(node);
-  };
-
   return (
     <div className="space-y-1">
       <div 
@@ -58,7 +53,7 @@ const BookmarkTree = ({ node, level = 0, onToggle }: BookmarkTreeProps) => {
         )}
         <Checkbox 
           checked={node.isSelected} 
-          onCheckedChange={() => handleToggle(node)}
+          onCheckedChange={() => onToggle(node)}
           id={`bookmark-${node.id}`}
         />
         <label 
