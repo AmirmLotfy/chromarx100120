@@ -58,10 +58,11 @@ export interface StorageData {
       products: any[];
     };
   };
+  [key: `bookmark-category-${string}`]: string;
 }
 
 export const chromeDb = {
-  async get<T>(key: keyof StorageData): Promise<T | null> {
+  async get<T>(key: keyof StorageData | string): Promise<T | null> {
     try {
       const result = await chrome.storage.sync.get(key);
       return result[key] || null;
@@ -71,7 +72,7 @@ export const chromeDb = {
     }
   },
 
-  async set(key: keyof StorageData, value: any): Promise<void> {
+  async set(key: keyof StorageData | string, value: any): Promise<void> {
     try {
       await chrome.storage.sync.set({ [key]: value });
     } catch (error) {
@@ -80,7 +81,7 @@ export const chromeDb = {
     }
   },
 
-  async update(key: keyof StorageData, value: Partial<any>): Promise<void> {
+  async update(key: keyof StorageData | string, value: Partial<any>): Promise<void> {
     try {
       const current = await this.get(key);
       await this.set(key, { ...current, ...value });
@@ -90,7 +91,7 @@ export const chromeDb = {
     }
   },
 
-  async remove(key: keyof StorageData): Promise<void> {
+  async remove(key: keyof StorageData | string): Promise<void> {
     try {
       await chrome.storage.sync.remove(key);
     } catch (error) {
