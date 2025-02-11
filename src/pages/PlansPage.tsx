@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { toast } from "sonner";
 
 interface PlanFeature {
@@ -72,15 +72,9 @@ const plans: Plan[] = [
 ];
 
 const PlansPage = () => {
-  const { user } = useChromeAuth();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleSubscribe = async (planId: string) => {
-    if (!user) {
-      toast.error("Please sign in to subscribe");
-      return;
-    }
-
     try {
       // TODO: Implement Stripe checkout
       toast.info("Subscription feature coming soon!");

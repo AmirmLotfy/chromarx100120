@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { chromeDb } from '@/lib/chrome-storage';
-import { PlanLimits, subscriptionPlans } from '@/config/subscriptionPlans';
+import { subscriptionPlans } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
 
 interface UsageData {
@@ -21,6 +21,13 @@ interface SubscriptionHook {
   setSubscriptionPlan: (planId: string) => Promise<void>;
 }
 
+interface StorageSubscription {
+  planId: string;
+  status: string;
+  createdAt: string;
+  endDate: string;
+}
+
 export const useSubscription = (): SubscriptionHook => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPlan, setCurrentPlan] = useState('free');
@@ -34,7 +41,7 @@ export const useSubscription = (): SubscriptionHook => {
   useEffect(() => {
     const fetchSubscriptionData = async () => {
       try {
-        const storedUsage = await chromeDb.get('usage');
+        const storedUsage = await chromeDb.get<UsageData>('usage');
         if (storedUsage) {
           setUsage(storedUsage);
         }
@@ -88,13 +95,14 @@ export const useSubscription = (): SubscriptionHook => {
       const plan = subscriptionPlans.find(p => p.id === planId);
       if (!plan) throw new Error('Invalid plan ID');
 
-      await chromeDb.set('subscription', {
+      const subscriptionData: StorageSubscription = {
         planId,
         status: 'active',
         createdAt: new Date().toISOString(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-      });
+      };
 
+      await chromeDb.set('user_subscription', subscriptionData);
       setCurrentPlan(planId);
     } catch (error) {
       console.error('Error setting subscription plan:', error);

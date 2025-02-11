@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,22 +18,15 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { MessageSquare, HelpCircle } from "lucide-react";
-import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { chromeDb, FeedbackItem } from "@/lib/chrome-storage";
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useChromeAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user) {
-      toast.error("Please sign in to submit feedback");
-      return;
-    }
 
     if (!message.trim()) {
       toast.error("Please enter a message");
@@ -46,8 +40,8 @@ const FeedbackForm = () => {
       const feedback: FeedbackItem = {
         type,
         message,
-        userId: user.id,
-        userEmail: user.email,
+        userId: 'guest',
+        userEmail: null,
         createdAt: new Date().toISOString(),
         status: "new"
       };
@@ -108,7 +102,7 @@ const FeedbackForm = () => {
 
       <Button
         type="submit"
-        disabled={!message.trim() || isSubmitting || !user}
+        disabled={!message.trim() || isSubmitting}
         className="w-full"
       >
         <MessageSquare className="mr-2 h-4 w-4" />
