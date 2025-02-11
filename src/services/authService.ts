@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { chromeDb } from '@/lib/chrome-storage';
 
@@ -21,56 +22,13 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
   try {
     console.log('Starting Google sign-in process...');
     
-    // Clear any existing tokens first
-    try {
-      const tokenResult = await chrome.identity.getAuthToken({ interactive: false });
-      if (tokenResult) {
-        console.log('Removing existing token...');
-        // Access the token string from GetAuthTokenResult
-        const token = typeof tokenResult === 'string' ? tokenResult : tokenResult.token;
-        await chrome.identity.removeCachedAuthToken({ token });
-      }
-    } catch (error) {
-      console.log('No existing token found or error clearing token:', error);
-    }
-
-    // Request new token with interactive prompt
-    console.log('Requesting new auth token...');
-    let token: string;
-    try {
-      token = await new Promise<string>((resolve, reject) => {
-        chrome.identity.getAuthToken({ 
-          interactive: true,
-          scopes: [
-            'openid',
-            'email',
-            'profile',
-            'https://www.googleapis.com/auth/userinfo.email',
-            'https://www.googleapis.com/auth/userinfo.profile'
-          ]
-        }, (tokenResult) => {
-          if (chrome.runtime.lastError) {
-            console.error('Chrome runtime error:', chrome.runtime.lastError);
-            reject(chrome.runtime.lastError);
-            return;
-          }
-          if (!tokenResult) {
-            reject(new Error('No token received'));
-            return;
-          }
-          
-          // Explicitly type tokenResult as GetAuthTokenResult | string
-          const result = tokenResult as chrome.identity.GetAuthTokenResult | string;
-          const actualToken = typeof result === 'string' ? result : result.token;
-          resolve(actualToken);
-        });
-      });
-    } catch (error) {
-      console.error('Failed to get auth token:', error);
-      throw new Error('Failed to authenticate with Google');
-    }
-
-    if (!token) {
+    // Get auth token with interactive prompt
+    console.log('Requesting auth token...');
+    const authResult = await chrome.identity.getAuthToken({ 
+      interactive: true 
+    });
+    
+    if (!authResult?.token) {
       console.error('No token received');
       throw new Error('Failed to get authentication token');
     }
@@ -78,13 +36,14 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
     console.log('Token received, fetching user info...');
     const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { 
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authResult.token}`,
         'Content-Type': 'application/json'
       }
     });
     
     if (!response.ok) {
       console.error('User info fetch failed:', response.status);
+      await chrome.identity.removeCachedAuthToken({ token: authResult.token });
       throw new Error('Failed to get user information');
     }
     
@@ -119,19 +78,6 @@ export const signInWithGoogle = async (): Promise<ChromeUser> => {
     return user;
   } catch (error: any) {
     console.error('Error in signInWithGoogle:', error);
-    
-    // Cleanup on error
-    try {
-      const tokenResult = await chrome.identity.getAuthToken({ interactive: false });
-      if (tokenResult) {
-        // Handle both string and GetAuthTokenResult types
-        const token = typeof tokenResult === 'string' ? tokenResult : tokenResult.token;
-        await chrome.identity.removeCachedAuthToken({ token });
-      }
-    } catch (e) {
-      console.error('Error removing cached token:', e);
-    }
-
     toast.error(error.message || 'Failed to sign in with Google');
     throw error;
   }
@@ -141,19 +87,21 @@ export const signOut = async (): Promise<void> => {
   try {
     console.log('Starting sign-out process...');
     
-    // Get current token
-    const token = await chrome.identity.getAuthToken({ interactive: false });
+    const authResult = await chrome.identity.getAuthToken({ interactive: false });
     
-    if (token?.token) {
+    if (authResult?.token) {
       // Remove token from chrome's cache
-      await chrome.identity.removeCachedAuthToken({ token: token.token });
+      await chrome.identity.removeCachedAuthToken({ token: authResult.token });
       
       // Revoke access
-      const response = await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token.token}`);
+      const response = await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${authResult.token}`);
       if (!response.ok) {
         console.warn('Token revocation failed:', response.status);
       }
     }
+    
+    // Clear all cached tokens
+    await chrome.identity.clearAllCachedAuthTokens();
     
     // Clear stored data
     await chromeDb.remove('user');
@@ -180,8 +128,8 @@ export const getCurrentUser = async (): Promise<ChromeUser | null> => {
 
     // Verify token is still valid
     try {
-      const token = await chrome.identity.getAuthToken({ interactive: false });
-      if (!token?.token) {
+      const authResult = await chrome.identity.getAuthToken({ interactive: false });
+      if (!authResult?.token) {
         console.log('No valid token found, clearing user data');
         await chromeDb.remove('user');
         return null;
