@@ -1,4 +1,3 @@
-
 import { useOnboarding } from "./OnboardingProvider";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -105,31 +104,29 @@ const OnboardingOverlay = () => {
       content: (
         <div className="space-y-4">
           {isMobile && (
-            <div className="flex items-center justify-center text-muted-foreground mb-4">
-              <ArrowDown className="w-4 h-4 mr-1" />
-              <span className="text-sm">Scroll to see more</span>
+            <div className="flex items-center justify-center text-muted-foreground mb-2">
+              <ArrowDown className="w-4 h-4 mr-1 animate-bounce" />
+              <span className="text-sm">Swipe to explore plans</span>
             </div>
           )}
-          <div className="flex flex-nowrap gap-4 overflow-x-auto pb-6 px-2 -mx-2 snap-x">
+          <div className="flex flex-nowrap gap-4 overflow-x-auto pb-4 px-2 -mx-2 snap-x scrollbar-hide">
             {subscriptionPlans.map((plan) => (
               <div
                 key={plan.id}
-                className={`flex-none w-[300px] snap-center flex flex-col rounded-lg border transition-all cursor-pointer
+                className={`flex-none w-[85vw] sm:w-[300px] snap-center flex flex-col rounded-lg border transition-all cursor-pointer
                   ${selectedPlanId === plan.id ? 'border-primary ring-2 ring-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                  ${plan.isPopular ? 'scale-105 shadow-lg' : ''}`}
+                  ${plan.isPopular ? 'scale-[1.02] shadow-lg' : ''}`}
+                onClick={() => handlePlanSelection(plan.id)}
               >
                 {plan.isPopular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full font-medium">
+                    <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap">
                       Most Popular
                     </span>
                   </div>
                 )}
 
-                <div 
-                  onClick={() => handlePlanSelection(plan.id)}
-                  className="flex-1 p-6 space-y-4"
-                >
+                <div className="flex-1 p-4 sm:p-6 space-y-4">
                   <div className="space-y-2">
                     <h3 className="font-semibold text-lg">{plan.name}</h3>
                     <p className="text-sm text-muted-foreground">{plan.description}</p>
@@ -140,7 +137,7 @@ const OnboardingOverlay = () => {
                     <span className="text-muted-foreground ml-1">/month</span>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {plan.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-2">
                         {feature.included ? (
@@ -148,27 +145,27 @@ const OnboardingOverlay = () => {
                         ) : (
                           <div className="w-4 h-4 border-2 rounded-full mt-1 flex-shrink-0" />
                         )}
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <span className="text-sm">
                             {feature.name}
+                            {feature.description && (
+                              <HoverCard>
+                                <HoverCardTrigger>
+                                  <Info className="w-3 h-3 inline-block ml-1 text-muted-foreground" />
+                                </HoverCardTrigger>
+                                <HoverCardContent side="top" className="text-xs w-64">
+                                  {feature.description}
+                                </HoverCardContent>
+                              </HoverCard>
+                            )}
                           </span>
-                          {feature.description && (
-                            <HoverCard>
-                              <HoverCardTrigger>
-                                <Info className="w-3 h-3 inline-block ml-1 text-muted-foreground" />
-                              </HoverCardTrigger>
-                              <HoverCardContent className="text-xs w-64">
-                                {feature.description}
-                              </HoverCardContent>
-                            </HoverCard>
-                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="p-6 pt-0">
+                <div className="p-4 sm:p-6 pt-0">
                   <Button
                     variant={selectedPlanId === plan.id ? "default" : "outline"}
                     className="w-full"
@@ -181,12 +178,12 @@ const OnboardingOverlay = () => {
             ))}
           </div>
 
-          <div className="flex justify-center pt-6">
+          <div className="flex justify-center pt-4">
             <Button
               size="lg"
               onClick={handleContinueWithPlan}
               disabled={!selectedPlanId}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto px-8"
             >
               Continue with {selectedPlanId ? subscriptionPlans.find(p => p.id === selectedPlanId)?.name : 'selected plan'}
             </Button>
@@ -236,7 +233,7 @@ const OnboardingOverlay = () => {
 
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-card w-full max-w-4xl rounded-lg border shadow-lg p-6 space-y-6 my-8">
+      <div className="bg-card w-full max-w-4xl rounded-lg border shadow-lg p-4 sm:p-6 space-y-6 my-4 sm:my-8">
         <OnboardingProgress currentStep={currentStep} totalSteps={totalSteps} />
         <OnboardingStep {...currentStepData} />
       </div>
