@@ -1,3 +1,4 @@
+
 import Layout from "@/components/Layout";
 import FeatureGrid from "@/components/FeatureGrid";
 import { useChromeAuth } from "@/contexts/ChromeAuthContext";
@@ -12,7 +13,7 @@ const Index = () => {
   const { currentPlan } = useSubscription();
 
   // Show onboarding for non-logged in users or if onboarding is not complete
-  if (!user || !isOnboardingComplete) {
+  if (!isOnboardingComplete) {
     return (
       <Layout>
         <OnboardingOverlay />
