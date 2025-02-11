@@ -92,9 +92,8 @@ Please provide a comprehensive summary of this content in ${language}, focusing 
   }
 };
 
-export const suggestBookmarkCategory = async (title: string, url: string): Promise<string> => {
+export const suggestBookmarkCategory = async (title: string, url: string, content: string): Promise<string> => {
   try {
-    const content = await fetchPageContent(url);
     const prompt = `
 Based on this content:
 Title: ${title}

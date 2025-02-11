@@ -7,4 +7,5 @@ export interface ChromeBookmark extends Omit<chrome.bookmarks.BookmarkTreeNode, 
   url?: string;
   dateAdded?: number;
   category?: string;
+  content?: string;
 }
