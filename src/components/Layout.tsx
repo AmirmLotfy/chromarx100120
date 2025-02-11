@@ -39,7 +39,7 @@ const Layout = ({ children }: LayoutProps) => {
       isPopup ? 'w-[350px] h-[500px]' : 'w-full'
     }`}>
       <Header />
-      <main className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-16 md:pb-0">
+      <main className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-20">
         <div className="w-full mx-auto px-0">
           {children}
         </div>
