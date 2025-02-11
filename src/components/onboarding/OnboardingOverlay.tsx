@@ -4,16 +4,18 @@ import { useChromeAuth } from "@/contexts/ChromeAuthContext";
 import { useSubscription } from "@/hooks/use-subscription";
 import OnboardingProgress from "./OnboardingProgress";
 import OnboardingStep from "./OnboardingStep";
-import { BookMarked, Bookmark, Sparkles, Settings, Zap } from "lucide-react";
+import { BookMarked, Bookmark, Sparkles, Settings, Zap, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const OnboardingOverlay = () => {
   const { currentStep, isOnboardingComplete, setCurrentStep, completeOnboarding } = useOnboarding();
   const { user } = useChromeAuth();
   const { setSubscriptionPlan } = useSubscription();
-  const totalSteps = 5; // Reduced from 6 to 5 steps
+  const isMobile = useIsMobile();
+  const totalSteps = 5;
 
   const handleImportBookmarks = async () => {
     try {
@@ -76,20 +78,28 @@ const OnboardingOverlay = () => {
       description: "Select a plan that best fits your needs",
       icon: Sparkles,
       content: (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
-          {subscriptionPlans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`p-4 rounded-lg border cursor-pointer hover:border-primary transition-colors ${
-                plan.isPopular ? 'border-primary' : 'border-border'
-              }`}
-              onClick={() => handleSelectPlan(plan.id)}
-            >
-              <h3 className="font-semibold">{plan.name}</h3>
-              <p className="text-sm text-muted-foreground">{plan.description}</p>
-              <p className="mt-2 font-medium">${plan.pricing.monthly}/month</p>
+        <div className="space-y-4">
+          {isMobile && (
+            <div className="flex items-center justify-center text-muted-foreground mb-2">
+              <ArrowDown className="w-4 h-4 mr-1" />
+              <span className="text-sm">Scroll to see more</span>
             </div>
-          ))}
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {subscriptionPlans.map((plan) => (
+              <button
+                key={plan.id}
+                onClick={() => handleSelectPlan(plan.id)}
+                className={`p-4 rounded-lg border cursor-pointer transition-all hover:border-primary hover:shadow-md active:scale-95 text-left ${
+                  plan.isPopular ? 'border-primary' : 'border-border'
+                }`}
+              >
+                <h3 className="font-semibold">{plan.name}</h3>
+                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                <p className="mt-2 font-medium">${plan.pricing.monthly}/month</p>
+              </button>
+            ))}
+          </div>
         </div>
       ),
     },
@@ -134,8 +144,8 @@ const OnboardingOverlay = () => {
   const currentStepData = steps[currentStep - 1];
 
   return (
-    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card w-full max-w-md rounded-lg border shadow-lg p-6 space-y-6">
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-card w-full max-w-md rounded-lg border shadow-lg p-6 space-y-6 my-8">
         <OnboardingProgress currentStep={currentStep} totalSteps={totalSteps} />
         <OnboardingStep {...currentStepData} />
       </div>
