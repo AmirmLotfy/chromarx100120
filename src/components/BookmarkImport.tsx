@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -213,7 +214,7 @@ const BookmarkImport = () => {
           Import
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl bg-background border shadow-lg">
         <DialogHeader>
           <DialogTitle>Import Bookmarks</DialogTitle>
           <DialogDescription>
@@ -241,7 +242,7 @@ const BookmarkImport = () => {
             </Button>
           </div>
 
-          <ScrollArea className="h-[400px] rounded-md border p-4">
+          <ScrollArea className="h-[400px] rounded-md border p-4 bg-background">
             {bookmarkTree.map((node) => (
               <BookmarkTree
                 key={node.id}
