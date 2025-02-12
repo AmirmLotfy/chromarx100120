@@ -1,3 +1,4 @@
+
 import { Note } from "@/types/note";
 import NoteCard from "./NoteCard";
 import { cn } from "@/lib/utils";
@@ -30,17 +31,19 @@ const NoteGrid = ({
   return (
     <div
       className={cn(
-        "p-4",
+        "p-2 sm:p-4 transition-all duration-300",
         view === "grid"
-          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-          : "flex flex-col space-y-4"
+          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-4"
+          : "flex flex-col space-y-2 sm:space-y-4"
       )}
     >
       {notes.map((note) => (
         <div
           key={note.id}
           className={cn(
-            view === "list" && "w-full"
+            "transition-all duration-300",
+            view === "list" && "w-full",
+            view === "grid" && "h-full"
           )}
         >
           <NoteCard
@@ -56,8 +59,13 @@ const NoteGrid = ({
         </div>
       ))}
       {notes.length === 0 && (
-        <div className="col-span-full text-center py-8 text-muted-foreground">
-          No notes found. Create your first note to get started!
+        <div className={cn(
+          "col-span-full flex items-center justify-center",
+          view === "grid" ? "min-h-[200px]" : "min-h-[100px]"
+        )}>
+          <p className="text-sm text-muted-foreground">
+            No notes found. Create your first note to get started!
+          </p>
         </div>
       )}
     </div>
