@@ -7,8 +7,12 @@ import { useSettings } from "@/stores/settingsStore";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { UserCircle, CreditCard, Settings, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
-import { chromeDb } from "@/lib/chrome-storage";
+import { chromeDb, ChromeUser, StorageSubscription } from "@/lib/chrome-storage";
 import { toast } from "sonner";
+
+interface UserData extends ChromeUser {
+  subscription?: StorageSubscription;
+}
 
 const UserPage = () => {
   const navigate = useNavigate();
@@ -19,7 +23,7 @@ const UserPage = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const userData = await chromeDb.get('user');
+        const userData = await chromeDb.get<UserData>('user');
         if (userData) {
           setUserName(userData.displayName || 'Guest User');
           if (userData.subscription) {
