@@ -6,8 +6,12 @@ import { toast } from 'sonner';
 export class StorageService {
   private static instance: StorageService;
   private cache = new Map<string, unknown>();
+  private isExtension: boolean;
 
-  private constructor() {}
+  private constructor() {
+    // Check if we're running in a Chrome extension context
+    this.isExtension = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+  }
 
   static getInstance(): StorageService {
     if (!this.instance) {
@@ -20,6 +24,12 @@ export class StorageService {
     try {
       if (this.cache.has(key)) {
         return this.cache.get(key) as T;
+      }
+
+      if (!this.isExtension) {
+        // If not in extension, try localStorage as fallback
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : null;
       }
 
       const result = await chrome.storage.sync.get(key);
@@ -38,6 +48,13 @@ export class StorageService {
 
   async set<T>(key: string, value: T): Promise<void> {
     try {
+      if (!this.isExtension) {
+        // If not in extension, use localStorage as fallback
+        localStorage.setItem(key, JSON.stringify(value));
+        this.cache.set(key, value);
+        return;
+      }
+
       await chrome.storage.sync.set({ [key]: value });
       this.cache.set(key, value);
     } catch (error) {
@@ -61,6 +78,12 @@ export class StorageService {
 
   async remove(key: string): Promise<void> {
     try {
+      if (!this.isExtension) {
+        localStorage.removeItem(key);
+        this.cache.delete(key);
+        return;
+      }
+
       await chrome.storage.sync.remove(key);
       this.cache.delete(key);
     } catch (error) {

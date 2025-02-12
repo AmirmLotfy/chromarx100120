@@ -72,6 +72,12 @@ export const chromeDb = {
   remove: storage.remove.bind(storage),
   getBytesInUse: async (): Promise<number> => {
     try {
+      if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
+        // Return estimated localStorage usage if not in extension
+        return Object.keys(localStorage).reduce((total, key) => {
+          return total + (localStorage.getItem(key)?.length || 0) * 2; // Approximate bytes
+        }, 0);
+      }
       return await chrome.storage.sync.getBytesInUse(null);
     } catch (error) {
       console.error('Error getting storage usage:', error);
@@ -80,19 +86,21 @@ export const chromeDb = {
   },
   clearCache: storage.clearCache.bind(storage),
   listenToChanges: () => {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === 'sync') {
-        for (const [key, { newValue }] of Object.entries(changes)) {
-          if (newValue === undefined) {
-            storage.clearCache();
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'sync') {
+          for (const [key, { newValue }] of Object.entries(changes)) {
+            if (newValue === undefined) {
+              storage.clearCache();
+            }
           }
         }
-      }
-    });
+      });
+    }
   }
 };
 
 // Initialize storage change listener
-if (chrome.storage) {
+if (typeof chrome !== 'undefined' && chrome.storage) {
   chromeDb.listenToChanges();
 }
