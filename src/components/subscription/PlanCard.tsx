@@ -19,8 +19,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 interface PlanCardProps extends Plan {
-  onSubscribe?: (planId: string) => void;
+  onSubscribe?: (planId: string) => Promise<void>;
   isSelected?: boolean;
+  onSelect?: (planId: string) => void;
 }
 
 const PlanCard = ({ 
@@ -31,10 +32,12 @@ const PlanCard = ({
   features, 
   isPopular,
   isSelected,
+  onSelect,
   onSubscribe 
 }: PlanCardProps) => {
   const [paypalClientId, setPaypalClientId] = useState<string>("");
   const [isYearly, setIsYearly] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
     const fetchPayPalClientId = async () => {
@@ -53,8 +56,30 @@ const PlanCard = ({
   const priceLabel = isYearly ? "/year" : "/month";
   const savings = isYearly ? Math.round((pricing.monthly * 12 - pricing.yearly) / (pricing.monthly * 12) * 100) : 0;
 
+  const handlePlanSelect = () => {
+    onSelect?.(id);
+  };
+
+  const handlePaymentSuccess = async (data: any) => {
+    try {
+      setIsProcessing(true);
+      await onSubscribe?.(id);
+      toast.success(`Successfully subscribed to ${name} plan`);
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast.error("Failed to process subscription");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <Card className={`relative ${isPopular ? 'border-primary shadow-lg' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+    <Card 
+      className={`relative cursor-pointer transition-all ${
+        isPopular ? 'border-primary shadow-lg' : ''
+      } ${isSelected ? 'ring-2 ring-primary scale-105' : 'hover:scale-102'}`}
+      onClick={handlePlanSelect}
+    >
       {isPopular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <span className="bg-primary text-primary-foreground text-sm px-3 py-1 rounded-full">
@@ -76,6 +101,7 @@ const PlanCard = ({
               id={`${id}-billing-toggle`}
               checked={isYearly}
               onCheckedChange={setIsYearly}
+              onClick={(e) => e.stopPropagation()}
             />
             <Label htmlFor={`${id}-billing-toggle`}>Yearly</Label>
           </div>
@@ -107,16 +133,8 @@ const PlanCard = ({
       </CardContent>
 
       <CardFooter>
-        {pricing.monthly === 0 ? (
-          <Button 
-            className="w-full" 
-            variant="outline"
-            onClick={() => onSubscribe?.(id)}
-          >
-            Get Started
-          </Button>
-        ) : (
-          paypalClientId && (
+        {isSelected && pricing.monthly > 0 && paypalClientId && !isProcessing ? (
+          <div className="w-full" onClick={(e) => e.stopPropagation()}>
             <PayPalScriptProvider options={{ 
               clientId: paypalClientId,
               currency: "USD",
@@ -129,7 +147,6 @@ const PlanCard = ({
                   shape: "rect",
                   label: "pay"
                 }}
-                fundingSource="card"
                 createOrder={(data, actions) => {
                   return actions.order.create({
                     intent: "CAPTURE",
@@ -146,20 +163,19 @@ const PlanCard = ({
                       brand_name: "ChroMarx",
                       landing_page: "BILLING",
                       payment_method: {
-                        payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
+                        payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED",
+                        payer_selected: "PAYPAL"
                       }
                     }
                   });
                 }}
                 onApprove={async (data, actions) => {
                   if (!actions.order) return;
-                  
                   try {
                     const order = await actions.order.capture();
-                    onSubscribe?.(id);
-                    toast.success(`Successfully subscribed to ${name}`);
+                    await handlePaymentSuccess(order);
                   } catch (error) {
-                    console.error('Payment processing error:', error);
+                    console.error('Payment error:', error);
                     toast.error("Failed to process payment");
                   }
                 }}
@@ -168,7 +184,15 @@ const PlanCard = ({
                 }}
               />
             </PayPalScriptProvider>
-          )
+          </div>
+        ) : (
+          <Button 
+            className="w-full" 
+            variant={isSelected ? "default" : "outline"}
+            disabled={isProcessing}
+          >
+            {pricing.monthly === 0 ? "Select Free Plan" : "Select Plan"}
+          </Button>
         )}
       </CardFooter>
     </Card>
