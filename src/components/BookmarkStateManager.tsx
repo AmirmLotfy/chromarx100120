@@ -10,6 +10,7 @@ import { chromeDb } from "@/lib/chrome-storage";
 
 const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+const BATCH_SIZE = 50; // Process bookmarks in batches
 
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -26,6 +27,7 @@ export const useBookmarkState = () => {
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < CACHE_EXPIRY) {
+          console.log('Using local cache for bookmarks');
           return data;
         }
       }
@@ -33,6 +35,7 @@ export const useBookmarkState = () => {
       // If no local cache, try Chrome sync storage
       const syncedData = await chromeDb.get<{ data: ChromeBookmark[]; timestamp: number }>(CACHE_KEY);
       if (syncedData && Date.now() - syncedData.timestamp < CACHE_EXPIRY) {
+        console.log('Using synced cache for bookmarks');
         return syncedData.data;
       }
 
@@ -49,13 +52,60 @@ export const useBookmarkState = () => {
       timestamp: Date.now()
     };
 
-    // Update both local and sync storage
     try {
+      // Update both local and sync storage
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       await chromeDb.set(CACHE_KEY, cacheData);
+      console.log('Bookmark cache updated');
     } catch (error) {
       console.error("Error caching bookmarks:", error);
     }
+  };
+
+  const processChromeBookmarks = async (bookmarks: chrome.bookmarks.BookmarkTreeNode[]) => {
+    const processed: ChromeBookmark[] = [];
+    
+    // Process bookmarks in batches
+    for (let i = 0; i < bookmarks.length; i += BATCH_SIZE) {
+      const batch = bookmarks.slice(i, i + BATCH_SIZE);
+      const batchPromises = batch.map(async (bookmark): Promise<ChromeBookmark> => {
+        const chromeBookmark: ChromeBookmark = {
+          ...bookmark,
+          category: await getCachedCategory(bookmark.id)
+        };
+        
+        if (chromeBookmark.url && !chromeBookmark.category) {
+          try {
+            console.log('Processing bookmark:', chromeBookmark.url);
+            const content = await fetchPageContent(chromeBookmark.url);
+            chromeBookmark.content = content;
+
+            chromeBookmark.category = await suggestBookmarkCategory(
+              chromeBookmark.title,
+              chromeBookmark.url,
+              content,
+              currentLanguage.code
+            );
+
+            if (chromeBookmark.category) {
+              await chromeDb.set(`bookmark-category-${bookmark.id}`, chromeBookmark.category);
+            }
+          } catch (error) {
+            console.error("Error processing bookmark:", error);
+          }
+        }
+        return chromeBookmark;
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      processed.push(...batchResults);
+      
+      // Update progress
+      const progress = Math.round((processed.length / bookmarks.length) * 100);
+      console.log(`Processing bookmarks: ${progress}%`);
+    }
+
+    return processed;
   };
 
   const loadBookmarks = async () => {
@@ -87,47 +137,15 @@ export const useBookmarkState = () => {
 
   const loadFreshBookmarks = async () => {
     if (chrome.bookmarks) {
-      const results = await chrome.bookmarks.getRecent(100);
+      const results = await chrome.bookmarks.getRecent(1000); // Increased limit
       const previousCount = bookmarks.length;
       
-      const categorizedResults = await Promise.all(
-        results.map(async (bookmark): Promise<ChromeBookmark> => {
-          const chromeBookmark: ChromeBookmark = {
-            ...bookmark,
-            category: await getCachedCategory(bookmark.id)
-          };
-          
-          if (chromeBookmark.url && !chromeBookmark.category) {
-            try {
-              console.log('Fetching content for:', chromeBookmark.url);
-              const content = await fetchPageContent(chromeBookmark.url);
-              chromeBookmark.content = content;
+      const processed = await processChromeBookmarks(results);
+      setBookmarks(processed);
+      await setCachedBookmarks(processed);
 
-              // Use content for category suggestion with language
-              chromeBookmark.category = await suggestBookmarkCategory(
-                chromeBookmark.title,
-                chromeBookmark.url,
-                content,
-                currentLanguage.code
-              );
-
-              // Cache the category
-              if (chromeBookmark.category) {
-                await chromeDb.set(`bookmark-category-${bookmark.id}`, chromeBookmark.category);
-              }
-            } catch (error) {
-              console.error("Error processing bookmark content:", error);
-            }
-          }
-          return chromeBookmark;
-        })
-      );
-      
-      setBookmarks(categorizedResults);
-      await setCachedBookmarks(categorizedResults);
-
-      if (previousCount < categorizedResults.length) {
-        const newOnes = categorizedResults.slice(0, categorizedResults.length - previousCount);
+      if (previousCount < processed.length) {
+        const newOnes = processed.slice(0, processed.length - previousCount);
         setNewBookmarks(newOnes);
 
         if (chrome.action) {
@@ -174,6 +192,7 @@ export const useBookmarkState = () => {
       // Listen for changes from other devices
       chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes[CACHE_KEY]) {
+          console.log('Bookmark changes detected from sync');
           loadBookmarks();
         }
       });
