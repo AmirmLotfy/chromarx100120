@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateTaskSuggestions, suggestTimerDuration } from "@/utils/geminiUtils";
 import { toast } from "sonner";
@@ -35,33 +35,38 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
   const [category, setCategory] = useState<TaskCategory>("work");
   const [dueDate, setDueDate] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const { currentLanguage } = useLanguage();
 
   const getAIRecommendations = async () => {
     setIsLoading(true);
     try {
-      const [duration, suggestions] = await Promise.all([
+      // Get both duration and suggestions concurrently
+      const [duration, taskSuggestions] = await Promise.all([
         suggestTimerDuration(
-          `Task: ${title}\nDescription: ${description}`,
+          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
           currentLanguage.code
         ),
         generateTaskSuggestions(
-          `Task: ${title}\nDescription: ${description}`,
+          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
           currentLanguage.code
         )
       ]);
 
-      if (suggestions) {
-        toast.success("AI has provided task suggestions!");
+      // Validate duration is within reasonable bounds
+      const validatedDuration = Math.min(Math.max(duration || 25, 5), 120);
+      
+      if (taskSuggestions) {
+        setSuggestions(taskSuggestions.split('\n').filter(Boolean));
       }
       
       return {
-        estimatedDuration: duration,
+        estimatedDuration: validatedDuration,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`
       };
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
-      toast.error("Failed to get AI recommendations");
+      toast.error("Failed to get AI recommendations, using default values");
       return {
         estimatedDuration: 25,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`
@@ -71,30 +76,58 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
     }
   };
 
+  const validateInput = () => {
+    if (!title.trim()) {
+      toast.error("Task title is required");
+      return false;
+    }
+    if (!dueDate) {
+      toast.error("Due date is required");
+      return false;
+    }
+    if (dueDate < new Date()) {
+      toast.error("Due date cannot be in the past");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !dueDate) {
-      toast.error("Please fill in all required fields");
+    
+    if (!validateInput()) {
       return;
     }
 
-    const aiRecommendations = await getAIRecommendations();
+    setIsLoading(true);
+    try {
+      const aiRecommendations = await getAIRecommendations();
 
-    onSubmit({
-      title,
-      description,
-      priority,
-      category,
-      dueDate: dueDate.toISOString(),
-      status: "pending",
-      ...aiRecommendations
-    });
+      onSubmit({
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        category,
+        dueDate: dueDate.toISOString(),
+        status: "pending",
+        ...aiRecommendations
+      });
 
-    setTitle("");
-    setDescription("");
-    setPriority("medium");
-    setCategory("work");
-    setDueDate(undefined);
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setCategory("work");
+      setDueDate(undefined);
+      setSuggestions([]);
+
+      toast.success("Task created successfully");
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast.error("Failed to create task");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -104,6 +137,7 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         className="w-full"
+        maxLength={100}
         required
       />
       
@@ -112,6 +146,7 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="w-full"
+        maxLength={500}
       />
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -162,13 +197,34 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
               selected={dueDate}
               onSelect={setDueDate}
               initialFocus
+              disabled={(date) => date < new Date()}
             />
           </PopoverContent>
         </Popover>
       </div>
 
+      {suggestions.length > 0 && (
+        <div className="p-4 bg-accent/50 rounded-lg">
+          <h4 className="text-sm font-medium mb-2">AI Suggestions:</h4>
+          <ul className="space-y-1">
+            {suggestions.map((suggestion, index) => (
+              <li key={index} className="text-sm text-muted-foreground">
+                • {suggestion}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Getting AI recommendations..." : "Add Task"}
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating Task...
+          </>
+        ) : (
+          "Add Task"
+        )}
       </Button>
     </form>
   );
