@@ -1,4 +1,5 @@
 import { chromeDb } from '@/lib/chrome-storage';
+import { toast } from 'sonner';
 
 export interface PlanFeature {
   name: string;
@@ -130,63 +131,191 @@ export const subscriptionPlans: Plan[] = [
 // Utility functions for subscription management
 export const getFeatureAvailability = async (feature: string): Promise<boolean> => {
   try {
-    const userData = await chromeDb.get<UserData>('user');
-    if (!userData?.subscription) return false;
+    const userData = await retryWithBackoff(async () => {
+      const data = await chromeDb.get<UserData>('user');
+      if (!data) throw new Error('User data not found');
+      return data;
+    });
+
+    if (!userData?.subscription) {
+      console.log('No active subscription found');
+      return false;
+    }
     
     const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
-    if (!plan) return false;
+    if (!plan) {
+      console.error('Invalid plan ID:', userData.subscription.planId);
+      return false;
+    }
     
     const featureObj = plan.features.find(f => f.name === feature);
     return featureObj?.included || false;
   } catch (error) {
     console.error('Error checking feature availability:', error);
+    toast.error('Failed to check feature availability');
     return false;
   }
 };
 
 export const checkUsageLimit = async (type: keyof PlanLimits): Promise<boolean> => {
   try {
-    const userData = await chromeDb.get<UserData>('user');
-    if (!userData?.subscription) return false;
+    const userData = await retryWithBackoff(async () => {
+      const data = await chromeDb.get<UserData>('user');
+      if (!data) throw new Error('User data not found');
+      return data;
+    });
+
+    if (!userData?.subscription) {
+      console.log('No active subscription found');
+      return false;
+    }
     
     const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
-    if (!plan) return false;
+    if (!plan) {
+      console.error('Invalid plan ID:', userData.subscription.planId);
+      return false;
+    }
     
     const limit = plan.limits[type];
     if (limit === -1) return true; // Unlimited
     
     const usage = userData.subscription.usage?.[type] || 0;
+    
+    // Alert user when approaching limit
+    if (usage >= limit * 0.8) {
+      toast.warning(`You're approaching your ${type} limit. Consider upgrading your plan.`);
+    }
+    
     return usage < limit;
   } catch (error) {
     console.error('Error checking usage limit:', error);
+    toast.error('Failed to check usage limit');
     return false;
   }
 };
 
 export const incrementUsage = async (type: keyof PlanLimits): Promise<boolean> => {
   try {
-    const userData = await chromeDb.get<UserData>('user');
-    if (!userData?.subscription) return false;
+    const userData = await retryWithBackoff(async () => {
+      const data = await chromeDb.get<UserData>('user');
+      if (!data) throw new Error('User data not found');
+      return data;
+    });
+
+    if (!userData?.subscription) {
+      console.log('No active subscription found');
+      return false;
+    }
     
     const currentUsage = userData.subscription.usage?.[type] || 0;
     
-    await chromeDb.update('user', {
-      subscription: {
-        ...userData.subscription,
-        usage: {
-          ...userData.subscription.usage,
-          [type]: currentUsage + 1
+    await retryWithBackoff(() => 
+      chromeDb.update('user', {
+        subscription: {
+          ...userData.subscription,
+          usage: {
+            ...userData.subscription.usage,
+            [type]: currentUsage + 1
+          }
         }
-      }
-    });
+      })
+    );
     
     return true;
   } catch (error) {
     console.error('Error incrementing usage:', error);
+    toast.error('Failed to update usage counter');
     return false;
   }
 };
 
 export const getPlanById = (planId: string): Plan | undefined => {
   return subscriptionPlans.find(p => p.id === planId);
+};
+
+// Add new subscription management functions
+export const upgradePlan = async (userId: string, newPlanId: string): Promise<boolean> => {
+  try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData) throw new Error('User data not found');
+
+    const newPlan = subscriptionPlans.find(p => p.id === newPlanId);
+    if (!newPlan) throw new Error('Invalid plan ID');
+
+    await retryWithBackoff(() => 
+      chromeDb.update('user', {
+        subscription: {
+          planId: newPlanId,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          usage: {
+            bookmarks: 0,
+            tasks: 0,
+            notes: 0,
+            aiRequests: 0
+          }
+        }
+      })
+    );
+
+    toast.success(`Successfully upgraded to ${newPlan.name} plan`);
+    return true;
+  } catch (error) {
+    console.error('Error upgrading plan:', error);
+    toast.error('Failed to upgrade plan');
+    return false;
+  }
+};
+
+export const cancelSubscription = async (userId: string): Promise<boolean> => {
+  try {
+    await retryWithBackoff(() => 
+      chromeDb.update('user', {
+        subscription: {
+          planId: 'free',
+          status: 'cancelled',
+          endDate: new Date().toISOString(),
+          usage: {
+            bookmarks: 0,
+            tasks: 0,
+            notes: 0,
+            aiRequests: 0
+          }
+        }
+      })
+    );
+
+    toast.success('Subscription cancelled successfully');
+    return true;
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+    toast.error('Failed to cancel subscription');
+    return false;
+  }
+};
+
+// Helper function for retrying operations
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  initialDelay = 1000
+): Promise<T> => {
+  let retries = 0;
+  let delay = initialDelay;
+
+  while (true) {
+    try {
+      return await operation();
+    } catch (error) {
+      retries++;
+      if (retries > maxRetries) {
+        throw error;
+      }
+
+      console.log(`Retry attempt ${retries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Exponential backoff
+    }
+  }
 };

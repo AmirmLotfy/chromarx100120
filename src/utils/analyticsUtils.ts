@@ -1,53 +1,101 @@
-
 import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
 import { chromeDb } from "@/lib/chrome-storage";
+import { toast } from "sonner";
+
+const MAX_RETRIES = 3;
+const INITIAL_DELAY = 1000; // 1 second
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  retries = MAX_RETRIES,
+  delay = INITIAL_DELAY
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries === 0) {
+      throw error;
+    }
+
+    console.log(`Retrying operation. Attempts remaining: ${retries}`);
+    await sleep(delay);
+
+    return retryWithBackoff(
+      operation,
+      retries - 1,
+      delay * 2 // Exponential backoff
+    );
+  }
+}
 
 export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   try {
     console.log("Fetching analytics data...");
     
-    // Get browsing history and current tabs
+    // Get browsing history and current tabs with retry mechanism
     const [history, tabs] = await Promise.all([
-      chrome.history.search({ 
-        text: "", 
-        maxResults: 10000, 
-        startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 // Last 30 days
-      }),
-      chrome.tabs.query({})
+      retryWithBackoff(() => 
+        chrome.history.search({ 
+          text: "", 
+          maxResults: 10000, 
+          startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 // Last 30 days
+        })
+      ),
+      retryWithBackoff(() => 
+        chrome.tabs.query({})
+      )
     ]);
 
-    // Get browsing time data from chrome.history
+    // Get browsing time data from chrome.history with retry
     const visitTimeData = await Promise.all(
       history.map(async item => {
         if (!item.url) return null;
-        const visits = await chrome.history.getVisits({ url: item.url });
-        return {
-          url: item.url,
-          domain: extractDomain(item.url),
-          visitCount: visits.length,
-          timeSpent: calculateTimeSpent(visits),
-          lastVisitTime: item.lastVisitTime || 0
-        };
+        try {
+          const visits = await retryWithBackoff(() => 
+            chrome.history.getVisits({ url: item.url })
+          );
+          return {
+            url: item.url,
+            domain: extractDomain(item.url),
+            visitCount: visits.length,
+            timeSpent: calculateTimeSpent(visits),
+            lastVisitTime: item.lastVisitTime || 0
+          };
+        } catch (error) {
+          console.error(`Error processing visits for ${item.url}:`, error);
+          toast.error(`Failed to process some visit data`);
+          return null;
+        }
       })
     );
 
     const visitData: VisitData[] = visitTimeData.filter((item): item is VisitData => item !== null);
 
-    // Store analytics data for persistence
-    await chromeDb.set('analytics_data', {
-      timestamp: Date.now(),
-      visitData
-    });
+    // Store analytics data for persistence with retry
+    await retryWithBackoff(() => 
+      chromeDb.set('analytics_data', {
+        timestamp: Date.now(),
+        visitData
+      })
+    );
 
-    return {
+    const analyticsData: AnalyticsData = {
       productivityScore: calculateProductivityScore(visitData, tabs),
       timeDistribution: calculateTimeDistribution(visitData),
       domainStats: calculateDomainStats(visitData),
       productivityTrends: await calculateProductivityTrends(visitData)
     };
+
+    // Validate analytics data
+    validateAnalyticsData(analyticsData);
+
+    return analyticsData;
   } catch (error) {
     console.error("Error getting analytics data:", error);
+    toast.error("Failed to load analytics data. Please try again.");
     throw error;
   }
 };
@@ -100,38 +148,64 @@ const calculateTimeDistribution = (visitData: VisitData[]): TimeDistributionData
 };
 
 const calculateProductivityScore = (visitData: VisitData[], tabs: chrome.tabs.Tab[]): number => {
-  const factors = {
-    tabEfficiency: calculateTabEfficiency(tabs),
-    browsingFocus: calculateBrowsingFocus(visitData),
-    timeManagement: calculateTimeManagement(visitData)
-  };
+  try {
+    const factors = {
+      tabEfficiency: calculateTabEfficiency(tabs),
+      browsingFocus: calculateBrowsingFocus(visitData),
+      timeManagement: calculateTimeManagement(visitData)
+    };
 
-  return Math.round(
-    (factors.tabEfficiency + factors.browsingFocus + factors.timeManagement) / 3 * 100
-  );
+    const score = Math.round(
+      (factors.tabEfficiency + factors.browsingFocus + factors.timeManagement) / 3 * 100
+    );
+
+    // Validate score
+    if (isNaN(score) || score < 0 || score > 100) {
+      throw new Error("Invalid productivity score calculation");
+    }
+
+    return score;
+  } catch (error) {
+    console.error("Error calculating productivity score:", error);
+    toast.error("Error calculating productivity score");
+    return 0;
+  }
 };
 
 const calculateProductivityTrends = async (visitData: VisitData[]): Promise<ProductivityTrend[]> => {
-  const trends: ProductivityTrend[] = [];
-  const days = 7;
+  try {
+    const trends: ProductivityTrend[] = [];
+    const days = 7;
 
-  for (let i = 0; i < days; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    const dayStart = new Date(date.setHours(0, 0, 0, 0)).getTime();
-    const dayEnd = new Date(date.setHours(23, 59, 59, 999)).getTime();
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayStart = new Date(date.setHours(0, 0, 0, 0)).getTime();
+      const dayEnd = new Date(date.setHours(23, 59, 59, 999)).getTime();
 
-    const dayData = visitData.filter(
-      visit => visit.lastVisitTime >= dayStart && visit.lastVisitTime <= dayEnd
-    );
+      const dayData = visitData.filter(
+        visit => visit.lastVisitTime >= dayStart && visit.lastVisitTime <= dayEnd
+      );
 
-    trends.push({
-      date: date.toISOString().split('T')[0],
-      score: calculateDailyProductivityScore(dayData)
-    });
+      const score = calculateDailyProductivityScore(dayData);
+      
+      // Validate score
+      if (isNaN(score) || score < 0 || score > 100) {
+        throw new Error(`Invalid daily productivity score for ${date}`);
+      }
+
+      trends.push({
+        date: date.toISOString().split('T')[0],
+        score
+      });
+    }
+
+    return trends.reverse();
+  } catch (error) {
+    console.error("Error calculating productivity trends:", error);
+    toast.error("Error calculating productivity trends");
+    return [];
   }
-
-  return trends.reverse();
 };
 
 const determineCategory = (domain: string): string => {
@@ -195,4 +269,40 @@ const calculateDailyProductivityScore = (dayData: VisitData[]): number => {
   ).length / dayData.length;
 
   return Math.round(productiveRatio * 100);
+};
+
+const validateAnalyticsData = (data: AnalyticsData): void => {
+  if (
+    !data.productivityScore ||
+    !Array.isArray(data.timeDistribution) ||
+    !Array.isArray(data.domainStats) ||
+    !Array.isArray(data.productivityTrends)
+  ) {
+    throw new Error("Invalid analytics data structure");
+  }
+
+  if (data.productivityScore < 0 || data.productivityScore > 100) {
+    throw new Error("Invalid productivity score");
+  }
+
+  // Validate time distribution
+  data.timeDistribution.forEach(item => {
+    if (!item.category || typeof item.time !== 'number') {
+      throw new Error("Invalid time distribution data");
+    }
+  });
+
+  // Validate domain stats
+  data.domainStats.forEach(item => {
+    if (!item.domain || typeof item.visits !== 'number' || typeof item.timeSpent !== 'number') {
+      throw new Error("Invalid domain stats data");
+    }
+  });
+
+  // Validate productivity trends
+  data.productivityTrends.forEach(item => {
+    if (!item.date || typeof item.score !== 'number') {
+      throw new Error("Invalid productivity trends data");
+    }
+  });
 };
