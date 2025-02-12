@@ -46,19 +46,19 @@ const OnboardingAuth = ({ onNext, onSkip }: OnboardingAuthProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-8 px-4"
     >
       <div className="text-center space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Sign in to ChroMarx</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Sign in to ChroMarx</h2>
+        <p className="text-lg text-muted-foreground">
           Connect with Google to sync your bookmarks and preferences across devices
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-md mx-auto w-full">
         <Button
           size="lg"
-          className="w-full h-12 text-base"
+          className="w-full h-14 text-base rounded-full shadow-md hover:shadow-lg active:shadow-sm transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] bg-gradient-to-r from-primary to-primary/90"
           onClick={handleGoogleSignIn}
         >
           <User className="mr-2 h-5 w-5" />
@@ -66,9 +66,9 @@ const OnboardingAuth = ({ onNext, onSkip }: OnboardingAuthProps) => {
         </Button>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="lg"
-          className="w-full h-12 text-base"
+          className="w-full h-14 text-base hover:bg-accent/50"
           onClick={onSkip}
         >
           <LogIn className="mr-2 h-5 w-5" />
@@ -77,7 +77,7 @@ const OnboardingAuth = ({ onNext, onSkip }: OnboardingAuthProps) => {
       </div>
 
       <p className="text-sm text-muted-foreground text-center">
-        Having trouble? <button onClick={() => toast.info("Support contact info here")} className="underline hover:text-primary">Contact support</button>
+        Having trouble? <button onClick={() => toast.info("Support contact info here")} className="underline hover:text-primary transition-colors">Contact support</button>
       </p>
     </motion.div>
   );

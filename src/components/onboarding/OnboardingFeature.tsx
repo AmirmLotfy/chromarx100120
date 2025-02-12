@@ -38,11 +38,11 @@ const OnboardingFeature = ({ onNext, onBack }: OnboardingFeatureProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
+      className="space-y-8 px-4"
     >
       <div className="text-center space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Key Features</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Key Features</h2>
+        <p className="text-muted-foreground text-lg">
           Discover what makes ChroMarx special
         </p>
       </div>
@@ -51,25 +51,37 @@ const OnboardingFeature = ({ onNext, onBack }: OnboardingFeatureProps) => {
         {features.map((feature, index) => {
           const Icon = feature.icon;
           return (
-            <Card key={index} className="p-4 space-y-2 hover:shadow-md transition-shadow">
-              <div className="flex items-center space-x-2">
-                <Icon className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">{feature.title}</h3>
+            <Card 
+              key={index} 
+              className="p-6 space-y-3 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.99]"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-full bg-primary/10">
+                  <Icon className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold text-lg">{feature.title}</h3>
               </div>
-              <p className="text-sm text-muted-foreground">{feature.description}</p>
+              <p className="text-muted-foreground">{feature.description}</p>
             </Card>
           );
         })}
       </div>
 
-      <div className="flex justify-between pt-4">
-        <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
+      <div className="flex justify-between items-center pt-4">
+        <Button 
+          variant="ghost" 
+          onClick={onBack}
+          className="h-12 px-6 text-base hover:bg-background/80"
+        >
+          <ArrowLeft className="mr-2 h-5 w-5" />
           Back
         </Button>
-        <Button onClick={onNext}>
+        <Button 
+          onClick={onNext}
+          className="h-12 px-6 text-base rounded-full shadow-md hover:shadow-lg active:shadow-sm transition-all duration-300"
+        >
           Continue
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </motion.div>
