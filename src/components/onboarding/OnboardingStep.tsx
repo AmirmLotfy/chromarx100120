@@ -31,30 +31,30 @@ const OnboardingStep = ({
   className,
 }: OnboardingStepProps) => {
   return (
-    <div className={cn("space-y-6 animate-fade-in", className)}>
-      <div className="space-y-4">
-        <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+    <div className={cn("space-y-8 animate-fade-in px-4 sm:px-6", className)}>
+      <div className="space-y-6">
+        <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center animate-scale-in">
           {typeof Icon === 'string' ? (
-            <img src={Icon} alt="" className="w-8 h-8" />
+            <img src={Icon} alt="" className="w-10 h-10" />
           ) : (
-            <Icon className="w-8 h-8 text-primary" />
+            <Icon className="w-10 h-10 text-primary" />
           )}
         </div>
-        <div className="space-y-2 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-          <p className="text-muted-foreground">{description}</p>
+        <div className="space-y-3 text-center">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">{title}</h2>
+          <p className="text-muted-foreground text-base sm:text-lg max-w-md mx-auto">{description}</p>
         </div>
       </div>
 
-      {content && <div className="py-4">{content}</div>}
-      {children && <div className="py-4">{children}</div>}
+      {content && <div className="py-6">{content}</div>}
+      {children && <div className="py-6">{children}</div>}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:gap-4 justify-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 justify-center">
         {secondaryAction && (
           <Button
             variant="outline"
             onClick={secondaryAction.onClick}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto min-h-[48px] text-base"
           >
             {secondaryAction.label}
           </Button>
@@ -62,7 +62,7 @@ const OnboardingStep = ({
         {primaryAction && (
           <Button
             onClick={primaryAction.onClick}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto min-h-[48px] text-base"
           >
             {primaryAction.label}
           </Button>

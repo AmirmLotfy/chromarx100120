@@ -1,19 +1,36 @@
 
-import { BookMarked, Bookmark, Settings, Zap } from "lucide-react";
+import { BookMarked, Bookmark, Settings, Zap, CreditCard, LogIn } from "lucide-react";
 import { OnboardingStepConfig } from "../types/onboarding";
+import PlanCard from "../../subscription/PlanCard";
+import { subscriptionPlans } from "@/config/subscriptionPlans";
 
 const createOnboardingSteps = (
   setCurrentStep: (step: number) => void,
   handleImportBookmarks: () => Promise<void>,
-  handleComplete: () => void
+  handleComplete: () => void,
+  handleSignIn: () => Promise<void>,
+  handleSubscribe: (planId: string) => Promise<void>
 ): OnboardingStepConfig[] => [
   {
     title: "Welcome to ChroMarx",
-    description: "Your all-in-one browser productivity companion. Let's get you started!",
+    description: "Your Gemini-Powered Bookmark Manager – Organize, Optimize, Excel!",
     icon: "/lovable-uploads/cab9ee44-1599-487e-86b9-4c7b064cf78e.png",
     primaryAction: {
       label: "Get Started",
       onClick: () => setCurrentStep(2),
+    },
+  },
+  {
+    title: "Sign in with Google",
+    description: "Access your bookmarks across devices and unlock personalized features",
+    icon: LogIn,
+    primaryAction: {
+      label: "Sign in with Google",
+      onClick: handleSignIn,
+    },
+    secondaryAction: {
+      label: "Skip for now",
+      onClick: () => setCurrentStep(3),
     },
   },
   {
@@ -26,7 +43,7 @@ const createOnboardingSteps = (
     },
     secondaryAction: {
       label: "Skip for now",
-      onClick: () => setCurrentStep(3),
+      onClick: () => setCurrentStep(4),
     },
   },
   {
@@ -34,37 +51,52 @@ const createOnboardingSteps = (
     description: "Discover what makes ChroMarx special",
     icon: Zap,
     content: (
-      <div className="space-y-4 my-4">
-        <div className="flex items-start space-x-3">
-          <Bookmark className="w-5 h-5 text-primary mt-1" />
+      <div className="space-y-6 my-4">
+        <div className="flex items-start space-x-4">
+          <Bookmark className="w-6 h-6 text-primary mt-1" />
           <div>
-            <h3 className="font-medium">Smart Bookmarking</h3>
-            <p className="text-sm text-muted-foreground">Organize bookmarks with AI-powered categorization</p>
+            <h3 className="font-medium text-lg">Smart Bookmarking</h3>
+            <p className="text-muted-foreground">Organize bookmarks with AI-powered categorization</p>
           </div>
         </div>
-        <div className="flex items-start space-x-3">
-          <Settings className="w-5 h-5 text-primary mt-1" />
+        <div className="flex items-start space-x-4">
+          <Settings className="w-6 h-6 text-primary mt-1" />
           <div>
-            <h3 className="font-medium">Customizable Workspace</h3>
-            <p className="text-sm text-muted-foreground">Personalize your experience with themes and layouts</p>
+            <h3 className="font-medium text-lg">Customizable Workspace</h3>
+            <p className="text-muted-foreground">Personalize your experience with themes and layouts</p>
           </div>
         </div>
       </div>
     ),
     primaryAction: {
       label: "Next",
-      onClick: () => setCurrentStep(4),
+      onClick: () => setCurrentStep(5),
     },
   },
   {
-    title: "You're All Set!",
-    description: "Start exploring ChroMarx's powerful features",
-    icon: "/lovable-uploads/cab9ee44-1599-487e-86b9-4c7b064cf78e.png",
+    title: "Choose Your Plan",
+    description: "Select a plan that fits your needs",
+    icon: CreditCard,
+    content: (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {subscriptionPlans.map((plan) => (
+          <PlanCard 
+            key={plan.id}
+            {...plan}
+            onSubscribe={() => handleSubscribe(plan.id)}
+          />
+        ))}
+      </div>
+    ),
     primaryAction: {
-      label: "Get Started",
+      label: "Complete Setup",
       onClick: handleComplete,
     },
-  },
+    secondaryAction: {
+      label: "Skip for now",
+      onClick: handleComplete,
+    },
+  }
 ];
 
 export default createOnboardingSteps;
