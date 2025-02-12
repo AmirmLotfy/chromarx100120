@@ -10,7 +10,7 @@ export class StorageService {
 
   private constructor() {
     // Check if we're running in a Chrome extension context
-    this.isExtension = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
+    this.isExtension = typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
   }
 
   static getInstance(): StorageService {
