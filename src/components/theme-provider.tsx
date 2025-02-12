@@ -1,9 +1,11 @@
+
 "use client"
 
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { type ThemeProviderProps } from "next-themes/dist/types"
 import { useSettings } from "@/stores/settingsStore"
+import { Toaster } from "sonner"
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const { colorScheme } = useSettings();
@@ -48,6 +50,25 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       enableSystem
     >
       {children}
+      <Toaster
+        closeButton
+        richColors
+        theme={currentTheme as "light" | "dark" | "system"}
+        className="theme-aware-toaster"
+        toastOptions={{
+          unstyled: false,
+          classNames: {
+            toast: "group toast-theme-aware",
+            title: "font-medium text-foreground",
+            description: "text-muted-foreground",
+            error: "bg-destructive text-destructive-foreground",
+            success: "bg-primary text-primary-foreground",
+            warning: "bg-orange-500 text-white",
+            info: "bg-blue-500 text-white",
+          },
+          duration: 3000,
+        }}
+      />
     </NextThemesProvider>
   );
 }
