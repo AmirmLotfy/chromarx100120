@@ -32,8 +32,7 @@ export const getCurrentUser = async (): Promise<ChromeUser | null> => {
       scopes: [
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile'
-      ],
-      enableGranularPermissions: true // Enable granular permissions for better UX
+      ]
     });
     
     if (!authResult?.token) {
