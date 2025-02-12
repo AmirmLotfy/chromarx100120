@@ -5,8 +5,8 @@ import { Button } from "../ui/button";
 
 const OnboardingContainer = ({ children, currentStep, totalSteps, onClose }: OnboardingContainerProps) => {
   return (
-    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-start md:items-center justify-center overflow-hidden">
-      <div className="relative bg-card w-full max-w-3xl h-[100vh] md:h-auto md:max-h-[90vh] md:rounded-xl border shadow-lg flex flex-col">
+    <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center overflow-y-auto">
+      <div className="relative bg-card w-full max-w-3xl min-h-[500px] md:min-h-0 md:max-h-[90vh] md:rounded-xl border shadow-lg flex flex-col my-4 md:my-0">
         <Button
           variant="ghost"
           size="icon"
@@ -17,7 +17,7 @@ const OnboardingContainer = ({ children, currentStep, totalSteps, onClose }: Onb
           <span className="sr-only">Close</span>
         </Button>
         
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 md:p-8">
           {children}
         </div>
       </div>
