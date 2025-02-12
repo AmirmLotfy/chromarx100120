@@ -1,6 +1,6 @@
 
 import { StorageService } from '../storageService';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('StorageService', () => {
   let storageService: StorageService;
@@ -26,7 +26,7 @@ describe('StorageService', () => {
 
     it('should retrieve value from storage if not in cache', async () => {
       const mockData = { testKey: 'data' };
-      (chrome.storage.sync.get as jest.Mock).mockResolvedValueOnce(mockData);
+      (chrome.storage.sync.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockData);
 
       const result = await storageService.get('testKey');
       expect(result).toBe('data');
@@ -49,7 +49,7 @@ describe('StorageService', () => {
       const initial = { name: 'test', value: 1 };
       const update = { value: 2 };
       
-      (chrome.storage.sync.get as jest.Mock).mockResolvedValueOnce({ testKey: initial });
+      (chrome.storage.sync.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ testKey: initial });
 
       await storageService.update('testKey', update);
 
