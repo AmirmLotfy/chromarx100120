@@ -2,6 +2,7 @@
 import { Message } from "@/types/chat";
 import { ScrollArea } from "./ui/scroll-area";
 import { ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -9,6 +10,15 @@ interface ChatMessagesProps {
 }
 
 const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
+  const getMessageClassName = (message: Message) => {
+    return cn(
+      "max-w-[85%] space-y-2",
+      message.sender === "user"
+        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5"
+        : "bg-muted text-muted-foreground rounded-2xl rounded-tl-sm px-4 py-2.5"
+    );
+  };
+
   return (
     <ScrollArea className="flex-1 p-4 space-y-4">
       {messages.length === 0 && (
@@ -21,17 +31,12 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
       {messages.map((message) => (
         <div
           key={message.id}
-          className={`flex ${
+          className={cn(
+            "flex",
             message.sender === "user" ? "justify-end" : "justify-start"
-          }`}
+          )}
         >
-          <div
-            className={`max-w-[85%] space-y-2 ${
-              message.sender === "user"
-                ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5"
-                : "bg-muted text-muted-foreground rounded-2xl rounded-tl-sm px-4 py-2.5"
-            }`}
-          >
+          <div className={getMessageClassName(message)}>
             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
               {message.content}
             </p>
