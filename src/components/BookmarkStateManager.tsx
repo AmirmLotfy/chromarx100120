@@ -6,6 +6,8 @@ import { dummyBookmarks } from "@/utils/dummyBookmarks";
 import { fetchPageContent } from "@/utils/contentExtractor";
 import { useLanguage } from "@/stores/languageStore";
 import { chromeDb } from "@/lib/chrome-storage";
+import { auth } from "@/lib/chrome-utils";
+import { useNavigate } from "react-router-dom";
 
 const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
@@ -17,9 +19,11 @@ export const useBookmarkState = () => {
   const [newBookmarks, setNewBookmarks] = useState<ChromeBookmark[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBookmarks, setSelectedBookmarks] = useState<ChromeBookmark[]>([]);
   const { currentLanguage } = useLanguage();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState("");
+  const navigate = useNavigate();
 
   const getCachedBookmarks = async () => {
     try {
@@ -138,7 +142,7 @@ export const useBookmarkState = () => {
 
   const loadFreshBookmarks = async () => {
     if (chrome.bookmarks) {
-      const results = await chrome.bookmarks.getRecent(1000); // Increased limit
+      const results = await chrome.bookmarks.getRecent(1000);
       const previousCount = bookmarks.length;
       
       const processed = await processChromeBookmarks(results);
@@ -226,7 +230,11 @@ export const useBookmarkState = () => {
         })
       );
 
-      onUpdateCategories(categorizedBookmarks);
+      setBookmarks(prevBookmarks => 
+        prevBookmarks.map(bookmark => 
+          categorizedBookmarks.find(cb => cb.id === bookmark.id) || bookmark
+        )
+      );
       toast.success("Categories suggested and saved successfully!");
     } catch (error) {
       console.error("Failed to suggest categories:", error);
@@ -272,5 +280,7 @@ export const useBookmarkState = () => {
     isProcessing,
     processingMessage,
     handleSuggestCategories,
+    selectedBookmarks,
+    setSelectedBookmarks,
   };
 };
