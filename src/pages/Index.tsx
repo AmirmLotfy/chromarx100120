@@ -11,7 +11,7 @@ import { auth } from "@/lib/chrome-utils";
 import { toast } from "sonner";
 
 const Index = () => {
-  const { currentPlan } = useSubscription();
+  const { currentPlan, setSubscriptionPlan } = useSubscription();
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
@@ -29,9 +29,11 @@ const Index = () => {
 
   const handleSignIn = async () => {
     try {
-      await auth.signIn();
-      toast.success("Successfully signed in!");
-      setCurrentStep(3);
+      const user = await auth.signIn();
+      if (user) {
+        toast.success("Successfully signed in!");
+        setCurrentStep(3);
+      }
     } catch (error) {
       console.error("Sign in error:", error);
       toast.error("Failed to sign in with Google");
@@ -40,7 +42,9 @@ const Index = () => {
 
   const handleImportBookmarks = async () => {
     try {
-      // Implement bookmark import logic
+      const bookmarks = await chrome.bookmarks.getTree();
+      // Process and store bookmarks
+      await chrome.storage.sync.set({ imported_bookmarks: bookmarks });
       toast.success("Bookmarks imported successfully!");
       setCurrentStep(4);
     } catch (error) {
@@ -51,7 +55,7 @@ const Index = () => {
 
   const handleSubscribe = async (planId: string) => {
     try {
-      // Implement subscription logic
+      await setSubscriptionPlan(planId);
       toast.success("Subscription updated successfully!");
       handleComplete();
     } catch (error) {
@@ -59,6 +63,16 @@ const Index = () => {
       toast.error("Failed to update subscription");
     }
   };
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const completed = await chrome.storage.sync.get('onboarding_completed');
+      if (completed.onboarding_completed) {
+        setShowOnboarding(false);
+      }
+    };
+    checkOnboarding();
+  }, []);
 
   const onboardingSteps = createOnboardingSteps(
     setCurrentStep,

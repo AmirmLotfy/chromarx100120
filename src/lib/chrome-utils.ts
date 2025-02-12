@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 
 export interface ChromeUser {
@@ -103,11 +104,11 @@ export const auth = {
       const data = await response.json();
       const user: ChromeUser = {
         id: data.sub,
-        uid: data.sub, // Set uid same as id for compatibility
+        uid: data.sub,
         email: data.email,
         displayName: data.name,
         photoURL: data.picture,
-        getIdToken: async () => token.token // Added getIdToken method
+        getIdToken: async () => token.token
       };
 
       await storage.set('currentUser', user);
@@ -127,30 +128,6 @@ export const auth = {
       await storage.remove('currentUser');
     } catch (error) {
       console.error('Error signing out:', error);
-      throw error;
-    }
-  }
-};
-
-// Chrome storage wrapper for subscription data
-export const chromeStorage = {
-  async getSubscriptionData(userId: string) {
-    try {
-      const { subscriptions } = await chrome.storage.sync.get('subscriptions');
-      return subscriptions?.[userId] || null;
-    } catch (error) {
-      console.error('Error getting subscription data:', error);
-      return null;
-    }
-  },
-
-  async setSubscriptionData(userId: string, data: any) {
-    try {
-      const { subscriptions = {} } = await chrome.storage.sync.get('subscriptions');
-      subscriptions[userId] = data;
-      await chrome.storage.sync.set({ subscriptions });
-    } catch (error) {
-      console.error('Error setting subscription data:', error);
       throw error;
     }
   }
