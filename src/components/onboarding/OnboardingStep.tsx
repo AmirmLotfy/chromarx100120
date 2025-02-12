@@ -11,10 +11,6 @@ interface OnboardingStepProps {
     label: string;
     onClick: () => void;
   };
-  secondaryAction?: {
-    label: string;
-    onClick: () => void;
-  };
   content?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -25,7 +21,6 @@ const OnboardingStep = ({
   description,
   icon: Icon,
   primaryAction,
-  secondaryAction,
   content,
   children,
   className,
@@ -62,25 +57,16 @@ const OnboardingStep = ({
         </div>
       )}
 
-      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 justify-center pt-4">
-        {secondaryAction && (
-          <Button
-            variant="outline"
-            onClick={secondaryAction.onClick}
-            className="w-full sm:w-auto h-11 text-base"
-          >
-            {secondaryAction.label}
-          </Button>
-        )}
-        {primaryAction && (
+      {primaryAction && (
+        <div className="flex justify-center pt-4">
           <Button
             onClick={primaryAction.onClick}
             className="w-full sm:w-auto h-11 text-base"
           >
             {primaryAction.label}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
