@@ -9,6 +9,7 @@ import OnboardingContent from "@/components/onboarding/OnboardingContent";
 import createOnboardingSteps from "@/components/onboarding/config/onboardingSteps";
 import { auth } from "@/lib/chrome-utils";
 import { toast } from "sonner";
+import { storage } from "@/services/storageService";
 
 const Index = () => {
   const { currentPlan, setSubscriptionPlan } = useSubscription();
@@ -18,7 +19,7 @@ const Index = () => {
 
   const handleComplete = async () => {
     try {
-      await chrome.storage.sync.set({ onboarding_completed: true });
+      await storage.set('onboarding_completed', true);
       setShowOnboarding(false);
       toast.success("Welcome to ChroMarx!");
     } catch (error) {
@@ -42,10 +43,14 @@ const Index = () => {
 
   const handleImportBookmarks = async () => {
     try {
-      const bookmarks = await chrome.bookmarks.getTree();
-      await chrome.storage.sync.set({ imported_bookmarks: bookmarks });
-      toast.success("Bookmarks imported successfully!");
-      setCurrentStep(4);
+      if (typeof chrome !== 'undefined' && chrome.bookmarks) {
+        const bookmarks = await chrome.bookmarks.getTree();
+        await storage.set('imported_bookmarks', bookmarks);
+        toast.success("Bookmarks imported successfully!");
+        setCurrentStep(4);
+      } else {
+        toast.error("Chrome bookmarks API not available");
+      }
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Failed to import bookmarks");
@@ -65,9 +70,13 @@ const Index = () => {
 
   useEffect(() => {
     const checkOnboarding = async () => {
-      const completed = await chrome.storage.sync.get('onboarding_completed');
-      if (completed.onboarding_completed) {
-        setShowOnboarding(false);
+      try {
+        const completed = await storage.get<boolean>('onboarding_completed');
+        if (completed) {
+          setShowOnboarding(false);
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
       }
     };
     checkOnboarding();
