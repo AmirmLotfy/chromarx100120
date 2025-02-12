@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { analyzeSentiment, summarizeContent } from "@/utils/geminiUtils";
 import { useLanguage } from "@/stores/languageStore";
+import emojiRegex from "emoji-regex";
 
 interface NoteEditorProps {
   note?: Note;
@@ -32,17 +33,71 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
     };
   }, [recognition]);
 
+  const preprocessContent = (text: string) => {
+    // Extract emojis for additional context
+    const emojis = text.match(emojiRegex()) || [];
+    const emojiContext = emojis.length > 0 ? `Emojis used: ${emojis.join(" ")}. ` : "";
+
+    // Clean text for analysis while preserving emojis
+    const cleanedText = text
+      .replace(/[^\p{L}\p{N}\p{P}\p{Z}\p{Emoji}]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      cleanedText,
+      emojiContext,
+      hasEmojis: emojis.length > 0
+    };
+  };
+
   const analyzeNote = async (noteContent: string) => {
     try {
-      const [sentiment, summary] = await Promise.all([
-        analyzeSentiment(noteContent, currentLanguage.code),
-        summarizeContent(noteContent, currentLanguage.code)
+      const { cleanedText, emojiContext, hasEmojis } = preprocessContent(noteContent);
+      console.log("Analyzing note with language:", currentLanguage.code);
+      console.log("Content has emojis:", hasEmojis);
+
+      const analysisPrompt = `
+Language: ${currentLanguage.code}
+Content: ${cleanedText}
+${emojiContext}
+Please analyze the sentiment considering:
+1. The overall tone and emotion
+2. Cultural context of the language
+3. Emoji usage if present
+4. Contextual nuances
+      `.trim();
+
+      const [sentimentResult, summary] = await Promise.all([
+        analyzeSentiment(analysisPrompt, currentLanguage.code),
+        summarizeContent(cleanedText, currentLanguage.code)
       ]);
 
-      return { sentiment, summary };
+      // Extract sentiment details
+      const [sentiment, score, confidence, dominantEmotion] = sentimentResult.split('|');
+      
+      return {
+        sentiment: sentiment as NoteSentiment,
+        sentimentDetails: {
+          score: parseFloat(score),
+          confidence: parseFloat(confidence),
+          dominantEmotion,
+          language: currentLanguage.code
+        },
+        summary
+      };
     } catch (error) {
       console.error("Error analyzing note:", error);
-      return { sentiment: 'neutral' as const, summary: '' };
+      toast.error(`Failed to analyze note in ${currentLanguage.name}`);
+      return {
+        sentiment: 'neutral' as const,
+        sentimentDetails: {
+          score: 0,
+          confidence: 0,
+          language: currentLanguage.code
+        },
+        summary: ''
+      };
     }
   };
 
@@ -66,8 +121,8 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
       toast.success("Note saved successfully");
       onClose();
     } catch (error) {
-      toast.error("Failed to save note");
       console.error("Error saving note:", error);
+      toast.error("Failed to save note");
     } finally {
       setIsProcessing(false);
     }
@@ -80,6 +135,7 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognition.lang = currentLanguage.code; // Set recognition language
 
         recognition.onresult = (event: any) => {
           const transcript = Array.from(event.results)
@@ -90,14 +146,14 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
 
         recognition.onerror = (event: any) => {
           console.error("Speech recognition error:", event.error);
-          toast.error("Error with voice recognition");
+          toast.error(`Error with voice recognition in ${currentLanguage.name}`);
           setIsRecording(false);
         };
 
         recognition.start();
         setRecognition(recognition);
         setIsRecording(true);
-        toast.success("Voice recording started");
+        toast.success(`Voice recording started in ${currentLanguage.name}`);
       } catch (error) {
         console.error("Speech recognition not supported:", error);
         toast.error("Voice recognition not supported in this browser");
@@ -124,7 +180,7 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
           </div>
 
           <Input
-            placeholder="Note title"
+            placeholder={`Note title (${currentLanguage.name})`}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full"
@@ -132,10 +188,11 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
 
           <div className="relative">
             <Textarea
-              placeholder="Start writing your note..."
+              placeholder={`Start writing your note in ${currentLanguage.name}...`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[200px] w-full resize-none pr-10"
+              dir={currentLanguage.code === 'ar' ? 'rtl' : 'ltr'} // RTL support for Arabic
             />
             <Button
               variant="ghost"
@@ -158,7 +215,7 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
               {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Analyzing...
                 </>
               ) : (
                 <>
