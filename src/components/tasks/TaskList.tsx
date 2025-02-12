@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Timer, Edit2, Trash2, CheckCircle } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface TaskListProps {
   tasks: Task[];
@@ -135,9 +136,9 @@ export const TaskList = ({
 
                 <Progress 
                   value={task.progress} 
-                  className="h-2"
-                  indicatorClassName={cn(
-                    task.status === "completed" && "bg-primary"
+                  className={cn(
+                    "h-2",
+                    task.status === "completed" ? "bg-primary" : "bg-secondary"
                   )}
                 />
               </div>
