@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
@@ -19,6 +18,8 @@ export const useBookmarkState = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const { currentLanguage } = useLanguage();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
 
   const getCachedBookmarks = async () => {
     try {
@@ -182,6 +183,60 @@ export const useBookmarkState = () => {
     }
   };
 
+  const handleSuggestCategories = async () => {
+    try {
+      // Check authentication first
+      const user = await auth.getCurrentUser();
+      if (!user) {
+        toast.error("Please sign in to use AI features");
+        navigate("/");
+        return;
+      }
+
+      if (selectedBookmarks.length === 0) {
+        toast.error("Please select bookmarks to categorize");
+        return;
+      }
+
+      setIsProcessing(true);
+      setProcessingMessage("Suggesting categories...");
+      
+      const categorizedBookmarks = await Promise.all(
+        selectedBookmarks.map(async (bookmark) => {
+          try {
+            console.log(`Categorizing bookmark: ${bookmark.title}`);
+            const content = await fetchPageContent(bookmark.url || "");
+            const category = await suggestBookmarkCategory(
+              bookmark.title,
+              bookmark.url || "",
+              content,
+              currentLanguage.code
+            );
+            console.log(`Category suggested for ${bookmark.title}:`, category);
+            
+            return {
+              ...bookmark,
+              category,
+            };
+          } catch (error) {
+            console.error(`Error categorizing bookmark ${bookmark.title}:`, error);
+            toast.error(`Failed to categorize ${bookmark.title}`);
+            return bookmark;
+          }
+        })
+      );
+
+      onUpdateCategories(categorizedBookmarks);
+      toast.success("Categories suggested and saved successfully!");
+    } catch (error) {
+      console.error("Failed to suggest categories:", error);
+      toast.error("Failed to suggest categories");
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
+    }
+  };
+
   useEffect(() => {
     loadBookmarks();
     if (chrome.bookmarks) {
@@ -214,5 +269,8 @@ export const useBookmarkState = () => {
     suggestions,
     searchQuery,
     handleSearch,
+    isProcessing,
+    processingMessage,
+    handleSuggestCategories,
   };
 };
