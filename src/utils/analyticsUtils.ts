@@ -1,37 +1,68 @@
+
 import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
+import { chromeDb } from "@/lib/chrome-storage";
 
 export const getAnalyticsData = async (): Promise<AnalyticsData> => {
   try {
     console.log("Fetching analytics data...");
+    
+    // Get browsing history and current tabs
     const [history, tabs] = await Promise.all([
-      chrome.history.search({ text: "", maxResults: 10000, startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 }),
+      chrome.history.search({ 
+        text: "", 
+        maxResults: 10000, 
+        startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 // Last 30 days
+      }),
       chrome.tabs.query({})
     ]);
 
-    const visitData: VisitData[] = history.map(item => ({
-      url: item.url || "",
-      domain: extractDomain(item.url || ""),
-      visitCount: item.visitCount || 0,
-      timeSpent: 0,
-      lastVisitTime: item.lastVisitTime || 0
-    }));
+    // Get browsing time data from chrome.history
+    const visitTimeData = await Promise.all(
+      history.map(async item => {
+        if (!item.url) return null;
+        const visits = await chrome.history.getVisits({ url: item.url });
+        return {
+          url: item.url,
+          domain: extractDomain(item.url),
+          visitCount: visits.length,
+          timeSpent: calculateTimeSpent(visits),
+          lastVisitTime: item.lastVisitTime || 0
+        };
+      })
+    );
 
-    const domainStats = calculateDomainStats(visitData);
-    const timeDistribution = calculateTimeDistribution(visitData);
-    const productivityScore = calculateProductivityScore(visitData, tabs);
-    const productivityTrends = await calculateProductivityTrends(visitData);
+    const visitData: VisitData[] = visitTimeData.filter((item): item is VisitData => item !== null);
+
+    // Store analytics data for persistence
+    await chromeDb.set('analytics_data', {
+      timestamp: Date.now(),
+      visitData
+    });
 
     return {
-      productivityScore,
-      timeDistribution,
-      domainStats,
-      productivityTrends
+      productivityScore: calculateProductivityScore(visitData, tabs),
+      timeDistribution: calculateTimeDistribution(visitData),
+      domainStats: calculateDomainStats(visitData),
+      productivityTrends: await calculateProductivityTrends(visitData)
     };
   } catch (error) {
     console.error("Error getting analytics data:", error);
     throw error;
   }
+};
+
+const calculateTimeSpent = (visits: chrome.history.VisitItem[]): number => {
+  let totalTime = 0;
+  
+  for (let i = 0; i < visits.length - 1; i++) {
+    const timeDiff = visits[i + 1].visitTime - visits[i].visitTime;
+    if (timeDiff < 30 * 60 * 1000) { // Less than 30 minutes
+      totalTime += timeDiff;
+    }
+  }
+  
+  return totalTime;
 };
 
 const calculateDomainStats = (visitData: VisitData[]): DomainStat[] => {
@@ -104,18 +135,37 @@ const calculateProductivityTrends = async (visitData: VisitData[]): Promise<Prod
 };
 
 const determineCategory = (domain: string): string => {
-  const categories: Record<string, string[]> = {
-    'Productivity': ['docs.google.com', 'github.com', 'stackoverflow.com'],
-    'Social': ['facebook.com', 'twitter.com', 'instagram.com'],
-    'Entertainment': ['youtube.com', 'netflix.com', 'spotify.com'],
-    'News': ['news.google.com', 'reuters.com', 'bbc.com']
-  };
+  const productivityDomains = [
+    'github.com', 'stackoverflow.com', 'docs.google.com', 'gitlab.com',
+    'bitbucket.org', 'atlassian.com', 'notion.so', 'trello.com',
+    'asana.com', 'monday.com', 'linear.app', 'figma.com'
+  ];
 
-  for (const [category, domains] of Object.entries(categories)) {
-    if (domains.some(d => domain.includes(d))) {
-      return category;
-    }
-  }
+  const learningDomains = [
+    'coursera.org', 'udemy.com', 'edx.org', 'khan-academy.org',
+    'pluralsight.com', 'egghead.io', 'frontendmasters.com'
+  ];
+
+  const socialDomains = [
+    'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com',
+    'reddit.com', 'tiktok.com', 'snapchat.com'
+  ];
+
+  const entertainmentDomains = [
+    'youtube.com', 'netflix.com', 'spotify.com', 'twitch.tv',
+    'disney.com', 'hulu.com', 'hbomax.com'
+  ];
+
+  const newsDomains = [
+    'news.google.com', 'reuters.com', 'bloomberg.com', 'bbc.com',
+    'cnn.com', 'nytimes.com', 'wsj.com'
+  ];
+
+  if (productivityDomains.some(d => domain.includes(d))) return 'Productivity';
+  if (learningDomains.some(d => domain.includes(d))) return 'Learning';
+  if (socialDomains.some(d => domain.includes(d))) return 'Social';
+  if (entertainmentDomains.some(d => domain.includes(d))) return 'Entertainment';
+  if (newsDomains.some(d => domain.includes(d))) return 'News';
 
   return 'Other';
 };
@@ -141,7 +191,7 @@ const calculateDailyProductivityScore = (dayData: VisitData[]): number => {
   if (dayData.length === 0) return 0;
   
   const productiveRatio = dayData.filter(visit => 
-    determineCategory(visit.domain) === 'Productivity'
+    ['Productivity', 'Learning'].includes(determineCategory(visit.domain))
   ).length / dayData.length;
 
   return Math.round(productiveRatio * 100);
