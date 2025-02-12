@@ -17,6 +17,9 @@ export interface OnboardingStepConfig {
 
 export interface OnboardingContainerProps {
   children: React.ReactNode;
+  currentStep: number;
+  totalSteps: number;
+  onClose: () => void;
 }
 
 export interface OnboardingContentProps {
