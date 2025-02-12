@@ -1,3 +1,4 @@
+
 import { chromeDb } from '@/lib/chrome-storage';
 
 export const savePrivacySettings = async (userId: string, settings: any) => {

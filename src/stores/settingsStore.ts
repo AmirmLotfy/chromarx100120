@@ -1,6 +1,7 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { savePrivacySettings } from '@/services/privacyService';
+import { savePrivacySettings } from '@/services/preferencesService';
 
 interface SettingsState {
   theme: 'light' | 'dark' | 'system';
