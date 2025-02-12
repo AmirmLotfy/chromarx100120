@@ -163,8 +163,7 @@ const PlanCard = ({
                       brand_name: "ChroMarx",
                       landing_page: "BILLING",
                       payment_method: {
-                        payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED",
-                        payer_selected: "PAYPAL"
+                        payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
                       }
                     }
                   });
