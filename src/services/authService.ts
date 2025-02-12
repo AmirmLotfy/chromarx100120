@@ -25,14 +25,15 @@ export const getCurrentUser = async (): Promise<ChromeUser | null> => {
     // Clear any existing cached tokens first
     await chrome.identity.clearAllCachedAuthTokens();
     
-    // Get auth token without interactive prompt
+    // Get auth token with proper error handling
     console.log('Requesting auth token...');
     const authResult = await chrome.identity.getAuthToken({ 
       interactive: false,
       scopes: [
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile'
-      ]
+      ],
+      enableGranularPermissions: true // Enable granular permissions for better UX
     });
     
     if (!authResult?.token) {
@@ -40,7 +41,21 @@ export const getCurrentUser = async (): Promise<ChromeUser | null> => {
       return null;
     }
 
-    console.log('Token received, fetching user info...');
+    // Validate token before use
+    try {
+      console.log('Validating token...');
+      const tokenInfo = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${authResult.token}`);
+      if (!tokenInfo.ok) {
+        console.error('Invalid token, removing from cache');
+        await chrome.identity.removeCachedAuthToken({ token: authResult.token });
+        return null;
+      }
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return null;
+    }
+
+    console.log('Token validated, fetching user info...');
     const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { 
         Authorization: `Bearer ${authResult.token}`,
@@ -73,11 +88,13 @@ export const getCurrentUser = async (): Promise<ChromeUser | null> => {
 
     // Store user data
     await chromeDb.set('user', user);
-    await chromeDb.set('settings', {
-      theme: 'system',
-      notifications: true,
-      summarizationEnabled: true,
-      language: 'en',
+    
+    // Set up identity change listener
+    chrome.identity.onSignInChanged?.addListener((account, signedIn) => {
+      console.log('Sign in state changed:', { account, signedIn });
+      if (!signedIn) {
+        signOut(); // Auto sign out when Chrome session ends
+      }
     });
 
     console.log('User data stored successfully:', user);
