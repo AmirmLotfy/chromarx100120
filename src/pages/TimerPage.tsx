@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { TimerDisplay } from "@/components/timer/TimerDisplay";
@@ -12,6 +13,7 @@ const TimerPage = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(duration * 60);
   const [mode, setMode] = useState<"focus" | "break">("focus");
+  const [taskContext, setTaskContext] = useState<string>("focus and productivity");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,6 +54,9 @@ const TimerPage = () => {
       title: "Timer Complete!",
       description: `Your ${mode} session is complete!`,
     });
+
+    // Automatically switch modes and suggest new duration
+    setMode(prevMode => prevMode === "focus" ? "break" : "focus");
   };
 
   const requestNotificationPermission = async () => {
@@ -100,6 +105,8 @@ const TimerPage = () => {
             setDuration(mins);
             setTimeLeft(mins * 60);
           }}
+          taskContext={taskContext}
+          mode={mode}
         />
 
         <TimerSettings
