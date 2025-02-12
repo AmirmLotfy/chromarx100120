@@ -4,6 +4,7 @@ import { chromeDb } from "@/lib/chrome-storage";
 import { extractDomain } from "@/utils/domainUtils";
 import { fetchPageContent } from "@/utils/contentExtractor";
 import { suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { useLanguage } from "@/stores/languageStore";
 
 interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
   children?: BookmarkNode[];
@@ -60,7 +61,8 @@ export const getCategoryForBookmark = async (
       const suggestedCategory = await suggestBookmarkCategory(
         bookmark.title,
         bookmark.url,
-        content
+        content,
+        'en' // Default to English if language store is not available
       );
 
       if (suggestedCategory) {
