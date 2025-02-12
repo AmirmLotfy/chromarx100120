@@ -9,7 +9,9 @@
     "identity.email",
     "storage",
     "bookmarks",
-    "sidePanel"
+    "sidePanel",
+    "tabs",
+    "unlimitedStorage"
   ],
   "background": {
     "service_worker": "background.js",
@@ -23,11 +25,12 @@
     ]
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval' https://*.paypal.com; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.paypal.com"
   },
   "host_permissions": [
     "https://*.googleapis.com/*",
-    "https://*.google.com/*"
+    "https://*.google.com/*",
+    "https://*.paypal.com/*"
   ],
   "commands": {
     "_execute_action": {
