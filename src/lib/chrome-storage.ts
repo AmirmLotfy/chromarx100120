@@ -1,3 +1,4 @@
+
 import { storage } from '@/services/storageService';
 
 export interface ChromeUser {
@@ -62,13 +63,12 @@ export interface StorageData {
   [key: `bookmark-category-${string}`]: string;
 }
 
-// Storage cache to reduce API calls
-const storageCache = new Map<string, any>();
+type StorageKey = keyof StorageData | string;
 
 export const chromeDb = {
-  get: storage.get.bind(storage),
-  set: storage.set.bind(storage),
-  update: storage.update.bind(storage),
+  get: async <T>(key: StorageKey): Promise<T | null> => storage.get<T>(key),
+  set: async <T>(key: StorageKey, value: T): Promise<void> => storage.set(key, value),
+  update: async <T extends Record<string, any>>(key: StorageKey, value: Partial<T>): Promise<void> => storage.update(key, value),
   remove: storage.remove.bind(storage),
   getBytesInUse: async (): Promise<number> => {
     try {

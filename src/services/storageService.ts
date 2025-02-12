@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 export class StorageService {
   private static instance: StorageService;
-  private cache = new Map<string, any>();
+  private cache = new Map<string, unknown>();
 
   private constructor() {}
 
@@ -19,14 +19,16 @@ export class StorageService {
   async get<T>(key: string): Promise<T | null> {
     try {
       if (this.cache.has(key)) {
-        return this.cache.get(key);
+        return this.cache.get(key) as T;
       }
 
-      const value = await retryWithBackoff(() => chromeDb.get<T>(key));
+      const result = await chrome.storage.sync.get(key);
+      const value = result[key] || null;
+      
       if (value !== null) {
         this.cache.set(key, value);
       }
-      return value;
+      return value as T;
     } catch (error) {
       console.error(`Error reading ${key} from storage:`, error);
       toast.error(`Failed to read ${key} from storage`);
@@ -36,7 +38,7 @@ export class StorageService {
 
   async set<T>(key: string, value: T): Promise<void> {
     try {
-      await retryWithBackoff(() => chromeDb.set(key, value));
+      await chrome.storage.sync.set({ [key]: value });
       this.cache.set(key, value);
     } catch (error) {
       console.error(`Error writing ${key} to storage:`, error);
@@ -45,7 +47,7 @@ export class StorageService {
     }
   }
 
-  async update<T>(key: string, value: Partial<T>): Promise<void> {
+  async update<T extends Record<string, any>>(key: string, value: Partial<T>): Promise<void> {
     try {
       const current = await this.get<T>(key);
       const updated = { ...current, ...value };
@@ -59,7 +61,7 @@ export class StorageService {
 
   async remove(key: string): Promise<void> {
     try {
-      await retryWithBackoff(() => chromeDb.remove(key));
+      await chrome.storage.sync.remove(key);
       this.cache.delete(key);
     } catch (error) {
       console.error(`Error removing ${key} from storage:`, error);
