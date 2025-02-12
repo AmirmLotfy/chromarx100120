@@ -28,10 +28,6 @@ const createOnboardingSteps = (
       label: "Sign in with Google",
       onClick: handleSignIn,
     },
-    secondaryAction: {
-      label: "Skip for now",
-      onClick: () => setCurrentStep(3),
-    },
   },
   {
     title: "Import Your Bookmarks",
@@ -40,10 +36,6 @@ const createOnboardingSteps = (
     primaryAction: {
       label: "Import Bookmarks",
       onClick: handleImportBookmarks,
-    },
-    secondaryAction: {
-      label: "Skip for now",
-      onClick: () => setCurrentStep(4),
     },
   },
   {
@@ -90,10 +82,6 @@ const createOnboardingSteps = (
     ),
     primaryAction: {
       label: "Complete Setup",
-      onClick: handleComplete,
-    },
-    secondaryAction: {
-      label: "Skip for now",
       onClick: handleComplete,
     },
   }

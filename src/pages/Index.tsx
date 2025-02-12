@@ -43,7 +43,6 @@ const Index = () => {
   const handleImportBookmarks = async () => {
     try {
       const bookmarks = await chrome.bookmarks.getTree();
-      // Process and store bookmarks
       await chrome.storage.sync.set({ imported_bookmarks: bookmarks });
       toast.success("Bookmarks imported successfully!");
       setCurrentStep(4);
@@ -97,7 +96,6 @@ const Index = () => {
         <OnboardingContainer
           currentStep={currentStep}
           totalSteps={totalSteps}
-          onClose={handleComplete}
         >
           <OnboardingContent
             currentStep={currentStep}

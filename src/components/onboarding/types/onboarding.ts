@@ -12,14 +12,12 @@ export interface OnboardingStepConfig {
   icon: LucideIcon | string;
   content?: React.ReactNode;
   primaryAction?: OnboardingAction;
-  secondaryAction?: OnboardingAction;
 }
 
 export interface OnboardingContainerProps {
   children: React.ReactNode;
   currentStep: number;
   totalSteps: number;
-  onClose: () => void;
 }
 
 export interface OnboardingContentProps {
