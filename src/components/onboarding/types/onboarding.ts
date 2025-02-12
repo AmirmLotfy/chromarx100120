@@ -27,3 +27,8 @@ export interface OnboardingContentProps {
   totalSteps: number;
   stepData: OnboardingStepConfig;
 }
+
+export interface OnboardingProgressProps {
+  currentStep: number;
+  totalSteps: number;
+}
