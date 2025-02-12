@@ -31,17 +31,23 @@ const NoteGrid = ({
   return (
     <div
       className={cn(
-        "p-2 sm:p-4 transition-all duration-300",
+        "p-2 sm:p-4 will-change-transform",
         view === "grid"
           ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-4"
-          : "flex flex-col space-y-2 sm:space-y-4"
+          : "flex flex-col space-y-2 sm:space-y-4",
+        "motion-reduce:transition-none" // Respect reduced motion preferences
       )}
+      style={{
+        // Force GPU acceleration for smoother transitions
+        transform: "translateZ(0)",
+        backfaceVisibility: "hidden"
+      }}
     >
       {notes.map((note) => (
         <div
           key={note.id}
           className={cn(
-            "transition-all duration-300",
+            "will-change-transform motion-reduce:transition-none",
             view === "list" && "w-full",
             view === "grid" && "h-full"
           )}
@@ -60,7 +66,7 @@ const NoteGrid = ({
       ))}
       {notes.length === 0 && (
         <div className={cn(
-          "col-span-full flex items-center justify-center",
+          "col-span-full flex items-center justify-center motion-reduce:transition-none",
           view === "grid" ? "min-h-[200px]" : "min-h-[100px]"
         )}>
           <p className="text-sm text-muted-foreground">

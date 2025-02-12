@@ -21,8 +21,8 @@ const ViewToggle = ({ view, onViewChange }: ViewToggleProps) => {
         variant={view === "grid" ? "default" : "outline"} 
         size="sm"
         className={cn(
-          "transition-all duration-200",
-          view === "grid" ? "shadow-sm" : "hover:bg-accent"
+          "will-change-transform",
+          view === "grid" ? "shadow-sm" : "hover:bg-accent",
         )}
         aria-label="Grid view"
       >
@@ -36,8 +36,8 @@ const ViewToggle = ({ view, onViewChange }: ViewToggleProps) => {
         variant={view === "list" ? "default" : "outline"} 
         size="sm"
         className={cn(
-          "transition-all duration-200",
-          view === "list" ? "shadow-sm" : "hover:bg-accent"
+          "will-change-transform",
+          view === "list" ? "shadow-sm" : "hover:bg-accent",
         )}
         aria-label="List view"
       >
