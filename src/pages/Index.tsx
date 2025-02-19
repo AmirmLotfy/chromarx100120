@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useElementSelector } from "@/hooks/useElementSelector";
 import Layout from "@/components/Layout";
 import FeatureGrid from "@/components/FeatureGrid";
 import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarousel";
@@ -16,6 +17,14 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
+
+  const handleElementSelected = (element: HTMLElement) => {
+    console.log('Selected element:', element);
+    toast.success("Element selected successfully!");
+    // Add your element handling logic here
+  };
+
+  const { startSelecting } = useElementSelector(handleElementSelected);
 
   const handleComplete = async () => {
     try {
