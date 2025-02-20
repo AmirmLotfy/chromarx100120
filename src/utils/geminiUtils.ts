@@ -1,17 +1,24 @@
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { toast } from "sonner";
 
-const GEMINI_API_KEY = ""; // This will be configured later
-
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const API_BASE_URL = "https://chromarx.it.com/api";
 
 export const summarizeContent = async (content: string): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(content);
-    const response = await result.response;
-    return response.text();
+    const response = await fetch(`${API_BASE_URL}/summarize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to summarize content');
+    }
+    
+    const data = await response.json();
+    return data.summary;
   } catch (error) {
     console.error("Error summarizing content:", error);
     toast.error("Failed to summarize content");
@@ -21,15 +28,20 @@ export const summarizeContent = async (content: string): Promise<string> => {
 
 export const generateCategories = async (bookmarks: any[]): Promise<string[]> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const bookmarkTitles = bookmarks.map(b => b.title).join("\n");
-    const prompt = `Generate relevant categories for these bookmarks:\n${bookmarkTitles}`;
+    const response = await fetch(`${API_BASE_URL}/generate-categories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ bookmarks })
+    });
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const categories = response.text().split(",").map(c => c.trim());
+    if (!response.ok) {
+      throw new Error('Failed to generate categories');
+    }
     
-    return categories;
+    const data = await response.json();
+    return data.categories;
   } catch (error) {
     console.error("Error generating categories:", error);
     toast.error("Failed to generate categories");
@@ -39,12 +51,20 @@ export const generateCategories = async (bookmarks: any[]): Promise<string[]> =>
 
 export const suggestBookmarkCategory = async (title: string, url: string, content: string): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Suggest a category for this bookmark:\nTitle: ${title}\nURL: ${url}\nContent: ${content}`;
+    const response = await fetch(`${API_BASE_URL}/suggest-category`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, url, content })
+    });
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text().trim();
+    if (!response.ok) {
+      throw new Error('Failed to suggest category');
+    }
+    
+    const data = await response.json();
+    return data.category;
   } catch (error) {
     console.error("Error suggesting category:", error);
     toast.error("Failed to suggest category");
@@ -54,12 +74,20 @@ export const suggestBookmarkCategory = async (title: string, url: string, conten
 
 export const summarizeBookmark = async (bookmark: any): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Summarize this bookmark:\nTitle: ${bookmark.title}\nURL: ${bookmark.url}`;
+    const response = await fetch(`${API_BASE_URL}/summarize-bookmark`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ bookmark })
+    });
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    if (!response.ok) {
+      throw new Error('Failed to summarize bookmark');
+    }
+    
+    const data = await response.json();
+    return data.summary;
   } catch (error) {
     console.error("Error summarizing bookmark:", error);
     toast.error("Failed to summarize bookmark");
@@ -69,10 +97,20 @@ export const summarizeBookmark = async (bookmark: any): Promise<string> => {
 
 export const analyzeSentiment = async (content: string): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(`Analyze sentiment: ${content}`);
-    const response = await result.response;
-    return response.text();
+    const response = await fetch(`${API_BASE_URL}/analyze-sentiment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ content })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to analyze sentiment');
+    }
+    
+    const data = await response.json();
+    return data.sentiment;
   } catch (error) {
     console.error("Error analyzing sentiment:", error);
     toast.error("Failed to analyze sentiment");
@@ -87,10 +125,20 @@ export const getGeminiResponse = async (options: {
   contentType?: string;
 }): Promise<{ result: string }> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(options.prompt);
-    const response = await result.response;
-    return { result: response.text() };
+    const response = await fetch(`${API_BASE_URL}/gemini-response`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(options)
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to get AI response');
+    }
+    
+    const data = await response.json();
+    return { result: data.result };
   } catch (error) {
     console.error("Error getting Gemini response:", error);
     toast.error("Failed to get AI response");
@@ -100,10 +148,20 @@ export const getGeminiResponse = async (options: {
 
 export const generateTaskSuggestions = async (taskDetails: string): Promise<string> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(`Suggest improvements for task: ${taskDetails}`);
-    const response = await result.response;
-    return response.text();
+    const response = await fetch(`${API_BASE_URL}/generate-task-suggestions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ taskDetails })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate suggestions');
+    }
+    
+    const data = await response.json();
+    return data.suggestions;
   } catch (error) {
     console.error("Error generating task suggestions:", error);
     toast.error("Failed to generate suggestions");
@@ -113,11 +171,20 @@ export const generateTaskSuggestions = async (taskDetails: string): Promise<stri
 
 export const suggestTimerDuration = async (taskDetails: string): Promise<number> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const result = await model.generateContent(`Suggest duration in minutes for task: ${taskDetails}`);
-    const response = await result.response;
-    const duration = parseInt(response.text(), 10);
-    return isNaN(duration) ? 25 : duration;
+    const response = await fetch(`${API_BASE_URL}/suggest-timer-duration`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ taskDetails })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to suggest duration');
+    }
+    
+    const data = await response.json();
+    return data.duration || 25;
   } catch (error) {
     console.error("Error suggesting timer duration:", error);
     toast.error("Failed to suggest duration");
