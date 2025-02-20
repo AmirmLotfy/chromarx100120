@@ -10,6 +10,9 @@
     "sidePanel",
     "tabs"
   ],
+  "externally_connectable": {
+    "matches": ["https://chromarx.it.com/*"]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
