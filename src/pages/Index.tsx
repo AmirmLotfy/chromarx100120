@@ -8,7 +8,6 @@ import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarous
 import OnboardingContainer from "@/components/onboarding/OnboardingContainer";
 import OnboardingContent from "@/components/onboarding/OnboardingContent";
 import createOnboardingSteps from "@/components/onboarding/config/onboardingSteps";
-import { auth } from "@/lib/chrome-utils";
 import { toast } from "sonner";
 import { storage } from "@/services/storageService";
 
@@ -34,19 +33,6 @@ const Index = () => {
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast.error("Failed to complete setup");
-    }
-  };
-
-  const handleSignIn = async () => {
-    try {
-      const user = await auth.signIn();
-      if (user) {
-        toast.success("Successfully signed in!");
-        setCurrentStep(3);
-      }
-    } catch (error) {
-      console.error("Sign in error:", error);
-      toast.error("Failed to sign in with Google");
     }
   };
 
@@ -95,7 +81,7 @@ const Index = () => {
     setCurrentStep,
     handleImportBookmarks,
     handleComplete,
-    handleSignIn,
+    () => setCurrentStep(3), // Simplified previous handleSignIn
     handleSubscribe
   );
 
