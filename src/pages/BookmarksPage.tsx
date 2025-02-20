@@ -11,19 +11,21 @@ const BookmarksPage = () => {
   const {
     bookmarks,
     setBookmarks,
+    selectedBookmarks,
+    setSelectedBookmarks,
     loading,
-    newBookmarks,
-    loadBookmarks,
-    suggestions,
-    searchQuery,
-    handleSearch,
+    refreshBookmarks
   } = useBookmarkState();
 
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
-  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -64,12 +66,10 @@ const BookmarksPage = () => {
   }, [setBookmarks]);
 
   const handleImport = () => {
-    // This is a placeholder function for now
     toast.info("Import functionality coming soon!");
   };
 
   const handleCreateFolder = () => {
-    // This is a placeholder function for now
     toast.info("Create folder functionality coming soon!");
   };
 
@@ -168,9 +168,9 @@ const BookmarksPage = () => {
           onDelete={handleDelete}
           formatDate={formatDate}
           view={view}
-          onReorder={loadBookmarks}
+          onReorder={refreshBookmarks}
           onBulkDelete={handleDeleteSelected}
-          onRefresh={loadBookmarks}
+          onRefresh={refreshBookmarks}
           loading={loading}
           filteredBookmarks={filteredBookmarks}
           onUpdateCategories={handleUpdateCategories}

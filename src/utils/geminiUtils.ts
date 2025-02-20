@@ -1,3 +1,4 @@
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { toast } from "sonner";
 
@@ -36,61 +37,90 @@ export const generateCategories = async (bookmarks: any[]): Promise<string[]> =>
   }
 };
 
-export const suggestOrganization = async (bookmarks: any[]): Promise<{ category: string; bookmarkIds: string[] }[]> => {
+export const suggestBookmarkCategory = async (title: string, url: string, content: string): Promise<string> => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const bookmarkData = bookmarks.map(b => ({
-      id: b.id,
-      title: b.title,
-      url: b.url
-    }));
-    
-    const prompt = `Suggest organization for these bookmarks:\n${JSON.stringify(bookmarkData)}`;
+    const prompt = `Suggest a category for this bookmark:\nTitle: ${title}\nURL: ${url}\nContent: ${content}`;
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const suggestions = JSON.parse(response.text());
-    
-    return suggestions;
+    return response.text().trim();
   } catch (error) {
-    console.error("Error suggesting organization:", error);
-    toast.error("Failed to suggest organization");
-    return [];
+    console.error("Error suggesting category:", error);
+    toast.error("Failed to suggest category");
+    return "uncategorized";
   }
 };
 
-export const generateSummary = async (url: string, content: string): Promise<string> => {
+export const summarizeBookmark = async (bookmark: any): Promise<string> => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Summarize this webpage content from ${url}:\n${content}`;
+    const prompt = `Summarize this bookmark:\nTitle: ${bookmark.title}\nURL: ${bookmark.url}`;
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
   } catch (error) {
-    console.error("Error generating summary:", error);
-    toast.error("Failed to generate summary");
-    return "Unable to generate summary at this time.";
+    console.error("Error summarizing bookmark:", error);
+    toast.error("Failed to summarize bookmark");
+    return "Unable to generate summary.";
   }
 };
 
-export const analyzeBookmarks = async (bookmarks: any[]): Promise<any> => {
+export const analyzeSentiment = async (content: string): Promise<string> => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const bookmarkData = bookmarks.map(b => ({
-      title: b.title,
-      url: b.url,
-      dateAdded: b.dateAdded
-    }));
-    
-    const prompt = `Analyze these bookmarks and provide insights:\n${JSON.stringify(bookmarkData)}`;
-    
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(`Analyze sentiment: ${content}`);
     const response = await result.response;
-    return JSON.parse(response.text());
+    return response.text();
   } catch (error) {
-    console.error("Error analyzing bookmarks:", error);
-    toast.error("Failed to analyze bookmarks");
-    return null;
+    console.error("Error analyzing sentiment:", error);
+    toast.error("Failed to analyze sentiment");
+    return "neutral";
+  }
+};
+
+export const getGeminiResponse = async (options: { 
+  prompt: string;
+  type: string;
+  language: string;
+  contentType?: string;
+}): Promise<{ result: string }> => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(options.prompt);
+    const response = await result.response;
+    return { result: response.text() };
+  } catch (error) {
+    console.error("Error getting Gemini response:", error);
+    toast.error("Failed to get AI response");
+    return { result: "" };
+  }
+};
+
+export const generateTaskSuggestions = async (taskDetails: string): Promise<string> => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(`Suggest improvements for task: ${taskDetails}`);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Error generating task suggestions:", error);
+    toast.error("Failed to generate suggestions");
+    return "";
+  }
+};
+
+export const suggestTimerDuration = async (taskDetails: string): Promise<number> => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(`Suggest duration in minutes for task: ${taskDetails}`);
+    const response = await result.response;
+    const duration = parseInt(response.text(), 10);
+    return isNaN(duration) ? 25 : duration;
+  } catch (error) {
+    console.error("Error suggesting timer duration:", error);
+    toast.error("Failed to suggest duration");
+    return 25;
   }
 };

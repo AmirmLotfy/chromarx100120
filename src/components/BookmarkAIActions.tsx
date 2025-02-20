@@ -1,6 +1,6 @@
 
 import { Button } from "./ui/button";
-import { Magic, FolderTree } from "lucide-react";
+import { Wand2, FolderTree } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 
@@ -26,7 +26,7 @@ const BookmarkAIActions = ({ selectedBookmarks, onUpdateCategories }: BookmarkAI
         className="h-7 w-7"
         title="AI Categorize"
       >
-        <Magic className="h-3.5 w-3.5" />
+        <Wand2 className="h-3.5 w-3.5" />
       </Button>
       
       <Button
