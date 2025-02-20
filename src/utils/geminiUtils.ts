@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 const API_BASE_URL = "https://chromarx.it.com/api";
@@ -121,8 +120,6 @@ export const analyzeSentiment = async (content: string): Promise<string> => {
 export const getGeminiResponse = async (options: { 
   prompt: string;
   type: string;
-  language: string;
-  contentType?: string;
 }): Promise<{ result: string }> => {
   try {
     const response = await fetch(`${API_BASE_URL}/gemini-response`, {

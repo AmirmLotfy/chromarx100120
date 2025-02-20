@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
-  const [selectedBookmarks, setSelectedBookmarks] = useState<ChromeBookmark[]>([]);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

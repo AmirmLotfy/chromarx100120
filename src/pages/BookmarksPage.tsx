@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -151,8 +152,6 @@ const BookmarksPage = () => {
           onSearchChange={handleSearch}
           onImport={handleImport}
           onCreateFolder={handleCreateFolder}
-          suggestions={suggestions}
-          onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
         />
 
         <BookmarkContent
