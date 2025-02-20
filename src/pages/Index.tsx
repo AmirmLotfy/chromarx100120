@@ -20,7 +20,6 @@ const Index = () => {
   const handleElementSelected = (element: HTMLElement) => {
     console.log('Selected element:', element);
     toast.success("Element selected successfully!");
-    // Add your element handling logic here
   };
 
   const { startSelecting } = useElementSelector(handleElementSelected);
@@ -56,11 +55,17 @@ const Index = () => {
     try {
       await setSubscriptionPlan(planId);
       toast.success("Subscription updated successfully!");
-      handleComplete();
+      await handleComplete();
     } catch (error) {
       console.error("Subscription error:", error);
       toast.error("Failed to update subscription");
     }
+  };
+
+  const handleSignIn = () => {
+    chrome.tabs.create({
+      url: "https://chromarx.it.com/login"
+    });
   };
 
   useEffect(() => {
@@ -81,7 +86,7 @@ const Index = () => {
     setCurrentStep,
     handleImportBookmarks,
     handleComplete,
-    () => setCurrentStep(3), // Simplified previous handleSignIn
+    handleSignIn,
     handleSubscribe
   );
 

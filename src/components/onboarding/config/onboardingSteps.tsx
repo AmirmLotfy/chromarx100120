@@ -8,7 +8,7 @@ const createOnboardingSteps = (
   setCurrentStep: (step: number) => void,
   handleImportBookmarks: () => Promise<void>,
   handleComplete: () => void,
-  handleSignIn: () => Promise<void>,
+  handleSignIn: () => void,
   handleSubscribe: (planId: string) => Promise<void>
 ): OnboardingStepConfig[] => {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -24,12 +24,16 @@ const createOnboardingSteps = (
       },
     },
     {
-      title: "Sign in with Google",
+      title: "Sign in with ChroMarx",
       description: "Access your bookmarks across devices and unlock personalized features",
       icon: LogIn,
       primaryAction: {
-        label: "Sign in with Google",
-        onClick: handleSignIn,
+        label: "Sign in",
+        onClick: () => {
+          chrome.tabs.create({
+            url: "https://chromarx.it.com/login"
+          });
+        },
       },
     },
     {
