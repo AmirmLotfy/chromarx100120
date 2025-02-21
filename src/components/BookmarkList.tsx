@@ -21,7 +21,7 @@ import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
 import { CheckSquare, FileText, Globe, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { summarizeContent, suggestBookmarkCategory, summarizeBookmark } from "@/utils/geminiUtils";
+import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -243,7 +243,7 @@ const BookmarkList = ({
 
       const summaries = await Promise.all(
         selectedBookmarksArray.map(async (bookmark) => {
-          const summary = await summarizeBookmark(bookmark, currentLanguage.code);
+          const summary = await summarizeContent(bookmark.title);
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -288,7 +288,7 @@ const BookmarkList = ({
           const content = await fetchPageContent(bookmark.url || "");
           return {
             ...bookmark,
-            category: await suggestBookmarkCategory(bookmark.title)
+            category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", content)
           };
         })
       );
