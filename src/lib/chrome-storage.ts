@@ -70,6 +70,7 @@ export const chromeDb = {
   set: async <T>(key: StorageKey, value: T): Promise<void> => storage.set(key, value),
   update: async <T extends Record<string, any>>(key: StorageKey, value: Partial<T>): Promise<void> => storage.update(key, value),
   remove: storage.remove.bind(storage),
+  signOut: storage.signOut.bind(storage),
   getBytesInUse: async (): Promise<number> => {
     try {
       if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
