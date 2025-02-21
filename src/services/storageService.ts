@@ -9,7 +9,6 @@ export class StorageService {
   private isExtension: boolean;
 
   private constructor() {
-    // Check if we're running in a Chrome extension context
     this.isExtension = typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
   }
 
@@ -27,7 +26,6 @@ export class StorageService {
       }
 
       if (!this.isExtension) {
-        // If not in extension, try localStorage as fallback
         const stored = localStorage.getItem(key);
         return stored ? JSON.parse(stored) : null;
       }
@@ -49,7 +47,6 @@ export class StorageService {
   async set<T>(key: string, value: T): Promise<void> {
     try {
       if (!this.isExtension) {
-        // If not in extension, use localStorage as fallback
         localStorage.setItem(key, JSON.stringify(value));
         this.cache.set(key, value);
         return;
