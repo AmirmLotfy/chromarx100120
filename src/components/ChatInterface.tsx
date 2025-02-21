@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Trash2, ChevronDown } from "lucide-react";
@@ -111,8 +112,8 @@ const ChatInterface = () => {
         .map((b) => `${b.title} (${b.url})`)
         .join("\n");
 
-      const chatContext = getContextFromHistory(messages);
-      const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
+      const chatContext = getContextFromHistory(messages, query);
+      const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage);
 
       const response = await summarizeContent(prompt);
 

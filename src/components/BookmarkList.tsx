@@ -1,3 +1,4 @@
+
 import { ChromeBookmark } from "@/types/bookmark";
 import { cn } from "@/lib/utils";
 import {
@@ -287,7 +288,7 @@ const BookmarkList = ({
           const content = await fetchPageContent(bookmark.url || "");
           return {
             ...bookmark,
-            category: await suggestBookmarkCategory(bookmark.title, content)
+            category: await suggestBookmarkCategory(bookmark.title)
           };
         })
       );
