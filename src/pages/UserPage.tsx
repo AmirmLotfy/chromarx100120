@@ -7,11 +7,14 @@ import { useSettings } from "@/stores/settingsStore";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { UserCircle, CreditCard, Settings, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
-import { chromeDb, ChromeUser, StorageSubscription } from "@/lib/chrome-storage";
 import { toast } from "sonner";
 
-interface UserData extends ChromeUser {
-  subscription?: StorageSubscription;
+interface UserData {
+  displayName: string;
+  subscription?: {
+    planId: string;
+    endDate: string;
+  };
 }
 
 const UserPage = () => {
@@ -23,13 +26,17 @@ const UserPage = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const userData = await chromeDb.get<UserData>('user');
-        if (userData) {
-          setUserName(userData.displayName || 'Guest User');
-          if (userData.subscription) {
-            setCurrentPlan(userData.subscription.planId);
-            setSubscriptionEnd(userData.subscription.endDate);
-          }
+        const response = await fetch('https://chromarx.it.com/api/user', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch user data');
+        
+        const userData: UserData = await response.json();
+        setUserName(userData.displayName || 'Guest User');
+        if (userData.subscription) {
+          setCurrentPlan(userData.subscription.planId);
+          setSubscriptionEnd(userData.subscription.endDate);
         }
       } catch (error) {
         console.error('Error loading user data:', error);

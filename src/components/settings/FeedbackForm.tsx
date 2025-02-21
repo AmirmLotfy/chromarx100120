@@ -18,7 +18,12 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { MessageSquare, HelpCircle } from "lucide-react";
-import { chromeDb, FeedbackItem } from "@/lib/chrome-storage";
+
+interface FeedbackItem {
+  type: string;
+  message: string;
+  createdAt: string;
+}
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
@@ -40,14 +45,21 @@ const FeedbackForm = () => {
       const feedback: FeedbackItem = {
         type,
         message,
-        userId: 'guest',
-        userEmail: null,
-        createdAt: new Date().toISOString(),
-        status: "new"
+        createdAt: new Date().toISOString()
       };
 
-      const existingFeedback = await chromeDb.get<FeedbackItem[]>('feedback') || [];
-      await chromeDb.set('feedback', [...existingFeedback, feedback]);
+      // Send feedback to server instead of storing in chrome.storage
+      const response = await fetch('https://chromarx.it.com/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(feedback)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback');
+      }
 
       console.log("Feedback submitted successfully");
       toast.success("Thank you for your feedback!");
