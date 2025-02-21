@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,7 @@ Please analyze the sentiment considering:
           score: parseFloat(sentimentResult.split('|')[1]),
           confidence: parseFloat(sentimentResult.split('|')[2]),
           dominantEmotion: sentimentResult.split('|')[3],
+          language: currentLanguage.code // Add the required language property
         },
         summary
       };
@@ -83,6 +85,7 @@ Please analyze the sentiment considering:
         sentimentDetails: {
           score: 0,
           confidence: 0,
+          language: currentLanguage.code // Add the required language property
         },
         summary: ''
       };

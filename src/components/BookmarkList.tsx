@@ -132,14 +132,12 @@ const BookmarkList = ({
   const handleSelectAll = () => {
     const allSelected = bookmarks.length === selectedBookmarks.size;
     if (allSelected) {
-      // Deselect all
       bookmarks.forEach(bookmark => {
         if (selectedBookmarks.has(bookmark.id)) {
           onToggleSelect(bookmark.id);
         }
       });
     } else {
-      // Select all
       bookmarks.forEach(bookmark => {
         if (!selectedBookmarks.has(bookmark.id)) {
           onToggleSelect(bookmark.id);
@@ -149,7 +147,6 @@ const BookmarkList = ({
   };
 
   const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => {
-    // Group bookmarks by domain
     const groupedBookmarks = bookmarksToRender.reduce((acc, bookmark) => {
       if (bookmark.url) {
         const domain = extractDomain(bookmark.url);
@@ -290,11 +287,7 @@ const BookmarkList = ({
           const content = await fetchPageContent(bookmark.url || "");
           return {
             ...bookmark,
-            category: await suggestBookmarkCategory(
-              bookmark.title,
-              bookmark.url || "",
-              content
-            ),
+            category: await suggestBookmarkCategory(bookmark.title, content)
           };
         })
       );

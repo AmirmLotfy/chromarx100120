@@ -1,118 +1,103 @@
+export const findDuplicateBookmarks = (bookmarks: chrome.bookmarks.BookmarkTreeNode[]) => {
+  console.log('Finding duplicate bookmarks among:', bookmarks.length, 'bookmarks');
+  
+  const urlMap = new Map<string, chrome.bookmarks.BookmarkTreeNode[]>();
+  const titleMap = new Map<string, chrome.bookmarks.BookmarkTreeNode[]>();
 
-import { ChromeBookmark } from "@/types/bookmark";
-import { chromeDb } from "@/lib/chrome-storage";
-import { extractDomain } from "@/utils/domainUtils";
-import { fetchPageContent } from "@/utils/contentExtractor";
-import { suggestBookmarkCategory } from "@/utils/geminiUtils";
-import { useLanguage } from "@/stores/languageStore";
-
-interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
-  children?: BookmarkNode[];
-  category?: string;
-}
-
-export const processBookmarkTree = async (
-  node: BookmarkNode,
-  parentCategory?: string
-): Promise<ChromeBookmark[]> => {
-  const bookmarks: ChromeBookmark[] = [];
-
-  // Process current node if it's a bookmark
-  if (node.url) {
-    const category = await getCategoryForBookmark(node, parentCategory);
-    bookmarks.push({
-      ...node,
-      category
-    });
-  }
-
-  // Process children recursively
-  if (node.children) {
-    // If the current node is a folder, use its title as category for children
-    const categoryForChildren = node.url ? parentCategory : node.title;
-    
-    for (const child of node.children) {
-      const processedChildren = await processBookmarkTree(child, categoryForChildren);
-      bookmarks.push(...processedChildren);
-    }
-  }
-
-  return bookmarks;
-};
-
-export const getCategoryForBookmark = async (
-  bookmark: chrome.bookmarks.BookmarkTreeNode,
-  parentCategory?: string
-): Promise<string> => {
-  try {
-    // Check cache first
-    const cachedCategory = await chromeDb.get<string>(`bookmark-category-${bookmark.id}`);
-    if (cachedCategory) return cachedCategory;
-
-    // Use parent folder name as category if available
-    if (parentCategory) {
-      await chromeDb.set(`bookmark-category-${bookmark.id}`, parentCategory);
-      return parentCategory;
-    }
-
-    // Auto-categorize based on URL and content
+  bookmarks.forEach((bookmark) => {
     if (bookmark.url) {
-      const content = await fetchPageContent(bookmark.url);
-      const suggestedCategory = await suggestBookmarkCategory(
-        bookmark.title,
-        bookmark.url,
-        content,
-        'en' // Default to English if language store is not available
-      );
-
-      if (suggestedCategory) {
-        await chromeDb.set(`bookmark-category-${bookmark.id}`, suggestedCategory);
-        return suggestedCategory;
-      }
+      const existing = urlMap.get(bookmark.url) || [];
+      urlMap.set(bookmark.url, [...existing, bookmark]);
     }
-
-    return 'Uncategorized';
-  } catch (error) {
-    console.error('Error getting category for bookmark:', error);
-    return 'Uncategorized';
-  }
-};
-
-export const findDuplicateBookmarks = (bookmarks: ChromeBookmark[]): {
-  byUrl: { url: string; bookmarks: ChromeBookmark[] }[];
-  byTitle: { title: string; bookmarks: ChromeBookmark[] }[];
-} => {
-  const urlMap = new Map<string, ChromeBookmark[]>();
-  const titleMap = new Map<string, ChromeBookmark[]>();
-
-  bookmarks.forEach(bookmark => {
-    if (bookmark.url) {
-      const normalizedUrl = normalizeUrl(bookmark.url);
-      const existing = urlMap.get(normalizedUrl) || [];
-      urlMap.set(normalizedUrl, [...existing, bookmark]);
-    }
-
-    const normalizedTitle = bookmark.title.toLowerCase().trim();
-    const existing = titleMap.get(normalizedTitle) || [];
-    titleMap.set(normalizedTitle, [...existing, bookmark]);
+    const existing = titleMap.get(bookmark.title) || [];
+    titleMap.set(bookmark.title, [...existing, bookmark]);
   });
 
-  return {
+  const duplicates = {
     byUrl: Array.from(urlMap.entries())
       .filter(([_, bookmarks]) => bookmarks.length > 1)
       .map(([url, bookmarks]) => ({ url, bookmarks })),
     byTitle: Array.from(titleMap.entries())
       .filter(([_, bookmarks]) => bookmarks.length > 1)
-      .map(([title, bookmarks]) => ({ title, bookmarks }))
+      .map(([title, bookmarks]) => ({ title, bookmarks })),
   };
+
+  console.log('Found duplicates:', {
+    byUrl: duplicates.byUrl.length,
+    byTitle: duplicates.byTitle.length
+  });
+
+  return duplicates;
 };
 
-const normalizeUrl = (url: string): string => {
+export const checkBrokenBookmark = async (url: string): Promise<boolean> => {
+  console.log('Checking if bookmark is broken:', url);
   try {
-    const parsed = new URL(url);
-    // Remove protocol, www, trailing slashes, and query parameters
-    return parsed.hostname.replace(/^www\./, '') + parsed.pathname.replace(/\/$/, '');
-  } catch {
-    return url;
+    // Use HEAD request with no-cors mode first
+    const response = await fetch(url, { 
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      credentials: 'omit',
+      redirect: 'follow',
+    });
+
+    // If HEAD request succeeds, the bookmark is valid
+    if (response.type === 'opaque' || response.status === 200) {
+      console.log('Bookmark is valid:', url);
+      return true;
+    }
+
+    // If HEAD fails, try a GET request as fallback
+    const getResponse = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      credentials: 'omit',
+      redirect: 'follow',
+    });
+
+    const isWorking = getResponse.type === 'opaque' || getResponse.status === 200;
+    console.log('Bookmark status:', isWorking ? 'working' : 'broken');
+    return isWorking;
+  } catch (error) {
+    console.error('Error checking bookmark:', url, error);
+    // Consider the bookmark as working if we can't verify it
+    // This prevents false positives due to CORS restrictions
+    return true;
+  }
+};
+
+export const findBrokenBookmarks = async (
+  bookmarks: chrome.bookmarks.BookmarkTreeNode[]
+): Promise<chrome.bookmarks.BookmarkTreeNode[]> => {
+  console.log('Finding broken bookmarks among:', bookmarks.length, 'bookmarks');
+  const brokenBookmarks: chrome.bookmarks.BookmarkTreeNode[] = [];
+
+  for (const bookmark of bookmarks) {
+    if (bookmark.url) {
+      const isWorking = await checkBrokenBookmark(bookmark.url);
+      if (!isWorking) {
+        brokenBookmarks.push(bookmark);
+      }
+    }
+  }
+
+  console.log('Found broken bookmarks:', brokenBookmarks.length);
+  return brokenBookmarks;
+};
+
+import { getGeminiResponse } from "./geminiUtils";
+
+export const suggestBookmarkCategory = async (title: string, content: string) => {
+  try {
+    const response = await getGeminiResponse({
+      prompt: `Given this bookmark title: "${title}" and content: "${content}", suggest an appropriate category. Respond with just the category name.`,
+      type: "categorize"
+    });
+    return response.result;
+  } catch (error) {
+    console.error("Error suggesting category:", error);
+    return "uncategorized";
   }
 };

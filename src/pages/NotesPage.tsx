@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Note } from "@/types/note";
 import NoteGrid from "@/components/notes/NoteGrid";
@@ -44,14 +43,12 @@ const NotesPage = () => {
     if (!await checkAccess("task_creation")) return;
 
     try {
-      // Store the note ID in localStorage to pre-fill the task form
       localStorage.setItem("noteToTask", JSON.stringify({
         title: note.title,
         description: note.content,
         noteId: note.id
       }));
       
-      // Navigate to the tasks page
       navigate("/tasks");
       toast.success("Note converted to task");
     } catch (error) {
@@ -64,10 +61,8 @@ const NotesPage = () => {
     if (!await checkAccess("bookmark_linking")) return;
 
     try {
-      // Store the note ID in localStorage for the bookmarks page
       localStorage.setItem("noteForBookmark", note.id);
       
-      // Navigate to the bookmarks page
       navigate("/bookmarks");
       toast.success("Select a bookmark to link to this note");
     } catch (error) {
@@ -83,14 +78,12 @@ const NotesPage = () => {
 
   const handleSaveNote = (noteData: Partial<Note>) => {
     if (editingNote) {
-      // Update existing note
       setNotes(prev => prev.map(note => 
         note.id === editingNote.id 
           ? { ...note, ...noteData }
           : note
       ));
     } else {
-      // Create new note
       const newNote: Note = {
         id: crypto.randomUUID(),
         title: noteData.title || "",
@@ -125,13 +118,11 @@ const NotesPage = () => {
         const [sentimentResponse, summaryResponse] = await Promise.all([
           getGeminiResponse({
             prompt: note.content,
-            type: "sentiment",
-            language: "en"
+            type: "sentiment"
           }),
           getGeminiResponse({
             prompt: note.content,
-            type: "summarize",
-            language: "en"
+            type: "summarize"
           })
         ]);
 

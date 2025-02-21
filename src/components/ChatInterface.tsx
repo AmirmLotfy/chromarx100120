@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Trash2, ChevronDown } from "lucide-react";
@@ -103,20 +102,19 @@ const ChatInterface = () => {
 
   const processQuery = async (query: string) => {
     try {
-      // Run bookmark search and web search in parallel
       const [relevantBookmarks, webResults] = await Promise.all([
         Promise.resolve(searchBookmarks(query)),
-        searchWebResults(query),
+        searchWebResults(query)
       ]);
 
       const bookmarkContext = relevantBookmarks
         .map((b) => `${b.title} (${b.url})`)
         .join("\n");
 
-      const chatContext = getContextFromHistory(messages, query);
-      const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage);
+      const chatContext = getContextFromHistory(messages);
+      const prompt = generateChatPrompt(query, bookmarkContext, chatContext);
 
-      const response = await summarizeContent(prompt, currentLanguage.code);
+      const response = await summarizeContent(prompt);
 
       return {
         response,
