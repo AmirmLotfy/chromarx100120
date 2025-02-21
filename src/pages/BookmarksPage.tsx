@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -23,9 +22,14 @@ const BookmarksPage = () => {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [view, setView] = useState<"grid" | "list">("list");
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    setSearchQuery(suggestion);
   };
 
   const handleDelete = async (id: string) => {
@@ -152,6 +156,8 @@ const BookmarksPage = () => {
           onSearchChange={handleSearch}
           onImport={handleImport}
           onCreateFolder={handleCreateFolder}
+          suggestions={suggestions}
+          onSelectSuggestion={handleSelectSuggestion}
         />
 
         <BookmarkContent

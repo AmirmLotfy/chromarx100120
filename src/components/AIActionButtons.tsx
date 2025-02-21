@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Sparkles, Trash2 } from "lucide-react";
@@ -61,12 +60,11 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     }
 
     setIsProcessing(true);
-    setProcessingMessage("Generating summaries...");
     try {
       const summaries = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
           try {
-            const summary = await summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, currentLanguage.code);
+            const summary = await summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`);
             return {
               id: bookmark.id,
               title: bookmark.title,
@@ -103,7 +101,6 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       toast.error("Failed to generate summaries");
     } finally {
       setIsProcessing(false);
-      setProcessingMessage("");
     }
   };
 
@@ -114,7 +111,6 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     }
 
     setIsProcessing(true);
-    setProcessingMessage("Suggesting categories...");
     try {
       const updatedBookmarks = await Promise.all(
         selectedBookmarks.map(async (bookmark) => {
@@ -122,8 +118,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
           const category = await suggestBookmarkCategory(
             bookmark.title, 
             bookmark.url || "",
-            content,
-            currentLanguage.code
+            content
           );
           return {
             ...bookmark,
@@ -138,7 +133,6 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       toast.error("Failed to suggest categories");
     } finally {
       setIsProcessing(false);
-      setProcessingMessage("");
     }
   };
 

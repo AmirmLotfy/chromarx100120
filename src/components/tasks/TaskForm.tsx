@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
@@ -41,16 +40,12 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
   const getAIRecommendations = async () => {
     setIsLoading(true);
     try {
+      const taskPrompt = `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`;
+      
       // Get both duration and suggestions concurrently
       const [duration, taskSuggestions] = await Promise.all([
-        suggestTimerDuration(
-          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
-          currentLanguage.code
-        ),
-        generateTaskSuggestions(
-          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
-          currentLanguage.code
-        )
+        suggestTimerDuration(taskPrompt),
+        generateTaskSuggestions(taskPrompt)
       ]);
 
       // Validate duration is within reasonable bounds

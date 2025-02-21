@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { getGeminiResponse } from "@/utils/geminiUtils";
@@ -19,9 +18,7 @@ const AITips = () => {
       try {
         const response = await getGeminiResponse({
           prompt: "Analyze my browsing patterns and provide productivity tips",
-          type: "summarize",
-          language: "en",
-          contentType: "productivity"
+          type: "summarize"
         });
 
         const parsedTips = JSON.parse(response.result);
