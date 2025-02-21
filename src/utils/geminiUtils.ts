@@ -1,22 +1,46 @@
+
 import { toast } from "sonner";
 
 const API_BASE_URL = "https://chromarx.it.com/api";
 
+async function getSupabaseToken(): Promise<string | null> {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      const result = await chrome.storage.local.get(['supabase_token']);
+      return result.supabase_token || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting Supabase token:", error);
+    return null;
+  }
+}
+
+async function makeAuthenticatedRequest(endpoint: string, data: any) {
+  const token = await getSupabaseToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
 export const summarizeContent = async (content: string): Promise<string> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/summarize`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ content })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to summarize content');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/summarize`, { content });
     return data.summary;
   } catch (error) {
     console.error("Error summarizing content:", error);
@@ -27,19 +51,7 @@ export const summarizeContent = async (content: string): Promise<string> => {
 
 export const generateCategories = async (bookmarks: any[]): Promise<string[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate-categories`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ bookmarks })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate categories');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/generate-categories`, { bookmarks });
     return data.categories;
   } catch (error) {
     console.error("Error generating categories:", error);
@@ -50,19 +62,7 @@ export const generateCategories = async (bookmarks: any[]): Promise<string[]> =>
 
 export const suggestBookmarkCategory = async (title: string, url: string, content: string): Promise<string> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/suggest-category`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ title, url, content })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to suggest category');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/suggest-category`, { title, url, content });
     return data.category;
   } catch (error) {
     console.error("Error suggesting category:", error);
@@ -71,44 +71,9 @@ export const suggestBookmarkCategory = async (title: string, url: string, conten
   }
 };
 
-export const summarizeBookmark = async (bookmark: any): Promise<string> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/summarize-bookmark`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ bookmark })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to summarize bookmark');
-    }
-    
-    const data = await response.json();
-    return data.summary;
-  } catch (error) {
-    console.error("Error summarizing bookmark:", error);
-    toast.error("Failed to summarize bookmark");
-    return "Unable to generate summary.";
-  }
-};
-
 export const analyzeSentiment = async (content: string): Promise<string> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/analyze-sentiment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ content })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to analyze sentiment');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/analyze-sentiment`, { content });
     return data.sentiment;
   } catch (error) {
     console.error("Error analyzing sentiment:", error);
@@ -122,19 +87,7 @@ export const getGeminiResponse = async (options: {
   type: string;
 }): Promise<{ result: string }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/gemini-response`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(options)
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to get AI response');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/gemini-response`, options);
     return { result: data.result };
   } catch (error) {
     console.error("Error getting Gemini response:", error);
@@ -145,19 +98,7 @@ export const getGeminiResponse = async (options: {
 
 export const generateTaskSuggestions = async (taskDetails: string): Promise<string> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate-task-suggestions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ taskDetails })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate suggestions');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/generate-task-suggestions`, { taskDetails });
     return data.suggestions;
   } catch (error) {
     console.error("Error generating task suggestions:", error);
@@ -168,19 +109,7 @@ export const generateTaskSuggestions = async (taskDetails: string): Promise<stri
 
 export const suggestTimerDuration = async (taskDetails: string): Promise<number> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/suggest-timer-duration`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ taskDetails })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to suggest duration');
-    }
-    
-    const data = await response.json();
+    const data = await makeAuthenticatedRequest(`${API_BASE_URL}/suggest-timer-duration`, { taskDetails });
     return data.duration || 25;
   } catch (error) {
     console.error("Error suggesting timer duration:", error);
