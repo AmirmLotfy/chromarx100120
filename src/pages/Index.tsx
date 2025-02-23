@@ -64,8 +64,10 @@ const Index = () => {
 
   const handleSignIn = () => {
     chrome.tabs.create({
-      url: "https://chromarx.it.com/login"
+      url: "https://chromarx.it.com/login",
+      active: true
     });
+    toast.success("Redirecting to login page...");
   };
 
   useEffect(() => {
