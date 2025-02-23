@@ -1,69 +1,48 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { prompt, type } = await req.json();
-    let systemPrompt = '';
-
-    switch (type) {
-      case 'summarize':
-        systemPrompt = 'Analyze and provide a concise summary. Return a JSON array of relevant insights.';
-        break;
-      case 'analyze':
-        systemPrompt = 'Provide detailed analysis. Return a JSON object with key findings.';
-        break;
-      default:
-        systemPrompt = 'Be helpful and concise.';
+    const apiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not set')
     }
 
-    const response = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_API_KEY,
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${systemPrompt}\n\n${prompt}`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+    const { prompt, type } = await req.json()
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
-    if (!response.ok) {
-      throw new Error('Failed to get Gemini response');
-    }
+    console.log(`Processing ${type} request with prompt: ${prompt.substring(0, 100)}...`)
 
-    const data = await response.json();
-    const result = data.candidates[0].content.parts[0].text;
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    console.log(`Generated response: ${text.substring(0, 100)}...`)
 
     return new Response(
-      JSON.stringify({ result }),
+      JSON.stringify({ result: text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
   } catch (error) {
+    console.error('Error in gemini-response function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
   }
-});
+})
