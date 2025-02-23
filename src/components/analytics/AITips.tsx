@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { getGeminiResponse } from "@/utils/geminiUtils";
