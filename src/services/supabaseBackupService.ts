@@ -3,16 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { storage } from "@/services/storageService";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
+import { Database } from "@/integrations/supabase/types";
 
-interface StorageBackup {
-  id: string;
-  user_id: string;
-  key: string;
-  value: unknown;
-  storage_type: 'sync' | 'local';
-  created_at: string;
-  updated_at: string;
-}
+type Json = Database["public"]["Tables"]["storage_backups"]["Row"]["value"];
+type StorageBackup = Database["public"]["Tables"]["storage_backups"]["Row"];
 
 class SupabaseBackupService {
   private static instance: SupabaseBackupService;
@@ -54,7 +48,9 @@ class SupabaseBackupService {
       const allData = await chrome.storage.sync.get(null);
       
       for (const [key, value] of Object.entries(allData)) {
-        await this.backupItem(key, value, user.data.user.id);
+        // Ensure value is a valid JSON type
+        const jsonValue = this.ensureJsonValue(value);
+        await this.backupItem(key, jsonValue, user.data.user.id);
       }
 
       console.log('Sync completed successfully');
@@ -66,7 +62,27 @@ class SupabaseBackupService {
     }
   }
 
-  private async backupItem(key: string, value: unknown, userId: string): Promise<void> {
+  private ensureJsonValue(value: unknown): Json {
+    if (value === null) return null;
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      return value;
+    }
+    // Convert other types to JSON-safe format
+    try {
+      const stringified = JSON.stringify(value);
+      const parsed = JSON.parse(stringified);
+      return parsed as Json;
+    } catch {
+      console.warn('Could not convert value to JSON:', value);
+      return null;
+    }
+  }
+
+  private async backupItem(key: string, value: Json, userId: string): Promise<void> {
     try {
       const { error } = await supabase
         .from('storage_backups')
@@ -97,7 +113,7 @@ class SupabaseBackupService {
 
       const { data, error } = await supabase
         .from('storage_backups')
-        .select<'storage_backups', StorageBackup>()
+        .select()
         .eq('user_id', user.data.user.id)
         .eq('storage_type', 'sync');
 
