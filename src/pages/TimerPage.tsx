@@ -65,8 +65,7 @@ const TimerPage = () => {
         mode,
         startTime: new Date(),
         taskContext,
-        aiSuggested: false,
-        completed: false
+        aiSuggested: false
       });
       
       setCurrentSession(session);
