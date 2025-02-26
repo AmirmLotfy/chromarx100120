@@ -1,5 +1,4 @@
-
-import { LocalCache } from "./cacheUtils";
+import { cache } from "./cacheUtils";
 import { toast } from "sonner";
 
 interface RequestQuota {
@@ -13,7 +12,7 @@ interface AIResponse {
 }
 
 // Cache for AI responses
-const aiResponseCache = new LocalCache<Record<string, AIResponse>>('ai-responses', 24 * 60 * 60 * 1000); // 24 hours
+const aiResponseCache = new Map<string, AIResponse>();
 
 // Quota management
 const DAILY_QUOTA = 100;
@@ -22,11 +21,9 @@ const quotaKey = 'ai_request_quota';
 
 class AIRequestManager {
   private static instance: AIRequestManager;
-  private quotaCache: LocalCache<RequestQuota>;
+  private quota: RequestQuota | null = null;
 
-  private constructor() {
-    this.quotaCache = new LocalCache<RequestQuota>(quotaKey, 24 * 60 * 60 * 1000);
-  }
+  private constructor() {}
 
   static getInstance(): AIRequestManager {
     if (!AIRequestManager.instance) {
@@ -36,50 +33,55 @@ class AIRequestManager {
   }
 
   private async getQuota(): Promise<RequestQuota> {
-    const quota = this.quotaCache.get();
-    if (!quota) {
+    if (this.quota) {
+      return this.quota;
+    }
+
+    const storedQuota = await cache.get<RequestQuota>(quotaKey);
+
+    if (!storedQuota) {
       return { count: 0, resetTime: Date.now() + 24 * 60 * 60 * 1000 };
     }
-    return quota;
+
+    this.quota = storedQuota;
+    return storedQuota;
   }
 
   private async updateQuota(): Promise<boolean> {
-    const quota = await this.getQuota();
+    let quota = await this.getQuota();
     const now = Date.now();
 
-    // Reset quota if time expired
     if (now > quota.resetTime) {
-      this.quotaCache.set({ count: 1, resetTime: now + 24 * 60 * 60 * 1000 });
-      return true;
+      quota = { count: 1, resetTime: now + 24 * 60 * 60 * 1000 };
+    } else {
+      if (quota.count >= DAILY_QUOTA) {
+        toast.error("Daily AI request quota exceeded. Please try again tomorrow.");
+        return false;
+      }
+      quota = { ...quota, count: quota.count + 1 };
     }
 
-    // Check quotas
-    if (quota.count >= DAILY_QUOTA) {
-      toast.error("Daily AI request quota exceeded. Please try again tomorrow.");
-      return false;
-    }
-
-    // Update quota
-    this.quotaCache.set({ ...quota, count: quota.count + 1 });
+    this.quota = quota;
+    await cache.set(quotaKey, quota);
     return true;
   }
 
   async getCachedResponse(key: string): Promise<string | null> {
-    const cache = aiResponseCache.get();
-    if (cache?.[key]) {
-      const { result, timestamp } = cache[key];
-      // Check if cache is still valid (24 hours)
+    const cachedResponse = aiResponseCache.get(key);
+    if (cachedResponse) {
+      const { result, timestamp } = cachedResponse;
       if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
         return result;
+      } else {
+        aiResponseCache.delete(key); // Remove expired cache
+        return null;
       }
     }
     return null;
   }
 
   async cacheResponse(key: string, result: string): Promise<void> {
-    const cache = aiResponseCache.get() || {};
-    cache[key] = { result, timestamp: Date.now() };
-    aiResponseCache.set(cache);
+    aiResponseCache.set(key, { result, timestamp: Date.now() });
   }
 
   async makeRequest<T>(
@@ -88,23 +90,19 @@ class AIRequestManager {
     fallbackValue?: T
   ): Promise<T> {
     try {
-      // Check quota first
       if (!await this.updateQuota()) {
         throw new Error("Quota exceeded");
       }
 
-      // Check cache if cacheKey provided
       if (cacheKey) {
         const cached = await this.getCachedResponse(cacheKey);
         if (cached) {
-          return cached as T;
+          return JSON.parse(cached) as T;
         }
       }
 
-      // Make the actual request
       const result = await requestFn();
 
-      // Cache the result if cacheKey provided
       if (cacheKey && result) {
         await this.cacheResponse(cacheKey, JSON.stringify(result));
       }

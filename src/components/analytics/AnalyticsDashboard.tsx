@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import ProductivityScore from "./ProductivityScore";
 import TimeDistribution from "./TimeDistribution";
@@ -56,40 +56,42 @@ const AnalyticsDashboard = () => {
     loadData();
   }, [dateRange, filters]);
 
-  const handleExport = withErrorHandling(async () => {
-    if (!data) return;
+  const handleExport = useCallback(() => {
+    withErrorHandling(async () => {
+      if (!data) return;
 
-    const csvContent = [
-      ["Date", "Productivity Score", "Total Time", "Domain", "Time Spent", "Category"].join(","),
-      ...data.domainStats.map(stat => 
-        [
-          new Date().toISOString().split('T')[0],
-          data.productivityScore,
-          stat.timeSpent,
-          stat.domain,
-          stat.visits,
-          "Work"
-        ].join(",")
-      )
-    ].join("\n");
+      const csvContent = [
+        ["Date", "Productivity Score", "Total Time", "Domain", "Time Spent", "Category"].join(","),
+        ...data.domainStats.map(stat => 
+          [
+            new Date().toISOString().split('T')[0],
+            data.productivityScore,
+            stat.timeSpent,
+            stat.domain,
+            stat.visits,
+            "Work"
+          ].join(",")
+        )
+      ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `analytics_export_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-    
-    toast.success("Analytics data exported successfully!");
-  }, {
-    errorMessage: "Failed to export analytics data",
-    showError: true
-  });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `analytics_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      toast.success("Analytics data exported successfully!");
+    }, {
+      errorMessage: "Failed to export analytics data",
+      showError: true
+    })();
+  }, [data]);
 
   if (loading) {
     return (
