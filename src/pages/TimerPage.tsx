@@ -6,15 +6,25 @@ import { TimerControls } from "@/components/timer/TimerControls";
 import { TimerSuggestions } from "@/components/timer/TimerSuggestions";
 import { TimerSettings } from "@/components/timer/TimerSettings";
 import { useToast } from "@/hooks/use-toast";
-import { getGeminiResponse } from "@/utils/geminiUtils";
+import { timerService } from "@/services/timerService";
+import { getTimerSuggestion } from "@/utils/timerAI";
+import { TimerSession, TimerStats } from "@/types/timer";
+import { useQuery } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
 
 const TimerPage = () => {
-  const [duration, setDuration] = useState(25); // Default 25 minutes
+  const [duration, setDuration] = useState(25);
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(duration * 60);
   const [mode, setMode] = useState<"focus" | "break">("focus");
   const [taskContext, setTaskContext] = useState<string>("focus and productivity");
+  const [currentSession, setCurrentSession] = useState<TimerSession | null>(null);
   const { toast } = useToast();
+
+  const { data: stats } = useQuery({
+    queryKey: ['timerStats'],
+    queryFn: () => timerService.getStats(),
+  });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -37,26 +47,44 @@ const TimerPage = () => {
   const handleTimerComplete = async () => {
     setIsRunning(false);
     
-    // Play notification sound
-    const audio = new Audio('/notification.mp3');
-    await audio.play();
-
-    // Show Chrome notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Timer Complete!', {
-        body: `Your ${mode} session is complete!`,
-        icon: '/icon128.png',
-        silent: true // We're playing our own sound
-      });
+    if (currentSession) {
+      await timerService.completeSession(
+        currentSession.id,
+        mode === 'focus' ? calculateProductivityScore() : undefined
+      );
     }
-
-    toast({
-      title: "Timer Complete!",
-      description: `Your ${mode} session is complete!`,
-    });
 
     // Automatically switch modes and suggest new duration
     setMode(prevMode => prevMode === "focus" ? "break" : "focus");
+  };
+
+  const handleStart = async () => {
+    try {
+      const session = await timerService.startSession({
+        duration: duration * 60,
+        mode,
+        startTime: new Date(),
+        taskContext,
+        aiSuggested: false,
+        completed: false
+      });
+      
+      setCurrentSession(session);
+      setIsRunning(true);
+    } catch (error) {
+      console.error('Error starting timer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start timer session",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const calculateProductivityScore = (): number => {
+    if (!currentSession) return 0;
+    const completionRatio = (duration * 60 - timeLeft) / (duration * 60);
+    return Math.round(completionRatio * 100);
   };
 
   const requestNotificationPermission = async () => {
@@ -85,6 +113,27 @@ const TimerPage = () => {
           </p>
         </div>
 
+        {stats && (
+          <Card className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Total Focus Time</p>
+              <p className="text-2xl font-bold">{Math.round(stats.totalFocusTime / 60)}h</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Sessions</p>
+              <p className="text-2xl font-bold">{stats.totalSessions}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Avg. Productivity</p>
+              <p className="text-2xl font-bold">{Math.round(stats.averageProductivity)}%</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Completion Rate</p>
+              <p className="text-2xl font-bold">{Math.round(stats.completionRate)}%</p>
+            </div>
+          </Card>
+        )}
+
         <TimerDisplay 
           timeLeft={timeLeft}
           mode={mode}
@@ -92,7 +141,7 @@ const TimerPage = () => {
 
         <TimerControls
           isRunning={isRunning}
-          onStart={() => setIsRunning(true)}
+          onStart={handleStart}
           onPause={() => setIsRunning(false)}
           onReset={() => {
             setIsRunning(false);
