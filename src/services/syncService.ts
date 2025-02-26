@@ -81,14 +81,22 @@ export class SyncService {
       
       switch (payload.eventType) {
         case 'INSERT':
-          currentBookmarks.push(payload.new);
+          currentBookmarks.push({
+            ...payload.new,
+            version: payload.new.version || 1
+          });
           break;
         case 'UPDATE':
           const index = currentBookmarks.findIndex(b => b.id === payload.new.id);
           if (index !== -1) {
             // Check version for conflict resolution
-            if (payload.new.version > currentBookmarks[index].version) {
-              currentBookmarks[index] = payload.new;
+            const currentVersion = currentBookmarks[index].version || 1;
+            const newVersion = payload.new.version || 1;
+            if (newVersion > currentVersion) {
+              currentBookmarks[index] = {
+                ...payload.new,
+                version: newVersion
+              };
             }
           }
           break;
@@ -139,9 +147,12 @@ export class SyncService {
           break;
         case 'update':
           await supabase.from('bookmark_metadata')
-            .update({ ...data, version: data.version + 1 })
+            .update({ 
+              ...data, 
+              version: (data.version || 1) + 1 
+            })
             .eq('id', data.id)
-            .lt('version', data.version + 1);
+            .lt('version', (data.version || 1) + 1);
           break;
         case 'delete':
           await supabase.from('bookmark_metadata').delete().eq('id', data.id);
@@ -184,7 +195,21 @@ export class SyncService {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Convert the status string to our enum type
+      const status = data?.status as 'idle' | 'syncing' | 'error' | 'success';
+      
+      if (!status || !['idle', 'syncing', 'error', 'success'].includes(status)) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        user_id: data.user_id,
+        last_sync: data.last_sync,
+        status,
+        message: data.message
+      };
     } catch (error) {
       console.error('Error getting sync status:', error);
       return null;
