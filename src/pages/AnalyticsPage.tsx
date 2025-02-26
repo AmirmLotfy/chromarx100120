@@ -11,7 +11,7 @@ const AnalyticsPage = () => {
             <ChartBar className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="font-semibold tracking-tight text-base">Analytics</h1>
+            <h1 className="font-semibold tracking-tight text-lg">Analytics</h1>
             <p className="text-sm text-muted-foreground">
               Track and optimize your browsing productivity
             </p>
