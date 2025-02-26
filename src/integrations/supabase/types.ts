@@ -9,6 +9,78 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analytics_data: {
+        Row: {
+          category_distribution: Json | null
+          created_at: string | null
+          date: string
+          domain_stats: Json | null
+          id: string
+          productivity_score: number | null
+          total_time_spent: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category_distribution?: Json | null
+          created_at?: string | null
+          date: string
+          domain_stats?: Json | null
+          id?: string
+          productivity_score?: number | null
+          total_time_spent?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category_distribution?: Json | null
+          created_at?: string | null
+          date?: string
+          domain_stats?: Json | null
+          id?: string
+          productivity_score?: number | null
+          total_time_spent?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      analytics_goals: {
+        Row: {
+          category: string
+          created_at: string | null
+          current_hours: number | null
+          end_date: string
+          id: string
+          start_date: string
+          target_hours: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          current_hours?: number | null
+          end_date: string
+          id?: string
+          start_date: string
+          target_hours: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          current_hours?: number | null
+          end_date?: string
+          id?: string
+          start_date?: string
+          target_hours?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookmark_analytics: {
         Row: {
           avg_time_spent: number | null
@@ -298,6 +370,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      domain_categories: {
+        Row: {
+          category: string
+          created_at: string | null
+          domain: string
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          domain: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          domain?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       extension_connections: {
         Row: {

@@ -1,3 +1,4 @@
+
 export interface AnalyticsData {
   productivityScore: number;
   timeDistribution: TimeDistributionData[];
@@ -27,4 +28,18 @@ export interface VisitData {
   visitCount: number;
   timeSpent: number;
   lastVisitTime: number;
+}
+
+export interface AnalyticsGoal {
+  id: string;
+  category: string;
+  targetHours: number;
+  currentHours: number;
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface DomainCategory {
+  domain: string;
+  category: string;
 }

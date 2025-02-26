@@ -1,6 +1,7 @@
 import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
 import { chromeDb } from "@/lib/chrome-storage";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const MAX_RETRIES = 3;
@@ -19,15 +20,9 @@ async function retryWithBackoff<T>(
     if (retries === 0) {
       throw error;
     }
-
     console.log(`Retrying operation. Attempts remaining: ${retries}`);
     await sleep(delay);
-
-    return retryWithBackoff(
-      operation,
-      retries - 1,
-      delay * 2 // Exponential backoff
-    );
+    return retryWithBackoff(operation, retries - 1, delay * 2);
   }
 }
 
@@ -41,7 +36,7 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
         chrome.history.search({ 
           text: "", 
           maxResults: 10000, 
-          startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 // Last 30 days
+          startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 
         })
       ),
       retryWithBackoff(() => 
@@ -49,7 +44,7 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       )
     ]);
 
-    // Get browsing time data from chrome.history with retry
+    // Get browsing time data
     const visitTimeData = await Promise.all(
       history.map(async item => {
         if (!item.url) return null;
@@ -74,20 +69,34 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
 
     const visitData: VisitData[] = visitTimeData.filter((item): item is VisitData => item !== null);
 
-    // Store analytics data for persistence with retry
-    await retryWithBackoff(() => 
-      chromeDb.set('analytics_data', {
-        timestamp: Date.now(),
-        visitData
-      })
-    );
+    // Get custom domain categories from Supabase
+    const { data: customCategories } = await supabase
+      .from('domain_categories')
+      .select('domain, category');
 
+    // Calculate analytics metrics
     const analyticsData: AnalyticsData = {
       productivityScore: calculateProductivityScore(visitData, tabs),
-      timeDistribution: calculateTimeDistribution(visitData),
+      timeDistribution: calculateTimeDistribution(visitData, customCategories),
       domainStats: calculateDomainStats(visitData),
       productivityTrends: await calculateProductivityTrends(visitData)
     };
+
+    // Store daily analytics data in Supabase
+    const { error: storeError } = await supabase
+      .from('analytics_data')
+      .upsert({
+        date: new Date().toISOString().split('T')[0],
+        productivity_score: analyticsData.productivityScore,
+        total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0),
+        domain_stats: analyticsData.domainStats,
+        category_distribution: analyticsData.timeDistribution
+      });
+
+    if (storeError) {
+      console.error("Error storing analytics data:", storeError);
+      toast.error("Failed to store analytics data");
+    }
 
     // Validate analytics data
     validateAnalyticsData(analyticsData);
@@ -134,11 +143,12 @@ const calculateDomainStats = (visitData: VisitData[]): DomainStat[] => {
     .slice(0, 10);
 };
 
-const calculateTimeDistribution = (visitData: VisitData[]): TimeDistributionData[] => {
+const calculateTimeDistribution = async (visitData: VisitData[], customCategories: DomainCategory[] | null): Promise<TimeDistributionData[]> => {
   const categories = new Map<string, number>();
   
   visitData.forEach(visit => {
-    const category = determineCategory(visit.domain);
+    const customCategory = customCategories?.find(c => c.domain === visit.domain);
+    const category = customCategory?.category || determineCategory(visit.domain);
     const current = categories.get(category) || 0;
     categories.set(category, current + visit.timeSpent);
   });
