@@ -571,6 +571,54 @@ export type Database = {
           },
         ]
       }
+      timer_sessions: {
+        Row: {
+          ai_suggested: boolean | null
+          completed: boolean | null
+          created_at: string | null
+          duration: number
+          end_time: string | null
+          feedback_rating: number | null
+          id: string
+          mode: Database["public"]["Enums"]["timer_mode"]
+          productivity_score: number | null
+          start_time: string
+          task_context: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_suggested?: boolean | null
+          completed?: boolean | null
+          created_at?: string | null
+          duration: number
+          end_time?: string | null
+          feedback_rating?: number | null
+          id?: string
+          mode: Database["public"]["Enums"]["timer_mode"]
+          productivity_score?: number | null
+          start_time: string
+          task_context?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_suggested?: boolean | null
+          completed?: boolean | null
+          created_at?: string | null
+          duration?: number
+          end_time?: string | null
+          feedback_rating?: number | null
+          id?: string
+          mode?: Database["public"]["Enums"]["timer_mode"]
+          productivity_score?: number | null
+          start_time?: string
+          task_context?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       usage_statistics: {
         Row: {
           api_calls: number | null
@@ -653,6 +701,7 @@ export type Database = {
       bookmark_status: "active" | "archived" | "deleted"
       storage_type: "sync" | "local"
       subscription_status: "free" | "premium"
+      timer_mode: "focus" | "break"
     }
     CompositeTypes: {
       [_ in never]: never

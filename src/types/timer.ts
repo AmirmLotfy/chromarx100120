@@ -1,6 +1,7 @@
 
 export interface TimerSession {
   id: string;
+  userId: string;
   duration: number;
   mode: 'focus' | 'break';
   startTime: Date;
@@ -10,6 +11,8 @@ export interface TimerSession {
   productivityScore?: number;
   aiSuggested: boolean;
   feedbackRating?: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface TimerState {

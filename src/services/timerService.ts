@@ -20,18 +20,22 @@ class TimerService {
     return this.instance;
   }
 
-  async startSession(session: Omit<TimerSession, 'id'>): Promise<TimerSession> {
+  async startSession(session: Omit<TimerSession, 'id' | 'userId' | 'completed' | 'createdAt' | 'updatedAt'>): Promise<TimerSession> {
     try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('timer_sessions')
         .insert([{
+          user_id: user.user.id,
           duration: session.duration,
           mode: session.mode,
-          start_time: new Date().toISOString(),
+          start_time: session.startTime.toISOString(),
           task_context: session.taskContext,
-          ai_suggested: session.aiSuggested
+          ai_suggested: session.aiSuggested,
         }])
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -73,14 +77,26 @@ class TimerService {
 
       if (error) throw error;
 
+      if (!sessions) return {
+        totalFocusTime: 0,
+        totalSessions: 0,
+        averageProductivity: 0,
+        completionRate: 0
+      };
+
       const focusSessions = sessions.filter(s => s.mode === 'focus');
       const completedSessions = sessions.filter(s => s.completed);
+      const totalSessions = sessions.length;
 
       return {
-        totalFocusTime: focusSessions.reduce((acc, s) => acc + s.duration, 0),
-        totalSessions: sessions.length,
-        averageProductivity: completedSessions.reduce((acc, s) => acc + (s.productivity_score || 0), 0) / completedSessions.length,
-        completionRate: (completedSessions.length / sessions.length) * 100
+        totalFocusTime: focusSessions.reduce((acc, s) => acc + (s.duration || 0), 0),
+        totalSessions,
+        averageProductivity: totalSessions > 0 
+          ? completedSessions.reduce((acc, s) => acc + (s.productivity_score || 0), 0) / totalSessions 
+          : 0,
+        completionRate: totalSessions > 0 
+          ? (completedSessions.length / totalSessions) * 100 
+          : 0
       };
     } catch (error) {
       console.error('Error fetching timer stats:', error);
@@ -137,15 +153,18 @@ class TimerService {
   private mapSessionFromDb(data: any): TimerSession {
     return {
       id: data.id,
+      userId: data.user_id,
       duration: data.duration,
       mode: data.mode,
       startTime: new Date(data.start_time),
       endTime: data.end_time ? new Date(data.end_time) : undefined,
-      completed: data.completed,
+      completed: data.completed || false,
       taskContext: data.task_context,
       productivityScore: data.productivity_score,
-      aiSuggested: data.ai_suggested,
-      feedbackRating: data.feedback_rating
+      aiSuggested: data.ai_suggested || false,
+      feedbackRating: data.feedback_rating,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
     };
   }
 }

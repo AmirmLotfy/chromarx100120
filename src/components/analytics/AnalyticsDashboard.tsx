@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import ProductivityScore from "./ProductivityScore";
@@ -34,7 +33,6 @@ const AnalyticsDashboard = () => {
       try {
         setLoading(true);
         
-        // Try to get cached data first
         const cacheKey = `analytics_${dateRange.from.toISOString()}_${dateRange.to.toISOString()}`;
         const analyticsData = await cache.primeCache(cacheKey, async () => {
           const data = await getAnalyticsData();
@@ -43,7 +41,6 @@ const AnalyticsDashboard = () => {
 
         setData(analyticsData);
         
-        // Trigger background backup
         supabaseBackup.syncAll().catch(console.error);
       } catch (error) {
         console.error("Error loading analytics data:", error);
@@ -57,40 +54,44 @@ const AnalyticsDashboard = () => {
   }, [dateRange, filters]);
 
   const handleExport = useCallback(() => {
-    withErrorHandling(async () => {
-      if (!data) return;
+    const exportData = async () => {
+      try {
+        if (!data) return;
+        
+        const csvContent = [
+          ["Date", "Productivity Score", "Total Time", "Domain", "Time Spent", "Category"].join(","),
+          ...data.domainStats.map(stat => 
+            [
+              new Date().toISOString().split('T')[0],
+              data.productivityScore,
+              stat.timeSpent,
+              stat.domain,
+              stat.visits,
+              "Work"
+            ].join(",")
+          )
+        ].join("\n");
 
-      const csvContent = [
-        ["Date", "Productivity Score", "Total Time", "Domain", "Time Spent", "Category"].join(","),
-        ...data.domainStats.map(stat => 
-          [
-            new Date().toISOString().split('T')[0],
-            data.productivityScore,
-            stat.timeSpent,
-            stat.domain,
-            stat.visits,
-            "Work"
-          ].join(",")
-        )
-      ].join("\n");
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement("a");
-      if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `analytics_export_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", `analytics_export_${new Date().toISOString().split('T')[0]}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        
+        toast.success("Analytics data exported successfully!");
+      } catch (error) {
+        console.error('Error exporting data:', error);
+        toast.error("Failed to export analytics data");
       }
-      
-      toast.success("Analytics data exported successfully!");
-    }, {
-      errorMessage: "Failed to export analytics data",
-      showError: true
-    })();
+    };
+
+    exportData();
   }, [data]);
 
   if (loading) {
