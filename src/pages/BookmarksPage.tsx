@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -5,6 +6,7 @@ import Layout from "@/components/Layout";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
+import { batchProcessBookmarks } from "@/utils/geminiUtils";
 import { toast } from "sonner";
 
 const BookmarksPage = () => {
