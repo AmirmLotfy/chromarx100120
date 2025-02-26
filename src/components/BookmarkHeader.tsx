@@ -15,7 +15,6 @@ import { Badge } from "./ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "sonner";
 import SummariesButton from "./summaries/SummariesButton";
-import AIActionButtons from "./AIActionButtons";
 import {
   Tooltip,
   TooltipContent,
@@ -109,20 +108,14 @@ const BookmarkHeader = ({
                 <div className="space-y-4">
                   <h2 className="font-medium">Actions</h2>
                   <div className="grid grid-cols-1 gap-2">
-                    <AIActionButtons 
-                      selectedBookmarks={selectedBookmarks}
-                      onUpdateCategories={onUpdateCategories}
-                    />
+                    {/* Actions content */}
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
           ) : (
             <div className="flex items-center gap-1">
-              <AIActionButtons 
-                selectedBookmarks={selectedBookmarks}
-                onUpdateCategories={onUpdateCategories}
-              />
+              {/* Desktop actions */}
             </div>
           )}
         </div>

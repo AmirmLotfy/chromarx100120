@@ -20,9 +20,7 @@ import {
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generateTaskSuggestions, suggestTimerDuration } from "@/utils/geminiUtils";
 import { toast } from "sonner";
-import { useLanguage } from "@/stores/languageStore";
 
 interface TaskFormProps {
   onSubmit: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration">) => void;
@@ -35,46 +33,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
   const [category, setCategory] = useState<TaskCategory>("work");
   const [dueDate, setDueDate] = useState<Date>();
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const { currentLanguage } = useLanguage();
-
-  const getAIRecommendations = async () => {
-    setIsLoading(true);
-    try {
-      // Get both duration and suggestions concurrently
-      const [duration, taskSuggestions] = await Promise.all([
-        suggestTimerDuration(
-          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
-          currentLanguage.code
-        ),
-        generateTaskSuggestions(
-          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
-          currentLanguage.code
-        )
-      ]);
-
-      // Validate duration is within reasonable bounds
-      const validatedDuration = Math.min(Math.max(duration || 25, 5), 120);
-      
-      if (taskSuggestions) {
-        setSuggestions(taskSuggestions.split('\n').filter(Boolean));
-      }
-      
-      return {
-        estimatedDuration: validatedDuration,
-        color: `hsl(${Math.random() * 360}, 70%, 50%)`
-      };
-    } catch (error) {
-      console.error("Error getting AI recommendations:", error);
-      toast.error("Failed to get AI recommendations, using default values");
-      return {
-        estimatedDuration: 25,
-        color: `hsl(${Math.random() * 360}, 70%, 50%)`
-      };
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const validateInput = () => {
     if (!title.trim()) {
@@ -101,8 +59,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
 
     setIsLoading(true);
     try {
-      const aiRecommendations = await getAIRecommendations();
-
       onSubmit({
         title: title.trim(),
         description: description.trim(),
@@ -110,16 +66,15 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
         category,
         dueDate: dueDate.toISOString(),
         status: "pending",
-        ...aiRecommendations
+        estimatedDuration: 25,
+        color: `hsl(${Math.random() * 360}, 70%, 50%)`
       });
 
-      // Reset form
       setTitle("");
       setDescription("");
       setPriority("medium");
       setCategory("work");
       setDueDate(undefined);
-      setSuggestions([]);
 
       toast.success("Task created successfully");
     } catch (error) {
@@ -203,31 +158,10 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
         </Popover>
       </div>
 
-      {suggestions.length > 0 && (
-        <div className="p-4 bg-accent/50 rounded-lg">
-          <h4 className="text-sm font-medium mb-2">AI Suggestions:</h4>
-          <ul className="space-y-1">
-            {suggestions.map((suggestion, index) => (
-              <li key={index} className="text-sm text-muted-foreground">
-                • {suggestion}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Creating Task...
           </>
-        ) : (
-          "Add Task"
-        )}
-      </Button>
-    </form>
-  );
-};
-
-export default TaskForm;
+        )
