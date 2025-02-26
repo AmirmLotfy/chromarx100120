@@ -23,13 +23,14 @@
     ]
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.supabase.co https://*.supabase.in"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.supabase.co https://*.supabase.in https://*.functions.supabase.co"
   },
   "host_permissions": [
     "https://*.googleapis.com/*",
     "https://*.google.com/*",
     "https://*.supabase.co/*",
-    "https://*.supabase.in/*"
+    "https://*.supabase.in/*",
+    "https://*.functions.supabase.co/*"
   ],
   "commands": {
     "_execute_action": {

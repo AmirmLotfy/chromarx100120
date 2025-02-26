@@ -1,1 +1,5 @@
+
 project_id = "hkpgkogqxnamvlptxhat"
+
+[functions.process-bookmark]
+verify_jwt = false
