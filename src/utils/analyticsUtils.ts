@@ -98,14 +98,14 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
     // Store daily analytics data in Supabase
     const { error: storeError } = await supabase
       .from('analytics_data')
-      .upsert({
+      .upsert([{  // Wrap in array and ensure property names match database schema
         user_id: user.id,
         date: new Date().toISOString().split('T')[0],
         productivity_score: analyticsData.productivityScore,
         total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0),
         domain_stats: analyticsData.domainStats,
         category_distribution: analyticsData.timeDistribution
-      });
+      }]);
 
     if (storeError) {
       console.error("Error storing analytics data:", storeError);
