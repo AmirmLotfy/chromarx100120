@@ -19,7 +19,9 @@ const AITips = () => {
       try {
         const response = await getGeminiResponse({
           prompt: "Analyze my browsing patterns and provide productivity tips",
-          type: "summarize"
+          type: "summarize",
+          language: "en",
+          contentType: "productivity"
         });
 
         const parsedTips = JSON.parse(response.result);

@@ -9,6 +9,7 @@ export class StorageService {
   private isExtension: boolean;
 
   private constructor() {
+    // Check if we're running in a Chrome extension context
     this.isExtension = typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
   }
 
@@ -26,6 +27,7 @@ export class StorageService {
       }
 
       if (!this.isExtension) {
+        // If not in extension, try localStorage as fallback
         const stored = localStorage.getItem(key);
         return stored ? JSON.parse(stored) : null;
       }
@@ -47,6 +49,7 @@ export class StorageService {
   async set<T>(key: string, value: T): Promise<void> {
     try {
       if (!this.isExtension) {
+        // If not in extension, use localStorage as fallback
         localStorage.setItem(key, JSON.stringify(value));
         this.cache.set(key, value);
         return;
@@ -86,40 +89,6 @@ export class StorageService {
     } catch (error) {
       console.error(`Error removing ${key} from storage:`, error);
       toast.error(`Failed to remove ${key} from storage`);
-      throw error;
-    }
-  }
-
-  async signOut(): Promise<void> {
-    try {
-      // Clear Supabase token from local storage
-      if (this.isExtension) {
-        await chrome.storage.local.remove('supabase_token');
-      }
-
-      // Clear cache
-      this.clearCache();
-
-      // Find chromarx.it.com tab and send sign-out message
-      if (this.isExtension && chrome.tabs) {
-        const tabs = await chrome.tabs.query({ url: 'https://chromarx.it.com/*' });
-        
-        for (const tab of tabs) {
-          if (tab.id) {
-            await chrome.scripting.executeScript({
-              target: { tabId: tab.id },
-              func: () => {
-                window.postMessage({ type: 'CHROMARX_SIGN_OUT' }, 'https://chromarx.it.com');
-              },
-            });
-          }
-        }
-      }
-
-      toast.success('Successfully signed out');
-    } catch (error) {
-      console.error('Error during sign out:', error);
-      toast.error('Failed to complete sign out process');
       throw error;
     }
   }

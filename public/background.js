@@ -24,48 +24,6 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
-// Securely handle messages from website
-chrome.runtime.onMessageExternal.addListener(
-  async (message, sender, sendResponse) => {
-    // Verify sender origin
-    const ALLOWED_ORIGIN = 'https://chromarx.it.com';
-    
-    if (sender.origin !== ALLOWED_ORIGIN) {
-      console.error(`Invalid message origin: ${sender.origin}`);
-      return;
-    }
-
-    // Handle authentication success
-    if (message.type === 'AUTH_SUCCESS') {
-      try {
-        // Validate token structure
-        if (!message.token || typeof message.token !== 'string') {
-          console.error('Invalid token format received');
-          return;
-        }
-
-        // Store session token securely
-        await chrome.storage.local.set({
-          'supabase_session': message.token,
-          'auth_timestamp': Date.now()
-        });
-
-        // Notify extension about successful authentication
-        chrome.runtime.sendMessage({
-          type: 'AUTH_STATE_CHANGED',
-          authenticated: true
-        });
-
-        // Send success response back to website
-        sendResponse({ status: 'success' });
-      } catch (error) {
-        console.error('Error storing authentication token:', error);
-        sendResponse({ status: 'error', message: 'Failed to store authentication data' });
-      }
-    }
-  }
-);
-
 // Handle tab updates to ensure side panel is available everywhere
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {

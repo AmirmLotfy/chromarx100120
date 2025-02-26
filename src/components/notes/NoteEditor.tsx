@@ -34,9 +34,11 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
   }, [recognition]);
 
   const preprocessContent = (text: string) => {
+    // Extract emojis for additional context
     const emojis = text.match(emojiRegex()) || [];
     const emojiContext = emojis.length > 0 ? `Emojis used: ${emojis.join(" ")}. ` : "";
 
+    // Clean text for analysis while preserving emojis
     const cleanedText = text
       .replace(/[^\p{L}\p{N}\p{P}\p{Z}\p{Emoji}]/gu, " ")
       .replace(/\s+/g, " ")
@@ -52,40 +54,47 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
   const analyzeNote = async (noteContent: string) => {
     try {
       const { cleanedText, emojiContext, hasEmojis } = preprocessContent(noteContent);
+      console.log("Analyzing note with language:", currentLanguage.code);
+      console.log("Content has emojis:", hasEmojis);
 
       const analysisPrompt = `
+Language: ${currentLanguage.code}
 Content: ${cleanedText}
 ${emojiContext}
 Please analyze the sentiment considering:
 1. The overall tone and emotion
-2. Contextual nuances
+2. Cultural context of the language
 3. Emoji usage if present
+4. Contextual nuances
       `.trim();
 
       const [sentimentResult, summary] = await Promise.all([
-        analyzeSentiment(analysisPrompt),
-        summarizeContent(cleanedText)
+        analyzeSentiment(analysisPrompt, currentLanguage.code),
+        summarizeContent(cleanedText, currentLanguage.code)
       ]);
 
+      // Extract sentiment details
+      const [sentiment, score, confidence, dominantEmotion] = sentimentResult.split('|');
+      
       return {
-        sentiment: sentimentResult.split('|')[0] as NoteSentiment,
+        sentiment: sentiment as NoteSentiment,
         sentimentDetails: {
-          score: parseFloat(sentimentResult.split('|')[1]),
-          confidence: parseFloat(sentimentResult.split('|')[2]),
-          dominantEmotion: sentimentResult.split('|')[3],
-          language: currentLanguage.code // Add the required language property
+          score: parseFloat(score),
+          confidence: parseFloat(confidence),
+          dominantEmotion,
+          language: currentLanguage.code
         },
         summary
       };
     } catch (error) {
       console.error("Error analyzing note:", error);
-      toast.error("Failed to analyze note");
+      toast.error(`Failed to analyze note in ${currentLanguage.name}`);
       return {
         sentiment: 'neutral' as const,
         sentimentDetails: {
           score: 0,
           confidence: 0,
-          language: currentLanguage.code // Add the required language property
+          language: currentLanguage.code
         },
         summary: ''
       };

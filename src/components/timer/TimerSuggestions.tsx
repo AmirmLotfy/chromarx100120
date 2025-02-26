@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,15 +27,20 @@ export const TimerSuggestions = ({
     try {
       setLoading(true);
       
+      // Create a more detailed prompt based on context and mode
       const prompt = `Task Context: ${taskContext}
 Mode: ${mode}
 Previous feedback: ${feedback}
-Please suggest an optimal duration in minutes for this ${mode} session.
+Please suggest an optimal duration in minutes for this ${mode} session, considering:
+1. The nature of the task
+2. Best practices for ${mode} sessions
+3. User's previous feedback
 Response should be ONLY the number of minutes.`;
 
-      const suggestedMinutes = await suggestTimerDuration(prompt);
+      const suggestedMinutes = await suggestTimerDuration(prompt, currentLanguage.code);
       
       if (!isNaN(suggestedMinutes)) {
+        // Validate suggestion within reasonable bounds
         const validatedMinutes = Math.min(Math.max(suggestedMinutes, 5), 60);
         if (validatedMinutes !== suggestedMinutes) {
           console.log('Adjusted suggestion to be within reasonable bounds');
@@ -52,17 +58,20 @@ Response should be ONLY the number of minutes.`;
     }
   };
 
+  // Refresh suggestion when mode or context changes
   useEffect(() => {
     getSuggestion();
   }, [mode, taskContext]);
 
   const handleFeedback = (isGood: boolean) => {
     setFeedback(isGood ? 'good' : 'bad');
+    // Store feedback for future suggestions
     try {
       const feedbackKey = `timer_feedback_${mode}`;
       localStorage.setItem(feedbackKey, isGood ? 'good' : 'bad');
       
       if (!isGood) {
+        // If feedback is negative, get a new suggestion
         getSuggestion();
       }
       

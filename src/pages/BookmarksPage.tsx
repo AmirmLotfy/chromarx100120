@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -6,33 +5,25 @@ import Layout from "@/components/Layout";
 import BookmarkHeader from "@/components/BookmarkHeader";
 import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
-import { batchProcessBookmarks } from "@/utils/geminiUtils";
 import { toast } from "sonner";
 
 const BookmarksPage = () => {
   const {
     bookmarks,
     setBookmarks,
-    selectedBookmarks,
-    setSelectedBookmarks,
     loading,
-    refreshBookmarks
+    newBookmarks,
+    loadBookmarks,
+    suggestions,
+    searchQuery,
+    handleSearch,
   } = useBookmarkState();
 
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleSelectSuggestion = (suggestion: string) => {
-    setSearchQuery(suggestion);
-  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -62,34 +53,23 @@ const BookmarksPage = () => {
     }
   };
 
-  const handleUpdateCategories = useCallback(async (bookmarks: ChromeBookmark[]) => {
-    try {
-      const categorizedBookmarks = await batchProcessBookmarks(bookmarks, 'categorize');
-      const updatedBookmarks = bookmarks.map(bookmark => ({
-        ...bookmark,
-        category: categorizedBookmarks.get(bookmark.id) || bookmark.category || 'uncategorized'
-      }));
-      
-      setBookmarks(prev => {
-        const bookmarkMap = new Map(prev.map(b => [b.id, b]));
-        updatedBookmarks.forEach(bookmark => {
-          bookmarkMap.set(bookmark.id, bookmark);
-        });
-        return Array.from(bookmarkMap.values());
+  const handleUpdateCategories = useCallback((updatedBookmarks: ChromeBookmark[]) => {
+    setBookmarks(prev => {
+      const bookmarkMap = new Map(prev.map(b => [b.id, b]));
+      updatedBookmarks.forEach(bookmark => {
+        bookmarkMap.set(bookmark.id, bookmark);
       });
-
-      toast.success("Categories updated successfully!");
-    } catch (error) {
-      console.error("Error updating categories:", error);
-      toast.error("Failed to update categories");
-    }
+      return Array.from(bookmarkMap.values());
+    });
   }, [setBookmarks]);
 
   const handleImport = () => {
+    // This is a placeholder function for now
     toast.info("Import functionality coming soon!");
   };
 
   const handleCreateFolder = () => {
+    // This is a placeholder function for now
     toast.info("Create folder functionality coming soon!");
   };
 
@@ -172,7 +152,7 @@ const BookmarksPage = () => {
           onImport={handleImport}
           onCreateFolder={handleCreateFolder}
           suggestions={suggestions}
-          onSelectSuggestion={handleSelectSuggestion}
+          onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
         />
 
         <BookmarkContent
@@ -188,9 +168,9 @@ const BookmarksPage = () => {
           onDelete={handleDelete}
           formatDate={formatDate}
           view={view}
-          onReorder={refreshBookmarks}
+          onReorder={loadBookmarks}
           onBulkDelete={handleDeleteSelected}
-          onRefresh={refreshBookmarks}
+          onRefresh={loadBookmarks}
           loading={loading}
           filteredBookmarks={filteredBookmarks}
           onUpdateCategories={handleUpdateCategories}

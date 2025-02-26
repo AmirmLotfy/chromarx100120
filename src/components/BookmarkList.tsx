@@ -1,4 +1,3 @@
-
 import { ChromeBookmark } from "@/types/bookmark";
 import { cn } from "@/lib/utils";
 import {
@@ -21,7 +20,7 @@ import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
 import { CheckSquare, FileText, Globe, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { summarizeContent, suggestBookmarkCategory, summarizeBookmark } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -133,12 +132,14 @@ const BookmarkList = ({
   const handleSelectAll = () => {
     const allSelected = bookmarks.length === selectedBookmarks.size;
     if (allSelected) {
+      // Deselect all
       bookmarks.forEach(bookmark => {
         if (selectedBookmarks.has(bookmark.id)) {
           onToggleSelect(bookmark.id);
         }
       });
     } else {
+      // Select all
       bookmarks.forEach(bookmark => {
         if (!selectedBookmarks.has(bookmark.id)) {
           onToggleSelect(bookmark.id);
@@ -148,6 +149,7 @@ const BookmarkList = ({
   };
 
   const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => {
+    // Group bookmarks by domain
     const groupedBookmarks = bookmarksToRender.reduce((acc, bookmark) => {
       if (bookmark.url) {
         const domain = extractDomain(bookmark.url);
@@ -243,7 +245,7 @@ const BookmarkList = ({
 
       const summaries = await Promise.all(
         selectedBookmarksArray.map(async (bookmark) => {
-          const summary = await summarizeContent(bookmark.title);
+          const summary = await summarizeBookmark(bookmark, currentLanguage.code);
           return {
             id: bookmark.id,
             title: bookmark.title,
@@ -278,6 +280,7 @@ const BookmarkList = ({
     }
 
     setIsProcessing(true);
+    const { currentLanguage } = useLanguage();
     try {
       const selectedBookmarksArray = Array.from(selectedBookmarks)
         .map(id => bookmarks.find(b => b.id === id))
@@ -288,7 +291,12 @@ const BookmarkList = ({
           const content = await fetchPageContent(bookmark.url || "");
           return {
             ...bookmark,
-            category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", content)
+            category: await suggestBookmarkCategory(
+              bookmark.title,
+              bookmark.url || "",
+              content,
+              currentLanguage.code
+            ),
           };
         })
       );

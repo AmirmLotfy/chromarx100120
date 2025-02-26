@@ -103,9 +103,10 @@ const ChatInterface = () => {
 
   const processQuery = async (query: string) => {
     try {
+      // Run bookmark search and web search in parallel
       const [relevantBookmarks, webResults] = await Promise.all([
         Promise.resolve(searchBookmarks(query)),
-        searchWebResults(query)
+        searchWebResults(query),
       ]);
 
       const bookmarkContext = relevantBookmarks
@@ -115,7 +116,7 @@ const ChatInterface = () => {
       const chatContext = getContextFromHistory(messages, query);
       const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage);
 
-      const response = await summarizeContent(prompt);
+      const response = await summarizeContent(prompt, currentLanguage.code);
 
       return {
         response,
