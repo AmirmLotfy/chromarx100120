@@ -135,6 +135,11 @@ const NotesPage = () => {
           })
         ]);
 
+        if (sentimentResponse.error || summaryResponse.error) {
+          toast.error("Failed to analyze some notes");
+          continue;
+        }
+
         const updatedNote = {
           ...note,
           sentiment: sentimentResponse.result as Note["sentiment"],

@@ -17,6 +17,20 @@ interface GeminiResponse {
   error?: string;
 }
 
+export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
+  try {
+    const result = await callAIFunction(request.type, {
+      content: request.prompt,
+      language: request.language,
+      contentType: request.contentType
+    });
+    return { result };
+  } catch (error) {
+    console.error('Error getting Gemini response:', error);
+    return { result: '', error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+};
+
 const callAIFunction = async (operation: string, params: any): Promise<string> => {
   try {
     const { data, error } = await supabase.functions.invoke('ai-features', {

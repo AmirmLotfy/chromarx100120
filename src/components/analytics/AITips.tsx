@@ -24,6 +24,11 @@ const AITips = () => {
           contentType: "productivity"
         });
 
+        if (response.error) {
+          console.error("Error getting AI tips:", response.error);
+          return;
+        }
+
         const parsedTips = JSON.parse(response.result);
         setTips(parsedTips);
       } catch (error) {
