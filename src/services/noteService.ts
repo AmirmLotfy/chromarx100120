@@ -1,7 +1,24 @@
+
 import { Note } from "@/types/note";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { chromeDb } from "@/lib/chrome-storage";
+
+type DatabaseNote = {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  category: string;
+  created_at: string;
+  updated_at: string;
+  sentiment?: string;
+  sentiment_details?: any;
+  summary?: string;
+  task_id?: string;
+  bookmark_ids?: string[];
+};
 
 export class NoteService {
   private static instance: NoteService;
@@ -14,6 +31,41 @@ export class NoteService {
       this.instance = new NoteService();
     }
     return this.instance;
+  }
+
+  private toNote(dbNote: DatabaseNote): Note {
+    return {
+      id: dbNote.id,
+      title: dbNote.title,
+      content: dbNote.content,
+      tags: dbNote.tags,
+      category: dbNote.category,
+      createdAt: dbNote.created_at,
+      updatedAt: dbNote.updated_at,
+      sentiment: dbNote.sentiment,
+      sentimentDetails: dbNote.sentiment_details,
+      summary: dbNote.summary,
+      taskId: dbNote.task_id,
+      bookmarkIds: dbNote.bookmark_ids,
+    };
+  }
+
+  private toDatabaseNote(note: Partial<Note>, userId?: string): Partial<DatabaseNote> {
+    return {
+      id: note.id,
+      user_id: userId,
+      title: note.title,
+      content: note.content,
+      tags: note.tags,
+      category: note.category,
+      created_at: note.createdAt,
+      updated_at: note.updatedAt,
+      sentiment: note.sentiment,
+      sentiment_details: note.sentimentDetails,
+      summary: note.summary,
+      task_id: note.taskId,
+      bookmark_ids: note.bookmarkIds,
+    };
   }
 
   async getAllNotes(): Promise<Note[]> {
@@ -32,10 +84,11 @@ export class NoteService {
 
         if (error) throw error;
 
-        // Update localStorage with latest data from Supabase
+        // Transform and update localStorage with latest data from Supabase
         if (supabaseNotes) {
-          localStorage.setItem("notes", JSON.stringify(supabaseNotes));
-          return supabaseNotes;
+          const transformedNotes = supabaseNotes.map(this.toNote);
+          localStorage.setItem("notes", JSON.stringify(transformedNotes));
+          return transformedNotes;
         }
       }
 
@@ -53,7 +106,6 @@ export class NoteService {
       const newNote = {
         ...note,
         id: crypto.randomUUID(),
-        user_id: user?.id,
       };
 
       // Save to localStorage first for immediate feedback
@@ -62,14 +114,15 @@ export class NoteService {
 
       // If user is authenticated, save to Supabase
       if (user) {
+        const dbNote = this.toDatabaseNote(newNote, user.id);
         const { data, error } = await supabase
           .from("notes")
-          .insert([newNote])
+          .insert([dbNote])
           .select()
           .single();
 
         if (error) throw error;
-        return data;
+        return this.toNote(data);
       }
 
       return newNote;
@@ -92,15 +145,16 @@ export class NoteService {
       // If user is authenticated, update Supabase
       const user = await this.getCurrentUser();
       if (user) {
+        const dbNote = this.toDatabaseNote(note, user.id);
         const { data, error } = await supabase
           .from("notes")
-          .update(note)
+          .update(dbNote)
           .eq("id", note.id)
           .select()
           .single();
 
         if (error) throw error;
-        return data;
+        return this.toNote(data);
       }
 
       return note;
@@ -154,16 +208,18 @@ export class NoteService {
 
       if (error) throw error;
 
-      // Merge notes based on timestamps
-      const mergedNotes = this.mergeNotes(localNotes, supabaseNotes || []);
+      // Transform and merge notes based on timestamps
+      const transformedSupabaseNotes = (supabaseNotes || []).map(this.toNote);
+      const mergedNotes = this.mergeNotes(localNotes, transformedSupabaseNotes);
 
       // Update localStorage
       localStorage.setItem("notes", JSON.stringify(mergedNotes));
 
       // Update Supabase
+      const dbNotes = mergedNotes.map(note => this.toDatabaseNote(note, user.id));
       const { error: upsertError } = await supabase
         .from("notes")
-        .upsert(mergedNotes);
+        .upsert(dbNotes);
 
       if (upsertError) throw upsertError;
 
@@ -211,7 +267,7 @@ export class NoteService {
           table: 'notes' 
         }, 
         (payload) => {
-          callback(payload.new as Note);
+          callback(this.toNote(payload.new as DatabaseNote));
         }
       )
       .subscribe();
