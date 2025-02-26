@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      devices: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          device_name: string
+          device_type: string
+          id: string
+          is_online: boolean | null
+          last_active: string | null
+          settings: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          device_name: string
+          device_type: string
+          id?: string
+          is_online?: boolean | null
+          last_active?: string | null
+          settings?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          device_name?: string
+          device_type?: string
+          id?: string
+          is_online?: boolean | null
+          last_active?: string | null
+          settings?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extension_connections: {
         Row: {
           browser: string
@@ -113,6 +160,85 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      sync_status: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_sync: string | null
+          message: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_sync?: string | null
+          message?: string | null
+          status: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_sync?: string | null
+          message?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_status_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_statistics: {
+        Row: {
+          api_calls: number | null
+          created_at: string | null
+          id: string
+          last_reset: string | null
+          storage_used: number | null
+          summaries_used: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_calls?: number | null
+          created_at?: string | null
+          id?: string
+          last_reset?: string | null
+          storage_used?: number | null
+          summaries_used?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_calls?: number | null
+          created_at?: string | null
+          id?: string
+          last_reset?: string | null
+          storage_used?: number | null
+          summaries_used?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_statistics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_settings: {
         Row: {
