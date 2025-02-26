@@ -42,7 +42,7 @@ const SummariesPage = () => {
   const [selectedSummaries, setSelectedSummaries] = useState<Set<string>>(new Set());
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
-    to: Date | undefined;
+    to?: Date | undefined;
   }>({
     from: undefined,
     to: undefined
@@ -543,7 +543,19 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                     mode="range"
                     defaultMonth={dateRange.from}
                     selected={dateRange}
-                    onSelect={setDateRange}
+                    onSelect={(range) => {
+                      if (range) {
+                        setDateRange({
+                          from: range.from,
+                          to: range.to
+                        });
+                      } else {
+                        setDateRange({
+                          from: undefined,
+                          to: undefined
+                        });
+                      }
+                    }}
                     numberOfMonths={1}
                   />
                 </PopoverContent>
