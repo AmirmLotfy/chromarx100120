@@ -1,35 +1,44 @@
 
-export const validateDataStructure = <T extends Record<string, any>>(
-  data: T,
-  schema: Record<keyof T, (value: any) => boolean>
-): void => {
-  for (const [key, validator] of Object.entries(schema)) {
-    if (!validator(data[key])) {
-      throw new Error(`Invalid ${String(key)} in data structure`);
-    }
-  }
+import { AnalyticsData, DomainStat, TimeDistributionData, ProductivityTrend } from "@/types/analytics";
+import { z } from "zod";
+
+// Validation schemas
+export const domainStatSchema = z.object({
+  domain: z.string().min(1),
+  visits: z.number().int().nonnegative(),
+  timeSpent: z.number().int().nonnegative()
+});
+
+export const timeDistributionSchema = z.object({
+  category: z.string().min(1),
+  time: z.number().nonnegative()
+});
+
+export const productivityTrendSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  score: z.number().min(0).max(100)
+});
+
+export const analyticsDataSchema = z.object({
+  productivityScore: z.number().min(0).max(100),
+  timeDistribution: z.array(timeDistributionSchema),
+  domainStats: z.array(domainStatSchema),
+  productivityTrends: z.array(productivityTrendSchema)
+});
+
+// Validation functions
+export const validateAnalyticsData = (data: unknown): AnalyticsData => {
+  return analyticsDataSchema.parse(data);
 };
 
-export const isNumber = (value: any): boolean => 
-  typeof value === 'number' && !isNaN(value);
+export const validateDomainStats = (stats: unknown): DomainStat[] => {
+  return z.array(domainStatSchema).parse(stats);
+};
 
-export const isPositiveNumber = (value: any): boolean => 
-  isNumber(value) && value >= 0;
+export const validateTimeDistribution = (distribution: unknown): TimeDistributionData[] => {
+  return z.array(timeDistributionSchema).parse(distribution);
+};
 
-export const isArray = (value: any): boolean => 
-  Array.isArray(value);
-
-export const isNonEmptyArray = (value: any): boolean => 
-  isArray(value) && value.length > 0;
-
-export const isString = (value: any): boolean => 
-  typeof value === 'string' && value.length > 0;
-
-export const isBoolean = (value: any): boolean => 
-  typeof value === 'boolean';
-
-export const isValidDate = (value: any): boolean => 
-  value instanceof Date && !isNaN(value.getTime());
-
-export const isValidDateString = (value: any): boolean => 
-  isString(value) && !isNaN(Date.parse(value));
+export const validateProductivityTrends = (trends: unknown): ProductivityTrend[] => {
+  return z.array(productivityTrendSchema).parse(trends);
+};

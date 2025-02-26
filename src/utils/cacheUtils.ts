@@ -1,49 +1,119 @@
 
+import { storage } from "@/services/storageService";
+
+interface CacheConfig {
+  ttl: number;
+  prefix?: string;
+}
+
 interface CacheItem<T> {
-  data: T;
+  value: T;
   timestamp: number;
 }
 
-export class LocalCache<T> {
-  private readonly key: string;
-  private readonly duration: number;
+export class CacheService {
+  private static instance: CacheService;
+  private cache = new Map<string, CacheItem<any>>();
+  private config: CacheConfig = {
+    ttl: 5 * 60 * 1000, // 5 minutes default TTL
+    prefix: 'cache_'
+  };
 
-  constructor(key: string, duration: number = 24 * 60 * 60 * 1000) {
-    this.key = key;
-    this.duration = duration;
+  private constructor() {}
+
+  static getInstance(): CacheService {
+    if (!this.instance) {
+      this.instance = new CacheService();
+    }
+    return this.instance;
   }
 
-  get(): T | null {
+  configure(config: Partial<CacheConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  private getCacheKey(key: string): string {
+    return `${this.config.prefix}${key}`;
+  }
+
+  private isExpired(timestamp: number): boolean {
+    return Date.now() - timestamp > this.config.ttl;
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    // Check memory cache first
+    const memoryCache = this.cache.get(key);
+    if (memoryCache && !this.isExpired(memoryCache.timestamp)) {
+      return memoryCache.value;
+    }
+
+    // Try persistent storage
     try {
-      const item = localStorage.getItem(this.key);
-      if (!item) return null;
-
-      const { data, timestamp }: CacheItem<T> = JSON.parse(item);
-      if (Date.now() - timestamp > this.duration) {
-        this.remove();
-        return null;
+      const stored = await storage.get<CacheItem<T>>(this.getCacheKey(key));
+      if (stored && !this.isExpired(stored.timestamp)) {
+        // Update memory cache
+        this.cache.set(key, stored);
+        return stored.value;
       }
+    } catch (error) {
+      console.warn('Error reading from cache:', error);
+    }
 
-      return data;
-    } catch {
-      return null;
+    return null;
+  }
+
+  async set<T>(key: string, value: T): Promise<void> {
+    const item: CacheItem<T> = {
+      value,
+      timestamp: Date.now()
+    };
+
+    // Update memory cache
+    this.cache.set(key, item);
+
+    // Update persistent storage
+    try {
+      await storage.set(this.getCacheKey(key), item);
+    } catch (error) {
+      console.error('Error writing to cache:', error);
     }
   }
 
-  set(data: T): void {
-    const item: CacheItem<T> = {
-      data,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem(this.key, JSON.stringify(item));
+  async invalidate(key: string): Promise<void> {
+    // Clear memory cache
+    this.cache.delete(key);
+
+    // Clear persistent storage
+    try {
+      await storage.remove(this.getCacheKey(key));
+    } catch (error) {
+      console.error('Error invalidating cache:', error);
+    }
   }
 
-  remove(): void {
-    localStorage.removeItem(this.key);
+  async clear(): Promise<void> {
+    // Clear memory cache
+    this.cache.clear();
+
+    // Clear all cached items from persistent storage
+    try {
+      const allKeys = await storage.get<string[]>('cacheKeys');
+      if (allKeys) {
+        await Promise.all(allKeys.map(key => storage.remove(key)));
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  }
+
+  async primeCache<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+    const cached = await this.get<T>(key);
+    if (cached) return cached;
+
+    const fresh = await fetchFn();
+    await this.set(key, fresh);
+    return fresh;
   }
 }
 
-// Create specific cache instances for different features
-export const summaryCache = new LocalCache<Record<string, string>>('bookmark-summaries');
-export const categoryCache = new LocalCache<Record<string, string>>('bookmark-categories');
-export const contentCache = new LocalCache<Record<string, string>>('bookmark-contents', 12 * 60 * 60 * 1000); // 12 hours
+export const cache = CacheService.getInstance();
