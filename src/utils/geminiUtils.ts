@@ -33,7 +33,7 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
 
 const callAIFunction = async (operation: string, params: any): Promise<string> => {
   try {
-    const { data, error } = await supabase.functions.invoke('ai-features', {
+    const { data, error } = await supabase.functions.invoke('gemini-api', {
       body: { operation, ...params }
     });
 
