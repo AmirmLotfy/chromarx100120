@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -442,7 +443,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
   return (
     <Layout>
       <div className="space-y-4 pb-16 pt-4 px-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -452,15 +453,17 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-base font-semibold">Summaries</h1>
-          
-          <div className="flex-1" />
+        </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-[600px]">
+        <div className="space-y-3">
+          <div className="w-full">
             <SearchSummaries onSearch={setSearchQuery} />
-            
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button variant="outline" size="sm" className="h-8 w-full">
                   <Tag className="h-3.5 w-3.5 mr-1" />
                   Filter
                 </Button>
@@ -482,7 +485,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button variant="outline" size="sm" className="h-8 w-full">
                   <ChevronDown className="h-3.5 w-3.5 mr-1" />
                   Actions
                 </Button>
@@ -527,7 +530,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button variant="outline" size="sm" className="h-8 w-full">
                   <Calendar className="h-3.5 w-3.5 mr-1" />
                   Date
                 </Button>
@@ -546,7 +549,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button variant="outline" size="sm" className="h-8 w-full">
                   Sort: {sortBy}
                 </Button>
               </DropdownMenuTrigger>
