@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, FileText, ChevronDown } from "lucide-react";
+import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, Tag, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import SearchSummaries from "@/components/SearchSummaries";
 import {
@@ -21,6 +21,8 @@ interface Summary {
   date: string;
   isStarred?: boolean;
   isNew?: boolean;
+  tags?: string[];
+  category?: string;
 }
 
 const SummariesPage = () => {
@@ -31,6 +33,8 @@ const SummariesPage = () => {
   });
   const [activeTab, setActiveTab] = useState<'current' | 'new' | 'history'>('current');
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
     const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
@@ -80,6 +84,54 @@ const SummariesPage = () => {
     toast.success("All summaries cleared");
   };
 
+  const addTag = (summaryId: string, tag: string) => {
+    setSummaries(prev => {
+      const updated = prev.map(summary => {
+        if (summary.id === summaryId) {
+          const currentTags = summary.tags || [];
+          if (!currentTags.includes(tag)) {
+            return { ...summary, tags: [...currentTags, tag] };
+          }
+        }
+        return summary;
+      });
+      localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
+      return updated;
+    });
+    toast.success(`Added tag: ${tag}`);
+  };
+
+  const removeTag = (summaryId: string, tagToRemove: string) => {
+    setSummaries(prev => {
+      const updated = prev.map(summary => {
+        if (summary.id === summaryId && summary.tags) {
+          return {
+            ...summary,
+            tags: summary.tags.filter(tag => tag !== tagToRemove)
+          };
+        }
+        return summary;
+      });
+      localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
+      return updated;
+    });
+    toast.success(`Removed tag: ${tagToRemove}`);
+  };
+
+  const setCategory = (summaryId: string, category: string) => {
+    setSummaries(prev => {
+      const updated = prev.map(summary => {
+        if (summary.id === summaryId) {
+          return { ...summary, category };
+        }
+        return summary;
+      });
+      localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
+      return updated;
+    });
+    toast.success(`Set category: ${category}`);
+  };
+
   const filterSummaries = (summaries: Summary[]) => {
     return summaries.filter(summary => {
       const matchesSearch = searchQuery.toLowerCase().trim() === "" ||
@@ -87,19 +139,42 @@ const SummariesPage = () => {
         summary.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         summary.url.toLowerCase().includes(searchQuery.toLowerCase());
 
+      const matchesTag = !activeTag || (summary.tags && summary.tags.includes(activeTag));
+      const matchesCategory = !activeCategory || summary.category === activeCategory;
+
       switch (activeTab) {
         case 'new':
-          return matchesSearch && summary.isNew;
+          return matchesSearch && matchesTag && matchesCategory && summary.isNew;
         case 'history':
-          return matchesSearch;
+          return matchesSearch && matchesTag && matchesCategory;
         default:
-          return matchesSearch && !summary.isNew;
+          return matchesSearch && matchesTag && matchesCategory && !summary.isNew;
       }
     });
   };
 
+  const getAllTags = () => {
+    const tagsSet = new Set<string>();
+    summaries.forEach(summary => {
+      summary.tags?.forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet);
+  };
+
+  const getAllCategories = () => {
+    const categoriesSet = new Set<string>();
+    summaries.forEach(summary => {
+      if (summary.category) {
+        categoriesSet.add(summary.category);
+      }
+    });
+    return Array.from(categoriesSet);
+  };
+
   const filteredSummaries = filterSummaries(summaries);
   const newSummaries = summaries.filter(s => s.isNew);
+  const allTags = getAllTags();
+  const allCategories = getAllCategories();
 
   const tabLabels = {
     current: 'Current',
@@ -113,8 +188,73 @@ const SummariesPage = () => {
         <div className="space-y-1 flex-1">
           <h3 className="font-medium line-clamp-1">{summary.title}</h3>
           <p className="text-sm text-muted-foreground">{summary.content}</p>
+          {(summary.tags && summary.tags.length > 0) && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {summary.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTag(activeTag === tag ? null : tag);
+                  }}
+                >
+                  <Tag className="w-3 h-3 mr-1" />
+                  {tag}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeTag(summary.id, tag);
+                    }}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {summary.category && (
+            <span
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary/10 text-secondary cursor-pointer"
+              onClick={() => setActiveCategory(activeCategory === summary.category ? null : summary.category)}
+            >
+              {summary.category}
+            </span>
+          )}
         </div>
         <div className="flex gap-2 shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <Tag className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => addTag(summary.id, "Important")}>
+                Add Tag: Important
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addTag(summary.id, "Read Later")}>
+                Add Tag: Read Later
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => addTag(summary.id, "Reference")}>
+                Add Tag: Reference
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCategory(summary.id, "Work")}>
+                Set Category: Work
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCategory(summary.id, "Personal")}>
+                Set Category: Personal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCategory(summary.id, "Research")}>
+                Set Category: Research
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="icon"
@@ -202,8 +342,36 @@ const SummariesPage = () => {
           </Button>
         </div>
 
-        <div className="px-2">
+        <div className="px-2 space-y-4">
           <SearchSummaries onSearch={setSearchQuery} />
+          
+          {(allTags.length > 0 || allCategories.length > 0) && (
+            <div className="flex flex-wrap gap-2">
+              {allTags.map(tag => (
+                <Button
+                  key={tag}
+                  variant={activeTag === tag ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                  className="h-7"
+                >
+                  <Tag className="w-3 h-3 mr-1" />
+                  {tag}
+                </Button>
+              ))}
+              {allCategories.map(category => (
+                <Button
+                  key={category}
+                  variant={activeCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setActiveCategory(activeCategory === category ? null : category)}
+                  className="h-7"
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="w-full">
@@ -263,7 +431,8 @@ const SummariesPage = () => {
               {filteredSummaries.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">
-                    {searchQuery ? "No summaries found matching your search." :
+                    {searchQuery || activeTag || activeCategory ? 
+                      "No summaries found matching your filters." :
                       activeTab === 'new'
                         ? 'No new summaries available.'
                         : activeTab === 'history'
