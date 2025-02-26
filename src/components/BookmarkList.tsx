@@ -18,7 +18,7 @@ import SortableBookmark from "./SortableBookmark";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
-import { CheckSquare, FileText, Globe, Sparkles, Trash2 } from "lucide-react";
+import { CheckSquare, FileText, Globe, Sparkles, Trash2, FolderPlus, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory, summarizeBookmark } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +28,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Input } from "./ui/input";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { useLanguage } from "@/stores/languageStore";
 import { fetchPageContent } from "@/utils/contentExtractor";
@@ -61,6 +69,12 @@ const BookmarkList = ({
   const [groupedByDomain, setGroupedByDomain] = useState<Record<string, ChromeBookmark[]>>({});
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCategorizeDialogOpen, setIsCategorizeDialogOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [newTags, setNewTags] = useState("");
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -285,6 +299,91 @@ const BookmarkList = ({
     }
   };
 
+  const handleBulkMove = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("Please select bookmarks to move");
+      return;
+    }
+
+    try {
+      if (!newFolderName.trim()) {
+        toast.error("Please enter a folder name");
+        return;
+      }
+
+      // Create new folder and move bookmarks
+      if (chrome.bookmarks) {
+        const folder = await chrome.bookmarks.create({ title: newFolderName });
+        const moves = Array.from(selectedBookmarks).map(id => 
+          chrome.bookmarks.move(id, { parentId: folder.id })
+        );
+        await Promise.all(moves);
+        toast.success(`Moved ${selectedBookmarks.size} bookmarks to "${newFolderName}"`);
+        setIsMoveDialogOpen(false);
+        setNewFolderName("");
+      }
+    } catch (error) {
+      console.error("Move failed:", error);
+      toast.error("Failed to move bookmarks");
+    }
+  };
+
+  const handleBulkCategorize = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("Please select bookmarks to categorize");
+      return;
+    }
+
+    try {
+      const selectedBookmarksArray = Array.from(selectedBookmarks)
+        .map(id => bookmarks.find(b => b.id === id))
+        .filter((b): b is ChromeBookmark => b !== undefined);
+
+      const updatedBookmarks = selectedBookmarksArray.map(bookmark => ({
+        ...bookmark,
+        category: newCategory
+      }));
+
+      onUpdateCategories(updatedBookmarks);
+      setIsCategorizeDialogOpen(false);
+      setNewCategory("");
+      toast.success(`Categorized ${selectedBookmarks.size} bookmarks`);
+    } catch (error) {
+      console.error("Categorize failed:", error);
+      toast.error("Failed to categorize bookmarks");
+    }
+  };
+
+  const handleBulkTag = async () => {
+    if (selectedBookmarks.size === 0) {
+      toast.error("Please select bookmarks to tag");
+      return;
+    }
+
+    try {
+      const tags = newTags.split(',').map(tag => tag.trim()).filter(Boolean);
+      const selectedBookmarksArray = Array.from(selectedBookmarks)
+        .map(id => bookmarks.find(b => b.id === id))
+        .filter((b): b is ChromeBookmark => b !== undefined);
+
+      const updatedBookmarks = selectedBookmarksArray.map(bookmark => ({
+        ...bookmark,
+        metadata: {
+          ...bookmark.metadata,
+          tags: [...(bookmark.metadata?.tags || []), ...tags]
+        }
+      }));
+
+      onUpdateCategories(updatedBookmarks);
+      setIsTagDialogOpen(false);
+      setNewTags("");
+      toast.success(`Tagged ${selectedBookmarks.size} bookmarks`);
+    } catch (error) {
+      console.error("Tag failed:", error);
+      toast.error("Failed to tag bookmarks");
+    }
+  };
+
   const renderVirtualizedBookmarks = () => (
     <div
       ref={parentRef}
@@ -343,10 +442,7 @@ const BookmarkList = ({
   );
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <SortableContext
         items={items.map((item) => item.id)}
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
@@ -364,6 +460,60 @@ const BookmarkList = ({
             </Button>
             
             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsMoveDialogOpen(true)}
+                    disabled={isProcessing || selectedBookmarks.size === 0}
+                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                  >
+                    <FolderPlus className="h-4 w-4 mr-1.5" />
+                    Move
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Move selected bookmarks to a new folder
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCategorizeDialogOpen(true)}
+                    disabled={isProcessing || selectedBookmarks.size === 0}
+                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                  >
+                    <Globe className="h-4 w-4 mr-1.5" />
+                    Categorize
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Set category for selected bookmarks
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsTagDialogOpen(true)}
+                    disabled={isProcessing || selectedBookmarks.size === 0}
+                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+                  >
+                    <Tag className="h-4 w-4 mr-1.5" />
+                    Tag
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Add tags to selected bookmarks
+                </TooltipContent>
+              </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -419,6 +569,81 @@ const BookmarkList = ({
               </Tooltip>
             </TooltipProvider>
           </div>
+
+          {/* Move Dialog */}
+          <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Move Bookmarks to New Folder</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label htmlFor="folderName" className="text-sm font-medium">
+                    New Folder Name
+                  </label>
+                  <Input
+                    id="folderName"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Enter folder name"
+                  />
+                </div>
+                <Button onClick={handleBulkMove} className="w-full">
+                  Move Bookmarks
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Categorize Dialog */}
+          <Dialog open={isCategorizeDialogOpen} onOpenChange={setIsCategorizeDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Set Category for Bookmarks</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label htmlFor="category" className="text-sm font-medium">
+                    Category
+                  </label>
+                  <Input
+                    id="category"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    placeholder="Enter category name"
+                  />
+                </div>
+                <Button onClick={handleBulkCategorize} className="w-full">
+                  Set Category
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Tag Dialog */}
+          <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Tags to Bookmarks</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label htmlFor="tags" className="text-sm font-medium">
+                    Tags (comma-separated)
+                  </label>
+                  <Input
+                    id="tags"
+                    value={newTags}
+                    onChange={(e) => setNewTags(e.target.value)}
+                    placeholder="tag1, tag2, tag3"
+                  />
+                </div>
+                <Button onClick={handleBulkTag} className="w-full">
+                  Add Tags
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {renderVirtualizedBookmarks()}
         </div>
