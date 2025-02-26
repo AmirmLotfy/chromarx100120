@@ -1,4 +1,5 @@
-import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat } from "@/types/analytics";
+
+import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat, DomainCategory } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
 import { chromeDb } from "@/lib/chrome-storage";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,18 +75,31 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       .from('domain_categories')
       .select('domain, category');
 
+    // Calculate time distribution before creating analytics data
+    const timeDistribution = await calculateTimeDistribution(visitData, customCategories || []);
+    const domainStats = calculateDomainStats(visitData);
+    const productivityScore = calculateProductivityScore(visitData, tabs);
+    const productivityTrends = await calculateProductivityTrends(visitData);
+
     // Calculate analytics metrics
     const analyticsData: AnalyticsData = {
-      productivityScore: calculateProductivityScore(visitData, tabs),
-      timeDistribution: calculateTimeDistribution(visitData, customCategories),
-      domainStats: calculateDomainStats(visitData),
-      productivityTrends: await calculateProductivityTrends(visitData)
+      productivityScore,
+      timeDistribution,
+      domainStats,
+      productivityTrends
     };
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error("No authenticated user found");
+    }
 
     // Store daily analytics data in Supabase
     const { error: storeError } = await supabase
       .from('analytics_data')
       .upsert({
+        user_id: user.id,
         date: new Date().toISOString().split('T')[0],
         productivity_score: analyticsData.productivityScore,
         total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0),
@@ -143,11 +157,11 @@ const calculateDomainStats = (visitData: VisitData[]): DomainStat[] => {
     .slice(0, 10);
 };
 
-const calculateTimeDistribution = async (visitData: VisitData[], customCategories: DomainCategory[] | null): Promise<TimeDistributionData[]> => {
+const calculateTimeDistribution = (visitData: VisitData[], customCategories: DomainCategory[]): TimeDistributionData[] => {
   const categories = new Map<string, number>();
   
   visitData.forEach(visit => {
-    const customCategory = customCategories?.find(c => c.domain === visit.domain);
+    const customCategory = customCategories.find(c => c.domain === visit.domain);
     const category = customCategory?.category || determineCategory(visit.domain);
     const current = categories.get(category) || 0;
     categories.set(category, current + visit.timeSpent);
