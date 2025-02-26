@@ -1,55 +1,54 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useSettings } from "@/stores/settingsStore";
+import { toast } from "sonner";
+import { useState } from "react";
+import { geminiService } from "@/services/geminiService";
 
 const AdvancedSettings = () => {
-  const { 
-    experimentalFeatures, 
-    setExperimentalFeatures,
-    affiliateBannersEnabled,
-    setAffiliateBannersEnabled
-  } = useSettings();
+  const [apiKey, setApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  const handleSaveApiKey = async () => {
+    try {
+      await geminiService.setApiKey(apiKey);
+      setApiKey("");
+      toast.success("API key saved successfully");
+    } catch (error) {
+      toast.error("Failed to save API key");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Advanced Settings</CardTitle>
-          <CardDescription>
-            Configure advanced features and experimental functionality
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor="experimental" className="flex flex-col space-y-1">
-              <span>Experimental Features</span>
-              <span className="font-normal text-sm text-muted-foreground">
-                Enable experimental features and functionality
-              </span>
-            </Label>
-            <Switch
-              id="experimental"
-              checked={experimentalFeatures}
-              onCheckedChange={setExperimentalFeatures}
-            />
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">Advanced Settings</h2>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="apiKey">Gemini API Key</Label>
+            <div className="flex gap-2">
+              <Input
+                id="apiKey"
+                type={showApiKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your Gemini API key"
+              />
+              <Button onClick={handleSaveApiKey}>Save</Button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-api-key"
+                checked={showApiKey}
+                onCheckedChange={setShowApiKey}
+              />
+              <Label htmlFor="show-api-key">Show API key</Label>
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between space-x-2">
-            <Label htmlFor="affiliate-banners" className="flex flex-col space-y-1">
-              <span>Affiliate Banners</span>
-              <span className="font-normal text-sm text-muted-foreground">
-                Show affiliate service recommendations
-              </span>
-            </Label>
-            <Switch
-              id="affiliate-banners"
-              checked={affiliateBannersEnabled}
-              onCheckedChange={setAffiliateBannersEnabled}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

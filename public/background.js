@@ -1,86 +1,110 @@
-
-// Configure side panel behavior on installation
 chrome.runtime.onInstalled.addListener(async () => {
-  // Configure the side panel to open when the action button is clicked
-  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-  
-  // Verify command shortcuts are registered
-  checkCommandShortcuts();
-});
+  console.log('ChroMarx installed!');
 
-// Listen for extension icon click
-chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    // Open the side panel
-    await chrome.sidePanel.open({ windowId: tab.windowId });
-    
-    // Set side panel options
-    await chrome.sidePanel.setOptions({
-      enabled: true,
-      path: 'index.html'
-    });
-  } catch (error) {
-    console.error('Error opening side panel:', error);
-  }
-});
-
-// Handle tab updates to ensure side panel is available everywhere
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    try {
-      // Enable the side panel for all tabs
-      await chrome.sidePanel.setOptions({
-        tabId,
-        path: 'index.html',
-        enabled: true
-      });
-    } catch (error) {
-      console.error('Error setting side panel options:', error);
-    }
-  }
-});
-
-// Handle keyboard commands
-chrome.commands.onCommand.addListener(async (command, tab) => {
-  switch (command) {
-    case 'toggle-theme':
-      // Send message to the side panel to toggle theme
-      chrome.runtime.sendMessage({ type: 'TOGGLE_THEME' });
-      break;
-      
-    case 'quick-add':
-      if (tab?.url) {
-        try {
-          const bookmark = await chrome.bookmarks.create({
-            title: tab.title || 'New Bookmark',
-            url: tab.url
-          });
-          // Notify user of successful bookmark creation
-          chrome.runtime.sendMessage({ 
-            type: 'BOOKMARK_ADDED',
-            bookmark
-          });
-        } catch (error) {
-          console.error('Error creating bookmark:', error);
-        }
-      }
-      break;
-  }
-});
-
-// Check if commands are properly registered
-function checkCommandShortcuts() {
-  chrome.commands.getAll((commands) => {
-    let missingShortcuts = [];
-    
-    for (let { name, shortcut } of commands) {
-      if (shortcut === '') {
-        missingShortcuts.push(name);
-      }
-    }
-    
-    if (missingShortcuts.length > 0) {
-      console.warn('Some keyboard shortcuts were not registered:', missingShortcuts);
+  // Example: Set a default value in storage
+  chrome.storage.sync.get(['theme'], (result) => {
+    if (result.theme === undefined) {
+      chrome.storage.sync.set({ theme: 'light' });
     }
   });
+
+  // Initialize context menu
+  chrome.contextMenus.create({
+    id: "add-to-chromarx",
+    title: "Add to ChroMarx",
+    contexts: ["page", "selection"]
+  });
+
+  // Open options page on install
+  chrome.runtime.openOptionsPage();
+});
+
+// Listen for theme toggle command
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "toggle-theme") {
+    chrome.storage.sync.get(['theme'], (result) => {
+      const newTheme = result.theme === 'light' ? 'dark' : 'light';
+      chrome.storage.sync.set({ theme: newTheme });
+    });
+  }
+  if (command === "quick-add") {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      const currentTab = tabs[0];
+      if (currentTab) {
+        // Send a message to the content script to add the bookmark
+        chrome.tabs.sendMessage(currentTab.id, { type: "ADD_BOOKMARK" });
+      }
+    });
+  }
+});
+
+// Context menu click listener
+chrome.contextMenus.onClicked.addListener((data, tab) => {
+  if (data.menuItemId === "add-to-chromarx") {
+    // Send a message to the content script to add the bookmark
+    chrome.tabs.sendMessage(tab.id, { type: "ADD_BOOKMARK" });
+  }
+});
+
+// Listen for storage changes
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.theme) {
+    // Notify all tabs about the theme change
+    chrome.tabs.query({}, tabs => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {
+          type: 'THEME_CHANGED',
+          theme: changes.theme.newValue
+        });
+      });
+    });
+  }
+});
+
+// Handle messages from content scripts
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "GET_THEME") {
+    chrome.storage.sync.get(['theme'], (result) => {
+      sendResponse({ theme: result.theme || 'light' });
+    });
+    return true;  // Required for asynchronous responses
+  }
+});
+
+// Handle Gemini API requests
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'GEMINI_REQUEST') {
+    handleGeminiRequest(request.data)
+      .then(response => sendResponse({ success: true, data: response }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Will respond asynchronously
+  }
+});
+
+async function handleGeminiRequest(data) {
+  try {
+    // Ensure geminiService is available in the background script context
+    const { geminiService } = await import(chrome.runtime.getURL('src/services/geminiService.ts'));
+    const response = await geminiService.generateContent(data.prompt);
+    return response;
+  } catch (error) {
+    console.error("Gemini request failed:", error);
+    throw new Error(error.message || "Failed to generate content");
+  }
 }
+
+// Add settings initialization
+chrome.runtime.onInstalled.addListener(async () => {
+  // Initialize context menu
+  chrome.contextMenus.create({
+    id: "add-to-chromarx",
+    title: "Add to ChroMarx",
+    contexts: ["page", "selection"]
+  });
+
+  // Initialize Gemini API settings
+  const apiKey = await chrome.storage.sync.get('gemini_api_key');
+  if (!apiKey.gemini_api_key) {
+    chrome.runtime.openOptionsPage();
+  }
+});
