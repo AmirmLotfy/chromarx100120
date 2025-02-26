@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
@@ -12,6 +12,10 @@ import { Separator } from "./ui/separator";
 import { ScrollArea } from "./ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
+import BookmarkCollections from "./collections/BookmarkCollections";
+import CollectionView from "./collections/CollectionView";
+import { BookmarkCollection } from "@/types/bookmark-metadata";
+import { auth } from "@/lib/chrome-utils";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -56,6 +60,16 @@ const BookmarkContent = ({
 }: BookmarkContentProps) => {
   const isMobile = useIsMobile();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<BookmarkCollection | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await auth.getCurrentUser();
+      setUserId(user?.id || null);
+    };
+    loadUser();
+  }, []);
 
   const handleBulkDelete = async () => {
     if (selectedBookmarks.size === 0) {
@@ -129,6 +143,14 @@ const BookmarkContent = ({
 
   const FilterPanel = () => (
     <div className="space-y-4">
+      {userId && (
+        <BookmarkCollections
+          userId={userId}
+          onSelectCollection={setSelectedCollection}
+          selectedCollectionId={selectedCollection?.id}
+        />
+      )}
+
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Sort by</Label>
@@ -251,6 +273,12 @@ const BookmarkContent = ({
               <div className="flex items-center justify-center h-[200px] text-muted-foreground">
                 Loading bookmarks...
               </div>
+            ) : selectedCollection ? (
+              <CollectionView
+                collection={selectedCollection}
+                bookmarks={filteredBookmarks}
+                onBookmarkSelect={(bookmark) => onToggleSelect(bookmark.id)}
+              />
             ) : filteredBookmarks.length === 0 ? (
               <div className="flex items-center justify-center h-[200px] text-muted-foreground">
                 No bookmarks found
