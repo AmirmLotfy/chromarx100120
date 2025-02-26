@@ -428,6 +428,54 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          bookmark_ids: string[] | null
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          sentiment: string | null
+          sentiment_details: Json | null
+          summary: string | null
+          tags: string[] | null
+          task_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bookmark_ids?: string[] | null
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          sentiment?: string | null
+          sentiment_details?: Json | null
+          summary?: string | null
+          tags?: string[] | null
+          task_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bookmark_ids?: string[] | null
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          sentiment?: string | null
+          sentiment_details?: Json | null
+          summary?: string | null
+          tags?: string[] | null
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

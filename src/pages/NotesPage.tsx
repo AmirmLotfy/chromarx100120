@@ -1,36 +1,55 @@
-
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Note } from "@/types/note";
 import NoteGrid from "@/components/notes/NoteGrid";
 import NoteEditor from "@/components/notes/NoteEditor";
 import ViewToggle from "@/components/ViewToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Trash2, BarChart2 } from "lucide-react";
+import { Plus, Search, Trash2, BarChart2, Cloud } from "lucide-react";
 import { toast } from "sonner";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
 import { getGeminiResponse } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
+import { noteService } from "@/services/noteService";
+import { supabase } from "@/integrations/supabase/client";
 
 const NotesPage = () => {
-  const [notes, setNotes] = useState<Note[]>(() => {
-    const saved = localStorage.getItem("notes");
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [notes, setNotes] = useState<Note[]>([]);
   const navigate = useNavigate();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNotes, setSelectedNotes] = useState(new Set<string>());
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | undefined>();
+  const [isSyncing, setIsSyncing] = useState(false);
   const { checkAccess, checkUsageLimit } = useFeatureAccess();
 
-  console.log("NotesPage rendered with view:", view);
+  useEffect(() => {
+    loadNotes();
+    const subscription = noteService.subscribeToNoteChanges((updatedNote) => {
+      setNotes((prevNotes) => {
+        const noteExists = prevNotes.some((note) => note.id === updatedNote.id);
+        if (noteExists) {
+          return prevNotes.map((note) =>
+            note.id === updatedNote.id ? updatedNote : note
+          );
+        }
+        return [updatedNote, ...prevNotes];
+      });
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const loadNotes = async () => {
+    const fetchedNotes = await noteService.getAllNotes();
+    setNotes(fetchedNotes);
+  };
 
   const handleViewChange = (newView: "grid" | "list") => {
-    console.log("View change requested:", newView);
     setView(newView);
   };
 
@@ -40,18 +59,26 @@ const NotesPage = () => {
     setIsEditorOpen(true);
   };
 
+  const handleSyncNotes = async () => {
+    setIsSyncing(true);
+    try {
+      await noteService.syncNotesWithSupabase();
+      await loadNotes();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleConvertToTask = async (note: Note) => {
     if (!await checkAccess("task_creation")) return;
 
     try {
-      // Store the note ID in localStorage to pre-fill the task form
       localStorage.setItem("noteToTask", JSON.stringify({
         title: note.title,
         description: note.content,
         noteId: note.id
       }));
       
-      // Navigate to the tasks page
       navigate("/tasks");
       toast.success("Note converted to task");
     } catch (error) {
@@ -64,10 +91,8 @@ const NotesPage = () => {
     if (!await checkAccess("bookmark_linking")) return;
 
     try {
-      // Store the note ID in localStorage for the bookmarks page
       localStorage.setItem("noteForBookmark", note.id);
       
-      // Navigate to the bookmarks page
       navigate("/bookmarks");
       toast.success("Select a bookmark to link to this note");
     } catch (error) {
@@ -81,38 +106,50 @@ const NotesPage = () => {
     setIsEditorOpen(true);
   };
 
-  const handleSaveNote = (noteData: Partial<Note>) => {
+  const handleSaveNote = async (noteData: Partial<Note>) => {
     if (editingNote) {
-      // Update existing note
-      setNotes(prev => prev.map(note => 
-        note.id === editingNote.id 
-          ? { ...note, ...noteData }
-          : note
-      ));
+      const updatedNote = await noteService.updateNote({
+        ...editingNote,
+        ...noteData,
+      });
+      if (updatedNote) {
+        setNotes((prev) =>
+          prev.map((note) => (note.id === editingNote.id ? updatedNote : note))
+        );
+      }
     } else {
-      // Create new note
-      const newNote: Note = {
-        id: crypto.randomUUID(),
+      const newNote = await noteService.createNote({
         title: noteData.title || "",
         content: noteData.content || "",
         tags: [],
         category: "uncategorized",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
-      setNotes(prev => [...prev, newNote]);
+      });
+      if (newNote) {
+        setNotes((prev) => [newNote, ...prev]);
+      }
     }
-    localStorage.setItem("notes", JSON.stringify(notes));
+    setIsEditorOpen(false);
+    setEditingNote(undefined);
   };
 
-  const handleDeleteNotes = () => {
+  const handleDeleteNotes = async () => {
     if (selectedNotes.size === 0) return;
 
-    const updatedNotes = notes.filter((note) => !selectedNotes.has(note.id));
-    setNotes(updatedNotes);
-    setSelectedNotes(new Set());
-    localStorage.setItem("notes", JSON.stringify(updatedNotes));
-    toast.success(`${selectedNotes.size} note(s) deleted`);
+    const deletePromises = Array.from(selectedNotes).map((noteId) =>
+      noteService.deleteNote(noteId)
+    );
+
+    try {
+      await Promise.all(deletePromises);
+      setNotes((prev) => prev.filter((note) => !selectedNotes.has(note.id)));
+      setSelectedNotes(new Set());
+      toast.success(`${selectedNotes.size} note(s) deleted`);
+    } catch (error) {
+      console.error("Error deleting notes:", error);
+      toast.error("Failed to delete some notes");
+    }
   };
 
   const handleAnalyzeNotes = async () => {
@@ -175,6 +212,14 @@ const NotesPage = () => {
               <Plus className="h-4 w-4 mr-2" />
               New Note
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleSyncNotes}
+              disabled={isSyncing}
+            >
+              <Cloud className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+              Sync
+            </Button>
           </div>
         </div>
 
@@ -216,7 +261,8 @@ const NotesPage = () => {
               return next;
             });
           }}
-          onDeleteNote={(id) => {
+          onDeleteNote={async (id) => {
+            await noteService.deleteNote(id);
             setNotes((prev) => prev.filter((note) => note.id !== id));
             setSelectedNotes((prev) => {
               const next = new Set(prev);
