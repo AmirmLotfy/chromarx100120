@@ -1,9 +1,7 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ChromeBookmark } from "@/types/bookmark";
 import { fetchPageContent } from "./contentExtractor";
 import { aiRequestManager } from "./aiRequestManager";
-import { chromeDb } from "@/lib/chrome-storage";
 import { toast } from "sonner";
 
 interface GeminiRequest {
@@ -18,17 +16,15 @@ interface GeminiResponse {
   error?: string;
 }
 
+const GEMINI_API_KEY = "YOUR_RESTRICTED_API_KEY"; // Replace this with your properly restricted API key
+
 const getGeminiClient = async () => {
   try {
-    const apiKey = await chromeDb.get<string>("gemini_api_key");
-    if (!apiKey) {
-      throw new Error("Gemini API key not found");
-    }
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     return genAI.getGenerativeModel({ model: "gemini-pro" });
   } catch (error) {
     console.error("Error getting Gemini client:", error);
-    toast.error("Please configure your Gemini API key in settings");
+    toast.error("Unable to connect to AI services");
     throw error;
   }
 };
