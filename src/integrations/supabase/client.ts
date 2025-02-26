@@ -27,3 +27,47 @@ export const getCurrentUser = async () => {
   return user;
 };
 
+// Listen for extension-specific events
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'CHECK_AUTH_STATUS') {
+      getCurrentSession().then(session => {
+        sendResponse({ isAuthenticated: !!session });
+      });
+      return true; // Required for async response
+    }
+  });
+}
+
+// Set up real-time subscription listeners
+export const setupSubscriptionListeners = (userId: string) => {
+  const channel = supabase
+    .channel('subscription_updates')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'subscriptions',
+        filter: `user_id=eq.${userId}`
+      },
+      async (payload) => {
+        console.log('Subscription updated:', payload);
+        // Update local storage with new subscription data
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+          
+        if (subscription) {
+          await chrome.storage.local.set({ user_subscription: subscription });
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
