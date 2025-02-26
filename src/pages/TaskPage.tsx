@@ -1,13 +1,15 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import TaskForm from "@/components/tasks/TaskForm";
 import TaskList from "@/components/tasks/TaskList";
+import TaskTemplates from "@/components/tasks/TaskTemplates";
+import TaskAnalytics from "@/components/tasks/TaskAnalytics";
 import { Task, TaskPriority, TaskCategory, TaskStatus } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -17,7 +19,55 @@ const TaskPage = () => {
 
   useEffect(() => {
     fetchTasks();
+    setupRealtimeSubscription();
   }, []);
+
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('tasks-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks'
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newTask = formatTaskFromPayload(payload.new);
+            setTasks(prev => [newTask, ...prev]);
+          } else if (payload.eventType === 'DELETE') {
+            setTasks(prev => prev.filter(task => task.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedTask = formatTaskFromPayload(payload.new);
+            setTasks(prev => prev.map(task => 
+              task.id === updatedTask.id ? updatedTask : task
+            ));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const formatTaskFromPayload = (data: any): Task => ({
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    priority: data.priority as TaskPriority,
+    category: data.category as TaskCategory,
+    status: data.status as TaskStatus,
+    dueDate: data.due_date,
+    estimatedDuration: data.estimated_duration,
+    actualDuration: data.actual_duration,
+    color: data.color,
+    progress: data.progress,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at
+  });
 
   const fetchTasks = async () => {
     try {
@@ -224,10 +274,20 @@ const TaskPage = () => {
     navigate("/timer");
   };
 
+  const handleUseTemplate = (templateData: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration" | "status" | "dueDate">) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    handleAddTask({
+      ...templateData,
+      dueDate: tomorrow.toISOString(),
+      status: "pending",
+    });
+  };
+
   if (loading) {
     return (
       <Layout>
-        <div className="container max-w-3xl mx-auto px-4 py-8 flex items-center justify-center">
+        <div className="container max-w-7xl mx-auto px-4 py-8 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span className="ml-2">Loading tasks...</span>
         </div>
@@ -237,7 +297,7 @@ const TaskPage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-3xl mx-auto px-4 py-8">
+      <div className="container max-w-7xl mx-auto px-4 py-8">
         <div className="space-y-2 mb-8">
           <h1 className="tracking-tight text-lg font-semibold">Tasks</h1>
           <p className="text-muted-foreground">
@@ -245,17 +305,28 @@ const TaskPage = () => {
           </p>
         </div>
 
-        <div className="space-y-8">
-          <TaskForm onSubmit={handleAddTask} />
-          
-          <TaskList 
-            tasks={tasks} 
-            onDelete={handleDeleteTask} 
-            onEdit={handleEditTask} 
-            onStartTimer={handleStartTimer} 
-            onToggleStatus={handleToggleStatus} 
-          />
-        </div>
+        <Tabs defaultValue="tasks" className="space-y-8">
+          <TabsList>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks" className="space-y-8">
+            <TaskForm onSubmit={handleAddTask} />
+            <TaskTemplates onUseTemplate={handleUseTemplate} />
+            <TaskList 
+              tasks={tasks} 
+              onDelete={handleDeleteTask} 
+              onEdit={handleEditTask} 
+              onStartTimer={handleStartTimer} 
+              onToggleStatus={handleToggleStatus} 
+            />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <TaskAnalytics />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,28 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateTaskSuggestions, suggestTimerDuration } from "@/utils/geminiUtils";
 import { toast } from "sonner";
 import { useLanguage } from "@/stores/languageStore";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TaskFormProps {
   onSubmit: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration">) => void;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export const TaskForm = ({ onSubmit }: TaskFormProps) => {
@@ -37,6 +51,61 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const { currentLanguage } = useLanguage();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("#6366F1");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('task_categories')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error("Failed to load categories");
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error("Category name is required");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('task_categories')
+        .insert([
+          {
+            name: newCategoryName.trim(),
+            color: newCategoryColor
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCategories(prev => [...prev, data]);
+      setCategory(data.name as TaskCategory);
+      setNewCategoryName("");
+      setIsAddingCategory(false);
+      toast.success("Category added successfully");
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error("Failed to add category");
+    }
+  };
 
   const getAIRecommendations = async () => {
     setIsLoading(true);
@@ -62,14 +131,14 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
       
       return {
         estimatedDuration: validatedDuration,
-        color: `hsl(${Math.random() * 360}, 70%, 50%)`
+        color: categories.find(c => c.name === category)?.color || `hsl(${Math.random() * 360}, 70%, 50%)`
       };
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
       toast.error("Failed to get AI recommendations, using default values");
       return {
         estimatedDuration: 25,
-        color: `hsl(${Math.random() * 360}, 70%, 50%)`
+        color: categories.find(c => c.name === category)?.color || `hsl(${Math.random() * 360}, 70%, 50%)`
       };
     } finally {
       setIsLoading(false);
@@ -164,19 +233,70 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
           </SelectContent>
         </Select>
 
-        <Select
-          value={category}
-          onValueChange={(value: TaskCategory) => setCategory(value)}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Select category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="work">Work</SelectItem>
-            <SelectItem value="personal">Personal</SelectItem>
-            <SelectItem value="study">Study</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2 w-full sm:w-[180px]">
+          <Select
+            value={category}
+            onValueChange={(value: TaskCategory) => setCategory(value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.name}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: cat.color }}
+                    />
+                    {cat.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Dialog open={isAddingCategory} onOpenChange={setIsAddingCategory}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                type="button"
+                className="shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Category</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Input
+                    placeholder="Category name"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Input
+                    type="color"
+                    value={newCategoryColor}
+                    onChange={(e) => setNewCategoryColor(e.target.value)}
+                    className="h-10 px-2"
+                  />
+                </div>
+                <Button 
+                  onClick={handleAddCategory}
+                  className="w-full"
+                >
+                  Add Category
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <Popover>
           <PopoverTrigger asChild>
@@ -191,7 +311,7 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
               {dueDate ? format(dueDate, "PPP") : <span>Pick a due date</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
               selected={dueDate}
