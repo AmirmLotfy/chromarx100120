@@ -3,7 +3,8 @@ import { toast } from "sonner";
 import { retryWithBackoff } from "./retryUtils";
 import { ChromeBookmark } from "@/types/bookmark";
 
-const API_BASE_URL = "https://chromarx.it.com/api";
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"; // This should be configured by users
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models";
 
 // Cache implementation with TTL
 const cache = new Map<string, { value: any; timestamp: number }>();
@@ -23,21 +24,28 @@ const setCached = (key: string, value: any) => {
   cache.set(key, { value, timestamp: Date.now() });
 };
 
-async function makeRequest(endpoint: string, data: any) {
-  const cacheKey = `${endpoint}-${JSON.stringify(data)}`;
+async function makeGeminiRequest(prompt: string, type: string) {
+  const cacheKey = `${type}-${prompt}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(`${GEMINI_API_URL}/gemini-pro:generateContent`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GEMINI_API_KEY}`
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }]
+    })
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.statusText}`);
+    throw new Error(`Gemini API request failed: ${response.statusText}`);
   }
 
   const result = await response.json();
@@ -76,28 +84,15 @@ export const batchProcessBookmarks = async (bookmarks: ChromeBookmark[], operati
 export const summarizeContent = async (content: string): Promise<string> => {
   return retryWithBackoff(async () => {
     try {
-      const data = await makeRequest(`${API_BASE_URL}/summarize`, { content });
-      return data.summary;
+      const response = await makeGeminiRequest(
+        `Please summarize the following content: ${content}`,
+        'summarize'
+      );
+      return response.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Error summarizing content:", error);
       toast.error("Failed to summarize content");
       return "Unable to generate summary at this time.";
-    }
-  }, {
-    maxRetries: 3,
-    onRetry: (error, attempt) => toast.error(`Retry attempt ${attempt} after error: ${error.message}`)
-  });
-};
-
-export const generateCategories = async (bookmarks: ChromeBookmark[]): Promise<string[]> => {
-  return retryWithBackoff(async () => {
-    try {
-      const data = await makeRequest(`${API_BASE_URL}/generate-categories`, { bookmarks });
-      return data.categories;
-    } catch (error) {
-      console.error("Error generating categories:", error);
-      toast.error("Failed to generate categories");
-      return [];
     }
   });
 };
@@ -105,8 +100,11 @@ export const generateCategories = async (bookmarks: ChromeBookmark[]): Promise<s
 export const suggestBookmarkCategory = async (title: string, url: string, content: string): Promise<string> => {
   return retryWithBackoff(async () => {
     try {
-      const data = await makeRequest(`${API_BASE_URL}/suggest-category`, { title, url, content });
-      return data.category;
+      const response = await makeGeminiRequest(
+        `Please suggest a category for this bookmark:\nTitle: ${title}\nURL: ${url}\nContent: ${content}`,
+        'categorize'
+      );
+      return response.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Error suggesting category:", error);
       toast.error("Failed to suggest category");
@@ -118,8 +116,11 @@ export const suggestBookmarkCategory = async (title: string, url: string, conten
 export const analyzeSentiment = async (content: string): Promise<string> => {
   return retryWithBackoff(async () => {
     try {
-      const data = await makeRequest(`${API_BASE_URL}/analyze-sentiment`, { content });
-      return data.sentiment;
+      const response = await makeGeminiRequest(
+        `Analyze the sentiment of this text: ${content}`,
+        'sentiment'
+      );
+      return response.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Error analyzing sentiment:", error);
       toast.error("Failed to analyze sentiment");
@@ -128,27 +129,14 @@ export const analyzeSentiment = async (content: string): Promise<string> => {
   });
 };
 
-export const getGeminiResponse = async (options: { 
-  prompt: string;
-  type: string;
-}): Promise<{ result: string }> => {
-  return retryWithBackoff(async () => {
-    try {
-      const data = await makeRequest(`${API_BASE_URL}/gemini-response`, options);
-      return { result: data.result };
-    } catch (error) {
-      console.error("Error getting Gemini response:", error);
-      toast.error("Failed to get AI response");
-      return { result: "" };
-    }
-  });
-};
-
 export const generateTaskSuggestions = async (taskDetails: string): Promise<string> => {
   return retryWithBackoff(async () => {
     try {
-      const data = await makeRequest(`${API_BASE_URL}/generate-task-suggestions`, { taskDetails });
-      return data.suggestions;
+      const response = await makeGeminiRequest(
+        `Generate task suggestions based on: ${taskDetails}`,
+        'tasks'
+      );
+      return response.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Error generating task suggestions:", error);
       toast.error("Failed to generate suggestions");
@@ -160,8 +148,12 @@ export const generateTaskSuggestions = async (taskDetails: string): Promise<stri
 export const suggestTimerDuration = async (taskDetails: string): Promise<number> => {
   return retryWithBackoff(async () => {
     try {
-      const data = await makeRequest(`${API_BASE_URL}/suggest-timer-duration`, { taskDetails });
-      return data.duration || 25;
+      const response = await makeGeminiRequest(
+        `Suggest a timer duration in minutes for this task: ${taskDetails}`,
+        'timer'
+      );
+      const duration = parseInt(response.candidates[0].content.parts[0].text);
+      return isNaN(duration) ? 25 : duration;
     } catch (error) {
       console.error("Error suggesting timer duration:", error);
       toast.error("Failed to suggest duration");
@@ -169,4 +161,3 @@ export const suggestTimerDuration = async (taskDetails: string): Promise<number>
     }
   });
 };
-
