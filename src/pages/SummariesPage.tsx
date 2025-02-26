@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface Summary {
   id: string;
@@ -24,18 +27,30 @@ interface Summary {
   isNew?: boolean;
   tags?: string[];
   category?: string;
+  readingTime?: number;
 }
 
 const SummariesPage = () => {
   const navigate = useNavigate();
   const [summaries, setSummaries] = useState<Summary[]>(() => {
     const saved = localStorage.getItem("bookmarkSummaries");
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    return parsed.map((summary: Summary) => ({
+      ...summary,
+      readingTime: summary.readingTime || Math.ceil(summary.content.split(' ').length / 200)
+    }));
   });
   const [activeTab, setActiveTab] = useState<'current' | 'new' | 'history'>('current');
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedSummaries, setSelectedSummaries] = useState<Set<string>>(new Set());
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [sortBy, setSortBy] = useState<'date' | 'title' | 'readingTime'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
     const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
@@ -133,6 +148,67 @@ const SummariesPage = () => {
     toast.success(`Set category: ${category}`);
   };
 
+  const toggleSelectSummary = (id: string) => {
+    setSelectedSummaries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedSummaries(new Set(filteredSummaries.map(s => s.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedSummaries(new Set());
+  };
+
+  const bulkDelete = () => {
+    if (selectedSummaries.size === 0) return;
+    setSummaries(prev => {
+      const updated = prev.filter(summary => !selectedSummaries.has(summary.id));
+      localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
+      return updated;
+    });
+    setSelectedSummaries(new Set());
+    toast.success(`Deleted ${selectedSummaries.size} summaries`);
+  };
+
+  const bulkAddTag = (tag: string) => {
+    if (selectedSummaries.size === 0) return;
+    setSummaries(prev => {
+      const updated = prev.map(summary => {
+        if (selectedSummaries.has(summary.id)) {
+          const currentTags = summary.tags || [];
+          if (!currentTags.includes(tag)) {
+            return { ...summary, tags: [...currentTags, tag] };
+          }
+        }
+        return summary;
+      });
+      localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
+      return updated;
+    });
+    toast.success(`Added tag to ${selectedSummaries.size} summaries`);
+  };
+
+  const bulkSetCategory = (category: string) => {
+    if (selectedSummaries.size === 0) return;
+    setSummaries(prev => {
+      const updated = prev.map(summary => 
+        selectedSummaries.has(summary.id) ? { ...summary, category } : summary
+      );
+      localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
+      return updated;
+    });
+    toast.success(`Set category for ${selectedSummaries.size} summaries`);
+  };
+
   const filterSummaries = (summaries: Summary[]) => {
     return summaries.filter(summary => {
       const matchesSearch = searchQuery.toLowerCase().trim() === "" ||
@@ -142,14 +218,35 @@ const SummariesPage = () => {
 
       const matchesTag = !activeTag || (summary.tags && summary.tags.includes(activeTag));
       const matchesCategory = !activeCategory || summary.category === activeCategory;
+      
+      const summaryDate = new Date(summary.date);
+      const matchesDateRange = (!dateRange.from || summaryDate >= dateRange.from) &&
+                              (!dateRange.to || summaryDate <= dateRange.to);
 
       switch (activeTab) {
         case 'new':
-          return matchesSearch && matchesTag && matchesCategory && summary.isNew;
+          return matchesSearch && matchesTag && matchesCategory && matchesDateRange && summary.isNew;
         case 'history':
-          return matchesSearch && matchesTag && matchesCategory;
+          return matchesSearch && matchesTag && matchesCategory && matchesDateRange;
         default:
-          return matchesSearch && matchesTag && matchesCategory && !summary.isNew;
+          return matchesSearch && matchesTag && matchesCategory && matchesDateRange && !summary.isNew;
+      }
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return sortOrder === 'asc' 
+            ? new Date(a.date).getTime() - new Date(b.date).getTime()
+            : new Date(b.date).getTime() - new Date(a.date).getTime();
+        case 'title':
+          return sortOrder === 'asc'
+            ? a.title.localeCompare(b.title)
+            : b.title.localeCompare(a.title);
+        case 'readingTime':
+          return sortOrder === 'asc'
+            ? (a.readingTime || 0) - (b.readingTime || 0)
+            : (b.readingTime || 0) - (a.readingTime || 0);
+        default:
+          return 0;
       }
     });
   };
@@ -186,43 +283,56 @@ const SummariesPage = () => {
   const SummaryCard = ({ summary }: { summary: Summary }) => (
     <div className="p-4 rounded-lg border bg-card animate-fade-in">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1 flex-1">
-          <h3 className="font-medium line-clamp-1">{summary.title}</h3>
-          <p className="text-sm text-muted-foreground">{summary.content}</p>
-          {(summary.tags && summary.tags.length > 0) && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {summary.tags.map(tag => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveTag(activeTag === tag ? null : tag);
-                  }}
-                >
-                  <Tag className="w-3 h-3 mr-1" />
-                  {tag}
-                  <button
+        <div className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={selectedSummaries.has(summary.id)}
+            onChange={() => toggleSelectSummary(summary.id)}
+            className="mt-1"
+          />
+          <div className="space-y-1 flex-1">
+            <h3 className="font-medium line-clamp-1">{summary.title}</h3>
+            <p className="text-sm text-muted-foreground">{summary.content}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{summary.readingTime} min read</span>
+              <span>•</span>
+              <span>{format(new Date(summary.date), 'MMM d, yyyy')}</span>
+            </div>
+            {(summary.tags && summary.tags.length > 0) && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {summary.tags.map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeTag(summary.id, tag);
+                      setActiveTag(activeTag === tag ? null : tag);
                     }}
-                    className="ml-1 hover:text-destructive"
                   >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          {summary.category && (
-            <span
-              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary/10 text-secondary cursor-pointer"
-              onClick={() => setActiveCategory(activeCategory === summary.category ? null : summary.category)}
-            >
-              {summary.category}
-            </span>
-          )}
+                    <Tag className="w-3 h-3 mr-1" />
+                    {tag}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeTag(summary.id, tag);
+                      }}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {summary.category && (
+              <span
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary/10 text-secondary cursor-pointer"
+                onClick={() => setActiveCategory(activeCategory === summary.category ? null : summary.category)}
+              >
+                {summary.category}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex gap-2 shrink-0">
           <DropdownMenu>
@@ -406,6 +516,35 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
             <h1 className="text-2xl font-semibold">Bookmark Summaries</h1>
           </div>
           <div className="flex items-center gap-2">
+            {selectedSummaries.size > 0 ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Bulk Actions ({selectedSummaries.size})
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => bulkAddTag("Important")}>
+                      Add Tag: Important
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => bulkSetCategory("Work")}>
+                      Set Category: Work
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => bulkDelete()} className="text-destructive">
+                      Delete Selected
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="ghost" size="sm" onClick={deselectAll}>
+                  Deselect All
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={selectAll}>
+                Select All
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -441,8 +580,74 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
         </div>
 
         <div className="px-2 space-y-4">
-          <SearchSummaries onSearch={setSearchQuery} />
-          
+          <div className="flex flex-wrap gap-2 items-center">
+            <SearchSummaries onSearch={setSearchQuery} />
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  {dateRange.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    "Pick a date range"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange.from}
+                  selected={{
+                    from: dateRange.from,
+                    to: dateRange.to,
+                  }}
+                  onSelect={(range) => {
+                    setDateRange({
+                      from: range?.from,
+                      to: range?.to,
+                    });
+                  }}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Sort by: {sortBy}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setSortBy('date')}>
+                  Date
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('title')}>
+                  Title
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('readingTime')}>
+                  Reading Time
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </Button>
+          </div>
+
           {(allTags.length > 0 || allCategories.length > 0) && (
             <div className="flex flex-wrap gap-2">
               {allTags.map(tag => (
