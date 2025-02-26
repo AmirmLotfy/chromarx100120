@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, Tag, ChevronDown } from "lucide-react";
+import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, Tag, ChevronDown, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 import SearchSummaries from "@/components/SearchSummaries";
+import jsPDF from 'jspdf';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -316,6 +317,79 @@ const SummariesPage = () => {
     </div>
   );
 
+  const exportToMarkdown = (summaries: Summary[]) => {
+    const markdownContent = summaries.map(summary => {
+      const tags = summary.tags ? `\nTags: ${summary.tags.join(', ')}` : '';
+      const category = summary.category ? `\nCategory: ${summary.category}` : '';
+      
+      return `# ${summary.title}
+
+${summary.content}
+
+URL: ${summary.url}
+Date: ${summary.date}${tags}${category}
+${summary.isStarred ? '\n⭐ Starred' : ''}
+---
+`;
+    }).join('\n');
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'summaries.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Exported to Markdown');
+  };
+
+  const exportToPDF = (summaries: Summary[]) => {
+    const pdf = new jsPDF();
+    let yOffset = 10;
+
+    summaries.forEach((summary, index) => {
+      if (yOffset > 250) {
+        pdf.addPage();
+        yOffset = 10;
+      }
+
+      pdf.setFontSize(16);
+      pdf.text(summary.title, 10, yOffset);
+      yOffset += 10;
+
+      pdf.setFontSize(12);
+      const contentLines = pdf.splitTextToSize(summary.content, 190);
+      pdf.text(contentLines, 10, yOffset);
+      yOffset += contentLines.length * 7;
+
+      pdf.setFontSize(10);
+      pdf.text(`URL: ${summary.url}`, 10, yOffset);
+      yOffset += 5;
+      pdf.text(`Date: ${summary.date}`, 10, yOffset);
+      yOffset += 5;
+
+      if (summary.tags && summary.tags.length > 0) {
+        pdf.text(`Tags: ${summary.tags.join(', ')}`, 10, yOffset);
+        yOffset += 5;
+      }
+
+      if (summary.category) {
+        pdf.text(`Category: ${summary.category}`, 10, yOffset);
+        yOffset += 5;
+      }
+
+      if (index < summaries.length - 1) {
+        pdf.line(10, yOffset, 200, yOffset);
+        yOffset += 10;
+      }
+    });
+
+    pdf.save('summaries.pdf');
+    toast.success('Exported to PDF');
+  };
+
   return (
     <Layout>
       <div className="space-y-6 pb-16 pt-4">
@@ -331,15 +405,39 @@ const SummariesPage = () => {
             </Button>
             <h1 className="text-2xl font-semibold">Bookmark Summaries</h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearAllSummaries}
-            className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive md:text-sm md:h-9 md:px-4"
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1 md:h-4 md:w-4" />
-            Clear
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportToMarkdown(filteredSummaries)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as Markdown
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToPDF(filteredSummaries)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllSummaries}
+              className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive md:text-sm md:h-9 md:px-4"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1 md:h-4 md:w-4" />
+              Clear
+            </Button>
+          </div>
         </div>
 
         <div className="px-2 space-y-4">
