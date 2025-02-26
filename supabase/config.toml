@@ -3,3 +3,6 @@ project_id = "hkpgkogqxnamvlptxhat"
 
 [functions.process-bookmark]
 verify_jwt = false
+
+[functions.ai-features]
+verify_jwt = false

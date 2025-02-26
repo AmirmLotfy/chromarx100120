@@ -1,10 +1,9 @@
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ChromeBookmark } from "@/types/bookmark";
 import { fetchPageContent } from "./contentExtractor";
 import { aiRequestManager } from "./aiRequestManager";
 import { toast } from "sonner";
-import { getSecret } from "@/lib/chrome-utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GeminiRequest {
   prompt: string;
@@ -18,80 +17,27 @@ interface GeminiResponse {
   error?: string;
 }
 
-let geminiClient: GoogleGenerativeAI | null = null;
-
-const initializeGeminiClient = async () => {
+const callAIFunction = async (operation: string, params: any): Promise<string> => {
   try {
-    // Get the API key from chrome storage (synced by our backend)
-    const apiKey = await getSecret('gemini_api_key');
-    if (!apiKey) {
-      console.error("Gemini API key not found");
-      return null;
-    }
-    return new GoogleGenerativeAI(apiKey);
+    const { data, error } = await supabase.functions.invoke('ai-features', {
+      body: { operation, ...params }
+    });
+
+    if (error) throw error;
+    return data.result;
   } catch (error) {
-    console.error("Error initializing Gemini client:", error);
-    return null;
-  }
-};
-
-const getGeminiClient = async () => {
-  if (!geminiClient) {
-    geminiClient = await initializeGeminiClient();
-  }
-  if (!geminiClient) {
-    toast.error("Unable to connect to AI services");
-    throw new Error("Gemini client not initialized");
-  }
-  return geminiClient.getGenerativeModel({ model: "gemini-pro" });
-};
-
-export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
-  const cacheKey = `gemini_${request.type}_${request.prompt}`;
-  
-  return aiRequestManager.makeRequest(
-    async () => {
-      const model = await getGeminiClient();
-      const result = await model.generateContent(request.prompt);
-      const response = await result.response;
-      return { result: response.text() };
-    },
-    cacheKey,
-    { result: getFallbackResponse(request.type, request.language) }
-  );
-};
-
-const getFallbackResponse = (type: string, language: string): string => {
-  switch (type) {
-    case 'summarize':
-      return 'Unable to generate summary at this time.';
-    case 'categorize':
-      return 'uncategorized';
-    case 'sentiment':
-      return 'neutral';
-    case 'timer':
-      return '25';
-    case 'task':
-      return 'No task suggestions available.';
-    case 'analytics':
-      return 'Analytics data unavailable.';
-    default:
-      return 'Unable to process request.';
+    console.error('Error calling AI function:', error);
+    toast.error("Failed to process AI request");
+    throw error;
   }
 };
 
 export const summarizeContent = async (content: string, language: string): Promise<string> => {
-  try {
-    const response = await getGeminiResponse({
-      prompt: `Summarize this content concisely in ${language}, focusing on key points:\n\n${content}`,
-      type: 'summarize',
-      language
-    });
-    return response.result || 'Failed to generate summary';
-  } catch (error) {
-    console.error('Error summarizing content:', error);
-    throw error;
-  }
+  return aiRequestManager.makeRequest(
+    async () => callAIFunction('summarize', { content, language }),
+    `summary_${content.slice(0, 50)}`,
+    'Failed to generate summary'
+  );
 };
 
 export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
@@ -101,28 +47,16 @@ export const summarizeBookmark = async (bookmark: ChromeBookmark, language: stri
       content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
     }
 
-    const prompt = `
-Title: ${bookmark.title}
-URL: ${bookmark.url}
-Content: ${content}
-
-Please provide a comprehensive summary of this content in ${language}, focusing on:
-1. Main topics and key points
-2. Important details and findings
-3. Conclusions or outcomes
-    `.trim();
-
-    const response = await getGeminiResponse({
-      prompt,
-      type: 'summarize',
-      language
-    });
-    
-    if (!response.result) {
-      throw new Error('Failed to generate summary');
-    }
-    
-    return response.result;
+    return aiRequestManager.makeRequest(
+      async () => callAIFunction('summarize', { 
+        content,
+        language,
+        url: bookmark.url,
+        title: bookmark.title 
+      }),
+      `bookmark_summary_${bookmark.id}`,
+      'Failed to generate bookmark summary'
+    );
   } catch (error) {
     console.error('Error summarizing bookmark:', error);
     throw error;
@@ -130,40 +64,11 @@ Please provide a comprehensive summary of this content in ${language}, focusing 
 };
 
 export const suggestBookmarkCategory = async (title: string, url: string, content: string, language: string): Promise<string> => {
-  try {
-    const prompt = `
-Based on this content:
-Title: ${title}
-URL: ${url}
-Content: ${content}
-
-Suggest a single, specific category that best describes this bookmark. Choose from common categories like:
-- Technology
-- Business
-- Science
-- Health
-- Education
-- Entertainment
-- News
-- Personal
-- Shopping
-- Social Media
-- Reference
-- Other (with specific suggestion)
-
-Respond in ${language} with ONLY the category name, nothing else.
-    `.trim();
-
-    const response = await getGeminiResponse({
-      prompt,
-      type: 'categorize',
-      language
-    });
-    return response.result.trim() || 'uncategorized';
-  } catch (error) {
-    console.error('Error suggesting category:', error);
-    return 'uncategorized';
-  }
+  return aiRequestManager.makeRequest(
+    async () => callAIFunction('categorize', { title, url, content, language }),
+    `category_${url}`,
+    'uncategorized'
+  );
 };
 
 export const generateChatResponse = async (
@@ -171,19 +76,15 @@ export const generateChatResponse = async (
   bookmarks: ChromeBookmark[],
   language: string
 ): Promise<string> => {
-  const cacheKey = `chat_${query}_${bookmarks.map(b => b.id).join('_')}`;
-  
-  return aiRequestManager.makeRequest(
-    async () => {
-      const bookmarkContents = await Promise.all(
-        bookmarks.map(async bookmark => ({
-          title: bookmark.title,
-          url: bookmark.url,
-          content: await fetchPageContent(bookmark.url || '')
-        }))
-      );
+  const bookmarkContents = await Promise.all(
+    bookmarks.map(async bookmark => ({
+      title: bookmark.title,
+      url: bookmark.url,
+      content: await fetchPageContent(bookmark.url || '')
+    }))
+  );
 
-      const prompt = `
+  const content = `
 Query: ${query}
 
 Related Bookmarks:
@@ -192,61 +93,46 @@ Title: ${b.title}
 URL: ${b.url}
 Content: ${b.content}
 `).join('\n---\n')}
+  `.trim();
 
-Based on the provided bookmark contents, please provide a detailed response in ${language} that:
-1. Directly answers the query
-2. References relevant information from the bookmarks
-3. Suggests related topics or resources
-4. Maintains a conversational tone
-      `.trim();
-
-      const response = await getGeminiResponse({
-        prompt,
-        type: 'summarize',
-        language
-      });
-      
-      return response.result || 'I apologize, but I could not generate a response based on the available information.';
-    },
-    cacheKey,
-    'I apologize, but I encountered an error while processing your request.'
+  return aiRequestManager.makeRequest(
+    async () => callAIFunction('chat', { content, language }),
+    `chat_${query}_${bookmarks.map(b => b.id).join('_')}`,
+    'Failed to generate chat response'
   );
 };
 
 export const generateTaskSuggestions = async (content: string, language: string): Promise<string> => {
-  const response = await getGeminiResponse({
-    prompt: `Based on this content, suggest actionable tasks in ${language}:\n\n${content}`,
-    type: 'task',
-    language
-  });
-  return response.result || 'Failed to generate task suggestions';
+  return aiRequestManager.makeRequest(
+    async () => callAIFunction('task', { content, language }),
+    `task_${content.slice(0, 50)}`,
+    'Failed to generate task suggestions'
+  );
 };
 
 export const analyzeProductivity = async (data: any, language: string): Promise<string> => {
-  const response = await getGeminiResponse({
-    prompt: `Analyze this productivity data and provide insights in ${language}:\n\n${JSON.stringify(data)}`,
-    type: 'analytics',
-    language
-  });
-  return response.result || 'Failed to analyze productivity';
+  return aiRequestManager.makeRequest(
+    async () => callAIFunction('analytics', { content: JSON.stringify(data), language }),
+    `analytics_${Date.now()}`,
+    'Failed to analyze productivity'
+  );
 };
 
 export const suggestTimerDuration = async (task: string, language: string): Promise<number> => {
-  const response = await getGeminiResponse({
-    prompt: `Suggest an optimal duration in minutes for this task, responding in ${language}:\n\n${task}`,
-    type: 'timer',
-    language
-  });
-  const minutes = parseInt(response.result);
+  const response = await aiRequestManager.makeRequest(
+    async () => callAIFunction('suggest-timer', { content: task, language }),
+    `timer_${task}`,
+    '25'
+  );
+  const minutes = parseInt(response);
   return isNaN(minutes) ? 25 : minutes;
 };
 
 export const analyzeSentiment = async (content: string, language: string): Promise<'positive' | 'negative' | 'neutral'> => {
-  const response = await getGeminiResponse({
-    prompt: `Analyze the sentiment of this content and respond with exactly one word in ${language} (positive, negative, or neutral):\n\n${content}`,
-    type: 'sentiment',
-    language
-  });
-  const sentiment = response.result.toLowerCase().trim();
-  return sentiment === 'positive' || sentiment === 'negative' ? sentiment : 'neutral';
+  const sentiment = await aiRequestManager.makeRequest(
+    async () => callAIFunction('sentiment', { content, language }),
+    `sentiment_${content.slice(0, 50)}`,
+    'neutral'
+  );
+  return sentiment.toLowerCase().trim() as 'positive' | 'negative' | 'neutral';
 };
