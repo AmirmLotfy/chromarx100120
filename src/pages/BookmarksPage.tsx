@@ -60,14 +60,27 @@ const BookmarksPage = () => {
     }
   };
 
-  const handleUpdateCategories = useCallback((updatedBookmarks: ChromeBookmark[]) => {
-    setBookmarks(prev => {
-      const bookmarkMap = new Map(prev.map(b => [b.id, b]));
-      updatedBookmarks.forEach(bookmark => {
-        bookmarkMap.set(bookmark.id, bookmark);
+  const handleUpdateCategories = useCallback(async (bookmarks: ChromeBookmark[]) => {
+    try {
+      const categorizedBookmarks = await batchProcessBookmarks(bookmarks, 'categorize');
+      const updatedBookmarks = bookmarks.map(bookmark => ({
+        ...bookmark,
+        category: categorizedBookmarks.get(bookmark.id) || bookmark.category || 'uncategorized'
+      }));
+      
+      setBookmarks(prev => {
+        const bookmarkMap = new Map(prev.map(b => [b.id, b]));
+        updatedBookmarks.forEach(bookmark => {
+          bookmarkMap.set(bookmark.id, bookmark);
+        });
+        return Array.from(bookmarkMap.values());
       });
-      return Array.from(bookmarkMap.values());
-    });
+
+      toast.success("Categories updated successfully!");
+    } catch (error) {
+      console.error("Error updating categories:", error);
+      toast.error("Failed to update categories");
+    }
   }, [setBookmarks]);
 
   const handleImport = () => {
