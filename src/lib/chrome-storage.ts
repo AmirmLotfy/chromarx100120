@@ -28,6 +28,7 @@ export interface StorageSubscription {
 export interface StorageData {
   user: ChromeUser | null;
   settings: {
+    geminiApiKey?: string;
     paypal?: {
       clientId: string;
       secretKey: string;
@@ -38,6 +39,7 @@ export interface StorageData {
   usage: {
     bookmarks: number;
     notes: number;
+    aiRequests: number;
     tasks: number;
   };
   user_subscription: StorageSubscription;
@@ -71,8 +73,9 @@ export const chromeDb = {
   getBytesInUse: async (): Promise<number> => {
     try {
       if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
+        // Return estimated localStorage usage if not in extension
         return Object.keys(localStorage).reduce((total, key) => {
-          return total + (localStorage.getItem(key)?.length || 0) * 2;
+          return total + (localStorage.getItem(key)?.length || 0) * 2; // Approximate bytes
         }, 0);
       }
       return await chrome.storage.sync.getBytesInUse(null);
@@ -97,6 +100,7 @@ export const chromeDb = {
   }
 };
 
+// Initialize storage change listener
 if (typeof chrome !== 'undefined' && chrome.storage) {
   chromeDb.listenToChanges();
 }

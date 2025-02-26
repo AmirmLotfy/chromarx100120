@@ -1,13 +1,15 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Note } from "@/types/note";
-import { Mic, Save, X } from "lucide-react";
+import { Note, NoteSentiment } from "@/types/note";
+import { Mic, Save, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { analyzeSentiment, summarizeContent } from "@/utils/geminiUtils";
 import { useLanguage } from "@/stores/languageStore";
+import emojiRegex from "emoji-regex";
 
 interface NoteEditorProps {
   note?: Note;
@@ -20,7 +22,111 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
   const [content, setContent] = useState(note?.content || "");
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { currentLanguage } = useLanguage();
+
+  useEffect(() => {
+    return () => {
+      if (recognition) {
+        recognition.stop();
+      }
+    };
+  }, [recognition]);
+
+  const preprocessContent = (text: string) => {
+    // Extract emojis for additional context
+    const emojis = text.match(emojiRegex()) || [];
+    const emojiContext = emojis.length > 0 ? `Emojis used: ${emojis.join(" ")}. ` : "";
+
+    // Clean text for analysis while preserving emojis
+    const cleanedText = text
+      .replace(/[^\p{L}\p{N}\p{P}\p{Z}\p{Emoji}]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      cleanedText,
+      emojiContext,
+      hasEmojis: emojis.length > 0
+    };
+  };
+
+  const analyzeNote = async (noteContent: string) => {
+    try {
+      const { cleanedText, emojiContext, hasEmojis } = preprocessContent(noteContent);
+      console.log("Analyzing note with language:", currentLanguage.code);
+      console.log("Content has emojis:", hasEmojis);
+
+      const analysisPrompt = `
+Language: ${currentLanguage.code}
+Content: ${cleanedText}
+${emojiContext}
+Please analyze the sentiment considering:
+1. The overall tone and emotion
+2. Cultural context of the language
+3. Emoji usage if present
+4. Contextual nuances
+      `.trim();
+
+      const [sentimentResult, summary] = await Promise.all([
+        analyzeSentiment(analysisPrompt, currentLanguage.code),
+        summarizeContent(cleanedText, currentLanguage.code)
+      ]);
+
+      // Extract sentiment details
+      const [sentiment, score, confidence, dominantEmotion] = sentimentResult.split('|');
+      
+      return {
+        sentiment: sentiment as NoteSentiment,
+        sentimentDetails: {
+          score: parseFloat(score),
+          confidence: parseFloat(confidence),
+          dominantEmotion,
+          language: currentLanguage.code
+        },
+        summary
+      };
+    } catch (error) {
+      console.error("Error analyzing note:", error);
+      toast.error(`Failed to analyze note in ${currentLanguage.name}`);
+      return {
+        sentiment: 'neutral' as const,
+        sentimentDetails: {
+          score: 0,
+          confidence: 0,
+          language: currentLanguage.code
+        },
+        summary: ''
+      };
+    }
+  };
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const analysis = await analyzeNote(content);
+      
+      await onSave({
+        title,
+        content,
+        updatedAt: new Date().toISOString(),
+        ...analysis
+      });
+      
+      toast.success("Note saved successfully");
+      onClose();
+    } catch (error) {
+      console.error("Error saving note:", error);
+      toast.error("Failed to save note");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const toggleVoiceRecording = () => {
     if (!isRecording) {
@@ -29,7 +135,7 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = currentLanguage.code;
+        recognition.lang = currentLanguage.code; // Set recognition language
 
         recognition.onresult = (event: any) => {
           const transcript = Array.from(event.results)
@@ -60,27 +166,6 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
     }
   };
 
-  const handleSave = async () => {
-    if (!title.trim()) {
-      toast.error("Title is required");
-      return;
-    }
-
-    try {
-      await onSave({
-        title,
-        content,
-        updatedAt: new Date().toISOString(),
-      });
-      
-      toast.success("Note saved successfully");
-      onClose();
-    } catch (error) {
-      console.error("Error saving note:", error);
-      toast.error("Failed to save note");
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
       <div className="fixed inset-x-4 top-[50%] translate-y-[-50%] max-h-[90vh] overflow-y-auto rounded-lg border bg-background p-6 shadow-lg sm:inset-x-auto sm:left-[50%] sm:translate-x-[-50%] sm:max-w-lg">
@@ -107,7 +192,7 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[200px] w-full resize-none pr-10"
-              dir={currentLanguage.code === 'ar' ? 'rtl' : 'ltr'}
+              dir={currentLanguage.code === 'ar' ? 'rtl' : 'ltr'} // RTL support for Arabic
             />
             <Button
               variant="ghost"
@@ -126,9 +211,18 @@ const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Note
+            <Button onClick={handleSave} disabled={isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Note
+                </>
+              )}
             </Button>
           </div>
         </div>
