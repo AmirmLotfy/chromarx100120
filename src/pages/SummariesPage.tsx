@@ -468,7 +468,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                   Filter
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuContent align="end" className="w-[200px] bg-popover border shadow-md">
                 <DropdownMenuItem onClick={() => setActiveTag(null)}>
                   All Tags
                 </DropdownMenuItem>
@@ -490,7 +490,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                   Actions
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuContent align="end" className="w-[200px] bg-popover border shadow-md">
                 {selectedSummaries.size > 0 ? (
                   <>
                     <DropdownMenuItem onClick={() => bulkAddTag("Important")}>
@@ -535,7 +535,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                   Date
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-auto p-0">
+              <DropdownMenuContent align="end" className="w-auto p-0 bg-popover border shadow-md">
                 <CalendarComponent
                   initialFocus
                   mode="range"
@@ -553,7 +553,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                   Sort: {sortBy}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent align="end" className="bg-popover border shadow-md">
                 <DropdownMenuItem onClick={() => setSortBy('date')}>Date</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSortBy('title')}>Title</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSortBy('readingTime')}>Reading Time</DropdownMenuItem>
