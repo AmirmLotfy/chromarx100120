@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      extension_connections: {
+        Row: {
+          browser: string
+          created_at: string | null
+          extension_id: string
+          id: string
+          last_connected: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          browser: string
+          created_at?: string | null
+          extension_id: string
+          id?: string
+          last_connected?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          browser?: string
+          created_at?: string | null
+          extension_id?: string
+          id?: string
+          last_connected?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -45,6 +75,72 @@ export type Database = {
             | Database["public"]["Enums"]["subscription_status"]
             | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_id: string
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          plan_id: string
+          status: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          data_collection_enabled: boolean | null
+          id: string
+          notifications_enabled: boolean | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_collection_enabled?: boolean | null
+          id?: string
+          notifications_enabled?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_collection_enabled?: boolean | null
+          id?: string
+          notifications_enabled?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
