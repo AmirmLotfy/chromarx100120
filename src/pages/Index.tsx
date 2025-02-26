@@ -8,9 +8,6 @@ import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarous
 import OnboardingContainer from "@/components/onboarding/OnboardingContainer";
 import OnboardingContent from "@/components/onboarding/OnboardingContent";
 import createOnboardingSteps from "@/components/onboarding/config/onboardingSteps";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Chrome } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { storage } from "@/services/storageService";
 
@@ -18,7 +15,6 @@ const Index = () => {
   const { currentPlan, setSubscriptionPlan } = useSubscription();
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
-  const navigate = useNavigate();
   const totalSteps = 5;
 
   const handleElementSelected = (element: HTMLElement) => {
@@ -67,7 +63,11 @@ const Index = () => {
   };
 
   const handleSignIn = () => {
-    navigate('/auth');
+    chrome.tabs.create({
+      url: "https://chromarx.it.com/login",
+      active: true
+    });
+    toast.success("Redirecting to login page...");
   };
 
   useEffect(() => {
@@ -94,48 +94,15 @@ const Index = () => {
 
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-background pt-16 pb-24">
-        <div className="container px-4 mx-auto">
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-6">
-              Supercharge Your Browser Experience
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mb-8">
-              Transform your browsing with AI-powered bookmarks, task management, and productivity tools.
-            </p>
-            <div className="flex gap-4 mb-12">
-              <Button size="lg" onClick={() => window.open("https://chrome.google.com/webstore/detail/chromarx/YOUR_EXTENSION_ID")}>
-                <Chrome className="mr-2 h-5 w-5" />
-                Add to Chrome
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/plans')}>
-                See Plans
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
+      <div className="w-full">
+        {currentPlan === "free" && (
+          <div className="w-full">
+            <AffiliateBannerCarousel />
           </div>
-        </div>
-      </section>
+        )}
+        <FeatureGrid />
+      </div>
 
-      {/* Features Section */}
-      <section className="py-16 bg-muted/50">
-        <div className="container px-4 mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Everything You Need to Browse Smarter
-          </h2>
-          <FeatureGrid />
-        </div>
-      </section>
-
-      {/* Free Plan Banner */}
-      {currentPlan === "free" && (
-        <div className="w-full">
-          <AffiliateBannerCarousel />
-        </div>
-      )}
-
-      {/* Onboarding */}
       {showOnboarding && (
         <OnboardingContainer
           currentStep={currentStep}
