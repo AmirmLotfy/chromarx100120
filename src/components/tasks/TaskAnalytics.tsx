@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -43,7 +42,6 @@ const TaskAnalytics = () => {
 
       if (error) throw error;
 
-      // Calculate analytics
       const analytics: TaskAnalytics = {
         totalTasks: tasks.length,
         completedTasks: tasks.filter(t => t.status === 'completed').length,
@@ -69,13 +67,19 @@ const TaskAnalytics = () => {
   const calculateTasksByPriority = (tasks: any[]) => {
     const priorities: { [key: string]: number } = { high: 0, medium: 0, low: 0 };
     tasks.forEach(t => priorities[t.priority]++);
-    return Object.entries(priorities).map(([priority, count]) => ({ priority, count }));
+    return Object.entries(priorities).map(([priority, count]) => ({ 
+      priority: priority as TaskPriority, 
+      count 
+    }));
   };
 
   const calculateTasksByStatus = (tasks: any[]) => {
     const statuses: { [key: string]: number } = { pending: 0, 'in-progress': 0, completed: 0 };
     tasks.forEach(t => statuses[t.status]++);
-    return Object.entries(statuses).map(([status, count]) => ({ status, count }));
+    return Object.entries(statuses).map(([status, count]) => ({ 
+      status: status as TaskStatus, 
+      count 
+    }));
   };
 
   const calculateTasksByCategory = (tasks: any[]) => {

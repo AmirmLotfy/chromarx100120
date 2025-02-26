@@ -83,14 +83,19 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to add categories");
+        return;
+      }
+
       const { data, error } = await supabase
         .from('task_categories')
-        .insert([
-          {
-            name: newCategoryName.trim(),
-            color: newCategoryColor
-          }
-        ])
+        .insert({
+          name: newCategoryName.trim(),
+          color: newCategoryColor,
+          user_id: user.id
+        })
         .select()
         .single();
 
