@@ -4,10 +4,13 @@ import { storage } from "@/services/storageService";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
 
-interface BackupData {
+interface StorageBackup {
+  id: string;
+  user_id: string;
   key: string;
   value: unknown;
-  user_id: string;
+  storage_type: 'sync' | 'local';
+  created_at: string;
   updated_at: string;
 }
 
@@ -71,9 +74,10 @@ class SupabaseBackupService {
           key,
           value,
           user_id: userId,
+          storage_type: 'sync',
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'key,user_id'
+          onConflict: 'user_id,key'
         });
 
       if (error) throw error;
@@ -93,10 +97,12 @@ class SupabaseBackupService {
 
       const { data, error } = await supabase
         .from('storage_backups')
-        .select('key, value')
-        .eq('user_id', user.data.user.id);
+        .select<'storage_backups', StorageBackup>()
+        .eq('user_id', user.data.user.id)
+        .eq('storage_type', 'sync');
 
       if (error) throw error;
+      if (!data) return;
 
       for (const item of data) {
         await storage.set(item.key, item.value);

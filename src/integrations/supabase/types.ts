@@ -368,6 +368,36 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_backups: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          storage_type: Database["public"]["Enums"]["storage_type"] | null
+          updated_at: string
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          storage_type?: Database["public"]["Enums"]["storage_type"] | null
+          updated_at?: string
+          user_id: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          storage_type?: Database["public"]["Enums"]["storage_type"] | null
+          updated_at?: string
+          user_id?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
@@ -522,6 +552,7 @@ export type Database = {
     }
     Enums: {
       bookmark_status: "active" | "archived" | "deleted"
+      storage_type: "sync" | "local"
       subscription_status: "free" | "premium"
     }
     CompositeTypes: {
