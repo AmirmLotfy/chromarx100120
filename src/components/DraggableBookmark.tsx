@@ -2,12 +2,13 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { Card, CardContent } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { ExternalLink, Trash2, Share2, CheckSquare } from "lucide-react";
+import { ExternalLink, Trash2, Share2, CheckSquare, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useLongPress } from "use-long-press";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AspectRatio } from "./ui/aspect-ratio";
 
 interface DraggableBookmarkProps {
   bookmark: ChromeBookmark;
@@ -27,6 +28,7 @@ const DraggableBookmark = ({
   view,
 }: DraggableBookmarkProps) => {
   const [isPressed, setIsPressed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const bind = useLongPress(() => {
     onToggleSelect(bookmark.id);
@@ -48,23 +50,34 @@ const DraggableBookmark = ({
         throw new Error("No URL to share");
       }
 
-      // Try Web Share API first
       if (navigator.share) {
         await navigator.share({
           title: bookmark.title,
-          text: `Check out this bookmark: ${bookmark.title}`,
+          text: bookmark.preview?.description || `Check out this bookmark: ${bookmark.title}`,
           url: bookmark.url,
         });
         toast.success("Bookmark shared successfully!");
       } else {
-        // Fallback to clipboard
         await navigator.clipboard.writeText(bookmark.url);
         toast.success("Bookmark URL copied to clipboard!");
       }
     } catch (error) {
-      // If clipboard fails too, show error
-      toast.error("Failed to share bookmark");
       console.error("Share failed:", error);
+      toast.error("Failed to share bookmark");
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLoading(true);
+    try {
+      await onDelete(bookmark.id);
+      toast.success("Bookmark deleted successfully");
+    } catch (error) {
+      console.error("Delete failed:", error);
+      toast.error("Failed to delete bookmark");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,17 +94,25 @@ const DraggableBookmark = ({
       className={cn(
         "transition-all duration-200 hover:shadow-md touch-manipulation w-full relative select-none cursor-pointer px-0",
         selected && "bg-accent/50",
-        view === "list" && "flex items-center"
+        view === "list" && "flex items-center",
+        isPressed && "scale-[0.98]"
       )}
       {...bind()}
       onClick={handleClick}
       title="Click to select. Use Ctrl/Cmd + Click for multi-select"
     >
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
+      
       {selected && (
         <div className="absolute top-2 left-2 text-primary animate-scale-in">
           <CheckSquare className="h-5 w-5" />
         </div>
       )}
+
       <CardContent
         className={cn(
           "p-4 w-full",
@@ -105,10 +126,25 @@ const DraggableBookmark = ({
               <h3 className="font-medium line-clamp-1 text-base sm:text-lg break-words">
                 {bookmark.title}
               </h3>
+              {bookmark.preview?.description && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {bookmark.preview.description}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground line-clamp-1 break-words">
                 {bookmark.url}
               </p>
             </div>
+            {view === "grid" && bookmark.preview?.ogImage && (
+              <AspectRatio ratio={16 / 9} className="w-full mt-2">
+                <img
+                  src={bookmark.preview.ogImage}
+                  alt={bookmark.title}
+                  className="rounded-lg object-cover w-full h-full"
+                  loading="lazy"
+                />
+              </AspectRatio>
+            )}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {bookmark.category && (
@@ -116,6 +152,11 @@ const DraggableBookmark = ({
                 {bookmark.category}
               </Badge>
             )}
+            {bookmark.metadata?.tags?.map(tag => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
             <span className="text-xs text-muted-foreground">
               {formatDate(bookmark.dateAdded)}
             </span>
@@ -148,10 +189,8 @@ const DraggableBookmark = ({
             variant="ghost"
             size="icon"
             className="h-8 w-8 hover:bg-accent/50 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(bookmark.id);
-            }}
+            onClick={handleDelete}
+            disabled={isLoading}
           >
             <Trash2 className="h-4 w-4" />
           </Button>

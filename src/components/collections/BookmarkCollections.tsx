@@ -6,8 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Folder, FolderPlus, MoreVertical } from "lucide-react";
+import { Folder, FolderPlus, MoreVertical, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { cn } from "@/lib/utils";
 
 interface BookmarkCollectionsProps {
   userId: string;
@@ -20,6 +23,16 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
   const [isCreating, setIsCreating] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDescription, setNewCollectionDescription] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   useEffect(() => {
     loadCollections();
@@ -27,6 +40,7 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
 
   const loadCollections = async () => {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('bookmark_collections')
         .select('*')
@@ -38,6 +52,8 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
     } catch (error) {
       console.error('Error loading collections:', error);
       toast.error('Failed to load collections');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,13 +88,54 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setIsDragging(false);
+
+    if (!over || active.id === over.id) return;
+
+    try {
+      // Update collections order
+      const oldIndex = collections.findIndex(col => col.id === active.id);
+      const newIndex = collections.findIndex(col => col.id === over.id);
+
+      const updatedCollections = [...collections];
+      const [movedItem] = updatedCollections.splice(oldIndex, 1);
+      updatedCollections.splice(newIndex, 0, movedItem);
+
+      setCollections(updatedCollections);
+
+      // Update in database
+      await supabase.from('bookmark_collections')
+        .update({ order: newIndex })
+        .eq('id', active.id);
+
+      toast.success('Collection order updated');
+    } catch (error) {
+      console.error('Error reordering collections:', error);
+      toast.error('Failed to update collection order');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Collections</h2>
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+            >
               <FolderPlus className="h-4 w-4 mr-2" />
               New Collection
             </Button>
@@ -118,28 +175,45 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
         </Dialog>
       </div>
 
-      <div className="grid gap-2">
-        <Button
-          variant="ghost"
-          className={`justify-start h-9 px-2 w-full ${!selectedCollectionId ? 'bg-primary/10 text-primary' : ''}`}
-          onClick={() => onSelectCollection(null)}
-        >
-          <Folder className="h-4 w-4 mr-2" />
-          All Bookmarks
-        </Button>
-        {collections.map((collection) => (
-          <Button
-            key={collection.id}
-            variant="ghost"
-            className={`justify-start h-9 px-2 w-full ${selectedCollectionId === collection.id ? 'bg-primary/10 text-primary' : ''}`}
-            onClick={() => onSelectCollection(collection)}
-          >
-            <Folder className="h-4 w-4 mr-2" />
-            <span className="flex-1 text-left">{collection.name}</span>
-            <span className="text-xs text-muted-foreground"></span>
-          </Button>
-        ))}
-      </div>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragStart={() => setIsDragging(true)}>
+        <SortableContext items={collections.map(c => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid gap-2">
+            <Button
+              variant="ghost"
+              className={cn(
+                "justify-start h-9 px-2 w-full",
+                !selectedCollectionId && "bg-primary/10 text-primary",
+                isDragging && "cursor-grabbing"
+              )}
+              onClick={() => onSelectCollection(null)}
+            >
+              <Folder className="h-4 w-4 mr-2" />
+              All Bookmarks
+            </Button>
+            {collections.map((collection) => (
+              <Button
+                key={collection.id}
+                variant="ghost"
+                className={cn(
+                  "justify-start h-9 px-2 w-full",
+                  selectedCollectionId === collection.id && "bg-primary/10 text-primary",
+                  isDragging && "cursor-grabbing"
+                )}
+                onClick={() => onSelectCollection(collection)}
+                data-draggable-id={collection.id}
+              >
+                <Folder className="h-4 w-4 mr-2" />
+                <span className="flex-1 text-left truncate">{collection.name}</span>
+                {collection.description && (
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    {collection.description}
+                  </span>
+                )}
+              </Button>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };

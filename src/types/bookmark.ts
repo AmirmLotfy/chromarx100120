@@ -8,5 +8,17 @@ export interface ChromeBookmark extends Omit<chrome.bookmarks.BookmarkTreeNode, 
   dateAdded?: number;
   category?: string;
   content?: string;
-  version?: number; // Added version field as optional
+  version?: number;
+  preview?: {
+    thumbnail?: string;
+    description?: string;
+    favicon?: string;
+    ogImage?: string;
+    siteName?: string;
+  };
+  metadata?: {
+    lastVisited?: number;
+    visitCount?: number;
+    tags?: string[];
+  };
 }
