@@ -96,6 +96,18 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       throw new Error("No authenticated user found");
     }
 
+    // Convert complex objects to JSON-compatible format
+    const jsonDomainStats = domainStats.map(stat => ({
+      domain: stat.domain,
+      visits: stat.visits,
+      timeSpent: stat.timeSpent
+    }));
+
+    const jsonTimeDistribution = timeDistribution.map(dist => ({
+      category: dist.category,
+      time: dist.time
+    }));
+
     // Store daily analytics data in Supabase
     const { error: storeError } = await supabase
       .from('analytics_data')
@@ -104,8 +116,8 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
         date: new Date().toISOString().split('T')[0],
         productivity_score: analyticsData.productivityScore || null,
         total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0) || null,
-        domain_stats: domainStats as Json,
-        category_distribution: timeDistribution as Json
+        domain_stats: jsonDomainStats as unknown as Json,
+        category_distribution: jsonTimeDistribution as unknown as Json
       }]);
 
     if (storeError) {
