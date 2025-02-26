@@ -15,7 +15,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import SortableBookmark from "./SortableBookmark";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { extractDomain } from "@/utils/domainUtils";
 import { Button } from "./ui/button";
 import { CheckSquare, FileText, Globe, Sparkles, Trash2 } from "lucide-react";
@@ -31,6 +31,7 @@ import {
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { useLanguage } from "@/stores/languageStore";
 import { fetchPageContent } from "@/utils/contentExtractor";
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -43,6 +44,8 @@ interface BookmarkListProps {
   onUpdateCategories: (bookmarks: ChromeBookmark[]) => void;
 }
 
+const BATCH_SIZE = 20;
+
 const BookmarkList = ({
   bookmarks,
   selectedBookmarks,
@@ -54,10 +57,34 @@ const BookmarkList = ({
   onUpdateCategories,
 }: BookmarkListProps) => {
   const [items, setItems] = useState(bookmarks);
+  const [displayCount, setDisplayCount] = useState(BATCH_SIZE);
   const [groupedByDomain, setGroupedByDomain] = useState<Record<string, ChromeBookmark[]>>({});
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Group bookmarks by domain and create a flat list for virtualization
+  const domainGroups = Object.entries(groupedByDomain).map(([domain, bookmarks]) => ({
+    type: 'header' as const,
+    domain,
+    count: bookmarks.length,
+  })).reduce<Array<{ type: 'header' | 'bookmark', data: any }>>((acc, group) => {
+    acc.push({ type: 'header', data: group });
+    groupedByDomain[group.domain].forEach(bookmark => {
+      acc.push({ type: 'bookmark', data: bookmark });
+    });
+    return acc;
+  }, []);
+
+  const rowVirtualizer = useVirtualizer({
+    count: domainGroups.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: useCallback((index) => {
+      return domainGroups[index].type === 'header' ? 48 : view === 'grid' ? 200 : 80;
+    }, [view]),
+    overscan: 5,
+  });
 
   useEffect(() => {
     setItems(bookmarks);
@@ -146,58 +173,6 @@ const BookmarkList = ({
         }
       });
     }
-  };
-
-  const renderBookmarks = (bookmarksToRender: ChromeBookmark[]) => {
-    // Group bookmarks by domain
-    const groupedBookmarks = bookmarksToRender.reduce((acc, bookmark) => {
-      if (bookmark.url) {
-        const domain = extractDomain(bookmark.url);
-        if (!acc[domain]) {
-          acc[domain] = [];
-        }
-        acc[domain].push(bookmark);
-      }
-      return acc;
-    }, {} as Record<string, ChromeBookmark[]>);
-
-    return (
-      <div className="space-y-8">
-        {Object.entries(groupedBookmarks).map(([domain, domainBookmarks]) => (
-          <div key={domain} className="space-y-4">
-            <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 backdrop-blur-sm rounded-lg sticky top-0 z-10">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">{domain}</h3>
-              <span className="text-xs text-muted-foreground">
-                ({domainBookmarks.length})
-              </span>
-            </div>
-            <div
-              className={cn(
-                "grid gap-2",
-                view === "grid"
-                  ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                  : "grid-cols-1"
-              )}
-            >
-              {domainBookmarks.map((bookmark) => (
-                <SortableBookmark
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  selected={selectedBookmarks.has(bookmark.id)}
-                  onToggleSelect={onToggleSelect}
-                  onDelete={onDelete}
-                  formatDate={formatDate}
-                  view={view}
-                  tabIndex={focusedIndex === bookmarks.indexOf(bookmark) ? 0 : -1}
-                  onFocus={() => setFocusedIndex(bookmarks.indexOf(bookmark))}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   const handleCleanup = async () => {
@@ -310,6 +285,63 @@ const BookmarkList = ({
     }
   };
 
+  const renderVirtualizedBookmarks = () => (
+    <div
+      ref={parentRef}
+      className="h-[600px] overflow-auto"
+      style={{
+        contain: 'strict',
+      }}
+    >
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const item = domainGroups[virtualRow.index];
+          
+          return (
+            <div
+              key={virtualRow.index}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {item.type === 'header' ? (
+                <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 backdrop-blur-sm rounded-lg sticky top-0 z-10">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">{item.data.domain}</h3>
+                  <span className="text-xs text-muted-foreground">
+                    ({item.data.count})
+                  </span>
+                </div>
+              ) : (
+                <SortableBookmark
+                  bookmark={item.data}
+                  selected={selectedBookmarks.has(item.data.id)}
+                  onToggleSelect={onToggleSelect}
+                  onDelete={onDelete}
+                  formatDate={formatDate}
+                  view={view}
+                  tabIndex={focusedIndex === bookmarks.indexOf(item.data) ? 0 : -1}
+                  onFocus={() => setFocusedIndex(bookmarks.indexOf(item.data))}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <DndContext
       sensors={sensors}
@@ -388,16 +420,7 @@ const BookmarkList = ({
             </TooltipProvider>
           </div>
 
-          <div
-            className={cn(
-              "grid gap-2 animate-fade-in",
-              view === "grid"
-                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                : "grid-cols-1"
-            )}
-          >
-            {renderBookmarks(items)}
-          </div>
+          {renderVirtualizedBookmarks()}
         </div>
       </SortableContext>
     </DndContext>
