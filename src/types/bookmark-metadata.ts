@@ -1,5 +1,7 @@
 
-import { bookmark_status } from "@/integrations/supabase/types";
+import { Database } from "@/integrations/supabase/types";
+
+type bookmark_status = Database["public"]["Enums"]["bookmark_status"];
 
 export interface BookmarkMetadata {
   id: string;

@@ -5,12 +5,12 @@ import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
 
 export const saveBookmarkMetadata = async (bookmark: ChromeBookmark, userId: string): Promise<BookmarkMetadata> => {
-  const metadata: Partial<BookmarkMetadata> = {
+  const metadata = {
     user_id: userId,
     bookmark_id: bookmark.id,
     url: bookmark.url || '',
     title: bookmark.title,
-    status: 'active',
+    status: 'active' as const,
   };
 
   const { data, error } = await supabase
@@ -46,12 +46,17 @@ export const getBookmarkMetadata = async (bookmarkId: string, userId: string): P
 };
 
 export const createCollection = async (
-  collection: Partial<BookmarkCollection>,
+  collection: Pick<BookmarkCollection, 'name'> & Partial<Omit<BookmarkCollection, 'id' | 'user_id'>>,
   userId: string
 ): Promise<BookmarkCollection> => {
+  const collectionData = {
+    ...collection,
+    user_id: userId,
+  };
+
   const { data, error } = await supabase
     .from('bookmark_collections')
-    .insert({ ...collection, user_id: userId })
+    .insert(collectionData)
     .select()
     .single();
 
@@ -87,15 +92,17 @@ export const addBookmarkToCollection = async (
 export const updateBookmarkHealth = async (
   bookmarkId: string,
   userId: string,
-  health: Partial<BookmarkHealth>
+  health: Partial<Omit<BookmarkHealth, 'id' | 'user_id' | 'bookmark_id'>>
 ): Promise<void> => {
+  const healthData = {
+    bookmark_id: bookmarkId,
+    user_id: userId,
+    ...health,
+  };
+
   const { error } = await supabase
     .from('bookmark_health')
-    .upsert({
-      bookmark_id: bookmarkId,
-      user_id: userId,
-      ...health
-    });
+    .upsert(healthData);
 
   if (error) {
     console.error('Error updating bookmark health:', error);
@@ -107,15 +114,17 @@ export const updateBookmarkHealth = async (
 export const updateBookmarkAnalytics = async (
   bookmarkId: string,
   userId: string,
-  analytics: Partial<BookmarkAnalytics>
+  analytics: Partial<Omit<BookmarkAnalytics, 'id' | 'user_id' | 'bookmark_id'>>
 ): Promise<void> => {
+  const analyticsData = {
+    bookmark_id: bookmarkId,
+    user_id: userId,
+    ...analytics,
+  };
+
   const { error } = await supabase
     .from('bookmark_analytics')
-    .upsert({
-      bookmark_id: bookmarkId,
-      user_id: userId,
-      ...analytics
-    });
+    .upsert(analyticsData);
 
   if (error) {
     console.error('Error updating bookmark analytics:', error);
