@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -18,6 +17,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 interface Summary {
   id: string;
@@ -47,13 +47,7 @@ const SummariesPage = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedSummaries, setSelectedSummaries] = useState<Set<string>>(new Set());
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to?: Date | undefined;
-  }>({
-    from: undefined,
-    to: undefined
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'readingTime'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -228,7 +222,7 @@ const SummariesPage = () => {
       const matchesTag = !activeTag || summary.tags && summary.tags.includes(activeTag);
       const matchesCategory = !activeCategory || summary.category === activeCategory;
       const summaryDate = new Date(summary.date);
-      const matchesDateRange = (!dateRange.from || summaryDate >= dateRange.from) && (!dateRange.to || summaryDate <= dateRange.to);
+      const matchesDateRange = (!dateRange?.from || summaryDate >= dateRange.from) && (!dateRange?.to || summaryDate <= dateRange.to);
       switch (activeTab) {
         case 'new':
           return matchesSearch && matchesTag && matchesCategory && matchesDateRange && summary.isNew;
@@ -539,24 +533,12 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-auto p-0">
-                <Calendar
+                <CalendarComponent
                   initialFocus
                   mode="range"
-                  defaultMonth={dateRange.from}
+                  defaultMonth={dateRange?.from}
                   selected={dateRange}
-                  onSelect={(range) => {
-                    if (range) {
-                      setDateRange({
-                        from: range.from,
-                        to: range.to
-                      });
-                    } else {
-                      setDateRange({
-                        from: undefined,
-                        to: undefined
-                      });
-                    }
-                  }}
+                  onSelect={setDateRange}
                   numberOfMonths={1}
                 />
               </DropdownMenuContent>
