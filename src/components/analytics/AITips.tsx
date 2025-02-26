@@ -5,9 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Bell, Brain, ChartLine, Zap } from "lucide-react";
+import { Bell, Brain, ChartLine, Zap, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import InsightsVisualizations from './InsightsVisualizations';
 
 interface AIInsight {
   summary: string;
@@ -15,6 +16,8 @@ interface AIInsight {
   recommendations: string[];
   alerts: string[];
   domainSpecificTips: Record<string, string>;
+  productivityByDomain: Array<{ domain: string; score: number }>;
+  goalProgress: Array<{ category: string; current: number; target: number }>;
 }
 
 const AITips = () => {
@@ -32,13 +35,20 @@ const AITips = () => {
           .order('date', { ascending: false })
           .limit(7);
 
-        if (error) throw error;
+        // Get user's goals
+        const { data: goalsData, error: goalsError } = await supabase
+          .from('analytics_goals')
+          .select('*')
+          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+        if (error || goalsError) throw error || goalsError;
 
         // Get AI insights using the edge function
         const { data: insightData, error: insightError } = await supabase.functions
           .invoke('analyze-productivity', {
             body: { 
               analyticsData,
+              goalsData,
               timeframe: '7days'
             }
           });
@@ -76,7 +86,7 @@ const AITips = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [realtimeData]); // Refetch when new data arrives
+  }, [realtimeData]);
 
   if (loading) {
     return (
@@ -101,6 +111,12 @@ const AITips = () => {
   return (
     <ScrollArea className="h-[calc(100vh-200px)]">
       <div className="space-y-4 p-1">
+        {/* Advanced Visualizations */}
+        <InsightsVisualizations 
+          productivityByDomain={insights.productivityByDomain}
+          goalProgress={insights.goalProgress}
+        />
+
         {/* Summary Card */}
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -108,6 +124,24 @@ const AITips = () => {
             <h3 className="font-medium">Overview</h3>
           </div>
           <p className="text-sm text-muted-foreground">{insights.summary}</p>
+        </Card>
+
+        {/* Goals Progress */}
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="h-4 w-4 text-primary" />
+            <h3 className="font-medium">Goals Progress</h3>
+          </div>
+          <div className="space-y-2">
+            {insights.goalProgress.map((goal, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span className="text-sm">{goal.category}</span>
+                <span className="text-sm text-muted-foreground">
+                  {goal.current}h / {goal.target}h
+                </span>
+              </div>
+            ))}
+          </div>
         </Card>
 
         {/* Patterns Card */}
