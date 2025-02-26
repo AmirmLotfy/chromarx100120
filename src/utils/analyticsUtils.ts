@@ -3,6 +3,7 @@ import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, Doma
 import { extractDomain } from "@/utils/domainUtils";
 import { chromeDb } from "@/lib/chrome-storage";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 const MAX_RETRIES = 3;
@@ -98,13 +99,13 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
     // Store daily analytics data in Supabase
     const { error: storeError } = await supabase
       .from('analytics_data')
-      .upsert([{  // Wrap in array and ensure property names match database schema
+      .upsert([{
         user_id: user.id,
         date: new Date().toISOString().split('T')[0],
-        productivity_score: analyticsData.productivityScore,
-        total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0),
-        domain_stats: analyticsData.domainStats,
-        category_distribution: analyticsData.timeDistribution
+        productivity_score: analyticsData.productivityScore || null,
+        total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0) || null,
+        domain_stats: domainStats as Json,
+        category_distribution: timeDistribution as Json
       }]);
 
     if (storeError) {
