@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { savePrivacySettings } from '@/services/preferencesService';
@@ -16,6 +15,7 @@ interface SettingsState {
   experimentalFeatures: boolean;
   affiliateBannersEnabled: boolean;
   autoDetectBookmarks: boolean;
+  cloudBackupEnabled: boolean;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
@@ -24,6 +24,7 @@ interface SettingsState {
   setExperimentalFeatures: (enabled: boolean) => void;
   setAffiliateBannersEnabled: (enabled: boolean) => void;
   setAutoDetectBookmarks: (enabled: boolean) => void;
+  setCloudBackupEnabled: (enabled: boolean) => void;
   resetSettings: () => void;
 }
 
@@ -40,6 +41,7 @@ const initialState = {
   experimentalFeatures: false,
   affiliateBannersEnabled: true,
   autoDetectBookmarks: true,
+  cloudBackupEnabled: false,
 };
 
 export const useSettings = create<SettingsState>()(
@@ -95,6 +97,14 @@ export const useSettings = create<SettingsState>()(
         console.log('Affiliate banners setting updated:', affiliateBannersEnabled);
       },
       setAutoDetectBookmarks: (autoDetectBookmarks) => set({ autoDetectBookmarks }),
+      setCloudBackupEnabled: (cloudBackupEnabled) => {
+        set({ cloudBackupEnabled });
+        if (cloudBackupEnabled) {
+          import('@/services/supabaseBackupService').then(({ supabaseBackup }) => {
+            supabaseBackup.syncAll().catch(console.error);
+          });
+        }
+      },
       resetSettings: () => {
         set(initialState);
         const root = document.documentElement;
