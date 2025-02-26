@@ -7,16 +7,10 @@ import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, Tag, Chevr
 import { toast } from "sonner";
 import SearchSummaries from "@/components/SearchSummaries";
 import jsPDF from 'jspdf';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-
 interface Summary {
   id: string;
   title: string;
@@ -29,7 +23,6 @@ interface Summary {
   category?: string;
   readingTime?: number;
 }
-
 const SummariesPage = () => {
   const navigate = useNavigate();
   const [summaries, setSummaries] = useState<Summary[]>(() => {
@@ -45,16 +38,17 @@ const SummariesPage = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedSummaries, setSelectedSummaries] = useState<Set<string>>(new Set());
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
     from: undefined,
-    to: undefined,
+    to: undefined
   });
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'readingTime'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
   const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
     const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
-    
     try {
       switch (type) {
         case 'copy':
@@ -72,41 +66,39 @@ const SummariesPage = () => {
       toast.error("Failed to share summary");
     }
   };
-
   const toggleStar = (id: string) => {
-    setSummaries((prev) => {
-      const updated = prev.map((summary) =>
-        summary.id === id
-          ? { ...summary, isStarred: !summary.isStarred }
-          : summary
-      );
+    setSummaries(prev => {
+      const updated = prev.map(summary => summary.id === id ? {
+        ...summary,
+        isStarred: !summary.isStarred
+      } : summary);
       localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
       return updated;
     });
   };
-
   const deleteSummary = (id: string) => {
-    setSummaries((prev) => {
-      const updated = prev.filter((summary) => summary.id !== id);
+    setSummaries(prev => {
+      const updated = prev.filter(summary => summary.id !== id);
       localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
       return updated;
     });
     toast.success("Summary deleted");
   };
-
   const clearAllSummaries = () => {
     setSummaries([]);
     localStorage.removeItem("bookmarkSummaries");
     toast.success("All summaries cleared");
   };
-
   const addTag = (summaryId: string, tag: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => {
         if (summary.id === summaryId) {
           const currentTags = summary.tags || [];
           if (!currentTags.includes(tag)) {
-            return { ...summary, tags: [...currentTags, tag] };
+            return {
+              ...summary,
+              tags: [...currentTags, tag]
+            };
           }
         }
         return summary;
@@ -116,7 +108,6 @@ const SummariesPage = () => {
     });
     toast.success(`Added tag: ${tag}`);
   };
-
   const removeTag = (summaryId: string, tagToRemove: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => {
@@ -133,12 +124,14 @@ const SummariesPage = () => {
     });
     toast.success(`Removed tag: ${tagToRemove}`);
   };
-
   const setCategory = (summaryId: string, category: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => {
         if (summary.id === summaryId) {
-          return { ...summary, category };
+          return {
+            ...summary,
+            category
+          };
         }
         return summary;
       });
@@ -147,7 +140,6 @@ const SummariesPage = () => {
     });
     toast.success(`Set category: ${category}`);
   };
-
   const toggleSelectSummary = (id: string) => {
     setSelectedSummaries(prev => {
       const newSet = new Set(prev);
@@ -159,15 +151,12 @@ const SummariesPage = () => {
       return newSet;
     });
   };
-
   const selectAll = () => {
     setSelectedSummaries(new Set(filteredSummaries.map(s => s.id)));
   };
-
   const deselectAll = () => {
     setSelectedSummaries(new Set());
   };
-
   const bulkDelete = () => {
     if (selectedSummaries.size === 0) return;
     setSummaries(prev => {
@@ -178,7 +167,6 @@ const SummariesPage = () => {
     setSelectedSummaries(new Set());
     toast.success(`Deleted ${selectedSummaries.size} summaries`);
   };
-
   const bulkAddTag = (tag: string) => {
     if (selectedSummaries.size === 0) return;
     setSummaries(prev => {
@@ -186,7 +174,10 @@ const SummariesPage = () => {
         if (selectedSummaries.has(summary.id)) {
           const currentTags = summary.tags || [];
           if (!currentTags.includes(tag)) {
-            return { ...summary, tags: [...currentTags, tag] };
+            return {
+              ...summary,
+              tags: [...currentTags, tag]
+            };
           }
         }
         return summary;
@@ -196,33 +187,25 @@ const SummariesPage = () => {
     });
     toast.success(`Added tag to ${selectedSummaries.size} summaries`);
   };
-
   const bulkSetCategory = (category: string) => {
     if (selectedSummaries.size === 0) return;
     setSummaries(prev => {
-      const updated = prev.map(summary => 
-        selectedSummaries.has(summary.id) ? { ...summary, category } : summary
-      );
+      const updated = prev.map(summary => selectedSummaries.has(summary.id) ? {
+        ...summary,
+        category
+      } : summary);
       localStorage.setItem("bookmarkSummaries", JSON.stringify(updated));
       return updated;
     });
     toast.success(`Set category for ${selectedSummaries.size} summaries`);
   };
-
   const filterSummaries = (summaries: Summary[]) => {
     return summaries.filter(summary => {
-      const matchesSearch = searchQuery.toLowerCase().trim() === "" ||
-        summary.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        summary.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        summary.url.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesTag = !activeTag || (summary.tags && summary.tags.includes(activeTag));
+      const matchesSearch = searchQuery.toLowerCase().trim() === "" || summary.title.toLowerCase().includes(searchQuery.toLowerCase()) || summary.content.toLowerCase().includes(searchQuery.toLowerCase()) || summary.url.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTag = !activeTag || summary.tags && summary.tags.includes(activeTag);
       const matchesCategory = !activeCategory || summary.category === activeCategory;
-      
       const summaryDate = new Date(summary.date);
-      const matchesDateRange = (!dateRange.from || summaryDate >= dateRange.from) &&
-                              (!dateRange.to || summaryDate <= dateRange.to);
-
+      const matchesDateRange = (!dateRange.from || summaryDate >= dateRange.from) && (!dateRange.to || summaryDate <= dateRange.to);
       switch (activeTab) {
         case 'new':
           return matchesSearch && matchesTag && matchesCategory && matchesDateRange && summary.isNew;
@@ -234,23 +217,16 @@ const SummariesPage = () => {
     }).sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          return sortOrder === 'asc' 
-            ? new Date(a.date).getTime() - new Date(b.date).getTime()
-            : new Date(b.date).getTime() - new Date(a.date).getTime();
+          return sortOrder === 'asc' ? new Date(a.date).getTime() - new Date(b.date).getTime() : new Date(b.date).getTime() - new Date(a.date).getTime();
         case 'title':
-          return sortOrder === 'asc'
-            ? a.title.localeCompare(b.title)
-            : b.title.localeCompare(a.title);
+          return sortOrder === 'asc' ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
         case 'readingTime':
-          return sortOrder === 'asc'
-            ? (a.readingTime || 0) - (b.readingTime || 0)
-            : (b.readingTime || 0) - (a.readingTime || 0);
+          return sortOrder === 'asc' ? (a.readingTime || 0) - (b.readingTime || 0) : (b.readingTime || 0) - (a.readingTime || 0);
         default:
           return 0;
       }
     });
   };
-
   const getAllTags = () => {
     const tagsSet = new Set<string>();
     summaries.forEach(summary => {
@@ -258,7 +234,6 @@ const SummariesPage = () => {
     });
     return Array.from(tagsSet);
   };
-
   const getAllCategories = () => {
     const categoriesSet = new Set<string>();
     summaries.forEach(summary => {
@@ -268,28 +243,23 @@ const SummariesPage = () => {
     });
     return Array.from(categoriesSet);
   };
-
   const filteredSummaries = filterSummaries(summaries);
   const newSummaries = summaries.filter(s => s.isNew);
   const allTags = getAllTags();
   const allCategories = getAllCategories();
-
   const tabLabels = {
     current: 'Current',
     new: `New${newSummaries.length > 0 ? ` (${newSummaries.length})` : ''}`,
     history: 'History'
   };
-
-  const SummaryCard = ({ summary }: { summary: Summary }) => (
-    <div className="p-4 rounded-lg border bg-card animate-fade-in">
+  const SummaryCard = ({
+    summary
+  }: {
+    summary: Summary;
+  }) => <div className="p-4 rounded-lg border bg-card animate-fade-in">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            checked={selectedSummaries.has(summary.id)}
-            onChange={() => toggleSelectSummary(summary.id)}
-            className="mt-1"
-          />
+          <input type="checkbox" checked={selectedSummaries.has(summary.id)} onChange={() => toggleSelectSummary(summary.id)} className="mt-1" />
           <div className="space-y-1 flex-1">
             <h3 className="font-medium line-clamp-1">{summary.title}</h3>
             <p className="text-sm text-muted-foreground">{summary.content}</p>
@@ -298,50 +268,30 @@ const SummariesPage = () => {
               <span>•</span>
               <span>{format(new Date(summary.date), 'MMM d, yyyy')}</span>
             </div>
-            {(summary.tags && summary.tags.length > 0) && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {summary.tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveTag(activeTag === tag ? null : tag);
-                    }}
-                  >
+            {summary.tags && summary.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">
+                {summary.tags.map(tag => <span key={tag} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary" onClick={e => {
+              e.stopPropagation();
+              setActiveTag(activeTag === tag ? null : tag);
+            }}>
                     <Tag className="w-3 h-3 mr-1" />
                     {tag}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeTag(summary.id, tag);
-                      }}
-                      className="ml-1 hover:text-destructive"
-                    >
+                    <button onClick={e => {
+                e.stopPropagation();
+                removeTag(summary.id, tag);
+              }} className="ml-1 hover:text-destructive">
                       ×
                     </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            {summary.category && (
-              <span
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary/10 text-secondary cursor-pointer"
-                onClick={() => setActiveCategory(activeCategory === summary.category ? null : summary.category)}
-              >
+                  </span>)}
+              </div>}
+            {summary.category && <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary/10 text-secondary cursor-pointer" onClick={() => setActiveCategory(activeCategory === summary.category ? null : summary.category)}>
                 {summary.category}
-              </span>
-            )}
+              </span>}
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Tag className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -366,25 +316,12 @@ const SummariesPage = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => toggleStar(summary.id)}
-            className="h-8 w-8"
-          >
-            {summary.isStarred ? (
-              <Star className="h-4 w-4 fill-primary text-primary" />
-            ) : (
-              <StarOff className="h-4 w-4" />
-            )}
+          <Button variant="ghost" size="icon" onClick={() => toggleStar(summary.id)} className="h-8 w-8">
+            {summary.isStarred ? <Star className="h-4 w-4 fill-primary text-primary" /> : <StarOff className="h-4 w-4" />}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Copy className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -403,35 +340,22 @@ const SummariesPage = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => deleteSummary(summary.id)}
-            className="h-8 w-8 text-destructive hover:text-destructive"
-          >
+          <Button variant="ghost" size="icon" onClick={() => deleteSummary(summary.id)} className="h-8 w-8 text-destructive hover:text-destructive">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-        <a
-          href={summary.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:underline"
-        >
+        <a href={summary.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
           View Original
         </a>
         <span>{summary.date}</span>
       </div>
-    </div>
-  );
-
+    </div>;
   const exportToMarkdown = (summaries: Summary[]) => {
     const markdownContent = summaries.map(summary => {
       const tags = summary.tags ? `\nTags: ${summary.tags.join(', ')}` : '';
       const category = summary.category ? `\nCategory: ${summary.category}` : '';
-      
       return `# ${summary.title}
 
 ${summary.content}
@@ -442,8 +366,9 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
 ---
 `;
     }).join('\n');
-
-    const blob = new Blob([markdownContent], { type: 'text/markdown' });
+    const blob = new Blob([markdownContent], {
+      type: 'text/markdown'
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -454,70 +379,53 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
     URL.revokeObjectURL(url);
     toast.success('Exported to Markdown');
   };
-
   const exportToPDF = (summaries: Summary[]) => {
     const pdf = new jsPDF();
     let yOffset = 10;
-
     summaries.forEach((summary, index) => {
       if (yOffset > 250) {
         pdf.addPage();
         yOffset = 10;
       }
-
       pdf.setFontSize(16);
       pdf.text(summary.title, 10, yOffset);
       yOffset += 10;
-
       pdf.setFontSize(12);
       const contentLines = pdf.splitTextToSize(summary.content, 190);
       pdf.text(contentLines, 10, yOffset);
       yOffset += contentLines.length * 7;
-
       pdf.setFontSize(10);
       pdf.text(`URL: ${summary.url}`, 10, yOffset);
       yOffset += 5;
       pdf.text(`Date: ${summary.date}`, 10, yOffset);
       yOffset += 5;
-
       if (summary.tags && summary.tags.length > 0) {
         pdf.text(`Tags: ${summary.tags.join(', ')}`, 10, yOffset);
         yOffset += 5;
       }
-
       if (summary.category) {
         pdf.text(`Category: ${summary.category}`, 10, yOffset);
         yOffset += 5;
       }
-
       if (index < summaries.length - 1) {
         pdf.line(10, yOffset, 200, yOffset);
         yOffset += 10;
       }
     });
-
     pdf.save('summaries.pdf');
     toast.success('Exported to PDF');
   };
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="space-y-6 pb-16 pt-4">
         <div className="flex items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="shrink-0"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-semibold">Bookmark Summaries</h1>
+            <h1 className="text-base font-semibold text-left">Summaries</h1>
           </div>
           <div className="flex items-center gap-2">
-            {selectedSummaries.size > 0 ? (
-              <>
+            {selectedSummaries.size > 0 ? <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -539,19 +447,12 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                 <Button variant="ghost" size="sm" onClick={deselectAll}>
                   Deselect All
                 </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" onClick={selectAll}>
+              </> : <Button variant="outline" size="sm" onClick={selectAll}>
                 Select All
-              </Button>
-            )}
+              </Button>}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3"
-                >
+                <Button variant="outline" size="sm" className="h-8 px-3">
                   <Download className="h-4 w-4 mr-1" />
                   Export
                 </Button>
@@ -567,12 +468,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearAllSummaries}
-              className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive md:text-sm md:h-9 md:px-4"
-            >
+            <Button variant="outline" size="sm" onClick={clearAllSummaries} className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive md:text-sm md:h-9 md:px-4">
               <Trash2 className="h-3.5 w-3.5 mr-1 md:h-4 md:w-4" />
               Clear
             </Button>
@@ -586,37 +482,22 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-9">
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
+                  {dateRange.from ? dateRange.to ? <>
                         {format(dateRange.from, "LLL dd, y")} -{" "}
                         {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    "Pick a date range"
-                  )}
+                      </> : format(dateRange.from, "LLL dd, y") : "Pick a date range"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange.from}
-                  selected={{
-                    from: dateRange.from,
-                    to: dateRange.to,
-                  }}
-                  onSelect={(range) => {
-                    setDateRange({
-                      from: range?.from,
-                      to: range?.to,
-                    });
-                  }}
-                  numberOfMonths={2}
-                />
+                <Calendar initialFocus mode="range" defaultMonth={dateRange.from} selected={{
+                from: dateRange.from,
+                to: dateRange.to
+              }} onSelect={range => {
+                setDateRange({
+                  from: range?.from,
+                  to: range?.to
+                });
+              }} numberOfMonths={2} />
               </PopoverContent>
             </Popover>
 
@@ -639,42 +520,20 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}>
               {sortOrder === 'asc' ? '↑' : '↓'}
             </Button>
           </div>
 
-          {(allTags.length > 0 || allCategories.length > 0) && (
-            <div className="flex flex-wrap gap-2">
-              {allTags.map(tag => (
-                <Button
-                  key={tag}
-                  variant={activeTag === tag ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                  className="h-7"
-                >
+          {(allTags.length > 0 || allCategories.length > 0) && <div className="flex flex-wrap gap-2">
+              {allTags.map(tag => <Button key={tag} variant={activeTag === tag ? "default" : "outline"} size="sm" onClick={() => setActiveTag(activeTag === tag ? null : tag)} className="h-7">
                   <Tag className="w-3 h-3 mr-1" />
                   {tag}
-                </Button>
-              ))}
-              {allCategories.map(category => (
-                <Button
-                  key={category}
-                  variant={activeCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveCategory(activeCategory === category ? null : category)}
-                  className="h-7"
-                >
+                </Button>)}
+              {allCategories.map(category => <Button key={category} variant={activeCategory === category ? "default" : "outline"} size="sm" onClick={() => setActiveCategory(activeCategory === category ? null : category)} className="h-7">
                   {category}
-                </Button>
-              ))}
-            </div>
-          )}
+                </Button>)}
+            </div>}
         </div>
 
         <div className="w-full">
@@ -701,62 +560,31 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
           </div>
 
           <div className="hidden md:grid w-full grid-cols-3">
-            <Button
-              variant={activeTab === 'current' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('current')}
-              className="rounded-none"
-            >
+            <Button variant={activeTab === 'current' ? 'default' : 'ghost'} onClick={() => setActiveTab('current')} className="rounded-none">
               Current
             </Button>
-            <Button
-              variant={activeTab === 'new' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('new')}
-              className="rounded-none relative"
-            >
+            <Button variant={activeTab === 'new' ? 'default' : 'ghost'} onClick={() => setActiveTab('new')} className="rounded-none relative">
               New
-              {newSummaries.length > 0 && (
-                <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+              {newSummaries.length > 0 && <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
                   {newSummaries.length}
-                </span>
-              )}
+                </span>}
             </Button>
-            <Button
-              variant={activeTab === 'history' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('history')}
-              className="rounded-none"
-            >
+            <Button variant={activeTab === 'history' ? 'default' : 'ghost'} onClick={() => setActiveTab('history')} className="rounded-none">
               History
             </Button>
           </div>
 
           <ScrollArea className="h-[calc(100vh-16rem)]">
             <div className="space-y-4 p-4">
-              {filteredSummaries.length === 0 ? (
-                <div className="text-center py-8">
+              {filteredSummaries.length === 0 ? <div className="text-center py-8">
                   <p className="text-muted-foreground">
-                    {searchQuery || activeTag || activeCategory ? 
-                      "No summaries found matching your filters." :
-                      activeTab === 'new'
-                        ? 'No new summaries available.'
-                        : activeTab === 'history'
-                        ? 'No summary history available.'
-                        : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
+                    {searchQuery || activeTag || activeCategory ? "No summaries found matching your filters." : activeTab === 'new' ? 'No new summaries available.' : activeTab === 'history' ? 'No summary history available.' : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
                   </p>
-                </div>
-              ) : (
-                filteredSummaries.map((summary) => (
-                  <SummaryCard
-                    key={summary.id}
-                    summary={summary}
-                  />
-                ))
-              )}
+                </div> : filteredSummaries.map(summary => <SummaryCard key={summary.id} summary={summary} />)}
             </div>
           </ScrollArea>
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default SummariesPage;
