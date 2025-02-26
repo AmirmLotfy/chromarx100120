@@ -10,26 +10,27 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const signInWithGoogle = async () => {
   try {
-    // Get the current window dimensions for centered popup
-    const width = 600;
-    const height = 600;
-    const left = screen.width / 2 - width / 2;
-    const top = screen.height / 2 - height / 2;
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: chrome.identity.getRedirectURL(),
-        queryParams: {
-          prompt: 'select_account'
+    // Use Chrome's identity API to get Google OAuth token
+    const token = await new Promise<chrome.identity.TokenDetails>((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive: true }, (token) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
         }
-      }
+        resolve({ token });
+      });
+    });
+
+    // Sign in to Supabase with the Google token
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: token.token,
     });
 
     if (error) throw error;
 
     // Store user data in Chrome storage
-    if (data?.user) {
+    if (data.user) {
       await storage.set('currentUser', {
         id: data.user.id,
         email: data.user.email,
@@ -51,6 +52,22 @@ export const signInWithGoogle = async () => {
 
 export const signOut = async () => {
   try {
+    // Revoke Chrome's auth token
+    const token = await new Promise<chrome.identity.TokenDetails>((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+        resolve({ token });
+      });
+    });
+
+    if (token.token) {
+      chrome.identity.removeCachedAuthToken({ token: token.token });
+    }
+
+    // Sign out from Supabase
     await supabase.auth.signOut();
     await storage.remove('currentUser');
     toast.success('Successfully signed out');
