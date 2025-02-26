@@ -1,3 +1,4 @@
+
 #root {
   width: 100%;
   margin: 0 auto;
@@ -65,10 +66,20 @@
 .page-content {
   padding-top: calc(3.5rem + 1px); /* Header height + border */
   padding-bottom: calc(4rem + 1px); /* Navigation height + border */
+  background-color: hsl(var(--background));
+  backdrop-filter: none;
 }
 
 @media (min-width: 768px) {
   .page-content {
     padding-bottom: 1rem; /* Remove bottom padding on desktop */
   }
+}
+
+/* Remove transparency from main background */
+body, 
+.bg-background,
+[class*="bg-background"] {
+  background-color: hsl(var(--background)) !important;
+  backdrop-filter: none !important;
 }

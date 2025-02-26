@@ -442,8 +442,8 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
 
   return (
     <Layout>
-      <div className="space-y-4 pb-16 pt-4 px-4">
-        <div className="flex items-center gap-2">
+      <div className="space-y-2 pb-16 px-4">
+        <div className="flex items-center gap-2 py-2">
           <Button
             variant="ghost"
             size="icon"
