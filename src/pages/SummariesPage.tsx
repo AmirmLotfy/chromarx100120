@@ -11,7 +11,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuIte
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-
 interface Summary {
   id: string;
   title: string;
@@ -24,7 +23,6 @@ interface Summary {
   category?: string;
   readingTime?: number;
 }
-
 const SummariesPage = () => {
   const navigate = useNavigate();
   const [summaries, setSummaries] = useState<Summary[]>(() => {
@@ -49,7 +47,6 @@ const SummariesPage = () => {
   });
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'readingTime'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
   const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
     const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
     try {
@@ -69,7 +66,6 @@ const SummariesPage = () => {
       toast.error("Failed to share summary");
     }
   };
-
   const toggleStar = (id: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => summary.id === id ? {
@@ -80,7 +76,6 @@ const SummariesPage = () => {
       return updated;
     });
   };
-
   const deleteSummary = (id: string) => {
     setSummaries(prev => {
       const updated = prev.filter(summary => summary.id !== id);
@@ -89,13 +84,11 @@ const SummariesPage = () => {
     });
     toast.success("Summary deleted");
   };
-
   const clearAllSummaries = () => {
     setSummaries([]);
     localStorage.removeItem("bookmarkSummaries");
     toast.success("All summaries cleared");
   };
-
   const addTag = (summaryId: string, tag: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => {
@@ -115,7 +108,6 @@ const SummariesPage = () => {
     });
     toast.success(`Added tag: ${tag}`);
   };
-
   const removeTag = (summaryId: string, tagToRemove: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => {
@@ -132,7 +124,6 @@ const SummariesPage = () => {
     });
     toast.success(`Removed tag: ${tagToRemove}`);
   };
-
   const setCategory = (summaryId: string, category: string) => {
     setSummaries(prev => {
       const updated = prev.map(summary => {
@@ -149,7 +140,6 @@ const SummariesPage = () => {
     });
     toast.success(`Set category: ${category}`);
   };
-
   const toggleSelectSummary = (id: string) => {
     setSelectedSummaries(prev => {
       const newSet = new Set(prev);
@@ -161,15 +151,12 @@ const SummariesPage = () => {
       return newSet;
     });
   };
-
   const selectAll = () => {
     setSelectedSummaries(new Set(filteredSummaries.map(s => s.id)));
   };
-
   const deselectAll = () => {
     setSelectedSummaries(new Set());
   };
-
   const bulkDelete = () => {
     if (selectedSummaries.size === 0) return;
     setSummaries(prev => {
@@ -180,7 +167,6 @@ const SummariesPage = () => {
     setSelectedSummaries(new Set());
     toast.success(`Deleted ${selectedSummaries.size} summaries`);
   };
-
   const bulkAddTag = (tag: string) => {
     if (selectedSummaries.size === 0) return;
     setSummaries(prev => {
@@ -201,7 +187,6 @@ const SummariesPage = () => {
     });
     toast.success(`Added tag to ${selectedSummaries.size} summaries`);
   };
-
   const bulkSetCategory = (category: string) => {
     if (selectedSummaries.size === 0) return;
     setSummaries(prev => {
@@ -214,7 +199,6 @@ const SummariesPage = () => {
     });
     toast.success(`Set category for ${selectedSummaries.size} summaries`);
   };
-
   const filterSummaries = (summaries: Summary[]) => {
     return summaries.filter(summary => {
       const matchesSearch = searchQuery.toLowerCase().trim() === "" || summary.title.toLowerCase().includes(searchQuery.toLowerCase()) || summary.content.toLowerCase().includes(searchQuery.toLowerCase()) || summary.url.toLowerCase().includes(searchQuery.toLowerCase());
@@ -243,7 +227,6 @@ const SummariesPage = () => {
       }
     });
   };
-
   const getAllTags = () => {
     const tagsSet = new Set<string>();
     summaries.forEach(summary => {
@@ -251,7 +234,6 @@ const SummariesPage = () => {
     });
     return Array.from(tagsSet);
   };
-
   const getAllCategories = () => {
     const categoriesSet = new Set<string>();
     summaries.forEach(summary => {
@@ -261,18 +243,15 @@ const SummariesPage = () => {
     });
     return Array.from(categoriesSet);
   };
-
   const filteredSummaries = filterSummaries(summaries);
   const newSummaries = summaries.filter(s => s.isNew);
   const allTags = getAllTags();
   const allCategories = getAllCategories();
-
   const tabLabels = {
     current: 'Current',
     new: `New${newSummaries.length > 0 ? ` (${newSummaries.length})` : ''}`,
     history: 'History'
   };
-
   const SummaryCard = ({
     summary
   }: {
@@ -373,7 +352,6 @@ const SummariesPage = () => {
         <span>{summary.date}</span>
       </div>
     </div>;
-
   const exportToMarkdown = (summaries: Summary[]) => {
     const markdownContent = summaries.map(summary => {
       const tags = summary.tags ? `\nTags: ${summary.tags.join(', ')}` : '';
@@ -401,7 +379,6 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
     URL.revokeObjectURL(url);
     toast.success('Exported to Markdown');
   };
-
   const exportToPDF = (summaries: Summary[]) => {
     const pdf = new jsPDF();
     let yOffset = 10;
@@ -438,32 +415,24 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
     pdf.save('summaries.pdf');
     toast.success('Exported to PDF');
   };
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="space-y-6 pb-16 pt-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="shrink-0"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-base font-semibold text-left">Summaries</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {selectedSummaries.size > 0 ? (
-              <>
+          <div className="flex items-center gap-2">
+            {selectedSummaries.size > 0 ? <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <Button variant="outline" size="sm">
                       Bulk Actions ({selectedSummaries.size})
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[200px]">
+                  <DropdownMenuContent>
                     <DropdownMenuItem onClick={() => bulkAddTag("Important")}>
                       Add Tag: Important
                     </DropdownMenuItem>
@@ -475,15 +444,12 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="ghost" size="sm" className="w-full sm:w-auto" onClick={deselectAll}>
+                <Button variant="ghost" size="sm" onClick={deselectAll}>
                   Deselect All
                 </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={selectAll}>
+              </> : <Button variant="outline" size="sm" onClick={selectAll}>
                 Select All
-              </Button>
-            )}
+              </Button>}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 px-3">
@@ -502,109 +468,72 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={clearAllSummaries} className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive md:text-sm md:h-9 md:px-4">
+              <Trash2 className="h-3.5 w-3.5 mr-1 md:h-4 md:w-4" />
+              Clear
+            </Button>
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 space-y-4">
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
-            <div className="w-full sm:w-auto">
-              <SearchSummaries onSearch={setSearchQuery} />
-            </div>
+        <div className="px-2 space-y-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <SearchSummaries onSearch={setSearchQuery} />
             
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
+                <Button variant="outline" size="sm" className="h-9">
+                  {dateRange.from ? dateRange.to ? <>
                         {format(dateRange.from, "LLL dd, y")} -{" "}
                         {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    "Pick a date range"
-                  )}
+                      </> : format(dateRange.from, "LLL dd, y") : "Pick a date range"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange.from}
-                  selected={{
-                    from: dateRange.from,
-                    to: dateRange.to,
-                  }}
-                  onSelect={(range) => {
-                    setDateRange({
-                      from: range?.from,
-                      to: range?.to,
-                    });
-                  }}
-                  numberOfMonths={1}
-                />
+                <Calendar initialFocus mode="range" defaultMonth={dateRange.from} selected={{
+                from: dateRange.from,
+                to: dateRange.to
+              }} onSelect={range => {
+                setDateRange({
+                  from: range?.from,
+                  to: range?.to
+                });
+              }} numberOfMonths={2} />
               </PopoverContent>
             </Popover>
 
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    Sort by: {sortBy}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setSortBy('date')}>
-                    Date
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('title')}>
-                    Title
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('readingTime')}>
-                    Reading Time
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Sort by: {sortBy}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setSortBy('date')}>
+                  Date
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('title')}>
+                  Title
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('readingTime')}>
+                  Reading Time
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}>
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </Button>
           </div>
 
-          {(allTags.length > 0 || allCategories.length > 0) && (
-            <div className="flex flex-wrap gap-2">
-              {allTags.map(tag => (
-                <Button
-                  key={tag}
-                  variant={activeTag === tag ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                  className="h-7"
-                >
+          {(allTags.length > 0 || allCategories.length > 0) && <div className="flex flex-wrap gap-2">
+              {allTags.map(tag => <Button key={tag} variant={activeTag === tag ? "default" : "outline"} size="sm" onClick={() => setActiveTag(activeTag === tag ? null : tag)} className="h-7">
                   <Tag className="w-3 h-3 mr-1" />
                   {tag}
-                </Button>
-              ))}
-              {allCategories.map(category => (
-                <Button
-                  key={category}
-                  variant={activeCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveCategory(activeCategory === category ? null : category)}
-                  className="h-7"
-                >
+                </Button>)}
+              {allCategories.map(category => <Button key={category} variant={activeCategory === category ? "default" : "outline"} size="sm" onClick={() => setActiveCategory(activeCategory === category ? null : category)} className="h-7">
                   {category}
-                </Button>
-              ))}
-            </div>
-          )}
+                </Button>)}
+            </div>}
         </div>
 
         <div className="w-full">
@@ -631,57 +560,31 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
           </div>
 
           <div className="hidden md:grid w-full grid-cols-3">
-            <Button
-              variant={activeTab === 'current' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('current')}
-              className="rounded-none"
-            >
+            <Button variant={activeTab === 'current' ? 'default' : 'ghost'} onClick={() => setActiveTab('current')} className="rounded-none">
               Current
             </Button>
-            <Button
-              variant={activeTab === 'new' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('new')}
-              className="rounded-none relative"
-            >
+            <Button variant={activeTab === 'new' ? 'default' : 'ghost'} onClick={() => setActiveTab('new')} className="rounded-none relative">
               New
-              {newSummaries.length > 0 && (
-                <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+              {newSummaries.length > 0 && <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
                   {newSummaries.length}
-                </span>
-              )}
+                </span>}
             </Button>
-            <Button
-              variant={activeTab === 'history' ? 'default' : 'ghost'}
-              onClick={() => setActiveTab('history')}
-              className="rounded-none"
-            >
+            <Button variant={activeTab === 'history' ? 'default' : 'ghost'} onClick={() => setActiveTab('history')} className="rounded-none">
               History
             </Button>
           </div>
 
           <ScrollArea className="h-[calc(100vh-16rem)]">
             <div className="space-y-4 p-4">
-              {filteredSummaries.length === 0 ? (
-                <div className="text-center py-8">
+              {filteredSummaries.length === 0 ? <div className="text-center py-8">
                   <p className="text-muted-foreground">
-                    {searchQuery || activeTag || activeCategory
-                      ? "No summaries found matching your filters."
-                      : activeTab === 'new'
-                      ? 'No new summaries available.'
-                      : activeTab === 'history'
-                      ? 'No summary history available.'
-                      : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
+                    {searchQuery || activeTag || activeCategory ? "No summaries found matching your filters." : activeTab === 'new' ? 'No new summaries available.' : activeTab === 'history' ? 'No summary history available.' : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
                   </p>
-                </div>
-              ) : (
-                filteredSummaries.map(summary => <SummaryCard key={summary.id} summary={summary} />)
-              )}
+                </div> : filteredSummaries.map(summary => <SummaryCard key={summary.id} summary={summary} />)}
             </div>
           </ScrollArea>
         </div>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default SummariesPage;

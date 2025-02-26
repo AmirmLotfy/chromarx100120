@@ -18,15 +18,13 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="w-full max-w-full px-4 sm:px-6 flex flex-col gap-6">
+      <div className="w-full">
         {currentPlan === "free" && (
-          <div className="w-full max-w-full overflow-hidden rounded-lg">
+          <div className="w-full">
             <AffiliateBannerCarousel />
           </div>
         )}
-        <div className="w-full max-w-full">
-          <FeatureGrid />
-        </div>
+        <FeatureGrid />
       </div>
     </Layout>
   );
