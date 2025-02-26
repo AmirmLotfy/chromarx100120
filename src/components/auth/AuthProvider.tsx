@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/stores/authStore';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, setupSubscriptionListeners, cleanupListeners } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { chromeDb } from '@/lib/chrome-storage';
 
@@ -22,30 +22,58 @@ export const AuthProvider = ({ children, requireAuth = false }: AuthProviderProp
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN') {
+        // Set up subscription listeners for the user
+        if (session?.user) {
+          setupSubscriptionListeners(session.user.id);
+        }
+        
         // Sync auth state with extension storage
         await chromeDb.set('auth_session', session);
+        
+        // Notify extension of sign in
+        window.postMessage({ 
+          type: 'CHROMARX_SIGNED_IN', 
+          payload: { session } 
+        }, '*');
+        
         toast.success('Successfully signed in');
       } else if (event === 'SIGNED_OUT') {
         // Clear auth data from extension storage
         await chromeDb.remove('auth_session');
         await chromeDb.remove('user_subscription');
+        
+        // Notify extension of sign out
+        window.postMessage({ 
+          type: 'CHROMARX_SIGNED_OUT' 
+        }, '*');
+        
         toast.success('Successfully signed out');
       }
     });
 
     return () => {
       subscription.unsubscribe();
+      cleanupListeners();
     };
   }, []);
 
-  // Listen for extension messages
+  // Listen for website-extension messages
   useEffect(() => {
     const handleExtensionMessage = async (event: MessageEvent) => {
       if (event.source !== window) return;
       
-      if (event.data.type === 'CHROMARX_SIGN_OUT') {
-        await supabase.auth.signOut();
-        navigate('/auth', { replace: true });
+      switch (event.data.type) {
+        case 'CHROMARX_SIGN_OUT':
+          await supabase.auth.signOut();
+          navigate('/auth', { replace: true });
+          break;
+        case 'CHROMARX_AUTH_CHECK':
+          const session = await supabase.auth.getSession();
+          window.postMessage({ 
+            type: 'CHROMARX_AUTH_STATUS', 
+            payload: { isAuthenticated: !!session.data.session } 
+          }, '*');
+          break;
       }
     };
 
