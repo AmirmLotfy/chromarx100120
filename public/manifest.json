@@ -3,14 +3,17 @@
   "manifest_version": 3,
   "name": "ChroMarx",
   "version": "1.0.0",
-  "description": "Your Gemini-Powered Bookmark Manager – Organize, Optimize, Excel! Enhance your browsing experience with AI-powered bookmarking.",
+  "description": "Your Chrome-Powered Bookmark Manager – Organize, Optimize, Excel! Enhance your browsing experience with Chrome's native features.",
   "permissions": [
     "identity",
     "identity.email",
     "storage",
     "bookmarks",
     "sidePanel",
-    "tabs"
+    "tabs",
+    "translate",
+    "scripting",
+    "search"
   ],
   "background": {
     "service_worker": "background.js",
@@ -24,13 +27,8 @@
     ]
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com https://*.paypal.com"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
-  "host_permissions": [
-    "https://*.googleapis.com/*",
-    "https://*.google.com/*",
-    "https://*.paypal.com/*"
-  ],
   "commands": {
     "_execute_action": {
       "suggested_key": {
