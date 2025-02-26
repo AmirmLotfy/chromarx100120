@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import TaskForm from "@/components/tasks/TaskForm";
@@ -5,66 +6,237 @@ import TaskList from "@/components/tasks/TaskList";
 import { Task } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+
 const TaskPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const {
-    toast
-  } = useToast();
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   const navigate = useNavigate();
+
   useEffect(() => {
-    const savedTasks = localStorage.getItem("tasks");
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    }
+    fetchTasks();
   }, []);
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-  const handleAddTask = (taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration">) => {
-    const newTask: Task = {
-      ...taskData,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      progress: 0,
-      actualDuration: 0
-    };
-    setTasks(prev => [...prev, newTask]);
-    toast({
-      title: "Task added",
-      description: "Your task has been created successfully."
-    });
+
+  const fetchTasks = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to manage tasks."
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedTasks: Task[] = data.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        category: task.category,
+        status: task.status,
+        dueDate: task.due_date,
+        estimatedDuration: task.estimated_duration,
+        actualDuration: task.actual_duration,
+        color: task.color,
+        progress: task.progress,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at
+      }));
+
+      setTasks(formattedTasks);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tasks.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-  const handleDeleteTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
-    toast({
-      title: "Task deleted",
-      description: "Your task has been deleted."
-    });
+
+  const handleAddTask = async (taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration">) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const newTask = {
+        title: taskData.title,
+        description: taskData.description,
+        priority: taskData.priority,
+        category: taskData.category,
+        status: 'pending',
+        due_date: taskData.dueDate,
+        estimated_duration: taskData.estimatedDuration,
+        color: taskData.color,
+        user_id: user.id
+      };
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([newTask])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const formattedTask: Task = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        category: data.category,
+        status: data.status,
+        dueDate: data.due_date,
+        estimatedDuration: data.estimated_duration,
+        actualDuration: data.actual_duration,
+        color: data.color,
+        progress: data.progress,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+
+      setTasks(prev => [formattedTask, ...prev]);
+      toast({
+        title: "Task added",
+        description: "Your task has been created successfully."
+      });
+    } catch (error) {
+      console.error('Error adding task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add task.",
+        variant: "destructive"
+      });
+    }
   };
-  const handleEditTask = (updatedTask: Task) => {
-    setTasks(prev => prev.map(task => task.id === updatedTask.id ? {
-      ...updatedTask,
-      updatedAt: new Date().toISOString()
-    } : task));
-    toast({
-      title: "Task updated",
-      description: "Your task has been updated successfully."
-    });
+
+  const handleDeleteTask = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTasks(prev => prev.filter(task => task.id !== id));
+      toast({
+        title: "Task deleted",
+        description: "Your task has been deleted."
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task.",
+        variant: "destructive"
+      });
+    }
   };
-  const handleToggleStatus = (id: string) => {
-    setTasks(prev => prev.map(task => task.id === id ? {
-      ...task,
-      status: task.status === "completed" ? "pending" : "completed",
-      updatedAt: new Date().toISOString()
-    } : task));
+
+  const handleEditTask = async (updatedTask: Task) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          title: updatedTask.title,
+          description: updatedTask.description,
+          priority: updatedTask.priority,
+          category: updatedTask.category,
+          status: updatedTask.status,
+          due_date: updatedTask.dueDate,
+          estimated_duration: updatedTask.estimatedDuration,
+          actual_duration: updatedTask.actualDuration,
+          color: updatedTask.color,
+          progress: updatedTask.progress
+        })
+        .eq('id', updatedTask.id);
+
+      if (error) throw error;
+
+      setTasks(prev => prev.map(task => 
+        task.id === updatedTask.id ? {
+          ...updatedTask,
+          updatedAt: new Date().toISOString()
+        } : task
+      ));
+
+      toast({
+        title: "Task updated",
+        description: "Your task has been updated successfully."
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task.",
+        variant: "destructive"
+      });
+    }
   };
+
+  const handleToggleStatus = async (id: string) => {
+    try {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const newStatus = task.status === "completed" ? "pending" : "completed";
+      
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTasks(prev => prev.map(task => task.id === id ? {
+        ...task,
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      } : task));
+    } catch (error) {
+      console.error('Error toggling task status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleStartTimer = (task: Task) => {
-    // Store the current task in localStorage for the timer page
     localStorage.setItem("currentTimerTask", JSON.stringify(task));
     navigate("/timer");
   };
-  return <Layout>
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container max-w-3xl mx-auto px-4 py-8 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="ml-2">Loading tasks...</span>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
       <div className="container max-w-3xl mx-auto px-4 py-8">
         <div className="space-y-2 mb-8">
           <h1 className="tracking-tight text-lg font-semibold">Tasks</h1>
@@ -76,9 +248,17 @@ const TaskPage = () => {
         <div className="space-y-8">
           <TaskForm onSubmit={handleAddTask} />
           
-          <TaskList tasks={tasks} onDelete={handleDeleteTask} onEdit={handleEditTask} onStartTimer={handleStartTimer} onToggleStatus={handleToggleStatus} />
+          <TaskList 
+            tasks={tasks} 
+            onDelete={handleDeleteTask} 
+            onEdit={handleEditTask} 
+            onStartTimer={handleStartTimer} 
+            onToggleStatus={handleToggleStatus} 
+          />
         </div>
       </div>
-    </Layout>;
+    </Layout>
+  );
 };
+
 export default TaskPage;

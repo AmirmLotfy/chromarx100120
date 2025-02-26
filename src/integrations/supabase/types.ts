@@ -571,6 +571,123 @@ export type Database = {
           },
         ]
       }
+      task_categories: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      task_templates: {
+        Row: {
+          category: string
+          color: string
+          created_at: string | null
+          description: string | null
+          estimated_duration: number
+          id: string
+          priority: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          color: string
+          created_at?: string | null
+          description?: string | null
+          estimated_duration: number
+          id?: string
+          priority: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          color?: string
+          created_at?: string | null
+          description?: string | null
+          estimated_duration?: number
+          id?: string
+          priority?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          actual_duration: number | null
+          category: string
+          color: string
+          created_at: string | null
+          description: string | null
+          due_date: string
+          estimated_duration: number
+          id: string
+          priority: string
+          progress: number | null
+          status: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_duration?: number | null
+          category: string
+          color: string
+          created_at?: string | null
+          description?: string | null
+          due_date: string
+          estimated_duration: number
+          id?: string
+          priority: string
+          progress?: number | null
+          status?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_duration?: number | null
+          category?: string
+          color?: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string
+          estimated_duration?: number
+          id?: string
+          priority?: string
+          progress?: number | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       timer_sessions: {
         Row: {
           ai_suggested: boolean | null
