@@ -4,13 +4,26 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Bell, Brain, ChartLine, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface AIInsight {
+  summary: string;
+  patterns: string[];
+  recommendations: string[];
+  alerts: string[];
+  domainSpecificTips: Record<string, string>;
+}
 
 const AITips = () => {
   const [loading, setLoading] = useState(true);
-  const [insights, setInsights] = useState<string[]>([]);
+  const [insights, setInsights] = useState<AIInsight | null>(null);
+  const [realtimeData, setRealtimeData] = useState<any>(null);
 
   useEffect(() => {
-    const getInsights = async () => {
+    const fetchInsights = async () => {
       try {
         // Get last 7 days of analytics data
         const { data: analyticsData, error } = await supabase
@@ -21,48 +34,49 @@ const AITips = () => {
 
         if (error) throw error;
 
-        // Get user's goals
-        const { data: goals } = await supabase
-          .from('analytics_goals')
-          .select('*')
-          .gt('end_date', new Date().toISOString());
+        // Get AI insights using the edge function
+        const { data: insightData, error: insightError } = await supabase.functions
+          .invoke('analyze-productivity', {
+            body: { 
+              analyticsData,
+              timeframe: '7days'
+            }
+          });
 
-        // Generate insights based on the data
-        const generatedInsights = [];
-
-        if (analyticsData && analyticsData.length > 0) {
-          const avgScore = analyticsData.reduce((sum, day) => sum + day.productivity_score, 0) / analyticsData.length;
-          generatedInsights.push(`Your average productivity score for the last 7 days is ${Math.round(avgScore)}%`);
-
-          // Add more insights based on patterns
-          const timeSpentTrend = analyticsData.map(day => day.total_time_spent);
-          const increasing = timeSpentTrend.every((val, i) => i === 0 || val >= timeSpentTrend[i - 1]);
-          
-          if (increasing) {
-            generatedInsights.push("Your daily browsing time has been increasing. Consider setting time management goals.");
-          }
-
-          // Add goals-related insights
-          if (goals && goals.length > 0) {
-            goals.forEach(goal => {
-              const progress = (goal.current_hours / goal.target_hours) * 100;
-              generatedInsights.push(`You're ${Math.round(progress)}% toward your ${goal.category} goal.`);
-            });
-          }
-        }
-
-        setInsights(generatedInsights.length > 0 ? generatedInsights : ["Start browsing to get personalized insights!"]);
+        if (insightError) throw insightError;
+        
+        setInsights(insightData.insights);
       } catch (error) {
         console.error('Error fetching insights:', error);
         toast.error('Failed to load insights');
-        setInsights(['Unable to load insights. Please try again later.']);
       } finally {
         setLoading(false);
       }
     };
 
-    getInsights();
-  }, []);
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('analytics-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'analytics_data'
+        },
+        (payload) => {
+          setRealtimeData(payload.new);
+          toast.info('New analytics data available');
+        }
+      )
+      .subscribe();
+
+    fetchInsights();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [realtimeData]); // Refetch when new data arrives
 
   if (loading) {
     return (
@@ -74,14 +88,89 @@ const AITips = () => {
     );
   }
 
+  if (!insights) {
+    return (
+      <Alert>
+        <AlertDescription>
+          Start browsing to get personalized insights!
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {insights.map((insight, index) => (
-        <Card key={index} className="p-4">
-          <p className="text-sm text-muted-foreground">{insight}</p>
+    <ScrollArea className="h-[calc(100vh-200px)]">
+      <div className="space-y-4 p-1">
+        {/* Summary Card */}
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Brain className="h-4 w-4 text-primary" />
+            <h3 className="font-medium">Overview</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">{insights.summary}</p>
         </Card>
-      ))}
-    </div>
+
+        {/* Patterns Card */}
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ChartLine className="h-4 w-4 text-primary" />
+            <h3 className="font-medium">Identified Patterns</h3>
+          </div>
+          <div className="space-y-2">
+            {insights.patterns.map((pattern, index) => (
+              <div key={index} className="text-sm text-muted-foreground">
+                • {pattern}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Alerts Card */}
+        {insights.alerts.length > 0 && (
+          <Card className="p-4 border-yellow-500">
+            <div className="flex items-center gap-2 mb-2">
+              <Bell className="h-4 w-4 text-yellow-500" />
+              <h3 className="font-medium">Alerts</h3>
+            </div>
+            <div className="space-y-2">
+              {insights.alerts.map((alert, index) => (
+                <Alert key={index}>
+                  <AlertDescription>{alert}</AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Recommendations Card */}
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <h3 className="font-medium">Recommendations</h3>
+          </div>
+          <div className="space-y-2">
+            {insights.recommendations.map((recommendation, index) => (
+              <div key={index} className="text-sm text-muted-foreground">
+                • {recommendation}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Domain-specific Tips */}
+        <Card className="p-4">
+          <h3 className="font-medium mb-3">Domain-Specific Tips</h3>
+          <div className="space-y-3">
+            {Object.entries(insights.domainSpecificTips).map(([domain, tip]) => (
+              <div key={domain} className="space-y-1">
+                <Badge variant="outline">{domain}</Badge>
+                <p className="text-sm text-muted-foreground">{tip}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </ScrollArea>
   );
 };
 
