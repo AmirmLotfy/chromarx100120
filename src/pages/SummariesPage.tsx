@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Copy, Mail, MessageSquare, Star, StarOff, Trash2, FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import SearchSummaries from "@/components/SearchSummaries";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,7 @@ const SummariesPage = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [activeTab, setActiveTab] = useState<'current' | 'new' | 'history'>('current');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
     const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
@@ -78,19 +80,26 @@ const SummariesPage = () => {
     toast.success("All summaries cleared");
   };
 
-  const newSummaries = summaries.filter(s => s.isNew);
-  const regularSummaries = summaries.filter(s => !s.isNew);
+  const filterSummaries = (summaries: Summary[]) => {
+    return summaries.filter(summary => {
+      const matchesSearch = searchQuery.toLowerCase().trim() === "" ||
+        summary.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        summary.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        summary.url.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const getActiveContent = () => {
-    switch (activeTab) {
-      case 'new':
-        return newSummaries;
-      case 'history':
-        return summaries;
-      default:
-        return regularSummaries;
-    }
+      switch (activeTab) {
+        case 'new':
+          return matchesSearch && summary.isNew;
+        case 'history':
+          return matchesSearch;
+        default:
+          return matchesSearch && !summary.isNew;
+      }
+    });
   };
+
+  const filteredSummaries = filterSummaries(summaries);
+  const newSummaries = summaries.filter(s => s.isNew);
 
   const tabLabels = {
     current: 'Current',
@@ -193,6 +202,10 @@ const SummariesPage = () => {
           </Button>
         </div>
 
+        <div className="px-2">
+          <SearchSummaries onSearch={setSearchQuery} />
+        </div>
+
         <div className="w-full">
           <div className="md:hidden w-full">
             <DropdownMenu>
@@ -247,18 +260,19 @@ const SummariesPage = () => {
 
           <ScrollArea className="h-[calc(100vh-16rem)]">
             <div className="space-y-4 p-4">
-              {getActiveContent().length === 0 ? (
+              {filteredSummaries.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">
-                    {activeTab === 'new'
-                      ? 'No new summaries available.'
-                      : activeTab === 'history'
-                      ? 'No summary history available.'
-                      : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
+                    {searchQuery ? "No summaries found matching your search." :
+                      activeTab === 'new'
+                        ? 'No new summaries available.'
+                        : activeTab === 'history'
+                        ? 'No summary history available.'
+                        : 'No summaries available. Select bookmarks and use the Summarize button to generate summaries.'}
                   </p>
                 </div>
               ) : (
-                getActiveContent().map((summary) => (
+                filteredSummaries.map((summary) => (
                   <SummaryCard
                     key={summary.id}
                     summary={summary}
