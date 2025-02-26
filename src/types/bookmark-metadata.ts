@@ -31,6 +31,7 @@ export interface BookmarkCollection {
   color?: string;
   is_public: boolean;
   parent_id?: string;
+  order?: number;
   created_at?: string;
   updated_at?: string;
 }

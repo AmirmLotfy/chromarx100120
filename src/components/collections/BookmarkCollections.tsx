@@ -105,10 +105,11 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
 
       setCollections(updatedCollections);
 
-      // Update in database
+      // Update in database with position as a number
+      const position = newIndex;
       await supabase.from('bookmark_collections')
-        .update({ order: newIndex })
-        .eq('id', active.id);
+        .update({ order: position })
+        .eq('id', String(active.id)); // Convert ID to string
 
       toast.success('Collection order updated');
     } catch (error) {
