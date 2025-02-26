@@ -11,6 +11,7 @@ interface AuthState {
   initialized: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -82,6 +83,25 @@ export const useAuth = create<AuthState>((set, get) => ({
       toast.success('Check your email to confirm your account');
     } catch (error) {
       toast.error('Failed to sign up');
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  signInWithGoogle: async () => {
+    try {
+      set({ isLoading: true });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      toast.error('Failed to sign in with Google');
       throw error;
     } finally {
       set({ isLoading: false });
