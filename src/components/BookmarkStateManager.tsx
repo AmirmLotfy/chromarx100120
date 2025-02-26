@@ -8,6 +8,7 @@ import { useLanguage } from "@/stores/languageStore";
 import { chromeDb } from "@/lib/chrome-storage";
 import { auth } from "@/lib/chrome-utils";
 import { useNavigate } from "react-router-dom";
+import { useBookmarkSync } from '@/hooks/use-bookmark-sync';
 
 const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
@@ -24,6 +25,9 @@ export const useBookmarkState = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState("");
   const navigate = useNavigate();
+  const { syncStatus, lastSynced, updateBookmark, deleteBookmark } = useBookmarkSync((updatedBookmarks) => {
+    setBookmarks(updatedBookmarks);
+  });
 
   const getCachedBookmarks = async () => {
     try {
@@ -122,13 +126,25 @@ export const useBookmarkState = () => {
       if (cached) {
         setBookmarks(cached);
         setLoading(false);
-        
-        // Load fresh data in background
-        loadFreshBookmarks();
-        return;
       }
 
-      await loadFreshBookmarks();
+      // Load fresh data
+      if (chrome.bookmarks) {
+        const results = await chrome.bookmarks.getRecent(1000);
+        const processed = await processChromeBookmarks(results);
+        
+        // Update local storage and state
+        await setCachedBookmarks(processed);
+        setBookmarks(processed);
+
+        // Sync with server if we have new bookmarks
+        const user = await auth.getCurrentUser();
+        if (user) {
+          for (const bookmark of processed) {
+            await updateBookmark(bookmark);
+          }
+        }
+      }
     } catch (error) {
       console.error("Error loading bookmarks:", error);
       toast.error("Failed to load bookmarks");
@@ -282,5 +298,7 @@ export const useBookmarkState = () => {
     handleSuggestCategories,
     selectedBookmarks,
     setSelectedBookmarks,
+    syncStatus,
+    lastSynced,
   };
 };

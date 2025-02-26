@@ -1,70 +1,60 @@
 
 import { useState, useEffect } from 'react';
+import { syncService } from '@/services/syncService';
 import { ChromeBookmark } from '@/types/bookmark';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import {
-  saveBookmarkMetadata,
-  getBookmarkMetadata,
-  updateBookmarkHealth,
-  updateBookmarkAnalytics
-} from '@/utils/bookmarkDatabaseUtils';
+import { auth } from '@/lib/chrome-utils';
 
-export const useBookmarkSync = (userId: string | null) => {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+export const useBookmarkSync = (onBookmarksChange: (bookmarks: ChromeBookmark[]) => void) => {
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error' | 'success'>('idle');
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
 
-  const syncBookmark = async (bookmark: ChromeBookmark) => {
-    if (!userId) return;
+  useEffect(() => {
+    const initializeSync = async () => {
+      const user = await auth.getCurrentUser();
+      if (!user) return;
 
-    try {
-      // Save basic metadata
-      await saveBookmarkMetadata(bookmark, userId);
+      // Subscribe to real-time changes
+      syncService.subscribeToChanges(user.id, onBookmarksChange);
 
-      // Check bookmark health
-      const response = await fetch(bookmark.url || '');
-      await updateBookmarkHealth(bookmark.id, userId, {
-        is_accessible: response.ok,
-        response_time: response.status,
-        error_message: response.ok ? undefined : `HTTP ${response.status}`,
-      });
-
-      // Update analytics
-      await updateBookmarkAnalytics(bookmark.id, userId, {
-        visit_count: 0,
-      });
-
-    } catch (error) {
-      console.error('Error syncing bookmark:', error);
-      if (error instanceof Error) {
-        toast.error(`Failed to sync bookmark: ${error.message}`);
+      // Get initial sync status
+      const status = await syncService.getSyncStatus(user.id);
+      if (status) {
+        setSyncStatus(status.status);
+        setLastSynced(status.last_sync);
       }
-    }
+    };
+
+    initializeSync();
+  }, [onBookmarksChange]);
+
+  const updateBookmark = async (bookmark: ChromeBookmark) => {
+    const user = await auth.getCurrentUser();
+    if (!user) return;
+
+    const operation = {
+      type: 'update',
+      data: { ...bookmark, user_id: user.id }
+    };
+
+    await syncService.addToOfflineQueue(operation);
   };
 
-  const syncAllBookmarks = async (bookmarks: ChromeBookmark[]) => {
-    if (!userId) {
-      toast.error('Please sign in to sync bookmarks');
-      return;
-    }
+  const deleteBookmark = async (bookmarkId: string) => {
+    const user = await auth.getCurrentUser();
+    if (!user) return;
 
-    setIsSyncing(true);
-    try {
-      await Promise.all(bookmarks.map(bookmark => syncBookmark(bookmark)));
-      setLastSynced(new Date());
-      toast.success('All bookmarks synced successfully');
-    } catch (error) {
-      console.error('Error syncing bookmarks:', error);
-      toast.error('Failed to sync some bookmarks');
-    } finally {
-      setIsSyncing(false);
-    }
+    const operation = {
+      type: 'delete',
+      data: { id: bookmarkId }
+    };
+
+    await syncService.addToOfflineQueue(operation);
   };
 
   return {
-    syncBookmark,
-    syncAllBookmarks,
-    isSyncing,
-    lastSynced
+    syncStatus,
+    lastSynced,
+    updateBookmark,
+    deleteBookmark
   };
 };
