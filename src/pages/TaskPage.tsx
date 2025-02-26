@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import TaskForm from "@/components/tasks/TaskForm";
 import TaskList from "@/components/tasks/TaskList";
-import { Task } from "@/types/task";
+import { Task, TaskPriority, TaskCategory, TaskStatus } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,9 +41,9 @@ const TaskPage = () => {
         id: task.id,
         title: task.title,
         description: task.description,
-        priority: task.priority,
-        category: task.category,
-        status: task.status,
+        priority: task.priority as TaskPriority,
+        category: task.category as TaskCategory,
+        status: task.status as TaskStatus,
         dueDate: task.due_date,
         estimatedDuration: task.estimated_duration,
         actualDuration: task.actual_duration,
@@ -76,7 +76,7 @@ const TaskPage = () => {
         description: taskData.description,
         priority: taskData.priority,
         category: taskData.category,
-        status: 'pending',
+        status: 'pending' as TaskStatus,
         due_date: taskData.dueDate,
         estimated_duration: taskData.estimatedDuration,
         color: taskData.color,
@@ -95,9 +95,9 @@ const TaskPage = () => {
         id: data.id,
         title: data.title,
         description: data.description,
-        priority: data.priority,
-        category: data.category,
-        status: data.status,
+        priority: data.priority as TaskPriority,
+        category: data.category as TaskCategory,
+        status: data.status as TaskStatus,
         dueDate: data.due_date,
         estimatedDuration: data.estimated_duration,
         actualDuration: data.actual_duration,
@@ -192,7 +192,7 @@ const TaskPage = () => {
       const task = tasks.find(t => t.id === id);
       if (!task) return;
 
-      const newStatus = task.status === "completed" ? "pending" : "completed";
+      const newStatus = task.status === "completed" ? "pending" as TaskStatus : "completed" as TaskStatus;
       
       const { error } = await supabase
         .from('tasks')
