@@ -440,178 +440,138 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
 
   return (
     <Layout>
-      <div className="space-y-6 pb-16 pt-4 px-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-base font-semibold text-left">Summaries</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {selectedSummaries.size > 0 ? (
-              <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      Bulk Actions ({selectedSummaries.size})
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[200px]">
+      <div className="space-y-4 pb-16 pt-4 px-4">
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-base font-semibold">Summaries</h1>
+          
+          <div className="flex-1" />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-[600px]">
+            <SearchSummaries onSearch={setSearchQuery} />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <Tag className="h-3.5 w-3.5 mr-1" />
+                  Filter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuItem onClick={() => setActiveTag(null)}>
+                  All Tags
+                </DropdownMenuItem>
+                {allTags.map(tag => (
+                  <DropdownMenuItem 
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                  >
+                    {tag}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                  Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                {selectedSummaries.size > 0 ? (
+                  <>
                     <DropdownMenuItem onClick={() => bulkAddTag("Important")}>
-                      Add Tag: Important
+                      Tag Selected ({selectedSummaries.size})
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => bulkSetCategory("Work")}>
-                      Set Category: Work
+                      Categorize Selected
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => bulkDelete()} className="text-destructive">
                       Delete Selected
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button variant="ghost" size="sm" onClick={deselectAll} className="w-full sm:w-auto">
-                  Deselect All
-                </Button>
-              </>
-            ) : (
-              <Button variant="outline" size="sm" onClick={selectAll} className="w-full sm:w-auto">
-                Select All
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                  <Download className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={deselectAll}>
+                      Deselect All
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={selectAll}>
+                    Select All
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => exportToMarkdown(filteredSummaries)}>
-                  <FileText className="h-4 w-4 mr-2" />
+                  <FileText className="h-3.5 w-3.5 mr-2" />
                   Export as Markdown
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => exportToPDF(filteredSummaries)}>
-                  <FileText className="h-4 w-4 mr-2" />
+                  <FileText className="h-3.5 w-3.5 mr-2" />
                   Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={clearAllSummaries} className="text-destructive">
+                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                  Clear All
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={clearAllSummaries} 
-              className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive w-full sm:w-auto"
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Clear
-            </Button>
-          </div>
-        </div>
 
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="w-full sm:flex-1">
-              <SearchSummaries onSearch={setSearchQuery} />
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "LLL dd, y")} -{" "}
-                          {format(dateRange.to, "LLL dd, y")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "LLL dd, y")
-                      )
-                    ) : (
-                      "Pick a date"
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange.from}
-                    selected={dateRange}
-                    onSelect={(range) => {
-                      if (range) {
-                        setDateRange({
-                          from: range.from,
-                          to: range.to
-                        });
-                      } else {
-                        setDateRange({
-                          from: undefined,
-                          to: undefined
-                        });
-                      }
-                    }}
-                    numberOfMonths={1}
-                  />
-                </PopoverContent>
-              </Popover>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    Sort: {sortBy}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setSortBy('date')}>Date</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('title')}>Title</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('readingTime')}>Reading Time</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                className="w-full sm:w-auto"
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </Button>
-            </div>
-          </div>
-
-          {(allTags.length > 0 || allCategories.length > 0) && (
-            <div className="flex flex-wrap gap-2">
-              {allTags.map(tag => (
-                <Button
-                  key={tag}
-                  variant={activeTag === tag ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                  className="h-7 text-xs"
-                >
-                  <Tag className="w-3 h-3 mr-1" />
-                  {tag}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <Calendar className="h-3.5 w-3.5 mr-1" />
+                  Date
                 </Button>
-              ))}
-              {allCategories.map(category => (
-                <Button
-                  key={category}
-                  variant={activeCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveCategory(activeCategory === category ? null : category)}
-                  className="h-7 text-xs"
-                >
-                  {category}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-auto p-0">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange.from}
+                  selected={dateRange}
+                  onSelect={(range) => {
+                    if (range) {
+                      setDateRange({
+                        from: range.from,
+                        to: range.to
+                      });
+                    } else {
+                      setDateRange({
+                        from: undefined,
+                        to: undefined
+                      });
+                    }
+                  }}
+                  numberOfMonths={1}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  Sort: {sortBy}
                 </Button>
-              ))}
-            </div>
-          )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setSortBy('date')}>Date</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('title')}>Title</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('readingTime')}>Reading Time</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}>
+                  {sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <div className="w-full">
@@ -666,7 +626,7 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
             </Button>
           </div>
 
-          <ScrollArea className="h-[calc(100vh-16rem)]">
+          <ScrollArea className="h-[calc(100vh-12rem)]">
             <div className="space-y-4 p-4">
               {filteredSummaries.length === 0 ? (
                 <div className="text-center py-8">
