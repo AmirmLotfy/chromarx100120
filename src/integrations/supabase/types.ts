@@ -9,6 +9,249 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bookmark_analytics: {
+        Row: {
+          avg_time_spent: number | null
+          bookmark_id: string
+          created_at: string | null
+          id: string
+          last_visited: string | null
+          updated_at: string | null
+          user_id: string
+          visit_count: number | null
+        }
+        Insert: {
+          avg_time_spent?: number | null
+          bookmark_id: string
+          created_at?: string | null
+          id?: string
+          last_visited?: string | null
+          updated_at?: string | null
+          user_id: string
+          visit_count?: number | null
+        }
+        Update: {
+          avg_time_spent?: number | null
+          bookmark_id?: string
+          created_at?: string | null
+          id?: string
+          last_visited?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visit_count?: number | null
+        }
+        Relationships: []
+      }
+      bookmark_collection_items: {
+        Row: {
+          added_at: string | null
+          bookmark_id: string
+          collection_id: string
+          position: number | null
+        }
+        Insert: {
+          added_at?: string | null
+          bookmark_id: string
+          collection_id: string
+          position?: number | null
+        }
+        Update: {
+          added_at?: string | null
+          bookmark_id?: string
+          collection_id?: string
+          position?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmark_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "bookmark_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookmark_collections: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          parent_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmark_collections_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "bookmark_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookmark_health: {
+        Row: {
+          bookmark_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          is_accessible: boolean | null
+          last_checked: string | null
+          response_time: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bookmark_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_accessible?: boolean | null
+          last_checked?: string | null
+          response_time?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bookmark_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_accessible?: boolean | null
+          last_checked?: string | null
+          response_time?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bookmark_metadata: {
+        Row: {
+          bookmark_id: string
+          category: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          importance_score: number | null
+          last_visited: string | null
+          reading_time: number | null
+          sentiment: string | null
+          status: Database["public"]["Enums"]["bookmark_status"] | null
+          summary: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          bookmark_id: string
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          importance_score?: number | null
+          last_visited?: string | null
+          reading_time?: number | null
+          sentiment?: string | null
+          status?: Database["public"]["Enums"]["bookmark_status"] | null
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          bookmark_id?: string
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          importance_score?: number | null
+          last_visited?: string | null
+          reading_time?: number | null
+          sentiment?: string | null
+          status?: Database["public"]["Enums"]["bookmark_status"] | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bookmark_shares: {
+        Row: {
+          collection_id: string | null
+          created_at: string | null
+          id: string
+          owner_id: string
+          permission_level: string
+          shared_with_email: string | null
+          shared_with_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          collection_id?: string | null
+          created_at?: string | null
+          id?: string
+          owner_id: string
+          permission_level?: string
+          shared_with_email?: string | null
+          shared_with_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          collection_id?: string | null
+          created_at?: string | null
+          id?: string
+          owner_id?: string
+          permission_level?: string
+          shared_with_email?: string | null
+          shared_with_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmark_shares_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "bookmark_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devices: {
         Row: {
           created_at: string | null
@@ -278,6 +521,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      bookmark_status: "active" | "archived" | "deleted"
       subscription_status: "free" | "premium"
     }
     CompositeTypes: {
