@@ -11,20 +11,24 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export const signInWithGoogle = async () => {
   try {
     // Use Chrome's identity API to get Google OAuth token
-    const token = await new Promise<chrome.identity.TokenDetails>((resolve, reject) => {
+    const token = await new Promise<string>((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         if (chrome.runtime.lastError) {
           reject(chrome.runtime.lastError);
           return;
         }
-        resolve({ token });
+        if (!token) {
+          reject(new Error('Failed to get auth token'));
+          return;
+        }
+        resolve(token);
       });
     });
 
     // Sign in to Supabase with the Google token
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'google',
-      token: token.token,
+      token: token,
     });
 
     if (error) throw error;
@@ -53,18 +57,22 @@ export const signInWithGoogle = async () => {
 export const signOut = async () => {
   try {
     // Revoke Chrome's auth token
-    const token = await new Promise<chrome.identity.TokenDetails>((resolve, reject) => {
+    const token = await new Promise<string>((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: false }, (token) => {
         if (chrome.runtime.lastError) {
           reject(chrome.runtime.lastError);
           return;
         }
-        resolve({ token });
+        if (!token) {
+          reject(new Error('No auth token found'));
+          return;
+        }
+        resolve(token);
       });
     });
 
-    if (token.token) {
-      chrome.identity.removeCachedAuthToken({ token: token.token });
+    if (token) {
+      chrome.identity.removeCachedAuthToken({ token });
     }
 
     // Sign out from Supabase
