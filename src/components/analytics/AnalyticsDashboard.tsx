@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import ProductivityScore from "./ProductivityScore";
@@ -9,6 +8,9 @@ import { getAnalyticsData } from "@/utils/analyticsUtils";
 import { AnalyticsData } from "@/types/analytics";
 import AnalyticsFilters, { AnalyticsFilters as FilterType } from "./AnalyticsFilters";
 import { toast } from "sonner";
+import GoalsDashboard from "./GoalsDashboard";
+import ProductivityReports from "./ProductivityReports";
+import ProductivityNotifications from "./ProductivityNotifications";
 
 const AnalyticsDashboard = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -41,11 +43,8 @@ const AnalyticsDashboard = () => {
     if (!data) return;
 
     try {
-      // Create CSV content
       const csvContent = [
-        // Headers
         ["Date", "Productivity Score", "Total Time", "Domain", "Time Spent", "Category"].join(","),
-        // Data rows
         ...data.domainStats.map(stat => 
           [
             new Date().toISOString().split('T')[0],
@@ -53,12 +52,11 @@ const AnalyticsDashboard = () => {
             stat.timeSpent,
             stat.domain,
             stat.visits,
-            "Work" // You can enhance this with actual categories
+            "Work"
           ].join(",")
         )
       ].join("\n");
 
-      // Create and trigger download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       if (link.download !== undefined) {
@@ -111,13 +109,19 @@ const AnalyticsDashboard = () => {
         <DomainStats data={filteredData?.domainStats || []} />
         <ProductivityTrends data={filteredData?.productivityTrends || []} />
       </div>
+
+      <div className="grid gap-8">
+        <GoalsDashboard />
+        <ProductivityReports />
+        <ProductivityNotifications />
+      </div>
     </div>
   );
 };
 
 const calculateDomainScore = (stat: { timeSpent: number; visits: number }) => {
   const avgTimePerVisit = stat.timeSpent / stat.visits;
-  const optimalTimePerVisit = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const optimalTimePerVisit = 10 * 60 * 1000;
   return Math.min(100, Math.round((optimalTimePerVisit / avgTimePerVisit) * 100));
 };
 
