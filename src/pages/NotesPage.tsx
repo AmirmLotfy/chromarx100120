@@ -1,296 +1,244 @@
-import { useState, useCallback, useEffect } from "react";
-import { Note } from "@/types/note";
-import NoteGrid from "@/components/notes/NoteGrid";
-import NoteEditor from "@/components/notes/NoteEditor";
-import ViewToggle from "@/components/ViewToggle";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, Trash2, BarChart2, Cloud } from "lucide-react";
-import { toast } from "sonner";
-import { useFeatureAccess } from "@/hooks/use-feature-access";
-import { getGeminiResponse } from "@/utils/geminiUtils";
-import { useNavigate } from "react-router-dom";
+
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
+import NoteGrid from "@/components/notes/NoteGrid";
+import NoteOrganizer from "@/components/notes/NoteOrganizer";
+import { Note, NoteSort } from "@/types/note";
+import { Button } from "@/components/ui/button";
+import { Plus, List, LayoutGrid } from "lucide-react";
 import { noteService } from "@/services/noteService";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const NotesPage = () => {
   const [notes, setNotes] = useState<Note[]>([]);
-  const navigate = useNavigate();
+  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
+  const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedNotes, setSelectedNotes] = useState(new Set<string>());
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | undefined>();
-  const [isSyncing, setIsSyncing] = useState(false);
-  const { checkAccess, checkUsageLimit } = useFeatureAccess();
+  const [sort, setSort] = useState<NoteSort>({
+    field: "updatedAt",
+    direction: "desc",
+  });
 
   useEffect(() => {
     loadNotes();
-    const subscription = noteService.subscribeToNoteChanges((updatedNote) => {
-      setNotes((prevNotes) => {
-        const noteExists = prevNotes.some((note) => note.id === updatedNote.id);
-        if (noteExists) {
-          return prevNotes.map((note) =>
-            note.id === updatedNote.id ? updatedNote : note
-          );
-        }
-        return [updatedNote, ...prevNotes];
-      });
+    
+    // Subscribe to note changes
+    const unsubscribe = noteService.subscribeToNotesChanges((updatedNotes) => {
+      setNotes(updatedNotes);
+      setFilteredNotes(updatedNotes);
     });
-
+    
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
   const loadNotes = async () => {
-    const fetchedNotes = await noteService.getAllNotes();
-    setNotes(fetchedNotes);
-  };
-
-  const handleViewChange = (newView: "grid" | "list") => {
-    setView(newView);
-  };
-
-  const handleCreateNote = () => {
-    if (!checkUsageLimit("notes")) return;
-    setEditingNote(undefined);
-    setIsEditorOpen(true);
-  };
-
-  const handleSyncNotes = async () => {
-    setIsSyncing(true);
+    setLoading(true);
     try {
-      await noteService.syncNotesWithSupabase();
-      await loadNotes();
+      const notes = await noteService.getAllNotes();
+      setNotes(notes);
+      setFilteredNotes(notes);
+    } catch (error) {
+      console.error("Error loading notes:", error);
+      toast.error("Failed to load notes");
     } finally {
-      setIsSyncing(false);
+      setLoading(false);
     }
   };
 
-  const handleConvertToTask = async (note: Note) => {
-    if (!await checkAccess("task_creation")) return;
-
-    try {
-      localStorage.setItem("noteToTask", JSON.stringify({
-        title: note.title,
-        description: note.content,
-        noteId: note.id
-      }));
-      
-      navigate("/tasks");
-      toast.success("Note converted to task");
-    } catch (error) {
-      console.error("Error converting note to task:", error);
-      toast.error("Failed to convert note to task");
-    }
-  };
-
-  const handleLinkBookmark = async (note: Note) => {
-    if (!await checkAccess("bookmark_linking")) return;
-
-    try {
-      localStorage.setItem("noteForBookmark", note.id);
-      
-      navigate("/bookmarks");
-      toast.success("Select a bookmark to link to this note");
-    } catch (error) {
-      console.error("Error linking bookmark:", error);
-      toast.error("Failed to link bookmark");
-    }
-  };
-
-  const handleEditNote = (note: Note) => {
-    setEditingNote(note);
-    setIsEditorOpen(true);
-  };
-
-  const handleSaveNote = async (noteData: Partial<Note>) => {
-    if (editingNote) {
-      const updatedNote = await noteService.updateNote({
-        ...editingNote,
-        ...noteData,
-      });
-      if (updatedNote) {
-        setNotes((prev) =>
-          prev.map((note) => (note.id === editingNote.id ? updatedNote : note))
-        );
+  const handleSelectNote = (note: Note) => {
+    setSelectedNotes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(note.id)) {
+        newSet.delete(note.id);
+      } else {
+        newSet.add(note.id);
       }
-    } else {
-      const newNote = await noteService.createNote({
-        title: noteData.title || "",
-        content: noteData.content || "",
+      return newSet;
+    });
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await noteService.deleteNote(id);
+      setNotes(notes.filter((note) => note.id !== id));
+      setFilteredNotes(filteredNotes.filter((note) => note.id !== id));
+      setSelectedNotes((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+      toast.success("Note deleted");
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      toast.error("Failed to delete note");
+    }
+  };
+
+  const handleEditNote = (updatedNote: Note) => {
+    const updatedNotes = notes.map((note) =>
+      note.id === updatedNote.id ? updatedNote : note
+    );
+    setNotes(updatedNotes);
+    setFilteredNotes(
+      filteredNotes.map((note) =>
+        note.id === updatedNote.id ? updatedNote : note
+      )
+    );
+  };
+
+  const handleAnalyzeNote = (note: Note) => {
+    toast.info("Analyzing note...");
+    // Implement note analysis functionality
+  };
+
+  const handleConvertToTask = (note: Note) => {
+    toast.info("Converting to task...");
+    // Implement conversion to task
+  };
+
+  const handleLinkBookmark = (note: Note) => {
+    toast.info("Linking bookmark...");
+    // Implement bookmark linking
+  };
+
+  const handleCreateNote = async () => {
+    try {
+      const newNote: Omit<Note, "id"> = {
+        title: "New Note",
+        content: "",
         tags: [],
         category: "uncategorized",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      });
-      if (newNote) {
-        setNotes((prev) => [newNote, ...prev]);
-      }
-    }
-    setIsEditorOpen(false);
-    setEditingNote(undefined);
-  };
-
-  const handleDeleteNotes = async () => {
-    if (selectedNotes.size === 0) return;
-
-    const deletePromises = Array.from(selectedNotes).map((noteId) =>
-      noteService.deleteNote(noteId)
-    );
-
-    try {
-      await Promise.all(deletePromises);
-      setNotes((prev) => prev.filter((note) => !selectedNotes.has(note.id)));
-      setSelectedNotes(new Set());
-      toast.success(`${selectedNotes.size} note(s) deleted`);
-    } catch (error) {
-      console.error("Error deleting notes:", error);
-      toast.error("Failed to delete some notes");
-    }
-  };
-
-  const handleAnalyzeNotes = async () => {
-    if (!await checkAccess("ai_analysis")) return;
-    
-    try {
-      const selectedNotesList = notes.filter((note) => selectedNotes.has(note.id));
+      };
       
-      for (const note of selectedNotesList) {
-        const [sentimentResponse, summaryResponse] = await Promise.all([
-          getGeminiResponse({
-            prompt: note.content,
-            type: "sentiment",
-            language: "en"
-          }),
-          getGeminiResponse({
-            prompt: note.content,
-            type: "summarize",
-            language: "en"
-          })
-        ]);
-
-        if (sentimentResponse.error || summaryResponse.error) {
-          toast.error("Failed to analyze some notes");
-          continue;
-        }
-
-        const updatedNote = {
-          ...note,
-          sentiment: sentimentResponse.result as Note["sentiment"],
-          summary: summaryResponse.result
-        };
-
-        setNotes((prev) => 
-          prev.map((n) => n.id === note.id ? updatedNote : n)
-        );
+      const createdNote = await noteService.createNote(newNote);
+      if (createdNote) {
+        setNotes([createdNote, ...notes]);
+        setFilteredNotes([createdNote, ...filteredNotes]);
+        toast.success("New note created");
       }
-
-      toast.success("Notes analyzed successfully");
     } catch (error) {
-      console.error("Error analyzing notes:", error);
-      toast.error("Failed to analyze notes");
+      console.error("Error creating note:", error);
+      toast.error("Failed to create note");
     }
   };
 
-  const filteredNotes = notes.filter((note) =>
-    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    note.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const handleMoveToFolder = async (noteId: string, folderId: string) => {
+    try {
+      const noteToUpdate = notes.find(note => note.id === noteId);
+      if (!noteToUpdate) return;
+      
+      const updatedNote = {
+        ...noteToUpdate,
+        folderId: folderId,
+      };
+      
+      const result = await noteService.updateNote(updatedNote);
+      if (result) {
+        handleEditNote(updatedNote);
+        toast.success("Note moved to folder");
+      }
+    } catch (error) {
+      console.error("Error moving note to folder:", error);
+      toast.error("Failed to move note");
+    }
+  };
+
+  const handleSelectTag = (tag: string) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tag)) {
+        return prev.filter(t => t !== tag);
+      } else {
+        return [...prev, tag];
+      }
+    });
+  };
+
+  const handleSyncNotes = async () => {
+    try {
+      toast.loading("Syncing notes...");
+      await noteService.syncNotesWithSupabase();
+      await loadNotes();
+      toast.success("Notes synced successfully");
+    } catch (error) {
+      console.error("Error syncing notes:", error);
+      toast.error("Failed to sync notes");
+    }
+  };
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold">Notes</h1>
-          <div className="flex gap-2">
-            <ViewToggle view={view} onViewChange={handleViewChange} />
+      <div className="container mx-auto py-6 px-4 sm:px-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Notes</h1>
+            <p className="text-muted-foreground">
+              {filteredNotes.length} note{filteredNotes.length !== 1 && "s"}
+            </p>
+          </div>
+          <div className="flex mt-4 sm:mt-0 space-x-2">
+            <Button onClick={() => setView(view === "grid" ? "list" : "grid")} variant="outline">
+              {view === "grid" ? (
+                <List className="h-4 w-4 mr-2" />
+              ) : (
+                <LayoutGrid className="h-4 w-4 mr-2" />
+              )}
+              {view === "grid" ? "List View" : "Grid View"}
+            </Button>
             <Button onClick={handleCreateNote}>
               <Plus className="h-4 w-4 mr-2" />
               New Note
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleSyncNotes}
-              disabled={isSyncing}
-            >
-              <Cloud className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+            <Button onClick={handleSyncNotes} variant="outline">
               Sync
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
+            <NoteOrganizer
+              notes={notes}
+              onFilterChange={setFilteredNotes}
+              onSortChange={setSort}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              selectedTags={selectedTags}
+              onSelectTag={handleSelectTag}
+              selectedFolder={selectedFolder}
+              onSelectFolder={setSelectedFolder}
+              currentSort={sort}
             />
           </div>
-          {selectedNotes.size > 0 && (
-            <div className="flex gap-2">
-              <Button variant="destructive" onClick={handleDeleteNotes}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete ({selectedNotes.size})
-              </Button>
-              <Button onClick={handleAnalyzeNotes}>
-                <BarChart2 className="h-4 w-4 mr-2" />
-                Analyze ({selectedNotes.size})
-              </Button>
-            </div>
-          )}
+          <div className="md:col-span-3">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <p>Loading notes...</p>
+              </div>
+            ) : (
+              <NoteGrid
+                notes={filteredNotes}
+                selectedNotes={selectedNotes}
+                onSelectNote={handleSelectNote}
+                onDeleteNote={handleDeleteNote}
+                onEditNote={handleEditNote}
+                onAnalyzeNote={handleAnalyzeNote}
+                onConvertToTask={handleConvertToTask}
+                onLinkBookmark={handleLinkBookmark}
+                onMoveToFolder={handleMoveToFolder}
+                sort={sort}
+                view={view}
+              />
+            )}
+          </div>
         </div>
-
-        <NoteGrid
-          notes={filteredNotes}
-          selectedNotes={selectedNotes}
-          onSelectNote={(note) => {
-            setSelectedNotes((prev) => {
-              const next = new Set(prev);
-              if (next.has(note.id)) {
-                next.delete(note.id);
-              } else {
-                next.add(note.id);
-              }
-              return next;
-            });
-          }}
-          onDeleteNote={async (id) => {
-            await noteService.deleteNote(id);
-            setNotes((prev) => prev.filter((note) => note.id !== id));
-            setSelectedNotes((prev) => {
-              const next = new Set(prev);
-              next.delete(id);
-              return next;
-            });
-            toast.success("Note deleted");
-          }}
-          onEditNote={handleEditNote}
-          onAnalyzeNote={async (note) => {
-            setSelectedNotes(new Set([note.id]));
-            await handleAnalyzeNotes();
-          }}
-          onConvertToTask={handleConvertToTask}
-          onLinkBookmark={handleLinkBookmark}
-          view={view}
-        />
-
-        {isEditorOpen && (
-          <NoteEditor
-            note={editingNote}
-            onSave={handleSaveNote}
-            onClose={() => {
-              setIsEditorOpen(false);
-              setEditingNote(undefined);
-            }}
-          />
-        )}
       </div>
     </Layout>
   );

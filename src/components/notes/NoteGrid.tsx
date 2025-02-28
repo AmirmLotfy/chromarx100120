@@ -1,7 +1,8 @@
 
-import { Note } from "@/types/note";
+import { Note, NoteSort } from "@/types/note";
 import NoteCard from "./NoteCard";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 interface NoteGridProps {
   notes: Note[];
@@ -12,6 +13,8 @@ interface NoteGridProps {
   onAnalyzeNote: (note: Note) => void;
   onConvertToTask: (note: Note) => void;
   onLinkBookmark: (note: Note) => void;
+  onMoveToFolder: (noteId: string, folderId: string) => void;
+  sort: NoteSort;
   view?: "grid" | "list";
 }
 
@@ -24,9 +27,42 @@ const NoteGrid = ({
   onAnalyzeNote,
   onConvertToTask,
   onLinkBookmark,
+  onMoveToFolder,
+  sort,
   view = "grid",
 }: NoteGridProps) => {
-  console.log("NoteGrid rendered with view:", view);
+  const [sortedNotes, setSortedNotes] = useState<Note[]>([]);
+
+  useEffect(() => {
+    // Sort notes based on sort criteria
+    const sorted = [...notes].sort((a, b) => {
+      switch (sort.field) {
+        case 'title':
+          return sort.direction === 'asc' 
+            ? a.title.localeCompare(b.title)
+            : b.title.localeCompare(a.title);
+        case 'category':
+          return sort.direction === 'asc'
+            ? a.category.localeCompare(b.category)
+            : b.category.localeCompare(a.category);
+        case 'createdAt':
+          return sort.direction === 'asc'
+            ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'updatedAt':
+        default:
+          return sort.direction === 'asc'
+            ? new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+            : new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+    });
+
+    // Move pinned notes to the top
+    const pinned = sorted.filter(note => note.pinned);
+    const unpinned = sorted.filter(note => !note.pinned);
+    
+    setSortedNotes([...pinned, ...unpinned]);
+  }, [notes, sort]);
 
   return (
     <div
@@ -43,7 +79,7 @@ const NoteGrid = ({
         backfaceVisibility: "hidden"
       }}
     >
-      {notes.map((note) => (
+      {sortedNotes.map((note) => (
         <div
           key={note.id}
           className={cn(
@@ -61,6 +97,7 @@ const NoteGrid = ({
             onAnalyze={onAnalyzeNote}
             onConvertToTask={onConvertToTask}
             onLinkBookmark={onLinkBookmark}
+            onMoveToFolder={onMoveToFolder}
           />
         </div>
       ))}

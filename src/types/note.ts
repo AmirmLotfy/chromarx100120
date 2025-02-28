@@ -22,4 +22,36 @@ export interface Note {
   summary?: string;
   taskId?: string;
   bookmarkIds?: string[];
+  folderId?: string;
+  pinned?: boolean;
+  color?: string;
+}
+
+export interface NoteFolder {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  parentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NoteSortOption = 'updatedAt' | 'createdAt' | 'title' | 'category';
+export type NoteSortDirection = 'asc' | 'desc';
+
+export interface NoteSort {
+  field: NoteSortOption;
+  direction: NoteSortDirection;
+}
+
+export interface NoteFilter {
+  category?: string;
+  tags?: string[];
+  folder?: string;
+  searchText?: string;
+  dateRange?: {
+    start: string;
+    end: string;
+  };
 }
