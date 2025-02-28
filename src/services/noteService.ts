@@ -1,8 +1,9 @@
-
 import { Note } from "@/types/note";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { chromeDb } from "@/lib/chrome-storage";
+import { getGeminiResponse } from "@/utils/geminiUtils";
+import { useLanguage } from "@/stores/languageStore";
 
 type DatabaseNote = {
   id: string;
@@ -13,6 +14,7 @@ type DatabaseNote = {
   category: string;
   created_at: string;
   updated_at: string;
+  version?: number;
   sentiment?: string;
   sentiment_details?: any;
   summary?: string;
@@ -23,8 +25,12 @@ type DatabaseNote = {
 export class NoteService {
   private static instance: NoteService;
   private syncInProgress = false;
+  private realTimeSubscription: any = null;
+  private activeListeners: Set<(notes: Note[]) => void> = new Set();
 
-  private constructor() {}
+  private constructor() {
+    this.setupRealtimeSubscription();
+  }
 
   static getInstance(): NoteService {
     if (!this.instance) {
@@ -42,6 +48,7 @@ export class NoteService {
       category: dbNote.category,
       createdAt: dbNote.created_at,
       updatedAt: dbNote.updated_at,
+      version: dbNote.version || 1,
       sentiment: dbNote.sentiment as Note["sentiment"],
       sentimentDetails: dbNote.sentiment_details,
       summary: dbNote.summary,
@@ -60,21 +67,83 @@ export class NoteService {
       category: note.category,
       created_at: note.createdAt,
       updated_at: note.updatedAt,
+      version: note.version || 1,
       sentiment: note.sentiment,
-      sentiment_details: note.sentimentDetails,
+      sentiment_details: note.sentimentDetails ? JSON.parse(JSON.stringify(note.sentimentDetails)) : null,
       summary: note.summary,
       task_id: note.taskId,
       bookmark_ids: note.bookmarkIds,
     };
   }
 
+  private setupRealtimeSubscription() {
+    this.getCurrentUser().then(user => {
+      if (!user) return;
+
+      if (this.realTimeSubscription) {
+        this.realTimeSubscription.unsubscribe();
+      }
+
+      this.realTimeSubscription = supabase
+        .channel('notes-changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'notes',
+            filter: `user_id=eq.${user.id}`
+          }, 
+          async (payload) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const note = this.toNote(payload.new as DatabaseNote);
+              
+              const localNotes = await this.getAllNotesFromStorage();
+              const updatedNotes = this.mergeNote(localNotes, note);
+              
+              localStorage.setItem("notes", JSON.stringify(updatedNotes));
+              
+              this.notifyListeners(updatedNotes);
+            } else if (payload.eventType === 'DELETE') {
+              const deletedId = (payload.old as DatabaseNote).id;
+              
+              const localNotes = await this.getAllNotesFromStorage();
+              const updatedNotes = localNotes.filter(note => note.id !== deletedId);
+              
+              localStorage.setItem("notes", JSON.stringify(updatedNotes));
+              
+              this.notifyListeners(updatedNotes);
+            }
+          }
+        )
+        .subscribe();
+    }).catch(error => {
+      console.error("Error setting up real-time subscription:", error);
+    });
+  }
+
+  subscribeToNotesChanges(listener: (notes: Note[]) => void): () => void {
+    this.activeListeners.add(listener);
+    
+    return () => {
+      this.activeListeners.delete(listener);
+    };
+  }
+
+  private notifyListeners(notes: Note[]) {
+    this.activeListeners.forEach(listener => {
+      listener(notes);
+    });
+  }
+
+  private async getAllNotesFromStorage(): Promise<Note[]> {
+    const localNotes = localStorage.getItem("notes");
+    return localNotes ? JSON.parse(localNotes) : [];
+  }
+
   async getAllNotes(): Promise<Note[]> {
     try {
-      // First try to get from localStorage for quick load
-      const localNotes = localStorage.getItem("notes");
-      const parsedLocalNotes = localNotes ? JSON.parse(localNotes) : [];
+      const localNotes = await this.getAllNotesFromStorage();
 
-      // Then try to get from Supabase if user is authenticated
       const user = await this.getCurrentUser();
       if (user) {
         const { data: supabaseNotes, error } = await supabase
@@ -84,15 +153,15 @@ export class NoteService {
 
         if (error) throw error;
 
-        // Transform and update localStorage with latest data from Supabase
         if (supabaseNotes) {
           const transformedNotes = supabaseNotes.map(this.toNote);
-          localStorage.setItem("notes", JSON.stringify(transformedNotes));
-          return transformedNotes;
+          const mergedNotes = this.mergeNotes(localNotes, transformedNotes);
+          localStorage.setItem("notes", JSON.stringify(mergedNotes));
+          return mergedNotes;
         }
       }
 
-      return parsedLocalNotes;
+      return localNotes;
     } catch (error) {
       console.error("Error fetching notes:", error);
       toast.error("Failed to fetch notes");
@@ -106,13 +175,14 @@ export class NoteService {
       const newNote = {
         ...note,
         id: crypto.randomUUID(),
+        version: 1,
       };
 
-      // Save to localStorage first for immediate feedback
-      const localNotes = await this.getAllNotes();
+      const localNotes = await this.getAllNotesFromStorage();
       localStorage.setItem("notes", JSON.stringify([newNote, ...localNotes]));
 
-      // If user is authenticated, save to Supabase
+      this.notifyListeners([newNote, ...localNotes]);
+
       if (user) {
         const dbNote = {
           id: newNote.id,
@@ -123,8 +193,8 @@ export class NoteService {
           category: newNote.category || "uncategorized",
           created_at: newNote.createdAt,
           updated_at: newNote.updatedAt,
+          version: newNote.version || 1,
           sentiment: newNote.sentiment,
-          // Convert to a plain object to avoid type issues with Supabase
           sentiment_details: newNote.sentimentDetails ? JSON.parse(JSON.stringify(newNote.sentimentDetails)) : null,
           summary: newNote.summary,
           task_id: newNote.taskId,
@@ -151,45 +221,60 @@ export class NoteService {
 
   async updateNote(note: Note): Promise<Note | null> {
     try {
-      // Update localStorage first
-      const localNotes = await this.getAllNotes();
+      const updatedNote = {
+        ...note,
+        version: (note.version || 1) + 1,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const localNotes = await this.getAllNotesFromStorage();
       const updatedLocalNotes = localNotes.map((n) =>
-        n.id === note.id ? note : n
+        n.id === updatedNote.id ? updatedNote : n
       );
       localStorage.setItem("notes", JSON.stringify(updatedLocalNotes));
+      
+      this.notifyListeners(updatedLocalNotes);
 
-      // If user is authenticated, update Supabase
       const user = await this.getCurrentUser();
       if (user) {
         const dbNote = {
-          id: note.id,
+          id: updatedNote.id,
           user_id: user.id,
-          title: note.title,
-          content: note.content,
-          tags: note.tags || [],
-          category: note.category || "uncategorized",
-          created_at: note.createdAt,
-          updated_at: note.updatedAt,
-          sentiment: note.sentiment,
-          // Convert to a plain object to avoid type issues with Supabase
-          sentiment_details: note.sentimentDetails ? JSON.parse(JSON.stringify(note.sentimentDetails)) : null,
-          summary: note.summary,
-          task_id: note.taskId,
-          bookmark_ids: note.bookmarkIds,
+          title: updatedNote.title,
+          content: updatedNote.content,
+          tags: updatedNote.tags || [],
+          category: updatedNote.category || "uncategorized",
+          created_at: updatedNote.createdAt,
+          updated_at: updatedNote.updatedAt,
+          version: updatedNote.version,
+          sentiment: updatedNote.sentiment,
+          sentiment_details: updatedNote.sentimentDetails ? JSON.parse(JSON.stringify(updatedNote.sentimentDetails)) : null,
+          summary: updatedNote.summary,
+          task_id: updatedNote.taskId,
+          bookmark_ids: updatedNote.bookmarkIds,
         };
         
         const { data, error } = await supabase
           .from("notes")
           .update(dbNote)
-          .eq("id", note.id)
+          .eq("id", updatedNote.id)
+          .lt("version", updatedNote.version)
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === "23505") {
+            toast.warning("This note was modified by another device. Refreshing with latest changes.");
+            await this.getAllNotes();
+            return null;
+          }
+          throw error;
+        }
+        
         return this.toNote(data);
       }
 
-      return note;
+      return updatedNote;
     } catch (error) {
       console.error("Error updating note:", error);
       toast.error("Failed to update note");
@@ -199,12 +284,12 @@ export class NoteService {
 
   async deleteNote(noteId: string): Promise<boolean> {
     try {
-      // Delete from localStorage first
-      const localNotes = await this.getAllNotes();
+      const localNotes = await this.getAllNotesFromStorage();
       const filteredNotes = localNotes.filter((n) => n.id !== noteId);
       localStorage.setItem("notes", JSON.stringify(filteredNotes));
+      
+      this.notifyListeners(filteredNotes);
 
-      // If user is authenticated, delete from Supabase
       const user = await this.getCurrentUser();
       if (user) {
         const { error } = await supabase
@@ -231,23 +316,21 @@ export class NoteService {
       const user = await this.getCurrentUser();
       if (!user) return;
 
-      const localNotes = await this.getAllNotes();
+      const localNotes = await this.getAllNotesFromStorage();
       
-      // Get latest notes from Supabase
       const { data: supabaseNotes, error } = await supabase
         .from("notes")
         .select("*");
 
       if (error) throw error;
 
-      // Transform and merge notes based on timestamps
       const transformedSupabaseNotes = (supabaseNotes || []).map(this.toNote);
       const mergedNotes = this.mergeNotes(localNotes, transformedSupabaseNotes);
 
-      // Update localStorage
       localStorage.setItem("notes", JSON.stringify(mergedNotes));
+      
+      this.notifyListeners(mergedNotes);
 
-      // Update Supabase - create complete DB notes with all required fields
       const dbNotes = mergedNotes.map(note => ({
         id: note.id,
         user_id: user.id,
@@ -257,8 +340,8 @@ export class NoteService {
         category: note.category || "uncategorized",
         created_at: note.createdAt,
         updated_at: note.updatedAt,
+        version: note.version || 1,
         sentiment: note.sentiment,
-        // Convert to a plain object to avoid type issues with Supabase
         sentiment_details: note.sentimentDetails ? JSON.parse(JSON.stringify(note.sentimentDetails)) : null,
         summary: note.summary,
         task_id: note.taskId,
@@ -267,7 +350,10 @@ export class NoteService {
       
       const { error: upsertError } = await supabase
         .from("notes")
-        .upsert(dbNotes);
+        .upsert(dbNotes, { 
+          onConflict: 'id',
+          ignoreDuplicates: false
+        });
 
       if (upsertError) throw upsertError;
 
@@ -283,20 +369,41 @@ export class NoteService {
   private mergeNotes(localNotes: Note[], supabaseNotes: Note[]): Note[] {
     const notesMap = new Map<string, Note>();
 
-    // Add all Supabase notes to the map
     supabaseNotes.forEach((note) => {
       notesMap.set(note.id, note);
     });
 
-    // Merge local notes, keeping the most recently updated version
     localNotes.forEach((localNote) => {
       const supabaseNote = notesMap.get(localNote.id);
-      if (!supabaseNote || new Date(localNote.updatedAt) > new Date(supabaseNote.updatedAt)) {
+      if (!supabaseNote) {
         notesMap.set(localNote.id, localNote);
+      } else {
+        const localVersion = localNote.version || 1;
+        const serverVersion = supabaseNote.version || 1;
+        
+        if (localVersion > serverVersion) {
+          notesMap.set(localNote.id, localNote);
+        } else if (localVersion === serverVersion) {
+          const localUpdated = new Date(localNote.updatedAt);
+          const serverUpdated = new Date(supabaseNote.updatedAt);
+          if (localUpdated > serverUpdated) {
+            notesMap.set(localNote.id, localNote);
+          }
+        }
       }
     });
 
     return Array.from(notesMap.values());
+  }
+
+  private mergeNote(notes: Note[], updatedNote: Note): Note[] {
+    const exists = notes.some(note => note.id === updatedNote.id);
+    
+    if (exists) {
+      return notes.map(note => note.id === updatedNote.id ? updatedNote : note);
+    } else {
+      return [updatedNote, ...notes];
+    }
   }
 
   private async getCurrentUser() {
@@ -304,7 +411,6 @@ export class NoteService {
     return user;
   }
 
-  // Set up real-time subscription for notes
   subscribeToNoteChanges(callback: (note: Note) => void) {
     return supabase
       .channel('public:notes')
@@ -319,6 +425,82 @@ export class NoteService {
         }
       )
       .subscribe();
+  }
+
+  async suggestCategory(note: Note): Promise<string> {
+    try {
+      const response = await getGeminiResponse({
+        prompt: `Note title: ${note.title}\n\nNote content: ${note.content}\n\nSuggest a single category for this note based on its content. Return just the category name without explanation or additional text.`,
+        type: 'categorize',
+        language: 'en'
+      });
+      
+      return response.result || "uncategorized";
+    } catch (error) {
+      console.error("Error suggesting category:", error);
+      return "uncategorized";
+    }
+  }
+
+  async suggestTags(note: Note): Promise<string[]> {
+    try {
+      const response = await getGeminiResponse({
+        prompt: `Note title: ${note.title}\n\nNote content: ${note.content}\n\nSuggest 3-5 relevant tags for this note. Return the tags as a comma-separated list without explanation or additional text.`,
+        type: 'categorize',
+        language: 'en'
+      });
+      
+      const tags = response.result.split(',').map(tag => tag.trim());
+      return tags.filter(tag => tag.length > 0);
+    } catch (error) {
+      console.error("Error suggesting tags:", error);
+      return [];
+    }
+  }
+
+  async suggestImprovements(note: Note): Promise<string> {
+    try {
+      const response = await getGeminiResponse({
+        prompt: `Note title: ${note.title}\n\nNote content: ${note.content}\n\nSuggest some improvements for this note content. Consider clarity, organization, and completeness. Provide specific suggestions.`,
+        type: 'task',
+        language: 'en'
+      });
+      
+      return response.result;
+    } catch (error) {
+      console.error("Error suggesting improvements:", error);
+      return "Unable to generate improvement suggestions.";
+    }
+  }
+
+  async findRelatedNotes(note: Note, allNotes: Note[]): Promise<Note[]> {
+    try {
+      const otherNotes = allNotes
+        .filter(n => n.id !== note.id)
+        .slice(0, 20);
+      
+      if (otherNotes.length === 0) return [];
+      
+      const noteSummaries = otherNotes.map(n => 
+        `ID: ${n.id}\nTitle: ${n.title}\nSummary: ${n.summary || n.content.substring(0, 100)}`
+      ).join('\n\n');
+      
+      const prompt = `Current note:\nTitle: ${note.title}\nContent: ${note.content}\n\nOther notes:\n${noteSummaries}\n\n` +
+        `Return the IDs of the 3 most relevant notes to the current note as a comma-separated list. Only include IDs, no other text.`;
+      
+      const response = await getGeminiResponse({
+        prompt,
+        type: 'analytics',
+        language: 'en'
+      });
+      
+      const relatedIds = response.result.split(',').map(id => id.trim());
+      
+      return otherNotes.filter(note => relatedIds.includes(note.id));
+    } catch (error) {
+      console.error("Error finding related notes:", error);
+      return [];
+    }
   }
 }
 

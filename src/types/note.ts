@@ -16,6 +16,7 @@ export interface Note {
   category: string;
   createdAt: string;
   updatedAt: string;
+  version?: number;
   sentiment?: NoteSentiment;
   sentimentDetails?: SentimentDetails;
   summary?: string;
