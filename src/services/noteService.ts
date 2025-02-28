@@ -42,7 +42,7 @@ export class NoteService {
       category: dbNote.category,
       createdAt: dbNote.created_at,
       updatedAt: dbNote.updated_at,
-      sentiment: dbNote.sentiment,
+      sentiment: dbNote.sentiment as Note["sentiment"],
       sentimentDetails: dbNote.sentiment_details,
       summary: dbNote.summary,
       taskId: dbNote.task_id,
@@ -114,7 +114,22 @@ export class NoteService {
 
       // If user is authenticated, save to Supabase
       if (user) {
-        const dbNote = this.toDatabaseNote(newNote, user.id);
+        const dbNote = {
+          id: newNote.id,
+          user_id: user.id,
+          title: newNote.title,
+          content: newNote.content,
+          tags: newNote.tags || [],
+          category: newNote.category || "uncategorized",
+          created_at: newNote.createdAt,
+          updated_at: newNote.updatedAt,
+          sentiment: newNote.sentiment,
+          sentiment_details: newNote.sentimentDetails,
+          summary: newNote.summary,
+          task_id: newNote.taskId,
+          bookmark_ids: newNote.bookmarkIds,
+        };
+        
         const { data, error } = await supabase
           .from("notes")
           .insert([dbNote])
@@ -145,7 +160,22 @@ export class NoteService {
       // If user is authenticated, update Supabase
       const user = await this.getCurrentUser();
       if (user) {
-        const dbNote = this.toDatabaseNote(note, user.id);
+        const dbNote = {
+          id: note.id,
+          user_id: user.id,
+          title: note.title,
+          content: note.content,
+          tags: note.tags || [],
+          category: note.category || "uncategorized",
+          created_at: note.createdAt,
+          updated_at: note.updatedAt,
+          sentiment: note.sentiment,
+          sentiment_details: note.sentimentDetails,
+          summary: note.summary,
+          task_id: note.taskId,
+          bookmark_ids: note.bookmarkIds,
+        };
+        
         const { data, error } = await supabase
           .from("notes")
           .update(dbNote)
@@ -215,8 +245,23 @@ export class NoteService {
       // Update localStorage
       localStorage.setItem("notes", JSON.stringify(mergedNotes));
 
-      // Update Supabase
-      const dbNotes = mergedNotes.map(note => this.toDatabaseNote(note, user.id));
+      // Update Supabase - create complete DB notes with all required fields
+      const dbNotes = mergedNotes.map(note => ({
+        id: note.id,
+        user_id: user.id,
+        title: note.title,
+        content: note.content,
+        tags: note.tags || [],
+        category: note.category || "uncategorized",
+        created_at: note.createdAt,
+        updated_at: note.updatedAt,
+        sentiment: note.sentiment,
+        sentiment_details: note.sentimentDetails,
+        summary: note.summary,
+        task_id: note.taskId,
+        bookmark_ids: note.bookmarkIds,
+      }));
+      
       const { error: upsertError } = await supabase
         .from("notes")
         .upsert(dbNotes);
