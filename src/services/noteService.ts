@@ -124,7 +124,8 @@ export class NoteService {
           created_at: newNote.createdAt,
           updated_at: newNote.updatedAt,
           sentiment: newNote.sentiment,
-          sentiment_details: newNote.sentimentDetails,
+          // Convert to a plain object to avoid type issues with Supabase
+          sentiment_details: newNote.sentimentDetails ? JSON.parse(JSON.stringify(newNote.sentimentDetails)) : null,
           summary: newNote.summary,
           task_id: newNote.taskId,
           bookmark_ids: newNote.bookmarkIds,
@@ -170,7 +171,8 @@ export class NoteService {
           created_at: note.createdAt,
           updated_at: note.updatedAt,
           sentiment: note.sentiment,
-          sentiment_details: note.sentimentDetails,
+          // Convert to a plain object to avoid type issues with Supabase
+          sentiment_details: note.sentimentDetails ? JSON.parse(JSON.stringify(note.sentimentDetails)) : null,
           summary: note.summary,
           task_id: note.taskId,
           bookmark_ids: note.bookmarkIds,
@@ -256,7 +258,8 @@ export class NoteService {
         created_at: note.createdAt,
         updated_at: note.updatedAt,
         sentiment: note.sentiment,
-        sentiment_details: note.sentimentDetails,
+        // Convert to a plain object to avoid type issues with Supabase
+        sentiment_details: note.sentimentDetails ? JSON.parse(JSON.stringify(note.sentimentDetails)) : null,
         summary: note.summary,
         task_id: note.taskId,
         bookmark_ids: note.bookmarkIds,
