@@ -11,7 +11,8 @@
     "bookmarks",
     "sidePanel",
     "tabs",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "history"
   ],
   "background": {
     "service_worker": "background.js",
@@ -55,6 +56,13 @@
         "mac": "Command+Shift+A"
       },
       "description": "Quick add current page to bookmarks"
+    },
+    "advanced-search": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Open advanced search"
     }
   },
   "side_panel": {
@@ -73,5 +81,6 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "offline_enabled": true
+  "offline_enabled": true,
+  "minimum_chrome_version": "88"
 }

@@ -1,24 +1,16 @@
-
-/// <reference types="chrome"/>
-
-export interface ChromeBookmark extends Omit<chrome.bookmarks.BookmarkTreeNode, 'children'> {
+export interface ChromeBookmark {
   id: string;
-  title: string;
+  parentId?: string;
+  index?: number;
   url?: string;
+  title: string;
   dateAdded?: number;
+  dateGroupModified?: number;
+  tags?: string[];
   category?: string;
   content?: string;
-  version?: number;
-  preview?: {
-    thumbnail?: string;
-    description?: string;
-    favicon?: string;
-    ogImage?: string;
-    siteName?: string;
-  };
-  metadata?: {
-    lastVisited?: number;
-    visitCount?: number;
-    tags?: string[];
-  };
+  starred?: boolean;
+  lastVisited?: number;
+  visitCount?: number;
+  children?: ChromeBookmark[];
 }

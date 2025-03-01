@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import SearchBar from "./SearchBar";
+import SearchBar, { SearchFilter } from "./SearchBar";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -47,6 +47,9 @@ interface BookmarkHeaderProps {
   suggestions: string[];
   onSelectSuggestion: (suggestion: string) => void;
   importComponent?: React.ReactNode;
+  onFilterChange?: (filters: SearchFilter) => void;
+  categories?: string[];
+  domains?: string[];
 }
 
 const BookmarkHeader = ({
@@ -63,6 +66,9 @@ const BookmarkHeader = ({
   suggestions,
   onSelectSuggestion,
   importComponent,
+  onFilterChange = () => {},
+  categories = [],
+  domains = [],
 }: BookmarkHeaderProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
@@ -169,6 +175,9 @@ const BookmarkHeader = ({
             onSearch={onSearchChange}
             suggestions={suggestions}
             onSelectSuggestion={onSelectSuggestion}
+            onFilterChange={onFilterChange}
+            categories={categories}
+            domains={domains}
           />
         </div>
 
