@@ -1,21 +1,12 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
+import BookmarkList from "./BookmarkList";
 import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
-import BookmarkList from "./BookmarkList";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
-import { Filter, RefreshCw, Trash2, Share2, Archive } from "lucide-react";
-import { Label } from "./ui/label";
-import { Separator } from "./ui/separator";
-import { ScrollArea } from "./ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { toast } from "sonner";
-import BookmarkCollections from "./collections/BookmarkCollections";
-import CollectionView from "./collections/CollectionView";
-import { BookmarkCollection } from "@/types/bookmark-metadata";
-import { auth } from "@/lib/chrome-utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CloudOff } from "lucide-react";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -30,12 +21,13 @@ interface BookmarkContentProps {
   onDelete: (id: string) => void;
   formatDate: (timestamp?: number) => string;
   view: "grid" | "list";
-  onReorder: (bookmarks: ChromeBookmark[]) => void;
-  onBulkDelete: (ids: string[]) => Promise<void>;
+  onReorder?: (bookmarks: ChromeBookmark[]) => void;
+  onBulkDelete: () => void;
   onRefresh: () => void;
   loading: boolean;
   filteredBookmarks: ChromeBookmark[];
   onUpdateCategories: (bookmarks: ChromeBookmark[]) => void;
+  isOffline?: boolean;
 }
 
 const BookmarkContent = ({
@@ -57,248 +49,99 @@ const BookmarkContent = ({
   loading,
   filteredBookmarks,
   onUpdateCategories,
+  isOffline = false,
 }: BookmarkContentProps) => {
-  const isMobile = useIsMobile();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedCollection, setSelectedCollection] = useState<BookmarkCollection | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("all");
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const user = await auth.getCurrentUser();
-      setUserId(user?.id || null);
-    };
-    loadUser();
-  }, []);
-
-  const handleBulkDelete = async () => {
-    if (selectedBookmarks.size === 0) {
-      toast.error("Please select bookmarks to delete");
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      await onBulkDelete(Array.from(selectedBookmarks));
-      toast.success(`${selectedBookmarks.size} bookmarks deleted`);
-    } catch (error) {
-      toast.error("Failed to delete bookmarks");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleBulkShare = async () => {
-    if (selectedBookmarks.size === 0) {
-      toast.error("Please select bookmarks to share");
-      return;
-    }
-
-    try {
-      const selectedBookmarksList = Array.from(selectedBookmarks)
-        .map(id => bookmarks.find(b => b.id === id))
-        .filter((b): b is ChromeBookmark => b !== undefined);
-
-      const text = selectedBookmarksList
-        .map(b => `${b.title}: ${b.url}`)
-        .join('\n');
-
-      if (navigator.share) {
-        await navigator.share({
-          title: "Shared Bookmarks",
-          text: text
-        });
-        toast.success("Bookmarks shared successfully!");
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast.success("Bookmarks copied to clipboard!");
-      }
-    } catch (error) {
-      toast.error("Failed to share bookmarks");
-    }
-  };
-
-  const handleExport = () => {
-    if (selectedBookmarks.size === 0) {
-      toast.error("Please select bookmarks to export");
-      return;
-    }
-
-    const selectedBookmarksList = Array.from(selectedBookmarks)
-      .map(id => bookmarks.find(b => b.id === id))
-      .filter((b): b is ChromeBookmark => b !== undefined);
-
-    const exportData = JSON.stringify(selectedBookmarksList, null, 2);
-    const blob = new Blob([exportData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bookmarks-export.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("Bookmarks exported successfully!");
-  };
-
-  const FilterPanel = () => (
-    <div className="space-y-4">
-      {userId && (
-        <BookmarkCollections
-          userId={userId}
-          onSelectCollection={setSelectedCollection}
-          selectedCollectionId={selectedCollection?.id}
-        />
-      )}
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Sort by</Label>
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-20 w-full rounded-lg" />
+          ))}
         </div>
-        <Select defaultValue="dateAdded">
-          <SelectTrigger className="w-full h-8">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="dateAdded">Date Added</SelectItem>
-            <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="url">URL</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      );
+    }
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Categories</Label>
-        <ScrollArea className="h-[180px] rounded-md border bg-background/50 backdrop-blur-sm">
-          <div className="p-2">
-            <BookmarkCategories
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onSelectCategory={onSelectCategory}
-            />
+    if (filteredBookmarks.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-60 border-2 border-dashed rounded-lg">
+          <div className="text-center p-6">
+            <p className="text-lg font-medium">No bookmarks found</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Try a different search or add new bookmarks
+            </p>
           </div>
-        </ScrollArea>
-      </div>
+        </div>
+      );
+    }
 
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Domains</Label>
-        <ScrollArea className="h-[180px] rounded-md border bg-background/50 backdrop-blur-sm">
-          <div className="p-2">
-            <BookmarkDomains
-              domains={domains}
-              selectedDomain={selectedDomain}
-              onSelectDomain={onSelectDomain}
-            />
-          </div>
-        </ScrollArea>
-      </div>
-    </div>
-  );
+    return (
+      <BookmarkList
+        bookmarks={filteredBookmarks}
+        selectedBookmarks={selectedBookmarks}
+        onToggleSelect={onToggleSelect}
+        onDelete={onDelete}
+        formatDate={formatDate}
+        view={view}
+        onReorder={onReorder}
+        onUpdateCategories={onUpdateCategories}
+      />
+    );
+  };
 
   return (
-    <div className="w-full max-w-full">
-      <div className="flex flex-col md:flex-row gap-4">
-        {isMobile ? (
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] p-4">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Filter Bookmarks</SheetTitle>
-                </SheetHeader>
-                <FilterPanel />
-              </SheetContent>
-            </Sheet>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 transition-all duration-300 shadow-sm"
-              onClick={onRefresh}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
-        ) : (
-          <div className="hidden md:block w-[300px] bg-background/50 backdrop-blur-sm rounded-lg border p-4 h-fit sticky top-4">
-            <FilterPanel />
+    <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="mb-6">
+        <TabsTrigger value="all">All Bookmarks</TabsTrigger>
+        <TabsTrigger value="categories">Categories</TabsTrigger>
+        <TabsTrigger value="domains">Domains</TabsTrigger>
+      </TabsList>
+
+      {isOffline && (
+        <div className="mb-4 flex items-center p-3 bg-background border rounded-md border-amber-200 dark:border-amber-900 text-sm">
+          <CloudOff className="h-4 w-4 text-amber-500 mr-2" />
+          <p>Offline mode: Some features like drag-and-drop organization and AI categorization are limited.</p>
+        </div>
+      )}
+
+      <TabsContent value="all" className="space-y-6">
+        {renderContent()}
+      </TabsContent>
+
+      <TabsContent value="categories">
+        <BookmarkCategories
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={onSelectCategory}
+        />
+        {selectedCategory && (
+          <div className="mt-6 space-y-6">
+            <h2 className="text-lg font-semibold">
+              Bookmarks in "{selectedCategory}"
+            </h2>
+            {renderContent()}
           </div>
         )}
+      </TabsContent>
 
-        <div className="flex-1 min-w-0">
-          {selectedBookmarks.size > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleBulkDelete}
-                disabled={isDeleting}
-                className="bg-destructive/90 hover:bg-destructive transition-colors"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete ({selectedBookmarks.size})
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkShare}
-                className="bg-accent/50 hover:bg-accent transition-colors"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-                className="bg-accent/50 hover:bg-accent transition-colors"
-              >
-                <Archive className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
-          )}
-
-          <div className="min-h-[200px] w-full">
-            {loading ? (
-              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                Loading bookmarks...
-              </div>
-            ) : selectedCollection ? (
-              <CollectionView
-                collection={selectedCollection}
-                bookmarks={filteredBookmarks}
-                onBookmarkSelect={(bookmark) => onToggleSelect(bookmark.id)}
-              />
-            ) : filteredBookmarks.length === 0 ? (
-              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                No bookmarks found
-              </div>
-            ) : (
-              <BookmarkList
-                bookmarks={filteredBookmarks}
-                selectedBookmarks={selectedBookmarks}
-                onToggleSelect={onToggleSelect}
-                onDelete={onDelete}
-                formatDate={formatDate}
-                view={view}
-                onReorder={onReorder}
-                onUpdateCategories={onUpdateCategories}
-              />
-            )}
+      <TabsContent value="domains">
+        <BookmarkDomains
+          domains={domains}
+          selectedDomain={selectedDomain}
+          onSelectDomain={onSelectDomain}
+        />
+        {selectedDomain && (
+          <div className="mt-6 space-y-6">
+            <h2 className="text-lg font-semibold">
+              Bookmarks from "{selectedDomain}"
+            </h2>
+            {renderContent()}
           </div>
-        </div>
-      </div>
-    </div>
+        )}
+      </TabsContent>
+    </Tabs>
   );
 };
 

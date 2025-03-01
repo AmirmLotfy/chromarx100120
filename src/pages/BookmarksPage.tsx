@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+
+import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
 import Layout from "@/components/Layout";
@@ -7,8 +8,10 @@ import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CloudOff, Check, Wifi, WifiOff } from "lucide-react";
+import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
+import { BookmarkImport } from "@/components/BookmarkImport";
 
 const BookmarksPage = () => {
   const {
@@ -34,6 +37,28 @@ const BookmarksPage = () => {
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
+  const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOfflineMode(false);
+      toast.success("You're back online");
+    };
+    
+    const handleOffline = () => {
+      setIsOfflineMode(true);
+      toast.warning("You're offline. Limited functionality available.");
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleDelete = async (id: string) => {
     try {
@@ -73,24 +98,24 @@ const BookmarksPage = () => {
     });
   }, [setBookmarks]);
 
-  const handleImport = () => {
-    toast.info("Import functionality coming soon!");
-  };
-
-  const handleCreateFolder = () => {
-    toast.info("Create folder functionality coming soon!");
-  };
-
-  const toggleBookmarkSelection = (id: string) => {
-    setSelectedBookmarks((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  const handleImport = (importedBookmarks: ChromeBookmark[]) => {
+    // Add the imported bookmarks to existing bookmarks
+    setBookmarks(prev => [...prev, ...importedBookmarks]);
+    
+    // Try to add to Chrome bookmarks if available
+    if (chrome.bookmarks && navigator.onLine) {
+      // We'll add them to Chrome in the background
+      importedBookmarks.forEach(bookmark => {
+        if (bookmark.url) {
+          chrome.bookmarks.create({
+            title: bookmark.title,
+            url: bookmark.url,
+          }).catch(error => {
+            console.error("Error adding to Chrome bookmarks:", error);
+          });
+        }
+      });
+    }
   };
 
   const formatDate = (timestamp?: number) => {
@@ -172,19 +197,31 @@ const BookmarksPage = () => {
             {syncStatus === 'success' ? (
               <Check className="h-4 w-4 mr-1 text-green-500" />
             ) : (
-              <CloudOff className="h-4 w-4 mr-1" />
+              <WifiOff className="h-4 w-4 mr-1" />
             )}
             <span>Sync Now</span>
           </Button>
         </div>
         
         {isProcessing && (
-          <div className="px-4 py-3 bg-muted/30 rounded-lg space-y-2">
+          <AIProgressIndicator 
+            isLoading={true} 
+            message={processingMessage}
+            progress={syncProgress}
+            status={isConnected ? "processing" : "offline"}
+          />
+        )}
+
+        {isOfflineMode && (
+          <div className="px-4 py-3 bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-2">
             <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-amber-500 animate-pulse" />
-              <span className="text-sm font-medium">{processingMessage}</span>
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-400">Offline Mode</span>
             </div>
-            <Progress value={syncProgress} className="h-1" />
+            <p className="text-xs text-amber-700 dark:text-amber-500">
+              You're currently offline. Some features like syncing and AI-powered categorization are limited. 
+              Your changes will be synced once you're back online.
+            </p>
           </div>
         )}
 
@@ -199,10 +236,16 @@ const BookmarksPage = () => {
           onUpdateCategories={handleUpdateCategories}
           searchQuery={searchQuery}
           onSearchChange={handleSearch}
-          onImport={handleImport}
-          onCreateFolder={handleCreateFolder}
+          onImport={(bookmarks) => {
+            /* This will be replaced by the new import functionality */
+          }}
+          onCreateFolder={() => {
+            /* To be implemented later */
+            toast.info("Create folder functionality coming soon!");
+          }}
           suggestions={suggestions}
           onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
+          importComponent={<BookmarkImport onImportComplete={handleImport} />}
         />
 
         <BookmarkContent
@@ -214,7 +257,17 @@ const BookmarksPage = () => {
           onSelectDomain={setSelectedDomain}
           bookmarks={bookmarks}
           selectedBookmarks={selectedBookmarks}
-          onToggleSelect={toggleBookmarkSelection}
+          onToggleSelect={(id) => {
+            setSelectedBookmarks(prev => {
+              const next = new Set(prev);
+              if (next.has(id)) {
+                next.delete(id);
+              } else {
+                next.add(id);
+              }
+              return next;
+            });
+          }}
           onDelete={handleDelete}
           formatDate={formatDate}
           view={view}
@@ -224,6 +277,7 @@ const BookmarksPage = () => {
           loading={loading}
           filteredBookmarks={filteredBookmarks}
           onUpdateCategories={handleUpdateCategories}
+          isOffline={isOfflineMode}
         />
       </div>
     </Layout>

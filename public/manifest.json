@@ -10,7 +10,8 @@
     "storage",
     "bookmarks",
     "sidePanel",
-    "tabs"
+    "tabs",
+    "unlimitedStorage"
   ],
   "background": {
     "service_worker": "background.js",
@@ -71,5 +72,6 @@
     "16": "icon16.png",
     "48": "icon48.png",
     "128": "icon128.png"
-  }
+  },
+  "offline_enabled": true
 }
