@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { SearchX, Info, Search, BookmarkIcon } from "lucide-react";
+import { Search, BookmarkIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -12,7 +12,7 @@ interface BookmarkSearchModeProps {
 const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
   return (
     <motion.div 
-      className="px-4 py-2"
+      className="px-4 py-3 absolute top-0 left-0 right-0 z-10"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -20,7 +20,7 @@ const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
     >
       <Alert 
         variant="default" 
-        className="bg-accent/50 border border-primary/20 rounded-xl shadow-md backdrop-blur-sm"
+        className="bg-accent/80 border border-primary/20 rounded-xl shadow-md backdrop-blur-sm"
       >
         <div className="flex items-center space-x-2">
           <div className="rounded-full bg-primary/10 p-1.5">

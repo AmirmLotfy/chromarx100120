@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 const ChatPage = () => {
   return (
     <Layout>
-      <div className="container max-w-3xl mx-auto px-4 pb-16 space-y-4">
+      <div className="container max-w-4xl mx-auto px-4 pb-16 space-y-4">
         <div className="space-y-1.5">
           <h1 className="text-xl font-semibold tracking-tight">Chat</h1>
           <p className="text-sm text-muted-foreground">

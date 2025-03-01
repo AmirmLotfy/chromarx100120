@@ -21,7 +21,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   };
 
   return (
-    <ScrollArea className="flex-1 p-4 space-y-4">
+    <ScrollArea className="h-full p-4 space-y-4 overflow-y-auto">
       {messages.length === 0 && (
         <div className="flex items-center justify-center h-full">
           <motion.div 

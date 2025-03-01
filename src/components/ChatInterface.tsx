@@ -51,7 +51,7 @@ const ChatInterface = () => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background rounded-xl border border-accent/40 shadow-lg overflow-hidden"
+      className="flex flex-col h-[calc(100vh-8rem)] md:h-[75vh] bg-background rounded-xl border border-accent/40 shadow-lg overflow-hidden"
     >
       <ChatHeader 
         clearChat={clearChat} 
@@ -63,7 +63,7 @@ const ChatInterface = () => {
         toggleBookmarkSearchMode={toggleBookmarkSearchMode}
       />
       
-      <div className="flex-1 overflow-hidden flex flex-col relative">
+      <div className="flex-1 relative overflow-hidden">
         <AnimatePresence>
           {isBookmarkSearchMode && (
             <BookmarkSearchMode onClose={toggleBookmarkSearchMode} />
@@ -105,7 +105,7 @@ const ChatInterface = () => {
           onSendMessage={handleSendMessage}
           isProcessing={isProcessing}
           suggestions={suggestions}
-          disabled={isOffline && !isAIAvailable}
+          disabled={isOffline || !isAIAvailable}
           recentQueries={recentQueries}
           isBookmarkSearchMode={isBookmarkSearchMode}
         />
