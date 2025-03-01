@@ -964,6 +964,7 @@ export type Database = {
           data_collection_enabled: boolean | null
           id: string
           notifications_enabled: boolean | null
+          settings: Json | null
           theme: string | null
           updated_at: string | null
           user_id: string | null
@@ -973,6 +974,7 @@ export type Database = {
           data_collection_enabled?: boolean | null
           id?: string
           notifications_enabled?: boolean | null
+          settings?: Json | null
           theme?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -982,6 +984,7 @@ export type Database = {
           data_collection_enabled?: boolean | null
           id?: string
           notifications_enabled?: boolean | null
+          settings?: Json | null
           theme?: string | null
           updated_at?: string | null
           user_id?: string | null

@@ -5,6 +5,7 @@ import { savePrivacySettings } from '@/services/preferencesService';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { withErrorHandling } from '@/utils/errorUtils';
 
 interface SettingsState {
   theme: 'light' | 'dark' | 'system';
@@ -54,6 +55,14 @@ const initialState = {
   lastSynced: null,
 };
 
+// Helper to safely get current user id
+const getCurrentUserId = (): string | undefined => {
+  // Get the current auth context
+  const authContext = useAuth();
+  // Check if user exists and has an id
+  return authContext?.user?.id;
+};
+
 export const useSettings = create<SettingsState>()(
   persist(
     (set, get) => ({
@@ -66,7 +75,7 @@ export const useSettings = create<SettingsState>()(
           root.classList.add(theme);
         }
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId && get().cloudBackupEnabled) {
           get().syncSettingsWithServer(userId);
         }
@@ -79,7 +88,7 @@ export const useSettings = create<SettingsState>()(
           root.classList.add(`theme-${colorScheme}`);
         }
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId && get().cloudBackupEnabled) {
           get().syncSettingsWithServer(userId);
         }
@@ -87,7 +96,7 @@ export const useSettings = create<SettingsState>()(
       setHighContrast: (highContrast) => {
         set({ highContrast });
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId && get().cloudBackupEnabled) {
           get().syncSettingsWithServer(userId);
         }
@@ -127,7 +136,7 @@ export const useSettings = create<SettingsState>()(
       setExperimentalFeatures: (experimentalFeatures) => {
         set({ experimentalFeatures });
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId && get().cloudBackupEnabled) {
           get().syncSettingsWithServer(userId);
         }
@@ -135,7 +144,7 @@ export const useSettings = create<SettingsState>()(
       setAffiliateBannersEnabled: (affiliateBannersEnabled) => {
         set({ affiliateBannersEnabled });
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId && get().cloudBackupEnabled) {
           get().syncSettingsWithServer(userId);
         }
@@ -143,7 +152,7 @@ export const useSettings = create<SettingsState>()(
       setAutoDetectBookmarks: (autoDetectBookmarks) => {
         set({ autoDetectBookmarks });
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId && get().cloudBackupEnabled) {
           get().syncSettingsWithServer(userId);
         }
@@ -151,7 +160,7 @@ export const useSettings = create<SettingsState>()(
       setCloudBackupEnabled: async (cloudBackupEnabled) => {
         set({ cloudBackupEnabled });
         
-        const userId = useAuth.getState()?.user?.id;
+        const userId = getCurrentUserId();
         if (userId) {
           if (cloudBackupEnabled) {
             await get().syncSettingsWithServer(userId);
@@ -175,11 +184,11 @@ export const useSettings = create<SettingsState>()(
       syncSettingsWithServer: async (userId) => {
         if (!userId || get().syncInProgress) return;
         
-        try {
+        await withErrorHandling(async () => {
           set({ syncInProgress: true });
           
           const currentSettings = get();
-          const { data, error } = await supabase
+          const { error } = await supabase
             .from('user_settings')
             .upsert({
               user_id: userId,
@@ -205,31 +214,30 @@ export const useSettings = create<SettingsState>()(
             lastSynced: new Date().toISOString(),
             syncInProgress: false
           });
-          
-        } catch (error) {
-          console.error('Error syncing settings to server:', error);
+        }, {
+          errorMessage: "Failed to sync settings to server",
+          showError: true
+        });
+
+        // Make sure to reset syncInProgress even if there was an error
+        if (get().syncInProgress) {
           set({ syncInProgress: false });
         }
       },
       fetchSettingsFromServer: async (userId) => {
         if (!userId || get().syncInProgress) return;
         
-        try {
+        await withErrorHandling(async () => {
           set({ syncInProgress: true });
           
           const { data, error } = await supabase
             .from('user_settings')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
           
           if (error) {
-            if (error.code === 'PGRST116') {
-              // Record not found, create initial settings
-              await get().syncSettingsWithServer(userId);
-            } else {
-              throw error;
-            }
+            throw error;
           }
           
           if (data) {
@@ -237,9 +245,9 @@ export const useSettings = create<SettingsState>()(
             const serverSettings = data.settings || {};
             
             set({
-              theme: data.theme || get().theme,
+              theme: (data.theme as 'light' | 'dark' | 'system') || get().theme,
               dataCollection: data.data_collection_enabled !== null ? data.data_collection_enabled : get().dataCollection,
-              colorScheme: serverSettings.colorScheme || get().colorScheme,
+              colorScheme: (serverSettings.colorScheme as 'default' | 'purple' | 'blue' | 'green') || get().colorScheme,
               highContrast: serverSettings.highContrast !== undefined ? serverSettings.highContrast : get().highContrast,
               notifications: serverSettings.notifications || get().notifications,
               experimentalFeatures: serverSettings.experimentalFeatures !== undefined ? serverSettings.experimentalFeatures : get().experimentalFeatures,
@@ -263,12 +271,19 @@ export const useSettings = create<SettingsState>()(
                 root.classList.add(`theme-${serverSettings.colorScheme}`);
               }
             }
+          } else {
+            // Record not found, create initial settings
+            await get().syncSettingsWithServer(userId);
           }
           
           set({ syncInProgress: false });
-          
-        } catch (error) {
-          console.error('Error fetching settings from server:', error);
+        }, {
+          errorMessage: "Failed to fetch settings from server",
+          showError: true
+        });
+
+        // Make sure to reset syncInProgress even if there was an error
+        if (get().syncInProgress) {
           set({ syncInProgress: false });
         }
       }
