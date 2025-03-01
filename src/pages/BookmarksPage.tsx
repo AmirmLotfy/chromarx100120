@@ -7,7 +7,7 @@ import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CloudOff, CloudDone, Wifi, WifiOff } from "lucide-react";
+import { AlertCircle, CloudOff, Check, Wifi, WifiOff } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const BookmarksPage = () => {
@@ -170,7 +170,7 @@ const BookmarksPage = () => {
             disabled={!isConnected || isProcessing}
           >
             {syncStatus === 'success' ? (
-              <CloudDone className="h-4 w-4 mr-1" />
+              <Check className="h-4 w-4 mr-1 text-green-500" />
             ) : (
               <CloudOff className="h-4 w-4 mr-1" />
             )}
