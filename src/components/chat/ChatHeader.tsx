@@ -29,10 +29,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           variant="ghost" 
           size="icon" 
           className="md:hidden"
-          onClick={() => {
-            console.log("Toggle history sidebar", !isHistoryOpen);
-            setIsHistoryOpen(!isHistoryOpen);
-          }}
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
           {isHistoryOpen ? <X size={20} /> : <Menu size={20} />}
