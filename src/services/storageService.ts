@@ -96,6 +96,25 @@ export class StorageService {
   clearCache(): void {
     this.cache.clear();
   }
+
+  async clearAll(): Promise<void> {
+    try {
+      if (!this.isExtension) {
+        // If not in extension, clear localStorage as fallback
+        localStorage.clear();
+        this.cache.clear();
+        return;
+      }
+
+      await chrome.storage.sync.clear();
+      await chrome.storage.local.clear();
+      this.cache.clear();
+    } catch (error) {
+      console.error('Error clearing all storage:', error);
+      toast.error('Failed to clear all storage data');
+      throw error;
+    }
+  }
 }
 
 export const storage = StorageService.getInstance();

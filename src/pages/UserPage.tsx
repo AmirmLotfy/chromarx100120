@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
-import { UserRound, CreditCard, Settings, ExternalLink, Shield, PenLine, MapPin, AtSign, Clock, BookmarkIcon, History, Activity, Palette, Languages, LayoutGrid } from "lucide-react";
+import { UserRound, CreditCard, Settings, ExternalLink, Shield, PenLine, MapPin, AtSign, Clock, BookmarkIcon, History, Activity, Palette, Languages, LayoutGrid, Download, Database } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -636,6 +636,38 @@ const UserPage = () => {
                   </div>
                   <Button variant="outline" size="sm">
                     Manage
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-6 w-6" />
+                Data Management
+              </CardTitle>
+              <CardDescription>
+                Control your personal data, privacy, and account settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-medium">Personal Data Control</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Export, delete, or manage your personal data
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/data-management')}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Manage Data
                   </Button>
                 </div>
               </div>
