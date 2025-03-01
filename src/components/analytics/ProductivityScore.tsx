@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -52,7 +51,15 @@ const ProductivityScore = ({ score }: ProductivityScoreProps) => {
       </div>
       
       <div className="space-y-1.5">
-        <Progress value={progress} className="h-1.5" />
+        <Progress 
+          value={progress} 
+          className="h-1.5" 
+          indicatorClassName={
+            progress >= 75 ? "bg-green-500" : 
+            progress >= 50 ? "bg-yellow-500" : 
+            "bg-red-500"
+          }
+        />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>Low</span>
           <span>Goal: 80%</span>

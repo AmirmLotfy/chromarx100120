@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DomainStat } from "@/types/analytics";
@@ -35,9 +34,7 @@ const DomainStats = ({ data }: DomainStatsProps) => {
     return Math.min(100, Math.round((optimalTimePerVisit / avgTimePerVisit) * 100));
   };
 
-  // Calculate week-over-week changes (mocked for now)
   const getWeekOverWeekChange = (domain: string) => {
-    // This would be replaced with actual historical data
     const randomChange = Math.floor(Math.random() * 40) - 20; // -20% to +20%
     return randomChange;
   };
@@ -119,7 +116,11 @@ const DomainStats = ({ data }: DomainStatsProps) => {
                   <Progress 
                     value={efficiency} 
                     className="h-1" 
-                    indicatorClassName={efficiency > 75 ? "bg-green-500" : efficiency > 40 ? "bg-amber-500" : "bg-red-500"}
+                    indicatorClassName={
+                      efficiency > 75 ? "bg-green-500" : 
+                      efficiency > 40 ? "bg-amber-500" : 
+                      "bg-red-500"
+                    }
                   />
                 </div>
                 
