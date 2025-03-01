@@ -452,6 +452,8 @@ export class SyncService {
           
         if (error) throw error;
         
+        const dbVersion = typeof data.version === 'number' ? data.version : 1;
+        
         bookmarks[index] = {
           ...bookmark,
           title: data.title,
@@ -459,7 +461,7 @@ export class SyncService {
           category: data.category,
           content: data.content,
           tags: data.tags,
-          version: data.version || bookmark.version || 1,
+          version: dbVersion,
           conflictVersion: undefined,
           metadata: {
             ...bookmark.metadata,
