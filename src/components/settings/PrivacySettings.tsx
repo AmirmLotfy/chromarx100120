@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -10,13 +10,31 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { supabaseBackup } from "@/services/supabaseBackupService";
 
 const PrivacySettings = () => {
   const settings = useSettings();
   const { user } = useAuth();
+  const [confirmDisableBackup, setConfirmDisableBackup] = useState(false);
+  const [confirmDisableDataCollection, setConfirmDisableDataCollection] = useState(false);
+  const [syncInProgress, setSyncInProgress] = useState(false);
 
-  const handleDataCollection = (enabled: boolean) => {
-    settings.setDataCollection(enabled, user?.id);
+  const handleDataCollection = async (enabled: boolean) => {
+    if (!enabled && !confirmDisableDataCollection) {
+      setConfirmDisableDataCollection(true);
+      return;
+    }
+    
+    setConfirmDisableDataCollection(false);
+    await settings.setDataCollection(enabled, user?.id);
     toast.success(`Data collection ${enabled ? 'enabled' : 'disabled'}`);
   };
 
@@ -31,13 +49,73 @@ const PrivacySettings = () => {
   };
 
   const handleCloudBackup = async (enabled: boolean) => {
+    if (!enabled && !confirmDisableBackup) {
+      setConfirmDisableBackup(true);
+      return;
+    }
+    
+    setConfirmDisableBackup(false);
+    
     if (enabled && !user) {
       toast.error("You must be logged in to enable cloud backup");
       return;
     }
     
     await settings.setCloudBackupEnabled(enabled);
-    toast.success(`Cloud backup ${enabled ? 'enabled' : 'disabled'}`);
+    
+    if (enabled && user) {
+      // Trigger a manual sync when enabling backup
+      try {
+        setSyncInProgress(true);
+        await supabaseBackup.syncAll();
+        toast.success("Settings backed up to cloud");
+      } catch (error) {
+        console.error("Error syncing to cloud:", error);
+        toast.error("Failed to sync settings to cloud");
+      } finally {
+        setSyncInProgress(false);
+      }
+    } else {
+      toast.success(`Cloud backup ${enabled ? 'enabled' : 'disabled'}`);
+    }
+  };
+
+  const syncNow = async () => {
+    if (!user || !settings.cloudBackupEnabled) {
+      toast.error("Cloud backup must be enabled and you must be logged in");
+      return;
+    }
+    
+    try {
+      setSyncInProgress(true);
+      await supabaseBackup.syncAll();
+      settings.syncSettingsWithServer(user.id);
+      toast.success("Settings synced to cloud");
+    } catch (error) {
+      console.error("Error syncing to cloud:", error);
+      toast.error("Failed to sync settings to cloud");
+    } finally {
+      setSyncInProgress(false);
+    }
+  };
+
+  const restoreFromCloud = async () => {
+    if (!user || !settings.cloudBackupEnabled) {
+      toast.error("Cloud backup must be enabled and you must be logged in");
+      return;
+    }
+    
+    try {
+      setSyncInProgress(true);
+      await supabaseBackup.restoreFromBackup();
+      await settings.fetchSettingsFromServer(user.id);
+      toast.success("Settings restored from cloud");
+    } catch (error) {
+      console.error("Error restoring from cloud:", error);
+      toast.error("Failed to restore settings from cloud");
+    } finally {
+      setSyncInProgress(false);
+    }
   };
 
   const container = {
@@ -60,6 +138,38 @@ const PrivacySettings = () => {
       animate="show"
       className="space-y-5"
     >
+      {/* Confirmation Dialog for Disabling Data Collection */}
+      <Dialog open={confirmDisableDataCollection} onOpenChange={setConfirmDisableDataCollection}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Disable Data Collection?</DialogTitle>
+            <DialogDescription>
+              Disabling data collection will prevent us from gathering anonymous usage data that helps improve the application. This may affect certain features that rely on this data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setConfirmDisableDataCollection(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => handleDataCollection(false)}>Disable Data Collection</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Confirmation Dialog for Disabling Cloud Backup */}
+      <Dialog open={confirmDisableBackup} onOpenChange={setConfirmDisableBackup}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Disable Cloud Backup?</DialogTitle>
+            <DialogDescription>
+              Disabling cloud backup will stop syncing your settings across devices. Your existing data will remain in the cloud but won't be updated. You can re-enable this feature anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setConfirmDisableBackup(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => handleCloudBackup(false)}>Disable Cloud Backup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <motion.div variants={item}>
         <Card className="overflow-hidden border border-border/40 shadow-sm">
           <CardHeader className="pb-3">
@@ -160,6 +270,35 @@ const PrivacySettings = () => {
                 disabled={!user && !settings.cloudBackupEnabled}
               />
             </div>
+            
+            {user && settings.cloudBackupEnabled && (
+              <div className="pt-2 flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={syncNow}
+                  disabled={syncInProgress}
+                >
+                  {syncInProgress ? "Syncing..." : "Sync Now"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={restoreFromCloud}
+                  disabled={syncInProgress}
+                >
+                  Restore from Cloud
+                </Button>
+              </div>
+            )}
+            
+            {settings.lastSynced && settings.cloudBackupEnabled && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last synced: {new Date(settings.lastSynced).toLocaleString()}
+              </p>
+            )}
           </CardContent>
         </Card>
       </motion.div>
