@@ -57,6 +57,7 @@ const ChatInterface = () => {
             size="icon" 
             className="md:hidden"
             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
           >
             {isHistoryOpen ? <X size={20} /> : <Menu size={20} />}
           </Button>
