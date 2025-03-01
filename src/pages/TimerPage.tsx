@@ -55,10 +55,10 @@ const TimerPage = () => {
         currentSession.id,
         mode === 'focus' ? calculateProductivityScore() : undefined
       );
+    } else {
+      // If no active session, just play the sound
+      await timerService.playCompletionSound();
     }
-
-    // Play completion sound
-    timerService.playCompletionSound();
     
     // Show notification
     toast({
