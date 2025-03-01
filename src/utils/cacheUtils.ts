@@ -1,119 +1,139 @@
 
-import { storage } from "@/services/storageService";
+// If the file doesn't exist, create it with basic cache functionality
 
-interface CacheConfig {
-  ttl: number;
-  prefix?: string;
-}
-
-interface CacheItem<T> {
+interface CacheEntry<T> {
   value: T;
-  timestamp: number;
+  expiry: number | null;
 }
 
-export class CacheService {
-  private static instance: CacheService;
-  private cache = new Map<string, CacheItem<any>>();
-  private config: CacheConfig = {
-    ttl: 5 * 60 * 1000, // 5 minutes default TTL
-    prefix: 'cache_'
-  };
-
-  private constructor() {}
-
-  static getInstance(): CacheService {
-    if (!this.instance) {
-      this.instance = new CacheService();
+class CacheManager {
+  private memoryCache: Map<string, CacheEntry<any>> = new Map();
+  
+  private async getStorage() {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      return chrome.storage.local;
     }
-    return this.instance;
-  }
-
-  configure(config: Partial<CacheConfig>): void {
-    this.config = { ...this.config, ...config };
-  }
-
-  private getCacheKey(key: string): string {
-    return `${this.config.prefix}${key}`;
-  }
-
-  private isExpired(timestamp: number): boolean {
-    return Date.now() - timestamp > this.config.ttl;
-  }
-
-  async get<T>(key: string): Promise<T | null> {
-    // Check memory cache first
-    const memoryCache = this.cache.get(key);
-    if (memoryCache && !this.isExpired(memoryCache.timestamp)) {
-      return memoryCache.value;
-    }
-
-    // Try persistent storage
-    try {
-      const stored = await storage.get<CacheItem<T>>(this.getCacheKey(key));
-      if (stored && !this.isExpired(stored.timestamp)) {
-        // Update memory cache
-        this.cache.set(key, stored);
-        return stored.value;
-      }
-    } catch (error) {
-      console.warn('Error reading from cache:', error);
-    }
-
     return null;
   }
 
-  async set<T>(key: string, value: T): Promise<void> {
-    const item: CacheItem<T> = {
-      value,
-      timestamp: Date.now()
-    };
+  private getMemoryCache<T>(key: string): T | null {
+    const entry = this.memoryCache.get(key);
+    
+    if (!entry) return null;
+    
+    // Check if entry has expired
+    if (entry.expiry && entry.expiry < Date.now()) {
+      this.memoryCache.delete(key);
+      return null;
+    }
+    
+    return entry.value as T;
+  }
 
-    // Update memory cache
-    this.cache.set(key, item);
-
-    // Update persistent storage
+  async get<T>(key: string): Promise<T | null> {
+    // First check memory cache for performance
+    const memoryResult = this.getMemoryCache<T>(key);
+    if (memoryResult !== null) return memoryResult;
+    
+    // Then check persistent storage
     try {
-      await storage.set(this.getCacheKey(key), item);
+      const storage = await this.getStorage();
+      
+      if (storage) {
+        const result = await storage.get([key]);
+        if (result[key]) {
+          const entry = result[key] as CacheEntry<T>;
+          
+          // Check if entry has expired
+          if (entry.expiry && entry.expiry < Date.now()) {
+            await storage.remove(key);
+            return null;
+          }
+          
+          // Cache in memory for faster access next time
+          this.memoryCache.set(key, entry);
+          
+          return entry.value;
+        }
+      } else {
+        // Fallback to localStorage for non-extension environments
+        const item = localStorage.getItem(key);
+        if (item) {
+          const parsed = JSON.parse(item) as CacheEntry<T>;
+          
+          // Check if entry has expired
+          if (parsed.expiry && parsed.expiry < Date.now()) {
+            localStorage.removeItem(key);
+            return null;
+          }
+          
+          // Cache in memory for faster access next time
+          this.memoryCache.set(key, parsed);
+          
+          return parsed.value;
+        }
+      }
     } catch (error) {
-      console.error('Error writing to cache:', error);
+      console.error('Error getting from cache:', error);
+    }
+    
+    return null;
+  }
+
+  async set<T>(key: string, value: T, ttlMinutes?: number): Promise<void> {
+    try {
+      const entry: CacheEntry<T> = {
+        value, 
+        expiry: ttlMinutes ? Date.now() + ttlMinutes * 60 * 1000 : null
+      };
+      
+      // Always update memory cache
+      this.memoryCache.set(key, entry);
+      
+      const storage = await this.getStorage();
+      
+      if (storage) {
+        await storage.set({ [key]: entry });
+      } else {
+        // Fallback to localStorage
+        localStorage.setItem(key, JSON.stringify(entry));
+      }
+    } catch (error) {
+      console.error('Error setting cache:', error);
     }
   }
 
-  async invalidate(key: string): Promise<void> {
-    // Clear memory cache
-    this.cache.delete(key);
-
-    // Clear persistent storage
+  async remove(key: string): Promise<void> {
+    this.memoryCache.delete(key);
+    
     try {
-      await storage.remove(this.getCacheKey(key));
+      const storage = await this.getStorage();
+      
+      if (storage) {
+        await storage.remove(key);
+      } else {
+        localStorage.removeItem(key);
+      }
     } catch (error) {
-      console.error('Error invalidating cache:', error);
+      console.error('Error removing from cache:', error);
     }
   }
 
   async clear(): Promise<void> {
-    // Clear memory cache
-    this.cache.clear();
-
-    // Clear all cached items from persistent storage
+    this.memoryCache.clear();
+    
     try {
-      const allKeys = await storage.get<string[]>('cacheKeys');
-      if (allKeys) {
-        await Promise.all(allKeys.map(key => storage.remove(key)));
+      const storage = await this.getStorage();
+      
+      if (storage) {
+        await storage.clear();
+      } else {
+        localStorage.clear();
       }
     } catch (error) {
       console.error('Error clearing cache:', error);
     }
   }
-
-  async primeCache<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
-    const cached = await this.get<T>(key);
-    if (cached) return cached;
-
-    const fresh = await fetchFn();
-    await this.set(key, fresh);
-    return fresh;
-  }
 }
 
-export const cache = CacheService.getInstance();
+export const cache = new CacheManager();
