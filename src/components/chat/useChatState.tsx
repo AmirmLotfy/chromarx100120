@@ -3,6 +3,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
 import { Message, Conversation, ConversationCategory } from "@/types/chat";
+import { ConversationService } from "@/services/conversationService";
+import { useAuth } from "@/hooks/useAuth"; // Assuming you have an auth hook
 
 // Mock function for getSuggestedQuestions until we implement it properly
 const getSuggestedQuestions = (text: string): string[] => {
@@ -53,56 +55,37 @@ export const useChatState = () => {
   const { toast } = useToast();
   const [activeConversation, setActiveConversation] = useState<Conversation | undefined>(undefined);
   const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
+  const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
   const { generateResponse } = useAI();
+  const { user } = useAuth(); // Get current user
 
-  // Function to use localStorage for chat history
-  const useLocalStorage = <T,>(key: string, initialValue: T): [T, (value: T) => void] => {
-    const [storedValue, setStoredValue] = useState<T>(() => {
-      try {
-        const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : initialValue;
-      } catch (error) {
-        console.error(error);
-        return initialValue;
-      }
-    });
-  
-    const setValue = (value: T) => {
-      try {
-        setStoredValue(value);
-        window.localStorage.setItem(key, JSON.stringify(value));
-      } catch (error) {
-        console.error(error);
+  // Load chat history from Supabase
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (user) {
+        const conversations = await ConversationService.getConversations(false);
+        setChatHistory(conversations);
+        
+        // Load archived conversations separately
+        const archived = await ConversationService.getConversations(true);
+        setArchivedConversations(archived);
       }
     };
-  
-    return [storedValue, setValue];
-  };
-
-  // Initialize chat history from localStorage
-  const [storedChatHistory, setStoredChatHistory] = useLocalStorage<Conversation[]>('chatHistory', []);
-  
-  // Sync local state with stored history
-  useEffect(() => {
-    setChatHistory(storedChatHistory);
-  }, [storedChatHistory]);
-
-  // Function to save conversations to local storage
-  const saveConversationsToStorage = (conversations: Conversation[]) => {
-    setStoredChatHistory(conversations);
-  };
+    
+    loadConversations();
+  }, [user]);
 
   // Load chat session
-  const loadChatSession = useCallback((messages: Message[]) => {
-    setMessages(messages);
-    // Find the corresponding conversation in chatHistory and set it as active
-    const conversation = chatHistory.find(convo => 
-      convo.messages.length > 0 && 
-      messages.length > 0 && 
-      convo.messages[0].id === messages[0].id
-    );
+  const loadChatSession = useCallback((conversation: Conversation) => {
+    setMessages(conversation.messages);
     setActiveConversation(conversation);
-  }, [chatHistory]);
+    
+    // Mark messages as read when loading a conversation
+    if (conversation.id) {
+      ConversationService.markMessagesAsRead(conversation.id);
+    }
+  }, []);
 
   // Handle sending a message
   const handleSendMessage = async (messageContent: string) => {
@@ -138,7 +121,7 @@ export const useChatState = () => {
         setSuggestions(getSuggestedQuestions(response.response));
 
         // Update or create chat history
-        updateChatHistory(userMessage, assistantMessage);
+        await updateChatHistory(userMessage, assistantMessage);
       } else {
         setError(new Error("Failed to generate response."));
         toast({
@@ -198,41 +181,53 @@ export const useChatState = () => {
   };
 
   // Update chat history
-  const updateChatHistory = (userMessage: Message, assistantMessage: Message) => {
-    const newConversationEntry: Conversation = {
-      id: uuidv4(),
-      name: userMessage.content.substring(0, 50),
-      messages: [userMessage, assistantMessage],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      category: "General"
-    };
+  const updateChatHistory = async (userMessage: Message, assistantMessage: Message) => {
+    if (!user) return;
 
-    setChatHistory(prevHistory => {
-      let updatedHistory;
-
+    try {
       if (activeConversation) {
         // Update existing conversation
-        updatedHistory = prevHistory.map(convo => {
-          if (convo.id === activeConversation.id) {
-            return {
-              ...convo,
-              messages: [...convo.messages, userMessage, assistantMessage],
-              updatedAt: Date.now()
-            };
-          }
-          return convo;
-        });
+        const updatedMessages = [...activeConversation.messages, userMessage, assistantMessage];
+        const updatedConversation = {
+          ...activeConversation,
+          messages: updatedMessages,
+          updatedAt: Date.now()
+        };
+        
+        // Add messages to database
+        await ConversationService.addMessage(activeConversation.id, userMessage);
+        await ConversationService.addMessage(activeConversation.id, assistantMessage);
+        
+        // Update conversation in state
+        setChatHistory(prevHistory => 
+          prevHistory.map(convo => 
+            convo.id === activeConversation.id ? updatedConversation : convo
+          )
+        );
+        
+        setActiveConversation(updatedConversation);
       } else {
-        // Add new conversation
-        updatedHistory = [newConversationEntry, ...prevHistory];
-        setActiveConversation(newConversationEntry);
+        // Create new conversation
+        const convoName = userMessage.content.substring(0, 50) + (userMessage.content.length > 50 ? "..." : "");
+        const newConversation = await ConversationService.createConversation(
+          convoName,
+          "General", 
+          [INITIAL_WELCOME_MESSAGE, userMessage, assistantMessage]
+        );
+        
+        if (newConversation) {
+          setChatHistory(prevHistory => [newConversation, ...prevHistory]);
+          setActiveConversation(newConversation);
+        }
       }
-
-      // Save to storage
-      saveConversationsToStorage(updatedHistory);
-      return updatedHistory;
-    });
+    } catch (error) {
+      console.error("Error updating chat history:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save conversation",
+        variant: "destructive",
+      });
+    }
   };
 
   // Toggle bookmark search mode
@@ -249,7 +244,10 @@ export const useChatState = () => {
       }))
     );
 
-    if (activeConversation) {
+    if (activeConversation?.id) {
+      ConversationService.markMessagesAsRead(activeConversation.id);
+      
+      // Update conversation in state
       const updatedHistory = chatHistory.map(convo => {
         if (convo.id === activeConversation.id) {
           return {
@@ -262,12 +260,161 @@ export const useChatState = () => {
         }
         return convo;
       });
-      setChatHistory(updatedHistory);
       
-      // Save to storage
-      saveConversationsToStorage(updatedHistory);
+      setChatHistory(updatedHistory);
     }
   }, [activeConversation, chatHistory]);
+
+  // Archive conversation
+  const archiveConversation = async (conversationId: string) => {
+    try {
+      const success = await ConversationService.archiveConversation(conversationId);
+      if (success) {
+        // Move from active to archived list
+        const conversation = chatHistory.find(c => c.id === conversationId);
+        if (conversation) {
+          setArchivedConversations(prev => [conversation, ...prev]);
+          setChatHistory(prev => prev.filter(c => c.id !== conversationId));
+          
+          // Clear active conversation if it was archived
+          if (activeConversation?.id === conversationId) {
+            clearChat();
+          }
+        }
+        toast({ 
+          title: "Success", 
+          description: "Conversation archived"
+        });
+      }
+    } catch (error) {
+      console.error("Error archiving conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to archive conversation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Restore archived conversation
+  const restoreConversation = async (conversationId: string) => {
+    try {
+      const success = await ConversationService.restoreConversation(conversationId);
+      if (success) {
+        // Move from archived to active list
+        const conversation = archivedConversations.find(c => c.id === conversationId);
+        if (conversation) {
+          setChatHistory(prev => [conversation, ...prev]);
+          setArchivedConversations(prev => prev.filter(c => c.id !== conversationId));
+        }
+        toast({ 
+          title: "Success", 
+          description: "Conversation restored"
+        });
+      }
+    } catch (error) {
+      console.error("Error restoring conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to restore conversation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Delete conversation permanently
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      const success = await ConversationService.deleteConversation(conversationId);
+      if (success) {
+        // Remove from either active or archived list
+        setChatHistory(prev => prev.filter(c => c.id !== conversationId));
+        setArchivedConversations(prev => prev.filter(c => c.id !== conversationId));
+        
+        // Clear active conversation if it was deleted
+        if (activeConversation?.id === conversationId) {
+          clearChat();
+        }
+        
+        toast({ 
+          title: "Success", 
+          description: "Conversation deleted"
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete conversation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Update conversation category
+  const updateConversationCategory = async (conversationId: string, category: ConversationCategory) => {
+    try {
+      const success = await ConversationService.updateCategory(conversationId, category);
+      if (success) {
+        // Update in state
+        setChatHistory(prev => prev.map(c => 
+          c.id === conversationId ? { ...c, category } : c
+        ));
+        
+        // Update active conversation if needed
+        if (activeConversation?.id === conversationId) {
+          setActiveConversation(prev => prev ? { ...prev, category } : undefined);
+        }
+        
+        toast({ 
+          title: "Success", 
+          description: `Conversation moved to ${category}`
+        });
+      }
+    } catch (error) {
+      console.error("Error updating category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Toggle conversation pinned status
+  const togglePinned = async (conversationId: string) => {
+    const conversation = chatHistory.find(c => c.id === conversationId);
+    if (!conversation) return;
+    
+    const newPinnedState = !conversation.pinned;
+    
+    try {
+      const success = await ConversationService.togglePinned(conversationId, newPinnedState);
+      if (success) {
+        // Update in state
+        setChatHistory(prev => prev.map(c => 
+          c.id === conversationId ? { ...c, pinned: newPinnedState } : c
+        ));
+        
+        // Update active conversation if needed
+        if (activeConversation?.id === conversationId) {
+          setActiveConversation(prev => prev ? { ...prev, pinned: newPinnedState } : undefined);
+        }
+        
+        toast({ 
+          title: "Success", 
+          description: newPinnedState ? "Conversation pinned" : "Conversation unpinned"
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling pinned status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update pinned status",
+        variant: "destructive",
+      });
+    }
+  };
 
   return {
     messages,
@@ -279,6 +426,9 @@ export const useChatState = () => {
     isHistoryOpen,
     setIsHistoryOpen,
     chatHistory,
+    archivedConversations,
+    showArchived,
+    setShowArchived,
     messagesEndRef,
     handleSendMessage,
     clearChat,
@@ -290,5 +440,10 @@ export const useChatState = () => {
     isBookmarkSearchMode,
     toggleBookmarkSearchMode,
     markMessagesAsRead,
+    archiveConversation,
+    restoreConversation,
+    deleteConversation,
+    updateConversationCategory,
+    togglePinned,
   };
 };

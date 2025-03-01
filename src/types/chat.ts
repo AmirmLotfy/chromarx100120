@@ -3,7 +3,7 @@ export interface Message {
   id: string;
   content: string;
   sender: "user" | "assistant";
-  timestamp?: number;
+  timestamp: number;
   isRead?: boolean;
   bookmarks?: {
     title: string;
@@ -25,7 +25,8 @@ export interface Conversation {
   pinned?: boolean;
   bookmarkContext?: string[];
   isBookmarkSearch?: boolean;
-  category?: ConversationCategory;
+  category: ConversationCategory;
+  archived?: boolean;
 }
 
 export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";
