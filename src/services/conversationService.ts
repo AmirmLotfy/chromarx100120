@@ -27,7 +27,7 @@ const mapMessageToDb = (message: Message, conversationId: string) => {
     conversation_id: conversationId,
     content: message.content,
     sender: message.sender,
-    timestamp: new Date(message.timestamp),
+    timestamp: new Date(message.timestamp).toISOString(), // Convert to ISO string for Supabase
     is_read: message.isRead,
     bookmarks: message.bookmarks ? JSON.stringify(message.bookmarks) : null,
     web_results: message.webResults ? JSON.stringify(message.webResults) : null
@@ -97,8 +97,8 @@ export const ConversationService = {
           id: conversationId,
           name,
           category,
-          created_at: new Date(now).toISOString(),
-          updated_at: new Date(now).toISOString()
+          created_at: new Date(now).toISOString(), // Convert to ISO string
+          updated_at: new Date(now).toISOString()  // Convert to ISO string
         })
         .select()
         .single();
@@ -143,7 +143,7 @@ export const ConversationService = {
           pinned: conversation.pinned,
           bookmark_context: conversation.bookmarkContext,
           is_bookmark_search: conversation.isBookmarkSearch,
-          updated_at: new Date(Date.now()).toISOString()
+          updated_at: new Date(Date.now()).toISOString() // Convert to ISO string
         })
         .eq('id', conversation.id);
 
@@ -168,7 +168,7 @@ export const ConversationService = {
       // Update conversation's updated_at timestamp
       await supabase
         .from('conversations')
-        .update({ updated_at: new Date(Date.now()).toISOString() })
+        .update({ updated_at: new Date(Date.now()).toISOString() }) // Convert to ISO string
         .eq('id', conversationId);
 
       return message;
