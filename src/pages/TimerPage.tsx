@@ -16,6 +16,8 @@ import ProductivityScore from "@/components/analytics/ProductivityScore";
 import { Clock, CheckCircle2, BarChart3, Zap } from "lucide-react";
 
 const TimerPage = () => {
+  console.log("Rendering TimerPage"); // Add logging for debugging
+  
   const [duration, setDuration] = useState(25);
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(duration * 60);
@@ -24,10 +26,23 @@ const TimerPage = () => {
   const [currentSession, setCurrentSession] = useState<TimerSession | null>(null);
   const { toast } = useToast();
 
-  const { data: stats } = useQuery({
+  // Fix the query to handle possible undefined or error states properly
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['timerStats'],
     queryFn: () => timerService.getStats(),
+    // Add error handling
+    retry: 1,
+    staleTime: 60000, // 1 minute cache
   });
+
+  console.log("Stats data:", stats); // Add logging for debugging
+  console.log("Stats loading:", statsLoading);
+  console.log("Stats error:", statsError);
+
+  useEffect(() => {
+    // Ensure the timeLeft is properly set when duration changes
+    setTimeLeft(duration * 60);
+  }, [duration]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -50,21 +65,30 @@ const TimerPage = () => {
   const handleTimerComplete = async () => {
     setIsRunning(false);
     
-    if (currentSession) {
-      await timerService.completeSession(
-        currentSession.id,
-        mode === 'focus' ? calculateProductivityScore() : undefined
-      );
-    } else {
-      // If no active session, just play the sound
-      await timerService.playCompletionSound();
+    try {
+      if (currentSession) {
+        await timerService.completeSession(
+          currentSession.id,
+          mode === 'focus' ? calculateProductivityScore() : undefined
+        );
+      } else {
+        // If no active session, just play the sound
+        await timerService.playCompletionSound();
+      }
+      
+      // Show notification
+      toast({
+        title: `${mode.charAt(0).toUpperCase() + mode.slice(1)} session complete!`,
+        description: "Time to take a break or start a new session.",
+      });
+    } catch (error) {
+      console.error("Error completing timer session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete timer session",
+        variant: "destructive"
+      });
     }
-    
-    // Show notification
-    toast({
-      title: `${mode.charAt(0).toUpperCase() + mode.slice(1)} session complete!`,
-      description: "Time to take a break or start a new session.",
-    });
 
     // Automatically switch modes and suggest new duration
     setMode(prevMode => prevMode === "focus" ? "break" : "focus");
@@ -134,6 +158,31 @@ const TimerPage = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
   };
+
+  // Add a fallback UI for when stats are loading
+  if (statsLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-4 space-y-6 max-w-md">
+          <h1 className="text-2xl font-bold tracking-tight text-center">Focus Timer</h1>
+          <p className="text-center">Loading timer data...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Add error handling UI
+  if (statsError) {
+    console.error("Error loading timer stats:", statsError);
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-4 space-y-6 max-w-md">
+          <h1 className="text-2xl font-bold tracking-tight text-center">Focus Timer</h1>
+          <p className="text-center text-red-500">Error loading timer data. Please try again.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
