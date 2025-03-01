@@ -7,7 +7,6 @@ import { suggestTimerDuration, checkGeminiAvailability } from "@/utils/geminiUti
 import { useLanguage } from "@/stores/languageStore";
 import { toast } from "sonner";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
-import { motion } from "framer-motion";
 
 interface TimerSuggestionsProps {
   onSelectDuration: (minutes: number) => void;
@@ -111,97 +110,75 @@ Response should be ONLY the number of minutes.`;
 
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mt-6"
-      >
-        <Card className="p-4 bg-accent/50 backdrop-blur-sm">
-          <AIProgressIndicator 
-            isLoading={true}
-            message="Getting AI suggestion..."
-            variant="minimal"
-          />
-        </Card>
-      </motion.div>
+      <Card className="p-4 bg-accent/50">
+        <AIProgressIndicator 
+          isLoading={true}
+          message="Getting AI suggestion..."
+          variant="minimal"
+        />
+      </Card>
     );
   }
 
   if (apiAvailable === false) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mt-6"
-      >
-        <Card className="p-4 bg-accent/50 border border-muted">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-500" />
-            <p className="text-sm text-muted-foreground">
-              Using standard {mode} duration: {suggestion} minutes
-            </p>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="ml-auto"
-              onClick={() => onSelectDuration(suggestion || (mode === "focus" ? 25 : 5))}
-            >
-              Apply
-            </Button>
-          </div>
-        </Card>
-      </motion.div>
+      <Card className="p-4 bg-accent/50">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-500" />
+          <p className="text-sm text-muted-foreground">
+            Using standard {mode} duration: {suggestion} minutes
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="ml-auto"
+            onClick={() => onSelectDuration(suggestion || (mode === "focus" ? 25 : 5))}
+          >
+            Apply
+          </Button>
+        </div>
+      </Card>
     );
   }
 
   if (!suggestion) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="mt-6" 
-    >
-      <Card className="p-4 bg-accent/50 backdrop-blur-sm border border-accent">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Sparkles className="w-4 h-4 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">AI Suggestion</p>
-            <p className="text-xs text-muted-foreground">
-              {suggestion} minutes is optimal for your {mode} session
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full w-8 h-8 hover:bg-green-500/10 hover:text-green-500"
-              onClick={() => handleFeedback(true)}
-            >
-              <ThumbsUp className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full w-8 h-8 hover:bg-red-500/10 hover:text-red-500"
-              onClick={() => handleFeedback(false)}
-            >
-              <ThumbsDown className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="ml-1 rounded-full text-xs px-3"
-              onClick={() => onSelectDuration(suggestion)}
-            >
-              Apply
-            </Button>
-          </div>
+    <Card className="p-4 bg-accent/50">
+      <div className="flex items-center gap-4">
+        <Sparkles className="w-5 h-5 text-primary" />
+        <div className="flex-1">
+          <p className="text-sm font-medium">AI Suggestion</p>
+          <p className="text-sm text-muted-foreground">
+            {suggestion} minutes is optimal for your {mode} session
+          </p>
         </div>
-      </Card>
-    </motion.div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:text-green-500"
+            onClick={() => handleFeedback(true)}
+          >
+            <ThumbsUp className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:text-red-500"
+            onClick={() => handleFeedback(false)}
+          >
+            <ThumbsDown className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onSelectDuration(suggestion)}
+          >
+            Apply
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 };

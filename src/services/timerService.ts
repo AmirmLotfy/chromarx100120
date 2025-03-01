@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
@@ -120,7 +121,7 @@ class TimerService {
     }
   }
 
-  async playCompletionSound(): Promise<void> {
+  private async playCompletionSound(): Promise<void> {
     if (!this.audioContext) return;
 
     try {
