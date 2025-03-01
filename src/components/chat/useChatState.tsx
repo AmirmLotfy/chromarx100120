@@ -11,8 +11,11 @@ import { testAIReliability } from "@/utils/geminiUtils";
 import { withErrorHandling } from "@/utils/errorUtils";
 import { retryWithBackoff } from "@/utils/retryUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { aiRequestManager } from "@/utils/aiRequestManager";
 
 const STORAGE_KEY = 'chromarx_chat_history';
+const RECENT_QUERIES_KEY = 'chromarx_recent_queries';
+const MAX_RECENT_QUERIES = 5;
 
 export const useChatState = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,6 +26,7 @@ export const useChatState = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<Message[][]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
   const { currentLanguage } = useLanguage();
@@ -30,8 +34,16 @@ export const useChatState = () => {
 
   // Network status monitoring
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast.success("You're back online");
+      checkAIStatus();
+    };
+    
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast.error("You're offline");
+    };
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -42,22 +54,45 @@ export const useChatState = () => {
     };
   }, []);
 
+  // Check if the device supports the Chrome Extension API
+  const isExtensionEnvironment = useCallback(() => {
+    return typeof chrome !== 'undefined' && chrome.storage !== undefined;
+  }, []);
+
   // Check AI availability
-  useEffect(() => {
-    const checkAIStatus = async () => {
-      try {
-        const isAvailable = await testAIReliability(currentLanguage.code);
-        setIsAIAvailable(isAvailable);
-      } catch (err) {
-        console.error("Error checking AI availability:", err);
-        setIsAIAvailable(false);
-      }
-    };
+  const checkAIStatus = useCallback(async () => {
+    if (isOffline) return false;
     
+    try {
+      const isAvailable = await testAIReliability(currentLanguage.code);
+      setIsAIAvailable(isAvailable);
+      return isAvailable;
+    } catch (err) {
+      console.error("Error checking AI availability:", err);
+      setIsAIAvailable(false);
+      return false;
+    }
+  }, [currentLanguage.code, isOffline]);
+
+  useEffect(() => {
     if (navigator.onLine) {
       checkAIStatus();
     }
-  }, [currentLanguage.code, isOffline]);
+  }, [checkAIStatus]);
+
+  // Manually check connection status
+  const checkConnection = useCallback(async () => {
+    if (navigator.onLine) {
+      const aiStatus = await checkAIStatus();
+      if (aiStatus) {
+        toast.success("Connection restored");
+      } else {
+        toast.error("Still having issues with the AI service");
+      }
+    } else {
+      toast.error("You're still offline");
+    }
+  }, [checkAIStatus]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,15 +106,25 @@ export const useChatState = () => {
   useEffect(() => {
     const loadChatHistory = async () => {
       try {
-        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        if (isExtensionEnvironment()) {
           const result = await chrome.storage.local.get([STORAGE_KEY]);
           if (result[STORAGE_KEY]) {
             setChatHistory(result[STORAGE_KEY]);
+          }
+          
+          const queriesResult = await chrome.storage.local.get([RECENT_QUERIES_KEY]);
+          if (queriesResult[RECENT_QUERIES_KEY]) {
+            setRecentQueries(queriesResult[RECENT_QUERIES_KEY]);
           }
         } else {
           const savedHistory = localStorage.getItem(STORAGE_KEY);
           if (savedHistory) {
             setChatHistory(JSON.parse(savedHistory));
+          }
+          
+          const savedQueries = localStorage.getItem(RECENT_QUERIES_KEY);
+          if (savedQueries) {
+            setRecentQueries(JSON.parse(savedQueries));
           }
         }
       } catch (error) {
@@ -88,7 +133,25 @@ export const useChatState = () => {
     };
 
     loadChatHistory();
-  }, []);
+  }, [isExtensionEnvironment]);
+
+  const saveRecentQuery = useCallback(async (query: string) => {
+    try {
+      // Don't save duplicate or empty queries
+      if (!query.trim() || recentQueries.includes(query)) return;
+      
+      const updatedQueries = [query, ...recentQueries].slice(0, MAX_RECENT_QUERIES);
+      setRecentQueries(updatedQueries);
+      
+      if (isExtensionEnvironment()) {
+        await chrome.storage.local.set({ [RECENT_QUERIES_KEY]: updatedQueries });
+      } else {
+        localStorage.setItem(RECENT_QUERIES_KEY, JSON.stringify(updatedQueries));
+      }
+    } catch (error) {
+      console.error('Error saving recent query:', error);
+    }
+  }, [recentQueries, isExtensionEnvironment]);
 
   const saveChatHistory = useCallback(async (newMessages: Message[]) => {
     if (newMessages.length === 0) return;
@@ -96,7 +159,7 @@ export const useChatState = () => {
     try {
       const updatedHistory = [newMessages, ...chatHistory].slice(0, 10);
 
-      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      if (isExtensionEnvironment()) {
         await chrome.storage.local.set({ [STORAGE_KEY]: updatedHistory });
       } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
@@ -107,12 +170,15 @@ export const useChatState = () => {
       console.error('Error saving chat history:', error);
       toast.error('Failed to save chat history');
     }
-  }, [chatHistory]);
+  }, [chatHistory, isExtensionEnvironment]);
 
   const clearChat = () => {
     if (messages.length > 0) {
       saveChatHistory(messages);
       setMessages([]);
+      toast.success("Chat cleared");
+    } else {
+      toast.info("No messages to clear");
     }
   };
 
@@ -120,6 +186,7 @@ export const useChatState = () => {
     setMessages(sessionMessages);
     setIsHistoryOpen(false);
     scrollToBottom();
+    toast.success("Chat session loaded");
   };
 
   const searchBookmarks = useCallback((query: string) => {
@@ -143,6 +210,12 @@ export const useChatState = () => {
         throw new Error("AI service is currently unavailable. Please try again later.");
       }
 
+      // Check for rate limiting
+      const throttleCheck = await aiRequestManager.isThrottled();
+      if (throttleCheck.throttled) {
+        throw new Error(`Request rate limited: ${throttleCheck.reason || "Too many requests"}`);
+      }
+
       // Run bookmark search and web search in parallel
       const [relevantBookmarks, webResults] = await Promise.all([
         Promise.resolve(searchBookmarks(query)),
@@ -159,15 +232,22 @@ export const useChatState = () => {
       const chatContext = getContextFromHistory(messages, query);
       const prompt = generateChatPrompt(query, bookmarkContext, chatContext, currentLanguage);
 
-      const response = await retryWithBackoff(
-        () => summarizeContent(prompt, currentLanguage.code),
-        {
-          maxRetries: 3,
-          initialDelay: 1000,
-          onRetry: (error, attempt) => {
-            console.log(`Retry attempt ${attempt} after error:`, error);
+      // Use the AI request manager for rate limiting and caching
+      const response = await aiRequestManager.makeRequest(
+        () => retryWithBackoff(
+          () => summarizeContent(prompt, currentLanguage.code),
+          {
+            maxRetries: 3,
+            initialDelay: 1000,
+            onRetry: (error, attempt) => {
+              console.log(`Retry attempt ${attempt} after error:`, error);
+            }
           }
-        }
+        ),
+        // Use a cache key based on a simplified version of the prompt
+        `chat_${query.slice(0, 20)}_${currentLanguage.code}_${relevantBookmarks.length}_${webResults.length}`,
+        // Fallback message if everything fails
+        "I'm sorry, I couldn't process your request. Please try again later."
       );
 
       return {
@@ -190,6 +270,9 @@ export const useChatState = () => {
       toast.error("Please enter a message");
       return;
     }
+
+    // Save to recent queries
+    saveRecentQuery(inputValue);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -225,6 +308,9 @@ export const useChatState = () => {
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
+        
+        // Generate new suggestions based on the latest messages
+        generateSuggestions(messages.concat([userMessage, assistantMessage]));
       }
     } catch (err) {
       console.error("Error in handleSendMessage:", err);
@@ -248,47 +334,53 @@ export const useChatState = () => {
     const lastUserMessage = [...messages].reverse().find(m => m.sender === "user");
     if (lastUserMessage) {
       // Remove the error message if it exists
-      setMessages(messages.slice(0, -1));
+      setMessages(messages.filter(m => m.id !== messages[messages.length - 1].id));
+      setError(null);
       await handleSendMessage(lastUserMessage.content);
     }
   };
 
-  const generateSuggestions = useCallback((query: string) => {
-    if (query.length < 2) return [];
+  const generateSuggestions = useCallback((messageList: Message[]) => {
+    if (messageList.length === 0) return;
     
-    const bookmarkSuggestions = bookmarks
-      .filter(b => b.title.toLowerCase().includes(query.toLowerCase()))
-      .map(b => b.title)
-      .slice(0, 3);
-
-    const previousQueries = messages
-      .filter(m => m.sender === "user" && m.content.toLowerCase().includes(query.toLowerCase()))
-      .map(m => m.content)
-      .slice(0, 2);
-
-    const topics = extractTopicsFromMessages(messages)
-      .filter(topic => topic.includes(query.toLowerCase()))
-      .slice(0, 2);
-
-    return [...new Set([...bookmarkSuggestions, ...previousQueries, ...topics])];
-  }, [bookmarks, messages]);
+    const topics = extractTopicsFromMessages(messageList).slice(0, 3);
+    
+    // Create follow-up suggestions based on the latest conversation
+    const latestUserMessage = [...messageList].reverse().find(m => m.sender === "user");
+    const latestAssistantMessage = [...messageList].reverse().find(m => m.sender === "assistant");
+    
+    if (latestUserMessage && latestAssistantMessage) {
+      let newSuggestions: string[] = [];
+      
+      // Add topic-based suggestions
+      if (topics.length > 0) {
+        newSuggestions = topics.map(topic => `Tell me more about ${topic}`);
+      }
+      
+      // Add bookmark-related suggestions if bookmarks were mentioned
+      if (latestAssistantMessage.bookmarks && latestAssistantMessage.bookmarks.length > 0) {
+        newSuggestions.push(
+          `Explain the first bookmark in more detail`
+        );
+      }
+      
+      // Add general follow-up questions
+      if (latestUserMessage.content.toLowerCase().includes("how")) {
+        newSuggestions.push("Why is this important?");
+      } else if (latestUserMessage.content.toLowerCase().includes("what")) {
+        newSuggestions.push("How can I apply this?");
+      } else {
+        newSuggestions.push("Can you summarize this topic?");
+      }
+      
+      setSuggestions([...new Set(newSuggestions)]);
+    }
+  }, []);
 
   useEffect(() => {
-    const handleSuggestions = (query: string) => {
-      const newSuggestions = generateSuggestions(query);
-      setSuggestions(newSuggestions);
-    };
-
-    const debounce = setTimeout(() => {
-      if (messages.length > 0) {
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage.sender === "user") {
-          handleSuggestions(lastMessage.content);
-        }
-      }
-    }, 300);
-
-    return () => clearTimeout(debounce);
+    if (messages.length > 1) {
+      generateSuggestions(messages);
+    }
   }, [messages, generateSuggestions]);
 
   return {
@@ -306,6 +398,8 @@ export const useChatState = () => {
     clearChat,
     loadChatSession,
     retryLastMessage,
+    checkConnection,
+    recentQueries,
     isMobile
   };
 };

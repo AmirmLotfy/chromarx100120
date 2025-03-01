@@ -26,6 +26,8 @@ const ChatInterface = () => {
     clearChat,
     loadChatSession,
     retryLastMessage,
+    checkConnection,
+    recentQueries,
     isMobile
   } = useChatState();
 
@@ -46,6 +48,7 @@ const ChatInterface = () => {
             <ChatOfflineNotice 
               isOffline={isOffline} 
               isAIUnavailable={!isAIAvailable && !isOffline} 
+              onRetryConnection={checkConnection}
             />
           </div>
         )}
@@ -76,6 +79,7 @@ const ChatInterface = () => {
           isProcessing={isProcessing}
           suggestions={suggestions}
           disabled={isOffline && !isAIAvailable}
+          recentQueries={recentQueries}
         />
       </div>
 
