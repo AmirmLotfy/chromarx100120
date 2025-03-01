@@ -1,15 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkList from "./BookmarkList";
 import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { CloudOff, Filter, X } from "lucide-react";
+import { CloudOff, Filter, X, BookmarkIcon, FolderIcon, GlobeIcon } from "lucide-react";
 import { SearchFilter } from "./SearchBar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BookmarkContentProps {
   categories: { name: string; count: number }[];
@@ -60,41 +60,51 @@ const BookmarkContent = ({
 }: BookmarkContentProps) => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const hasActiveFilters = Object.values(activeFilters).some(Boolean);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const renderEmptyState = () => (
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      className="flex flex-col items-center justify-center h-60 border-2 border-dashed rounded-lg bg-accent/5"
+    >
+      <div className="text-center p-6">
+        <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
+          <BookmarkIcon className="h-8 w-8 text-primary" />
+        </div>
+        <p className="text-lg font-medium mb-2">No bookmarks found</p>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+          {hasActiveFilters ? 
+            "Try changing or clearing your filters" : 
+            "Try a different search or add new bookmarks"
+          }
+        </p>
+        {hasActiveFilters && (
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={onClearFilters}
+          >
+            Clear Filters
+          </Button>
+        )}
+      </div>
+    </motion.div>
+  );
 
   const renderContent = () => {
     if (loading) {
       return (
         <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-20 w-full rounded-lg" />
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-24 w-full rounded-xl bg-gradient-to-r from-accent/10 to-muted/20 animate-pulse" />
           ))}
         </div>
       );
     }
 
     if (filteredBookmarks.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-60 border-2 border-dashed rounded-lg">
-          <div className="text-center p-6">
-            <p className="text-lg font-medium">No bookmarks found</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {hasActiveFilters ? 
-                "Try changing or clearing your filters" : 
-                "Try a different search or add new bookmarks"
-              }
-            </p>
-            {hasActiveFilters && (
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={onClearFilters}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </div>
-      );
+      return renderEmptyState();
     }
 
     return (
@@ -121,74 +131,115 @@ const BookmarkContent = ({
   }, [selectedCategory, selectedDomain]);
 
   return (
-    <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="mb-6">
-        <TabsTrigger value="all">All Bookmarks</TabsTrigger>
-        <TabsTrigger value="categories">Categories</TabsTrigger>
-        <TabsTrigger value="domains">Domains</TabsTrigger>
-      </TabsList>
-
-      {isOffline && (
-        <div className="mb-4 flex items-center p-3 bg-background border rounded-md border-amber-200 dark:border-amber-900 text-sm">
-          <CloudOff className="h-4 w-4 text-amber-500 mr-2" />
-          <p>Offline mode: Some features like drag-and-drop organization and AI categorization are limited.</p>
-        </div>
-      )}
-
-      {hasActiveFilters && (
-        <div className="mb-4 flex items-center justify-between p-3 bg-accent/20 border rounded-md">
-          <div className="flex items-center">
-            <Filter className="h-4 w-4 mr-2" />
-            <p className="text-sm">Showing filtered results</p>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onClearFilters} 
-            className="h-8 text-xs"
+    <div className="h-full flex flex-col">
+      <Tabs 
+        defaultValue="all" 
+        value={activeTab} 
+        onValueChange={setActiveTab} 
+        className="h-full flex flex-col"
+      >
+        <TabsList className="mb-4 rounded-full p-1 bg-muted/30 backdrop-blur-sm sticky top-0 z-10 grid grid-cols-3 w-full sm:w-auto">
+          <TabsTrigger 
+            value="all" 
+            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
           >
-            <X className="h-3 w-3 mr-1" />
-            Clear filters
-          </Button>
-        </div>
-      )}
+            <BookmarkIcon className="h-4 w-4 mr-2" />
+            All
+          </TabsTrigger>
+          <TabsTrigger 
+            value="categories" 
+            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            <FolderIcon className="h-4 w-4 mr-2" />
+            Categories
+          </TabsTrigger>
+          <TabsTrigger 
+            value="domains" 
+            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            <GlobeIcon className="h-4 w-4 mr-2" />
+            Domains
+          </TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="all" className="space-y-6">
-        {renderContent()}
-      </TabsContent>
-
-      <TabsContent value="categories">
-        <BookmarkCategories
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={onSelectCategory}
-        />
-        {selectedCategory && (
-          <div className="mt-6 space-y-6">
-            <h2 className="text-lg font-semibold">
-              Bookmarks in "{selectedCategory}"
-            </h2>
-            {renderContent()}
-          </div>
+        {isOffline && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 flex items-center p-3 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-950/20 dark:to-amber-900/20 border rounded-lg border-amber-200 dark:border-amber-800/50 text-sm"
+          >
+            <CloudOff className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
+            <p className="text-xs sm:text-sm">Offline mode: Some features like drag-and-drop organization and AI categorization are limited.</p>
+          </motion.div>
         )}
-      </TabsContent>
 
-      <TabsContent value="domains">
-        <BookmarkDomains
-          domains={domains}
-          selectedDomain={selectedDomain}
-          onSelectDomain={onSelectDomain}
-        />
-        {selectedDomain && (
-          <div className="mt-6 space-y-6">
-            <h2 className="text-lg font-semibold">
-              Bookmarks from "{selectedDomain}"
-            </h2>
-            {renderContent()}
-          </div>
+        {hasActiveFilters && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-4 flex items-center justify-between p-3 bg-accent/20 backdrop-blur-sm border rounded-lg"
+          >
+            <div className="flex items-center">
+              <Filter className="h-4 w-4 mr-2 text-primary" />
+              <p className="text-xs sm:text-sm">Filtered results</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onClearFilters} 
+              className="h-7 text-xs rounded-full hover:bg-background"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          </motion.div>
         )}
-      </TabsContent>
-    </Tabs>
+
+        <ScrollArea className="flex-1 pr-4 -mr-4">
+          <div ref={scrollRef} className="h-full">
+            <TabsContent value="all" className="mt-0 space-y-4 h-full">
+              {renderContent()}
+            </TabsContent>
+
+            <TabsContent value="categories" className="mt-0 space-y-6 h-full">
+              <BookmarkCategories
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={onSelectCategory}
+              />
+              {selectedCategory && (
+                <div className="mt-6 space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center">
+                    <FolderIcon className="h-5 w-5 mr-2 text-primary opacity-70" />
+                    <span>Category: </span>
+                    <span className="ml-2 text-primary font-bold">{selectedCategory}</span>
+                  </h2>
+                  {renderContent()}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="domains" className="mt-0 space-y-6 h-full">
+              <BookmarkDomains
+                domains={domains}
+                selectedDomain={selectedDomain}
+                onSelectDomain={onSelectDomain}
+              />
+              {selectedDomain && (
+                <div className="mt-6 space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center">
+                    <GlobeIcon className="h-5 w-5 mr-2 text-primary opacity-70" />
+                    <span>Domain: </span>
+                    <span className="ml-2 text-primary font-bold">{selectedDomain}</span>
+                  </h2>
+                  {renderContent()}
+                </div>
+              )}
+            </TabsContent>
+          </div>
+        </ScrollArea>
+      </Tabs>
+    </div>
   );
 };
 
