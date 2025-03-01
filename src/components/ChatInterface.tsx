@@ -47,6 +47,11 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
+  // Debug log to verify state changes
+  useEffect(() => {
+    console.log("History sidebar state:", isHistoryOpen);
+  }, [isHistoryOpen]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background rounded-lg shadow-lg border">
       {/* Header */}
@@ -56,7 +61,10 @@ const ChatInterface = () => {
             variant="ghost" 
             size="icon" 
             className="md:hidden"
-            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            onClick={() => {
+              console.log("Toggle history sidebar", !isHistoryOpen);
+              setIsHistoryOpen(!isHistoryOpen);
+            }}
             aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
           >
             {isHistoryOpen ? <X size={20} /> : <Menu size={20} />}
@@ -118,7 +126,10 @@ const ChatInterface = () => {
                   variant="ghost" 
                   size="icon" 
                   className="h-8 w-8"
-                  onClick={() => setIsHistoryOpen(false)}
+                  onClick={() => {
+                    console.log("Closing history sidebar");
+                    setIsHistoryOpen(false);
+                  }}
                 >
                   <X size={18} />
                 </Button>

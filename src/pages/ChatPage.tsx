@@ -5,7 +5,7 @@ import ChatInterface from "@/components/ChatInterface";
 const ChatPage = () => {
   return (
     <Layout>
-      <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-8rem)] w-full max-w-md mx-auto relative">
+      <div className="h-[calc(100dvh-8rem)] md:h-[calc(100dvh-8rem)] w-full max-w-5xl mx-auto relative">
         <ChatInterface />
       </div>
     </Layout>
