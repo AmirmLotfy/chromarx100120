@@ -1,21 +1,27 @@
 
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
-import App from './App'
-import './index.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { HashRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "@/components/theme-provider";
+import App from "./App";
+import "./index.css";
+import { AuthProvider } from "@/hooks/useAuth";
+import { Toaster } from "@/components/ui/toaster";
 
-const container = document.getElementById('root')
-if (!container) {
-  throw new Error('Failed to find the root element')
-}
+const queryClient = new QueryClient();
 
-const root = createRoot(container)
-
-root.render(
+ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
+    <QueryClientProvider client={queryClient}>
+      <HashRouter>
+        <ThemeProvider defaultTheme="system" storageKey="chromarx-theme">
+          <AuthProvider>
+            <App />
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
+      </HashRouter>
+    </QueryClientProvider>
   </React.StrictMode>
-)
+);

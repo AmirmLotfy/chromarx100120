@@ -33,7 +33,7 @@ import { supabaseBackup } from "@/services/supabaseBackupService";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
 
 // Type-safe badge variants matching what's allowed in the Badge component
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "info" | "warning";
 
 interface SettingBadge {
   text: string;
@@ -53,7 +53,7 @@ interface SettingProps {
 
 const PrivacySettings = () => {
   const settings = useSettings();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { checkAccess } = useFeatureAccess();
   const [confirmDisableBackup, setConfirmDisableBackup] = useState(false);
   const [confirmDisableDataCollection, setConfirmDisableDataCollection] = useState(false);
@@ -208,6 +208,14 @@ const PrivacySettings = () => {
       />
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
