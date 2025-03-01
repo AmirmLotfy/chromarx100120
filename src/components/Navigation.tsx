@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, BookmarkIcon, Settings, Bell, FolderPlus, Box, Plug, HelpCircle } from "lucide-react";
+import { Home, BookmarkIcon, Settings, Bell, FolderPlus, UserRound } from "lucide-react";
 
 const Navigation = () => {
   const location = useLocation();
@@ -39,10 +39,10 @@ const Navigation = () => {
           isActive={isActive("/notifications")}
         />
         <NavItem 
-          to="/settings" 
-          icon={<Settings className="h-[22px] w-[22px]" />}
-          label="Settings"
-          isActive={isActive("/settings")}
+          to="/user" 
+          icon={<UserRound className="h-[22px] w-[22px]" />}
+          label="Profile"
+          isActive={isActive("/user")}
         />
       </div>
     </nav>
