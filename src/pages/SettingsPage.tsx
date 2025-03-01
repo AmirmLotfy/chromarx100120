@@ -19,7 +19,9 @@ import {
   Shield,
   Bell,
   FileText,
-  X
+  X,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,13 +33,22 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 const SettingsPage = () => {
-  const [activeTab, setActiveTab] = useState("appearance");
+  const [activeTab, setActiveTab] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const settings = useSettings();
   const { theme } = useTheme();
   const isMobile = useIsMobile();
@@ -150,6 +161,14 @@ const SettingsPage = () => {
     }
   };
 
+  const handleTabClick = (tabId) => {
+    if (activeTab === tabId) {
+      setActiveTab(""); // Close the active tab if clicked again
+    } else {
+      setActiveTab(tabId);
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-background">
@@ -247,61 +266,79 @@ const SettingsPage = () => {
           </div>
         </motion.div>
 
-        {/* Enhanced Tab Navigation - Modern Card Design with Gradient Accents */}
-        <div className="pt-8 px-5">
-          <motion.div 
-            className="rounded-xl bg-muted/30 p-1.5 flex w-full overflow-x-auto hide-scrollbar shadow-sm border border-border/5"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
+        {/* Accordion-style Settings Menu */}
+        <div className="pt-8 px-5 pb-28">
+          <div className="space-y-3">
             {settingTabs.map((tab) => (
-              <motion.button
+              <div 
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex flex-col items-center gap-2 px-3 py-3 rounded-lg text-sm transition-all flex-1 min-w-[25%] touch-target",
-                  activeTab === tab.id 
-                    ? "bg-gradient-to-br from-primary/90 to-primary/70 text-primary-foreground font-medium shadow-sm" 
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted/80"
-                )}
-                whileTap={{ scale: 0.95 }}
+                className="rounded-xl overflow-hidden shadow-sm border border-border/5"
               >
-                <div 
+                <button
+                  onClick={() => handleTabClick(tab.id)}
                   className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-full",
+                    "flex items-center justify-between w-full p-4 rounded-t-xl transition-all",
+                    "bg-gradient-to-r touch-target min-h-[60px]",
                     activeTab === tab.id 
-                      ? "bg-primary-foreground/20" 
-                      : "bg-primary/10"
+                      ? "from-primary/90 to-primary/70 text-primary-foreground font-medium" 
+                      : "from-muted/50 to-muted/30 text-foreground hover:opacity-90"
                   )}
+                  aria-expanded={activeTab === tab.id}
+                  aria-controls={`panel-${tab.id}`}
                 >
-                  <span className={activeTab === tab.id ? "text-primary-foreground" : "text-primary/70"}>
-                    {tab.icon}
-                  </span>
-                </div>
-                <span className="font-medium">{tab.label}</span>
-              </motion.button>
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className={cn(
+                        "flex items-center justify-center w-10 h-10 rounded-full",
+                        activeTab === tab.id 
+                          ? "bg-primary-foreground/20" 
+                          : "bg-primary/10"
+                      )}
+                    >
+                      <span className={activeTab === tab.id ? "text-primary-foreground" : "text-primary"}>
+                        {tab.icon}
+                      </span>
+                    </div>
+                    <span className="font-medium text-base">{tab.label}</span>
+                  </div>
+                  <div className="flex h-5 w-5 items-center justify-center">
+                    {activeTab === tab.id ? (
+                      <ChevronDown className="h-5 w-5" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5" />
+                    )}
+                  </div>
+                </button>
+                
+                <AnimatePresence initial={false}>
+                  {activeTab === tab.id && (
+                    <motion.div
+                      id={`panel-${tab.id}`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ 
+                        height: "auto", 
+                        opacity: 1,
+                        transition: { duration: 0.3, ease: [0.33, 1, 0.68, 1] }
+                      }}
+                      exit={{ 
+                        height: 0, 
+                        opacity: 0,
+                        transition: { duration: 0.2, ease: [0.33, 1, 0.68, 1] }
+                      }}
+                      className="overflow-hidden bg-card"
+                    >
+                      <div className="p-4">
+                        {tab.id === "appearance" && <AppearanceSettings />}
+                        {tab.id === "privacy" && <PrivacySettings />}
+                        {tab.id === "notifications" && <NotificationSettings />}
+                        {tab.id === "legal" && <LegalAndFeedback />}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ))}
-          </motion.div>
-        </div>
-
-        {/* Content Area with enhanced spacing and padding */}
-        <div className="mt-7 px-5 pb-28">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={slideUpVariants}
-              className="w-full rounded-xl overflow-hidden"
-            >
-              {activeTab === "appearance" && <AppearanceSettings />}
-              {activeTab === "privacy" && <PrivacySettings />}
-              {activeTab === "notifications" && <NotificationSettings />}
-              {activeTab === "legal" && <LegalAndFeedback />}
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </div>
       </div>
     </Layout>

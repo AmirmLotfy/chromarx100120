@@ -138,6 +138,108 @@ body,
   display: none; /* Chrome, Safari and Opera */
 }
 
+/* NEW: Settings accordion menu styles */
+.settings-accordion-item {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.settings-accordion-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.dark .settings-accordion-trigger {
+  background: rgba(30, 30, 30, 0.4);
+}
+
+.settings-accordion-trigger:hover {
+  background: rgba(var(--primary-rgb), 0.1);
+}
+
+.settings-accordion-trigger[data-state="open"] {
+  background: rgba(var(--primary-rgb), 0.15);
+  border-bottom: 1px solid rgba(var(--primary-rgb), 0.1);
+}
+
+.settings-accordion-content {
+  overflow: hidden;
+  background: transparent;
+}
+
+.settings-accordion-content[data-state="open"] {
+  animation: slideDown 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+.settings-accordion-content[data-state="closed"] {
+  animation: slideUp 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Improved touch-friendly setting option styles */
+.setting-option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  min-height: 60px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+}
+
+.dark .setting-option-card {
+  background: rgba(30, 30, 30, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.setting-option-card:active {
+  transform: scale(0.98);
+}
+
+/* Enhanced active state indicators for mobile */
+.mobile-active-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(var(--primary-rgb), 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
 /* NEW: Modern card designs with gradient options */
 .settings-card {
   background: rgba(255, 255, 255, 0.04);
@@ -313,5 +415,3 @@ body,
     padding: 0.5rem 1rem;
   }
 }
-
-/* ... keep existing code (remaining styles for glassmorphism effects, additional animation classes, card styling, etc.) */
