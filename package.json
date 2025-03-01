@@ -77,6 +77,7 @@
     "tailwindcss-animate": "^1.0.7",
     "terser": "^5.37.0",
     "use-long-press": "^3.2.0",
+    "uuid": "^11.1.0",
     "vaul": "^0.9.3",
     "vitest": "^3.0.5",
     "zod": "^3.23.8",

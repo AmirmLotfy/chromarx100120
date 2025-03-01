@@ -36,7 +36,7 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
     if (isOpen && activeConversation) {
       setSelectedConversation(activeConversation);
       setEditName(activeConversation.name);
-      setEditCategory(activeConversation.category as ConversationCategory || "General");
+      setEditCategory(activeConversation.category || "General");
     }
   }, [isOpen, activeConversation]);
 
@@ -48,18 +48,18 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
     
     if (existingConvo) {
       // If it's a saved conversation, load its details
-      const foundConvo = {
+      const foundConvo: Conversation = {
         id: firstMsgId,
         name: "Untitled Conversation",
         messages: convoMessages,
-        createdAt: convoMessages[0]?.timestamp || new Date(),
-        updatedAt: convoMessages[convoMessages.length - 1]?.timestamp || new Date(),
+        createdAt: Date.now(), // Use number instead of Date
+        updatedAt: Date.now(), // Use number instead of Date
         category: "General" as ConversationCategory
       };
       
       setSelectedConversation(foundConvo);
       setEditName(foundConvo.name);
-      setEditCategory(foundConvo.category);
+      setEditCategory(foundConvo.category || "General");
     }
   };
 
@@ -69,7 +69,7 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
         ...selectedConversation,
         name: editName || "Untitled Conversation",
         category: editCategory,
-        updatedAt: new Date()
+        updatedAt: Date.now() // Use number instead of Date
       };
       
       onUpdateConversation(updatedConvo);
@@ -94,6 +94,11 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
         firstUserMsg.content.substring(0, 40) + "..." : 
         firstUserMsg.content) 
       : "No user message";
+  };
+
+  // Helper function to format timestamp number to date string
+  const formatTimestamp = (timestamp: number) => {
+    return format(new Date(timestamp), 'MMM d, yyyy');
   };
 
   return (
@@ -122,7 +127,7 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
                           {getConversationPreview(convo)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {convo[0]?.timestamp ? format(new Date(convo[0].timestamp), 'MMM d, yyyy') : 'Unknown date'}
+                          {convo[0]?.timestamp ? formatTimestamp(convo[0].timestamp) : 'Unknown date'}
                         </p>
                       </div>
                     </div>
@@ -167,7 +172,7 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
                 
                 <div className="flex justify-between">
                   <div className="text-xs text-muted-foreground">
-                    <p>Created: {format(new Date(selectedConversation.createdAt), 'MMM d, yyyy')}</p>
+                    <p>Created: {formatTimestamp(selectedConversation.createdAt)}</p>
                     <p>Messages: {selectedConversation.messages.length}</p>
                   </div>
                   <Button 

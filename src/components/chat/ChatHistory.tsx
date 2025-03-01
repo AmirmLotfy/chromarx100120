@@ -1,149 +1,135 @@
+
 import React from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Message, Conversation } from "@/types/chat";
-import { Clock, History, MessageSquare, Star } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatDistanceToNow } from "date-fns";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+import { Conversation, ConversationCategory } from "@/types/chat";
+import { Button } from "../ui/button";
+import { Trash2, MessageCircle, Star, FolderOpen } from "lucide-react";
 
 interface ChatHistoryProps {
-  isHistoryOpen: boolean;
-  setIsHistoryOpen: (open: boolean) => void;
-  chatHistory: Message[][];
-  loadChatSession: (messages: Message[]) => void;
-  activeConversation?: Conversation;
+  conversations: Conversation[];
+  activeConversationId?: string;
+  onSelectConversation: (conversation: Conversation) => void;
+  onDeleteConversation: (conversationId: string) => void;
+  onPinConversation: (conversationId: string) => void;
 }
 
 const ChatHistory: React.FC<ChatHistoryProps> = ({
-  isHistoryOpen,
-  setIsHistoryOpen,
-  chatHistory,
-  loadChatSession,
-  activeConversation
+  conversations,
+  activeConversationId,
+  onSelectConversation,
+  onDeleteConversation,
+  onPinConversation
 }) => {
-  const getConversationTitle = (messages: Message[]) => {
-    if (!messages || messages.length === 0) return "Empty conversation";
-    
-    // Check if this is the active conversation
-    if (activeConversation?.messages[0]?.id === messages[0]?.id) {
-      return activeConversation.name;
+  // Group conversations by category
+  const groupedConversations = conversations.reduce<Record<ConversationCategory, Conversation[]>>((acc, conversation) => {
+    const category = conversation.category || "General";
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    
-    // Otherwise, extract from first user message
-    const firstUserMessage = messages.find(m => m.sender === "user");
-    if (firstUserMessage) {
-      const content = firstUserMessage.content;
-      return content.length > 30 ? content.substring(0, 30) + "..." : content;
-    }
-    return "Conversation";
-  };
-  
-  const getConversationTime = (messages: Message[]) => {
-    if (!messages || messages.length === 0) return "";
-    const timestamp = messages[0]?.timestamp;
-    if (!timestamp) return "";
-    return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-  };
+    acc[category].push(conversation);
+    return acc;
+  }, {} as Record<ConversationCategory, Conversation[]>);
 
-  const getConversationCategory = (messages: Message[]) => {
-    if (!messages || messages.length === 0) return null;
-    
-    // Check if this is a saved conversation with a category
-    if (activeConversation?.messages[0]?.id === messages[0]?.id) {
-      return activeConversation.category;
-    }
-    
-    return null;
-  };
-  
-  const isPinned = (messages: Message[]) => {
-    if (!messages || messages.length === 0) return false;
-    
-    // Check if this conversation is pinned
-    if (activeConversation?.messages[0]?.id === messages[0]?.id) {
-      return activeConversation.pinned;
-    }
-    
-    return false;
-  };
+  // Get all categories that have conversations
+  const categories = Object.keys(groupedConversations) as ConversationCategory[];
 
   return (
-    <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-3 right-16"
-          aria-label="Chat history"
-        >
-          <History className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle className="flex items-center">
-            <Clock className="h-5 w-5 mr-2" />
-            Chat History
-          </SheetTitle>
-        </SheetHeader>
-        
-        <div className="py-4">
-          <ScrollArea className="h-[calc(100vh-7rem)]">
-            {chatHistory.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex flex-col gap-2">
-                  {chatHistory.map((chat, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-col p-3 border rounded-md hover:bg-secondary/50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        loadChatSession(chat);
-                        setIsHistoryOpen(false);
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                          <p className="font-medium text-sm truncate max-w-[180px]">
-                            {getConversationTitle(chat)}
-                          </p>
-                          {isPinned(chat) && (
-                            <Star className="h-3 w-3 text-yellow-400" />
-                          )}
-                        </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="p-3 border-b">
+        <h2 className="text-lg font-medium">Chat History</h2>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto p-2">
+        {conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+            <MessageCircle className="h-12 w-12 text-muted-foreground/40 mb-2" />
+            <p className="text-sm">No conversation history yet</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {categories.map((category) => (
+              <div key={category} className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center">
+                  <FolderOpen className="h-4 w-4 mr-1" />
+                  {category}
+                </h3>
+                
+                {groupedConversations[category].map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`p-2 rounded-md cursor-pointer transition-colors ${
+                      conversation.id === activeConversationId
+                        ? "bg-secondary"
+                        : "hover:bg-secondary/50"
+                    }`}
+                    onClick={() => onSelectConversation(conversation)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="truncate flex-1">
+                        <p className="text-sm font-medium truncate">{conversation.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {getConversationTime(chat)}
+                          {new Date(conversation.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-1">
-                          <p className="text-xs text-muted-foreground">
-                            {chat.length} messages
-                          </p>
-                          {getConversationCategory(chat) && (
-                            <Badge variant="outline" className="text-xs px-1 py-0">
-                              {getConversationCategory(chat)}
-                            </Badge>
-                          )}
-                        </div>
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPinConversation(conversation.id);
+                          }}
+                        >
+                          <Star
+                            className={`h-4 w-4 ${
+                              conversation.pinned ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
+                            }`}
+                          />
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteConversation(conversation.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                <History className="h-10 w-10 mb-2 opacity-50" />
-                <p>No chat history yet</p>
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-      </SheetContent>
-    </Sheet>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div className="p-3 border-t">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => {
+            onSelectConversation({
+              id: "",
+              name: "New Conversation",
+              messages: [],
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              category: "General"
+            });
+          }}
+        >
+          <MessageCircle className="h-4 w-4 mr-2" />
+          New Conversation
+        </Button>
+      </div>
+    </div>
   );
 };
 

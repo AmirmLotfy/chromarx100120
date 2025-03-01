@@ -1,3 +1,4 @@
+
 export interface Message {
   id: string;
   content: string;
@@ -24,6 +25,7 @@ export interface Conversation {
   pinned?: boolean;
   bookmarkContext?: string[];
   isBookmarkSearch?: boolean;
+  category?: ConversationCategory;
 }
 
 export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";
