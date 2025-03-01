@@ -1,118 +1,113 @@
-
 import { ChromeBookmark } from "@/types/bookmark";
-import { chromeDb } from "@/lib/chrome-storage";
-import { extractDomain } from "@/utils/domainUtils";
-import { fetchPageContent } from "@/utils/contentExtractor";
-import { suggestBookmarkCategory } from "@/utils/geminiUtils";
-import { useLanguage } from "@/stores/languageStore";
+import { getGeminiResponse } from "./geminiUtils";
+import { fetchPageContent } from "./contentExtractor";
+import { toast } from "sonner";
 
-interface BookmarkNode extends chrome.bookmarks.BookmarkTreeNode {
-  children?: BookmarkNode[];
-  category?: string;
-}
-
-export const processBookmarkTree = async (
-  node: BookmarkNode,
-  parentCategory?: string
+/**
+ * Find bookmarks by analyzing their content against a search query
+ * Uses AI to compare bookmark content with the search query
+ * @param query User's search query
+ * @param bookmarks Array of bookmarks to search through
+ * @returns Array of bookmarks that match the query
+ */
+export const findBookmarksByContent = async (
+  query: string,
+  bookmarks: ChromeBookmark[]
 ): Promise<ChromeBookmark[]> => {
-  const bookmarks: ChromeBookmark[] = [];
-
-  // Process current node if it's a bookmark
-  if (node.url) {
-    const category = await getCategoryForBookmark(node, parentCategory);
-    bookmarks.push({
-      ...node,
-      category
-    });
-  }
-
-  // Process children recursively
-  if (node.children) {
-    // If the current node is a folder, use its title as category for children
-    const categoryForChildren = node.url ? parentCategory : node.title;
-    
-    for (const child of node.children) {
-      const processedChildren = await processBookmarkTree(child, categoryForChildren);
-      bookmarks.push(...processedChildren);
-    }
-  }
-
-  return bookmarks;
-};
-
-export const getCategoryForBookmark = async (
-  bookmark: chrome.bookmarks.BookmarkTreeNode,
-  parentCategory?: string
-): Promise<string> => {
   try {
-    // Check cache first
-    const cachedCategory = await chromeDb.get<string>(`bookmark-category-${bookmark.id}`);
-    if (cachedCategory) return cachedCategory;
-
-    // Use parent folder name as category if available
-    if (parentCategory) {
-      await chromeDb.set(`bookmark-category-${bookmark.id}`, parentCategory);
-      return parentCategory;
-    }
-
-    // Auto-categorize based on URL and content
-    if (bookmark.url) {
-      const content = await fetchPageContent(bookmark.url);
-      const suggestedCategory = await suggestBookmarkCategory(
-        bookmark.title,
-        bookmark.url,
-        content,
-        'en' // Default to English if language store is not available
+    // First filter to limit processing to a reasonable subset
+    // Look at titles and URLs to narrow down potential matches
+    const potentialMatches = bookmarks.filter(bookmark => {
+      const titleLower = bookmark.title.toLowerCase();
+      const urlLower = bookmark.url?.toLowerCase() || '';
+      const queryTerms = query.toLowerCase().split(/\s+/);
+      
+      // Check if any query term appears in title or URL
+      return queryTerms.some(term => 
+        titleLower.includes(term) || urlLower.includes(term)
       );
+    });
 
-      if (suggestedCategory) {
-        await chromeDb.set(`bookmark-category-${bookmark.id}`, suggestedCategory);
-        return suggestedCategory;
-      }
+    // If we have too many potential matches, limit them
+    const bookmarksToProcess = potentialMatches.length > 20 
+      ? potentialMatches.slice(0, 20) 
+      : potentialMatches;
+    
+    if (bookmarksToProcess.length === 0) {
+      // Fall back to returning all bookmarks for further processing
+      return bookmarks.slice(0, 20);
     }
 
-    return 'Uncategorized';
+    // Prepare content for AI analysis
+    const bookmarkDetails = await Promise.all(
+      bookmarksToProcess.map(async (bookmark) => {
+        let content = '';
+        
+        // Use cached content or summary if available
+        if (bookmark.content) {
+          content = bookmark.content;
+        } else if (bookmark.metadata?.summary) {
+          content = bookmark.metadata.summary;
+        } else if (bookmark.url) {
+          // Try to fetch content
+          try {
+            content = await fetchPageContent(bookmark.url);
+          } catch (error) {
+            console.error(`Error fetching content for ${bookmark.url}:`, error);
+            content = bookmark.title;
+          }
+        }
+
+        return {
+          id: bookmark.id,
+          title: bookmark.title,
+          url: bookmark.url || "",
+          content: content.slice(0, 1000) // Limit content length
+        };
+      })
+    );
+
+    // Create AI prompt for content matching
+    const prompt = `
+I need to find bookmarks that match this search query: "${query}"
+
+Here are the bookmarks to analyze:
+${bookmarkDetails.map((bookmark, index) => `
+[${index + 1}] Title: ${bookmark.title}
+URL: ${bookmark.url}
+Content: ${bookmark.content || "No content available"}
+`).join('\n---\n')}
+
+Return ONLY a comma-separated list of bookmark indices (the numbers in square brackets) 
+that are relevant to the search query. If none are relevant, return "NONE".
+Example response: "1,4,7" or "NONE"
+Do not include any other text or explanations.
+`;
+
+    // Get AI response
+    const { result } = await getGeminiResponse({
+      prompt,
+      type: 'analytics',
+      language: 'en',
+      maxRetries: 2
+    });
+
+    // Process the response
+    if (result.includes("NONE")) {
+      return [];
+    }
+
+    // Parse indices from result (1,3,5 format)
+    const matchedIndices = result.split(',')
+      .map(index => parseInt(index.trim()))
+      .filter(index => !isNaN(index) && index > 0 && index <= bookmarksToProcess.length)
+      .map(index => index - 1); // Convert to zero-based indices
+
+    // Return matched bookmarks
+    return matchedIndices.map(index => bookmarksToProcess[index]);
   } catch (error) {
-    console.error('Error getting category for bookmark:', error);
-    return 'Uncategorized';
-  }
-};
-
-export const findDuplicateBookmarks = (bookmarks: ChromeBookmark[]): {
-  byUrl: { url: string; bookmarks: ChromeBookmark[] }[];
-  byTitle: { title: string; bookmarks: ChromeBookmark[] }[];
-} => {
-  const urlMap = new Map<string, ChromeBookmark[]>();
-  const titleMap = new Map<string, ChromeBookmark[]>();
-
-  bookmarks.forEach(bookmark => {
-    if (bookmark.url) {
-      const normalizedUrl = normalizeUrl(bookmark.url);
-      const existing = urlMap.get(normalizedUrl) || [];
-      urlMap.set(normalizedUrl, [...existing, bookmark]);
-    }
-
-    const normalizedTitle = bookmark.title.toLowerCase().trim();
-    const existing = titleMap.get(normalizedTitle) || [];
-    titleMap.set(normalizedTitle, [...existing, bookmark]);
-  });
-
-  return {
-    byUrl: Array.from(urlMap.entries())
-      .filter(([_, bookmarks]) => bookmarks.length > 1)
-      .map(([url, bookmarks]) => ({ url, bookmarks })),
-    byTitle: Array.from(titleMap.entries())
-      .filter(([_, bookmarks]) => bookmarks.length > 1)
-      .map(([title, bookmarks]) => ({ title, bookmarks }))
-  };
-};
-
-const normalizeUrl = (url: string): string => {
-  try {
-    const parsed = new URL(url);
-    // Remove protocol, www, trailing slashes, and query parameters
-    return parsed.hostname.replace(/^www\./, '') + parsed.pathname.replace(/\/$/, '');
-  } catch {
-    return url;
+    console.error('Error finding bookmarks by content:', error);
+    toast.error('Error searching bookmark content');
+    return [];
   }
 };

@@ -9,6 +9,7 @@ import ChatError from "./chat/ChatError";
 import ChatOfflineNotice from "./chat/ChatOfflineNotice";
 import ConversationManager from "./chat/ConversationManager";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
+import BookmarkSearchMode from "./chat/BookmarkSearchMode";
 
 const ChatInterface = () => {
   const {
@@ -33,7 +34,9 @@ const ChatInterface = () => {
     saveConversation,
     updateConversation,
     setConversationManagerOpen,
-    isConversationManagerOpen
+    isConversationManagerOpen,
+    isBookmarkSearchMode,
+    toggleBookmarkSearchMode
   } = useChatState();
 
   // Auto-hide history panel on mobile when chat starts
@@ -51,9 +54,15 @@ const ChatInterface = () => {
         onSaveConversation={saveConversation}
         activeConversation={activeConversation}
         onManageConversations={() => setConversationManagerOpen(true)}
+        isBookmarkSearchMode={isBookmarkSearchMode}
+        toggleBookmarkSearchMode={toggleBookmarkSearchMode}
       />
       
       <div className="flex-1 overflow-hidden flex flex-col">
+        {isBookmarkSearchMode && (
+          <BookmarkSearchMode onClose={toggleBookmarkSearchMode} />
+        )}
+        
         {(isOffline || !isAIAvailable) && (
           <div className="px-4 pt-3">
             <ChatOfflineNotice 
@@ -91,6 +100,7 @@ const ChatInterface = () => {
           suggestions={suggestions}
           disabled={isOffline && !isAIAvailable}
           recentQueries={recentQueries}
+          isBookmarkSearchMode={isBookmarkSearchMode}
         />
       </div>
 

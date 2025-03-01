@@ -13,6 +13,7 @@ import { retryWithBackoff } from "@/utils/retryUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { aiRequestManager } from "@/utils/aiRequestManager";
 import { storage } from "@/services/storageService";
+import { findBookmarksByContent } from "@/utils/bookmarkUtils";
 
 const STORAGE_KEY = 'chromarx_chat_history';
 const CONVERSATIONS_KEY = 'chromarx_conversations';
@@ -32,10 +33,29 @@ export const useChatState = () => {
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | undefined>(undefined);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isBookmarkSearchMode, setIsBookmarkSearchMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
   const { currentLanguage } = useLanguage();
   const isMobile = useIsMobile();
+
+  // Toggle bookmark search mode
+  const toggleBookmarkSearchMode = useCallback(() => {
+    setIsBookmarkSearchMode(prev => !prev);
+    if (!isBookmarkSearchMode) {
+      // Clear existing messages when entering search mode
+      setMessages([]);
+      setActiveConversation(undefined);
+      // Add intro message
+      const introMessage: Message = {
+        id: Date.now().toString(),
+        content: "I'm ready to help you find bookmarks. Describe what you're looking for in natural language, and I'll search your bookmarks for you.",
+        sender: "assistant",
+        timestamp: new Date(),
+      };
+      setMessages([introMessage]);
+    }
+  }, [isBookmarkSearchMode]);
 
   // Network status monitoring
   useEffect(() => {
@@ -227,7 +247,19 @@ export const useChatState = () => {
       saveChatHistory(messages);
       setMessages([]);
       setActiveConversation(undefined);
-      toast.success("Chat cleared");
+      
+      // If in bookmark search mode, add intro message
+      if (isBookmarkSearchMode) {
+        const introMessage: Message = {
+          id: Date.now().toString(),
+          content: "I'm ready to help you find bookmarks. Describe what you're looking for in natural language, and I'll search your bookmarks for you.",
+          sender: "assistant",
+          timestamp: new Date(),
+        };
+        setMessages([introMessage]);
+      } else {
+        toast.success("Chat cleared");
+      }
     } else {
       toast.info("No messages to clear");
     }
@@ -257,6 +289,103 @@ export const useChatState = () => {
     });
   }, [bookmarks]);
 
+  // Enhanced bookmark search function
+  const processBookmarkSearch = async (query: string) => {
+    try {
+      setError(null);
+      
+      if (isOffline) {
+        throw new Error("You're currently offline. Please check your connection and try again.");
+      }
+      
+      if (!isAIAvailable) {
+        throw new Error("AI service is currently unavailable. Please try again later.");
+      }
+
+      // Check for rate limiting
+      const throttleCheck = await aiRequestManager.isThrottled();
+      if (throttleCheck.throttled) {
+        throw new Error(`Request rate limited: ${throttleCheck.reason || "Too many requests"}`);
+      }
+
+      // Step 1: Use the advanced bookmark search by content
+      const contentMatchedBookmarks = await findBookmarksByContent(query, bookmarks);
+      
+      // Step 2: Also search by metadata (title, URL, category)
+      const metadataMatchedBookmarks = searchBookmarks(query);
+      
+      // Step 3: Combine results uniquely (by ID)
+      const allBookmarkIds = new Set();
+      const combinedBookmarks = [];
+      
+      // First add content matches (likely most relevant)
+      for (const bookmark of contentMatchedBookmarks) {
+        if (!allBookmarkIds.has(bookmark.id)) {
+          allBookmarkIds.add(bookmark.id);
+          combinedBookmarks.push(bookmark);
+        }
+      }
+      
+      // Then add metadata matches
+      for (const bookmark of metadataMatchedBookmarks) {
+        if (!allBookmarkIds.has(bookmark.id)) {
+          allBookmarkIds.add(bookmark.id);
+          combinedBookmarks.push(bookmark);
+        }
+      }
+
+      // Step 4: Prepare prompt for AI
+      const promptContent = `
+Query: "${query}"
+
+Found ${combinedBookmarks.length} potential bookmark matches.
+
+Bookmark details:
+${combinedBookmarks.map((bookmark, index) => `
+[${index + 1}] Title: ${bookmark.title}
+URL: ${bookmark.url || "N/A"}
+Category: ${bookmark.category || "Uncategorized"}
+${bookmark.metadata?.summary ? `Summary: ${bookmark.metadata.summary}` : ""}
+`).join('\n')}
+
+Based on the user's query and the bookmarks found, please:
+1. Identify which bookmarks most likely match what the user is looking for
+2. Explain why these are relevant to the query
+3. If no exact matches were found, suggest related bookmarks or search refinements
+4. Format your response in a clear, readable way listing the most relevant bookmarks first
+`;
+
+      // Step 5: Get AI response for bookmark search results
+      const response = await aiRequestManager.makeRequest(
+        () => retryWithBackoff(
+          () => summarizeContent(promptContent, currentLanguage.code),
+          {
+            maxRetries: 3,
+            initialDelay: 1000,
+            onRetry: (error, attempt) => {
+              console.log(`Retry attempt ${attempt} after error:`, error);
+            }
+          }
+        ),
+        `bookmark_search_${query.slice(0, 20)}_${currentLanguage.code}`,
+        "I couldn't find any bookmarks matching your query. Try using different keywords or a more specific description."
+      );
+
+      return {
+        response,
+        bookmarks: combinedBookmarks.slice(0, 5).map((b) => ({
+          title: b.title,
+          url: b.url || "",
+          relevance: 1,
+        })),
+      };
+    } catch (error) {
+      console.error("Error processing bookmark search:", error);
+      throw error;
+    }
+  };
+
+  // Standard chat query processing
   const processQuery = async (query: string) => {
     try {
       setError(null);
@@ -345,14 +474,28 @@ export const useChatState = () => {
     setError(null);
 
     try {
-      const result = await withErrorHandling(
-        async () => await processQuery(inputValue),
-        {
-          errorMessage: "Failed to process your request",
-          showError: false,
-          rethrow: true
-        }
-      );
+      let result;
+      
+      // Process differently based on mode
+      if (isBookmarkSearchMode) {
+        result = await withErrorHandling(
+          async () => await processBookmarkSearch(inputValue),
+          {
+            errorMessage: "Failed to search bookmarks",
+            showError: false,
+            rethrow: true
+          }
+        );
+      } else {
+        result = await withErrorHandling(
+          async () => await processQuery(inputValue),
+          {
+            errorMessage: "Failed to process your request",
+            showError: false,
+            rethrow: true
+          }
+        );
+      }
 
       if (result) {
         const { response, bookmarks: relevantBookmarks, webResults } = result;
@@ -402,6 +545,17 @@ export const useChatState = () => {
   const generateSuggestions = useCallback((messageList: Message[]) => {
     if (messageList.length === 0) return;
     
+    // Generate different suggestions based on the mode
+    if (isBookmarkSearchMode) {
+      setSuggestions([
+        "Find bookmarks about web development",
+        "Look for recipe bookmarks with chicken",
+        "Find bookmarks with PDF files",
+        "Search for bookmarks about machine learning tutorials"
+      ]);
+      return;
+    }
+    
     const topics = extractTopicsFromMessages(messageList).slice(0, 3);
     
     // Create follow-up suggestions based on the latest conversation
@@ -434,7 +588,7 @@ export const useChatState = () => {
       
       setSuggestions([...new Set(newSuggestions)]);
     }
-  }, []);
+  }, [isBookmarkSearchMode]);
 
   useEffect(() => {
     if (messages.length > 1) {
@@ -465,6 +619,8 @@ export const useChatState = () => {
     activeConversation,
     saveConversation,
     updateConversation,
-    conversations
+    conversations,
+    isBookmarkSearchMode,
+    toggleBookmarkSearchMode
   };
 };

@@ -24,6 +24,7 @@ export interface Conversation {
   updatedAt: Date;
   pinned?: boolean;
   bookmarkContext?: string[];
+  isBookmarkSearch?: boolean;
 }
 
 export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";

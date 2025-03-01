@@ -1,22 +1,32 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Archive, ChevronDown, History, Save, Settings } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Conversation } from "@/types/chat";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { PenSquare, History, Trash2, BookmarkPlus, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Conversation } from "@/types/chat";
+import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ConversationCategory } from "@/types/chat";
+import { toast } from "sonner";
 
 interface ChatHeaderProps {
   clearChat: () => void;
   messageCount: number;
-  onSaveConversation?: (name: string, category: string) => void;
+  onSaveConversation: (name: string, category: string) => void;
   activeConversation?: Conversation;
-  onManageConversations?: () => void;
+  onManageConversations: () => void;
+  isBookmarkSearchMode?: boolean;
+  toggleBookmarkSearchMode?: () => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -24,131 +34,153 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   messageCount,
   onSaveConversation,
   activeConversation,
-  onManageConversations
+  onManageConversations,
+  isBookmarkSearchMode = false,
+  toggleBookmarkSearchMode = () => {}
 }) => {
-  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [conversationName, setConversationName] = useState("");
-  const [conversationCategory, setConversationCategory] = useState<ConversationCategory>("General");
+  const [conversationName, setConversationName] = useState(
+    activeConversation?.name || ""
+  );
+  const [conversationCategory, setConversationCategory] = useState(
+    activeConversation?.category || "General"
+  );
+  const [isSavingConversation, setIsSavingConversation] = useState(false);
 
-  const handleSaveConversation = () => {
-    if (onSaveConversation) {
-      onSaveConversation(
-        conversationName || "Untitled Conversation",
-        conversationCategory
-      );
-      setIsSaveDialogOpen(false);
+  const handleSaveConversation = async () => {
+    if (!conversationName.trim()) {
+      toast.error("Please enter a conversation name");
+      return;
+    }
+
+    setIsSavingConversation(true);
+    try {
+      await onSaveConversation(conversationName, conversationCategory);
+      toast.success(`Conversation "${conversationName}" saved`);
+    } catch (error) {
+      console.error("Error saving conversation:", error);
+      toast.error("Failed to save conversation");
+    } finally {
+      setIsSavingConversation(false);
     }
   };
 
-  const handleOpenSaveDialog = () => {
-    setConversationName(activeConversation?.name || "");
-    setConversationCategory((activeConversation?.category as ConversationCategory) || "General");
-    setIsSaveDialogOpen(true);
-  };
-
   return (
-    <>
-      <div className="p-3 border-b flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium">
-            {activeConversation?.name || "Chat with AI"}
-          </h3>
-          {activeConversation?.category && (
-            <>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs bg-secondary rounded-full px-2 py-0.5">
-                {activeConversation.category}
-              </span>
-            </>
-          )}
-        </div>
-
-        <div className="flex gap-1">
-          <TooltipProvider>
-            {messageCount > 0 && onSaveConversation && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={handleOpenSaveDialog}>
-                    <Save className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Save conversation</TooltipContent>
-              </Tooltip>
-            )}
-
-            {onManageConversations && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={onManageConversations}>
-                    <History className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Manage conversations</TooltipContent>
-              </Tooltip>
-            )}
-
-            {messageCount > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={clearChat}>
-                    <Archive className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Clear chat</TooltipContent>
-              </Tooltip>
-            )}
-          </TooltipProvider>
-        </div>
+    <header className="border-b px-4 py-3 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold">
+          {isBookmarkSearchMode ? "Bookmark Search" : "Chat"}
+        </h2>
+        {activeConversation && (
+          <span className="text-sm text-muted-foreground ml-2">
+            {activeConversation.name}
+          </span>
+        )}
       </div>
 
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Save Conversation</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="conversation-name">Name</Label>
-              <Input
-                id="conversation-name"
-                value={conversationName}
-                onChange={(e) => setConversationName(e.target.value)}
-                placeholder="Enter a name for this conversation"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="conversation-category">Category</Label>
-              <Select
-                value={conversationCategory}
-                onValueChange={(value) => setConversationCategory(value as ConversationCategory)}
-              >
-                <SelectTrigger id="conversation-category">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="General">General</SelectItem>
-                  <SelectItem value="Work">Work</SelectItem>
-                  <SelectItem value="Research">Research</SelectItem>
-                  <SelectItem value="Personal">Personal</SelectItem>
-                  <SelectItem value="Bookmarks">Bookmarks</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
-              Cancel
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleBookmarkSearchMode}
+          className={isBookmarkSearchMode ? "bg-secondary" : ""}
+          title={isBookmarkSearchMode ? "Exit bookmark search" : "Search bookmarks"}
+        >
+          <Search className="h-5 w-5" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onManageConversations}
+          title="Manage conversations"
+        >
+          <BookmarkPlus className="h-5 w-5" />
+        </Button>
+
+        {messageCount > 0 && (
+          <>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Save conversation"
+                >
+                  <PenSquare className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Save Conversation</DialogTitle>
+                  <DialogDescription>
+                    Give your conversation a name and category to save it for later.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Name
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="My Conversation"
+                      className="col-span-3"
+                      value={conversationName}
+                      onChange={(e) => setConversationName(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="text-right">
+                      Category
+                    </Label>
+                    <Select 
+                      value={conversationCategory}
+                      onValueChange={setConversationCategory}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="General">General</SelectItem>
+                        <SelectItem value="Work">Work</SelectItem>
+                        <SelectItem value="Research">Research</SelectItem>
+                        <SelectItem value="Personal">Personal</SelectItem>
+                        <SelectItem value="Bookmarks">Bookmarks</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="secondary">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button onClick={handleSaveConversation} disabled={isSavingConversation}>
+                      {isSavingConversation ? (
+                        <AIProgressIndicator isLoading={true} variant="minimal" className="h-4 w-4 mr-2" />
+                      ) : null}
+                      Save
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearChat}
+              className="text-muted-foreground"
+              title="Clear chat"
+            >
+              <Trash2 className="h-5 w-5" />
             </Button>
-            <Button onClick={handleSaveConversation}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          </>
+        )}
+      </div>
+    </header>
   );
 };
 
