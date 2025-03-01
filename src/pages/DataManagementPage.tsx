@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import {
   AlertTriangle, 
   Shield, 
   FileJson, 
-  FileCsv, 
+  FileSpreadsheet, 
   Copy, 
   ArchiveRestore
 } from "lucide-react";
@@ -213,7 +212,7 @@ const DataManagementPage = () => {
                         </SelectItem>
                         <SelectItem value="csv">
                           <div className="flex items-center gap-2">
-                            <FileCsv className="h-4 w-4" />
+                            <FileSpreadsheet className="h-4 w-4" />
                             <span>CSV (Spreadsheet)</span>
                           </div>
                         </SelectItem>

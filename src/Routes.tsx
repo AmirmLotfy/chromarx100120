@@ -1,19 +1,20 @@
+
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import HomePage from '@/pages/HomePage';
+import { BrowserRouter, Route, Routes as RouterRoutes } from 'react-router-dom';
+import HomePage from './pages/Index';
 import SettingsPage from '@/pages/SettingsPage';
 import UserPage from '@/pages/UserPage';
 import AuthPage from '@/pages/AuthPage';
 import SubscriptionPage from '@/pages/SubscriptionPage';
 import ExportImportPage from '@/pages/ExportImportPage';
-import NotFound from '@/pages/NotFoundPage';
+import NotFound from './pages/NotFound';
 import DataManagementPage from '@/pages/DataManagementPage';
 
-const Routes = () => {
+const AppRoutes = () => {
   return (
     <BrowserRouter>
       <div className="app">
-        <Routes>
+        <RouterRoutes>
           <Route path="/" element={<HomePage />} />
           <Route path="auth" element={<AuthPage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
@@ -22,10 +23,10 @@ const Routes = () => {
           <Route path="data-management" element={<DataManagementPage />} />
           <Route path="user" element={<UserPage />} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
+        </RouterRoutes>
       </div>
     </BrowserRouter>
   );
 };
 
-export default Routes;
+export default AppRoutes;
