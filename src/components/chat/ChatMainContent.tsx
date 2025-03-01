@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
 import ChatOfflineNotice from "./ChatOfflineNotice";
@@ -18,6 +18,7 @@ interface ChatMainContentProps {
   retryLastMessage: () => void;
   isProcessing: boolean;
   isBookmarkSearchMode: boolean;
+  markMessagesAsRead?: () => void;
 }
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
@@ -29,8 +30,16 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   error,
   retryLastMessage,
   isProcessing,
-  isBookmarkSearchMode
+  isBookmarkSearchMode,
+  markMessagesAsRead
 }) => {
+  // Mark messages as read when they are viewed
+  useEffect(() => {
+    if (messages.length > 0 && markMessagesAsRead) {
+      markMessagesAsRead();
+    }
+  }, [messages, markMessagesAsRead]);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Notifications section */}

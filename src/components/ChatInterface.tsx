@@ -28,7 +28,8 @@ const ChatInterface = () => {
     recentQueries,
     activeConversation,
     isBookmarkSearchMode,
-    toggleBookmarkSearchMode
+    toggleBookmarkSearchMode,
+    markMessagesAsRead
   } = useChatState();
   
   const isMobile = useIsMobile();
@@ -96,6 +97,7 @@ const ChatInterface = () => {
             retryLastMessage={retryLastMessage}
             isProcessing={isProcessing}
             isBookmarkSearchMode={isBookmarkSearchMode}
+            markMessagesAsRead={markMessagesAsRead}
           />
           
           {/* Chat input section */}

@@ -1,13 +1,13 @@
-
 export interface Message {
   id: string;
   content: string;
   sender: "user" | "assistant";
-  timestamp: Date;
+  timestamp?: number;
+  isRead?: boolean;
   bookmarks?: {
     title: string;
     url: string;
-    relevance: number;
+    relevanceScore?: number;
   }[];
   webResults?: {
     title: string;
@@ -18,10 +18,9 @@ export interface Message {
 export interface Conversation {
   id: string;
   name: string;
-  category?: string;
   messages: Message[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: number;
+  updatedAt: number;
   pinned?: boolean;
   bookmarkContext?: string[];
   isBookmarkSearch?: boolean;

@@ -1,6 +1,6 @@
 
 import React from "react";
-import { X, History, MessageCircle } from "lucide-react";
+import { X, History, MessageCircle, Circle } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 import { Conversation } from "@/types/chat";
@@ -61,28 +61,47 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         )}
         
-        {chatHistory.map((conversation) => (
-          <div 
-            key={conversation.id}
-            onClick={() => {
-              loadChatSession(conversation.messages);
-              if (isMobile) setIsHistoryOpen(false);
-            }}
-            className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors
-                      ${activeConversation?.id === conversation.id 
-                        ? 'bg-primary/10 border border-primary/20' 
-                        : 'hover:bg-muted'}`}
-          >
-            <div className="font-medium truncate text-sm">{conversation.name}</div>
-            <div className="text-xs text-muted-foreground truncate mt-1">
-              {conversation.messages[conversation.messages.length - 1]?.content.substring(0, 50)}
-              {conversation.messages[conversation.messages.length - 1]?.content.length > 50 ? "..." : ""}
+        {chatHistory.map((conversation) => {
+          const hasUnreadMessages = conversation.messages.some(msg => msg.sender === "assistant" && !msg.isRead);
+          const lastMessageDate = new Date(conversation.updatedAt).toLocaleDateString();
+          const isToday = lastMessageDate === new Date().toLocaleDateString();
+          
+          return (
+            <div 
+              key={conversation.id}
+              onClick={() => {
+                loadChatSession(conversation.messages);
+                if (isMobile) setIsHistoryOpen(false);
+              }}
+              className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors relative
+                        ${activeConversation?.id === conversation.id 
+                          ? 'bg-primary/10 border border-primary/20' 
+                          : 'hover:bg-muted'}`}
+            >
+              <div className="flex justify-between items-start">
+                <div className="font-medium truncate text-sm flex-1">{conversation.name}</div>
+                {hasUnreadMessages && (
+                  <Circle className="h-2 w-2 fill-primary text-primary flex-shrink-0" />
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground truncate mt-1">
+                {conversation.messages[conversation.messages.length - 1]?.content.substring(0, 50)}
+                {conversation.messages[conversation.messages.length - 1]?.content.length > 50 ? "..." : ""}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
+                <span>{isToday ? 'Today' : lastMessageDate}</span>
+                <span className="text-[10px] opacity-70">
+                  {new Date(conversation.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </span>
+              </div>
+              
+              {/* Message count badge */}
+              <div className="absolute top-3 right-3 text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5 min-w-5 text-center">
+                {conversation.messages.length}
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {new Date(conversation.updatedAt).toLocaleDateString()}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       <div className="p-3 border-t">
