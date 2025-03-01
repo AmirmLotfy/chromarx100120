@@ -44,7 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const SettingsPage = () => {
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState("appearance");
   const [searchQuery, setSearchQuery] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [isSearchActive, setIsSearchActive] = useState(false);

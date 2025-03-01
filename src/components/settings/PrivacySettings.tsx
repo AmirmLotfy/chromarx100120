@@ -38,7 +38,7 @@ const PrivacySettings = () => {
   const [confirmDisableDataCollection, setConfirmDisableDataCollection] = useState(false);
   const [syncInProgress, setSyncInProgress] = useState(false);
 
-  const handleDataCollection = async (enabled) => {
+  const handleDataCollection = async (enabled: boolean) => {
     if (!enabled && !confirmDisableDataCollection) {
       setConfirmDisableDataCollection(true);
       return;
@@ -49,17 +49,17 @@ const PrivacySettings = () => {
     toast.success(`Data collection ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleExperimentalFeatures = (enabled) => {
+  const handleExperimentalFeatures = (enabled: boolean) => {
     settings.setExperimentalFeatures(enabled);
     toast.success(`Experimental features ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleAffiliateBannersEnabled = (enabled) => {
+  const handleAffiliateBannersEnabled = (enabled: boolean) => {
     settings.setAffiliateBannersEnabled(enabled);
     toast.success(`Affiliate content ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleCloudBackup = async (enabled) => {
+  const handleCloudBackup = async (enabled: boolean) => {
     if (!enabled && !confirmDisableBackup) {
       setConfirmDisableBackup(true);
       return;
@@ -143,12 +143,12 @@ const PrivacySettings = () => {
   };
 
   const renderSetting = (
-    icon,
-    title,
-    description,
-    isChecked,
-    onChange,
-    badge
+    icon: React.ReactNode,
+    title: string,
+    description: string,
+    isChecked: boolean,
+    onChange: (value: boolean) => void,
+    badge: { text: string; variant?: string } | null
   ) => (
     <div className="flex items-center justify-between py-3.5 border-b border-border/20 last:border-none">
       <div className="flex gap-3">
