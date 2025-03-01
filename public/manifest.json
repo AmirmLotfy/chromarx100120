@@ -12,7 +12,8 @@
     "sidePanel",
     "tabs",
     "unlimitedStorage",
-    "history"
+    "history",
+    "offline"
   ],
   "background": {
     "service_worker": "background.js",

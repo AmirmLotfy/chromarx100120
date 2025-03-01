@@ -10,6 +10,7 @@ interface GeminiRequest {
   type: 'summarize' | 'categorize' | 'timer' | 'sentiment' | 'task' | 'analytics';
   language: string;
   contentType?: string;
+  maxRetries?: number;
 }
 
 interface GeminiResponse {
@@ -36,7 +37,7 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
         contentType: request.contentType
       }),
       {
-        maxRetries: 3,
+        maxRetries: request.maxRetries || 3,
         initialDelay: 1000,
         maxDelay: 10000,
         onRetry: (error, attempt) => {
@@ -52,9 +53,15 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
     console.error('Error getting Gemini response:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    // Check for rate limit errors
+    // Enhanced error handling with more specific messages
     if (errorMessage.includes('rate') && errorMessage.includes('limit')) {
       toast.error("AI service rate limit reached. Please try again later.");
+    } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+      toast.error("Network issue detected. Check your connection and try again.");
+    } else if (errorMessage.includes('auth') || errorMessage.includes('key')) {
+      toast.error("Authentication issue with AI service. Please check your API key.");
+    } else {
+      toast.error(`AI service error: ${errorMessage}`);
     }
     
     // Use fallback responses based on operation type
@@ -68,9 +75,14 @@ export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiR
 const callAIFunction = async (operation: string, params: any): Promise<string> => {
   try {
     // Check if Gemini API key is available in Supabase
-    const { data: secretExists } = await supabase.functions.invoke('gemini-api', {
+    const { data: secretExists, error: secretError } = await supabase.functions.invoke('gemini-api', {
       body: { operation: 'check-api-key' }
     });
+
+    if (secretError) {
+      console.error('Error checking API key:', secretError);
+      throw new Error('Failed to check API key status');
+    }
 
     if (!secretExists || !secretExists.exists) {
       console.warn('Gemini API key not available');
@@ -86,12 +98,16 @@ const callAIFunction = async (operation: string, params: any): Promise<string> =
   } catch (error) {
     console.error('Error calling AI function:', error);
     
-    // Handle specific error types
+    // Enhanced error type handling
     if (error instanceof Error) {
       if (error.message.includes('429')) {
         throw new Error('Rate limit exceeded. Please try again later.');
       } else if (error.message.includes('403')) {
         throw new Error('Access denied. Please check your API key.');
+      } else if (error.message.includes('404')) {
+        throw new Error('AI service endpoint not found. Please check configuration.');
+      } else if (error.message.includes('timeout')) {
+        throw new Error('Request timed out. The AI service may be experiencing high load.');
       }
     }
     
@@ -218,6 +234,117 @@ export const checkGeminiAvailability = async (): Promise<boolean> => {
     return data.exists === true;
   } catch (error) {
     console.error('Error checking Gemini availability:', error);
+    return false;
+  }
+};
+
+export const processBatchBookmarks = async (
+  bookmarks: ChromeBookmark[], 
+  operation: 'summarize' | 'categorize',
+  language: string,
+  batchSize = 5,
+  onProgress?: (progress: number) => void
+): Promise<ChromeBookmark[]> => {
+  const results: ChromeBookmark[] = [];
+  const totalBookmarks = bookmarks.length;
+  
+  // Process in smaller batches to avoid rate limits
+  for (let i = 0; i < totalBookmarks; i += batchSize) {
+    const batch = bookmarks.slice(i, i + batchSize);
+    
+    const batchPromises = batch.map(async (bookmark) => {
+      try {
+        let processedBookmark = { ...bookmark };
+        
+        if (operation === 'summarize' && bookmark.url) {
+          const summary = await summarizeBookmark(bookmark, language);
+          processedBookmark.metadata = {
+            ...processedBookmark.metadata,
+            summary
+          };
+        } else if (operation === 'categorize' && bookmark.url) {
+          const content = await fetchPageContent(bookmark.url);
+          const category = await suggestBookmarkCategory(
+            bookmark.title,
+            bookmark.url,
+            content,
+            language
+          );
+          processedBookmark.category = category;
+        }
+        
+        return processedBookmark;
+      } catch (error) {
+        console.error(`Error processing bookmark ${bookmark.id}:`, error);
+        // Return original bookmark if processing fails
+        return bookmark;
+      }
+    });
+    
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        // Keep original bookmark on failure
+        results.push(batch[index]);
+        console.error(`Failed to process bookmark: ${result.reason}`);
+      }
+    });
+    
+    // Report progress
+    if (onProgress) {
+      const progress = Math.min(100, Math.round(((i + batch.length) / totalBookmarks) * 100));
+      onProgress(progress);
+    }
+    
+    // Pause between batches to avoid rate limits
+    if (i + batchSize < totalBookmarks) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  return results;
+};
+
+export const submitAIFeedback = async (
+  operationType: string,
+  result: string,
+  feedback: 'positive' | 'negative',
+  userSuggestion?: string
+): Promise<void> => {
+  try {
+    await supabase.functions.invoke('gemini-api', {
+      body: { 
+        operation: 'feedback',
+        operationType,
+        result,
+        feedback,
+        userSuggestion
+      }
+    });
+    
+    toast.success('Thank you for your feedback!');
+  } catch (error) {
+    console.error('Error submitting AI feedback:', error);
+    toast.error('Failed to submit feedback');
+  }
+};
+
+export const testAIReliability = async (language: string): Promise<boolean> => {
+  try {
+    // Simple test to check if AI service is responding reliably
+    const testResult = await getGeminiResponse({
+      prompt: 'Test prompt for reliability check',
+      type: 'sentiment',
+      language,
+      maxRetries: 1
+    });
+    
+    return !testResult.error;
+  } catch (error) {
+    console.error('AI reliability test failed:', error);
     return false;
   }
 };

@@ -14,12 +14,15 @@ export interface ChromeBookmark {
   lastVisited?: number;
   visitCount?: number;
   children?: ChromeBookmark[];
-  // Add the missing properties
+  // Properties for sync and offline support
   metadata?: {
     tags?: string[];
     notes?: string;
     createdAt?: string;
     updatedAt?: string;
+    syncStatus?: 'synced' | 'pending' | 'conflict';
+    lastSyncedAt?: string;
+    deviceId?: string;
     [key: string]: any;
   };
   preview?: {
@@ -27,4 +30,12 @@ export interface ChromeBookmark {
     ogImage?: string;
   };
   version?: number;
+  // Conflict resolution properties
+  conflictVersion?: {
+    local?: number;
+    remote?: number;
+    resolved?: boolean;
+  };
+  // Offline tracking
+  offlineChanges?: boolean;
 }
