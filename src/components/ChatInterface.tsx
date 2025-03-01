@@ -63,7 +63,7 @@ const ChatInterface = () => {
           
           <div className="flex flex-col">
             <h1 className="text-lg font-medium">
-              {activeConversation?.title || "New Chat"}
+              {activeConversation?.name || "New Chat"}
             </h1>
             <p className="text-xs text-muted-foreground">
               {messages.length === 0 
@@ -131,25 +131,25 @@ const ChatInterface = () => {
                   </div>
                 )}
                 
-                {chatHistory.map((chat) => (
+                {chatHistory.map((conversation) => (
                   <div 
-                    key={chat.id}
+                    key={conversation.id}
                     onClick={() => {
-                      loadChatSession(chat);
+                      loadChatSession(conversation.messages);
                       if (isMobile) setIsHistoryOpen(false);
                     }}
                     className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors
-                              ${chat.id === activeConversation?.id 
+                              ${activeConversation?.id === conversation.id 
                                 ? 'bg-primary/10 border border-primary/20' 
                                 : 'hover:bg-muted'}`}
                   >
-                    <div className="font-medium truncate text-sm">{chat.title}</div>
+                    <div className="font-medium truncate text-sm">{conversation.name}</div>
                     <div className="text-xs text-muted-foreground truncate mt-1">
-                      {chat.messages[chat.messages.length - 1]?.content.substring(0, 50)}
-                      {chat.messages[chat.messages.length - 1]?.content.length > 50 ? "..." : ""}
+                      {conversation.messages[conversation.messages.length - 1]?.content.substring(0, 50)}
+                      {conversation.messages[conversation.messages.length - 1]?.content.length > 50 ? "..." : ""}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {new Date(chat.lastUpdated).toLocaleDateString()}
+                      {new Date(conversation.updatedAt).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
@@ -191,7 +191,7 @@ const ChatInterface = () => {
                     <X size={12} className="text-destructive" />
                   </div>
                   <div>
-                    <p className="font-medium text-destructive">{error.title || "Error"}</p>
+                    <p className="font-medium text-destructive">{error.message || "Error"}</p>
                     <p className="text-xs mt-1 text-destructive/90">{error.message}</p>
                     <Button 
                       variant="outline" 
