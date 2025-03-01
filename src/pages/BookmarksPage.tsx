@@ -9,7 +9,6 @@ import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 
@@ -170,18 +169,18 @@ const BookmarksPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-8 pb-16">
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/30 rounded-lg">
+      <div className="space-y-4 pb-16 px-1">
+        <div className="flex items-center justify-between p-3 bg-accent/10 rounded-xl backdrop-blur-sm">
           <div className="flex items-center space-x-2">
             {isConnected ? (
               <Wifi className="h-4 w-4 text-green-500" />
             ) : (
               <WifiOff className="h-4 w-4 text-red-500" />
             )}
-            <span className="text-sm">
+            <span className="text-xs">
               {isConnected ? "Online" : "Offline"} 
               {syncStatus === 'success' && lastSynced && (
-                <span className="text-muted-foreground ml-2">
+                <span className="text-muted-foreground ml-2 hidden sm:inline text-xs">
                   Last synced: {new Date(lastSynced).toLocaleString()}
                 </span>
               )}
@@ -190,16 +189,16 @@ const BookmarksPage = () => {
           <Button 
             size="sm" 
             variant="outline" 
-            className="flex items-center space-x-1"
+            className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs"
             onClick={handleForceSync}
             disabled={!isConnected || isProcessing}
           >
             {syncStatus === 'success' ? (
-              <Check className="h-4 w-4 mr-1 text-green-500" />
+              <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
             ) : (
-              <WifiOff className="h-4 w-4 mr-1" />
+              <WifiOff className="h-3.5 w-3.5 mr-1" />
             )}
-            <span>Sync Now</span>
+            <span>Sync</span>
           </Button>
         </div>
         
@@ -213,14 +212,13 @@ const BookmarksPage = () => {
         )}
 
         {isOfflineMode && (
-          <div className="px-4 py-3 bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-2">
-            <div className="flex items-center space-x-2">
+          <div className="px-3 py-2.5 bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-400">Offline Mode</span>
+              <span className="text-xs font-medium text-amber-800 dark:text-amber-400">Offline Mode</span>
             </div>
-            <p className="text-xs text-amber-700 dark:text-amber-500">
-              You're currently offline. Some features like syncing and AI-powered categorization are limited. 
-              Your changes will be synced once you're back online.
+            <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
+              You're currently offline. Some features like syncing and AI-powered categorization are limited.
             </p>
           </div>
         )}
@@ -246,6 +244,8 @@ const BookmarksPage = () => {
           suggestions={suggestions}
           onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
           importComponent={<BookmarkImport onImportComplete={handleImport} />}
+          categories={categories.map(c => c.name)}
+          domains={domains.map(d => d.domain)}
         />
 
         <BookmarkContent
@@ -278,6 +278,7 @@ const BookmarksPage = () => {
           filteredBookmarks={filteredBookmarks}
           onUpdateCategories={handleUpdateCategories}
           isOffline={isOfflineMode}
+          onClearFilters={() => handleSearch("")}
         />
       </div>
     </Layout>

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkList from "./BookmarkList";
 import BookmarkCategories from "./BookmarkCategories";
@@ -76,7 +76,7 @@ const BookmarkContent = ({
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="flex flex-col items-center justify-center h-60 border-2 border-dashed rounded-lg bg-accent/5"
+      className="flex flex-col items-center justify-center h-60 border-2 border-dashed rounded-xl bg-accent/5"
     >
       <div className="text-center p-6">
         <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
@@ -92,7 +92,7 @@ const BookmarkContent = ({
         {hasActiveFilters && (
           <Button 
             variant="outline" 
-            className="mt-4"
+            className="mt-4 rounded-full text-xs px-4 h-8"
             onClick={onClearFilters}
           >
             Clear Filters
@@ -151,28 +151,28 @@ const BookmarkContent = ({
         <TabsList className="mb-4 rounded-full p-1 bg-muted/30 backdrop-blur-sm sticky top-0 z-10 grid grid-cols-3 w-full sm:w-auto">
           <TabsTrigger 
             value="all" 
-            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs h-9"
             onClick={() => {
               console.log("All tab clicked");
               if (selectedCategory) onSelectCategory(null);
               if (selectedDomain) onSelectDomain(null);
             }}
           >
-            <BookmarkIcon className="h-4 w-4 mr-2" />
+            <BookmarkIcon className="h-3.5 w-3.5 mr-1.5" />
             All
           </TabsTrigger>
           <TabsTrigger 
             value="categories" 
-            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs h-9"
           >
-            <FolderIcon className="h-4 w-4 mr-2" />
+            <FolderIcon className="h-3.5 w-3.5 mr-1.5" />
             Categories
           </TabsTrigger>
           <TabsTrigger 
             value="domains" 
-            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs h-9"
           >
-            <GlobeIcon className="h-4 w-4 mr-2" />
+            <GlobeIcon className="h-3.5 w-3.5 mr-1.5" />
             Domains
           </TabsTrigger>
         </TabsList>
@@ -202,7 +202,7 @@ const BookmarkContent = ({
               variant="ghost" 
               size="sm" 
               onClick={onClearFilters} 
-              className="h-7 text-xs rounded-full hover:bg-background"
+              className="h-7 text-xs rounded-full hover:bg-background px-2"
             >
               <X className="h-3 w-3 mr-1" />
               Clear
@@ -210,8 +210,8 @@ const BookmarkContent = ({
           </motion.div>
         )}
 
-        <ScrollArea className="flex-1 pr-4 -mr-4 overflow-y-auto">
-          <div ref={scrollRef} className="h-full">
+        <ScrollArea className="flex-1 px-1 overflow-y-auto">
+          <div ref={scrollRef} className="h-full pb-20">
             <TabsContent value="all" className="mt-0 space-y-4 h-full">
               {renderContent()}
             </TabsContent>
