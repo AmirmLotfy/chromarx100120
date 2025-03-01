@@ -314,6 +314,7 @@ const SettingsPage = () => {
                   {activeTab === tab.id && (
                     <motion.div
                       id={`panel-${tab.id}`}
+                      key={`panel-${tab.id}`} // Add key prop to fix AnimatePresence issue
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ 
                         height: "auto", 
