@@ -37,6 +37,21 @@ interface SettingsState {
   fetchSettingsFromServer: (userId: string) => Promise<void>;
 }
 
+// Interface for the settings JSON structure stored in Supabase
+interface UserSettingsData {
+  colorScheme?: 'default' | 'purple' | 'blue' | 'green';
+  highContrast?: boolean;
+  notifications?: {
+    bookmarks: boolean;
+    updates: boolean;
+    reminders: boolean;
+  };
+  experimentalFeatures?: boolean;
+  affiliateBannersEnabled?: boolean;
+  autoDetectBookmarks?: boolean;
+  cloudBackupEnabled?: boolean;
+}
+
 const initialState = {
   theme: 'system' as const,
   colorScheme: 'default' as const,
@@ -241,13 +256,13 @@ export const useSettings = create<SettingsState>()(
           }
           
           if (data) {
-            // Apply server settings to local state
-            const serverSettings = data.settings || {};
+            // Type-cast the settings data to our interface
+            const serverSettings = data.settings as UserSettingsData || {};
             
             set({
               theme: (data.theme as 'light' | 'dark' | 'system') || get().theme,
               dataCollection: data.data_collection_enabled !== null ? data.data_collection_enabled : get().dataCollection,
-              colorScheme: (serverSettings.colorScheme as 'default' | 'purple' | 'blue' | 'green') || get().colorScheme,
+              colorScheme: serverSettings.colorScheme || get().colorScheme,
               highContrast: serverSettings.highContrast !== undefined ? serverSettings.highContrast : get().highContrast,
               notifications: serverSettings.notifications || get().notifications,
               experimentalFeatures: serverSettings.experimentalFeatures !== undefined ? serverSettings.experimentalFeatures : get().experimentalFeatures,
