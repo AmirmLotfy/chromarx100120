@@ -38,7 +38,7 @@ const PrivacySettings = () => {
   const [confirmDisableDataCollection, setConfirmDisableDataCollection] = useState(false);
   const [syncInProgress, setSyncInProgress] = useState(false);
 
-  const handleDataCollection = async (enabled: boolean) => {
+  const handleDataCollection = async (enabled) => {
     if (!enabled && !confirmDisableDataCollection) {
       setConfirmDisableDataCollection(true);
       return;
@@ -49,17 +49,17 @@ const PrivacySettings = () => {
     toast.success(`Data collection ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleExperimentalFeatures = (enabled: boolean) => {
+  const handleExperimentalFeatures = (enabled) => {
     settings.setExperimentalFeatures(enabled);
     toast.success(`Experimental features ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleAffiliateBannersEnabled = (enabled: boolean) => {
+  const handleAffiliateBannersEnabled = (enabled) => {
     settings.setAffiliateBannersEnabled(enabled);
     toast.success(`Affiliate content ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleCloudBackup = async (enabled: boolean) => {
+  const handleCloudBackup = async (enabled) => {
     if (!enabled && !confirmDisableBackup) {
       setConfirmDisableBackup(true);
       return;
@@ -143,12 +143,12 @@ const PrivacySettings = () => {
   };
 
   const renderSetting = (
-    icon: React.ReactNode,
-    title: string,
-    description: string,
-    isChecked: boolean,
-    onChange: (checked: boolean) => void,
-    badge?: { text: string, variant?: string }
+    icon,
+    title,
+    description,
+    isChecked,
+    onChange,
+    badge
   ) => (
     <div className="flex items-center justify-between py-3.5 border-b border-border/20 last:border-none">
       <div className="flex gap-3">
@@ -158,7 +158,7 @@ const PrivacySettings = () => {
             <Label className="text-sm font-medium">{title}</Label>
             {badge && (
               <Badge 
-                variant={badge.variant as any || "outline"} 
+                variant={badge.variant || "outline"} 
                 className="text-[10px] h-4"
               >
                 {badge.text}
