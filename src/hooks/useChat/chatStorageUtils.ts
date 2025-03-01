@@ -1,5 +1,5 @@
 
-import { Message, Conversation } from "@/types/chat";
+import { Message, Conversation, ConversationCategory } from "@/types/chat";
 import { storage } from "@/services/storageService";
 import { toast } from "sonner";
 
@@ -38,8 +38,9 @@ export const saveChatHistory = async (
       id: Date.now().toString(),
       name: `Chat ${new Date().toLocaleDateString()}`,
       messages: newMessages,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: Date.now(), // Convert Date to number timestamp
+      updatedAt: Date.now(), // Convert Date to number timestamp
+      category: "General" as ConversationCategory // Use a valid category from the enum
     };
     
     const updatedHistory = [newConversation, ...chatHistory].slice(0, 10);
@@ -53,7 +54,7 @@ export const saveChatHistory = async (
 
 export const saveConversation = async (
   name: string, 
-  category: string,
+  category: ConversationCategory, // Ensure this is typed correctly
   messages: Message[],
   activeConversation: Conversation | undefined,
   conversations: Conversation[],
@@ -69,10 +70,10 @@ export const saveConversation = async (
     const newConversation: Conversation = {
       id: activeConversation?.id || Date.now().toString(),
       name,
-      category,
+      category, // Already correctly typed
       messages: [...messages],
-      createdAt: activeConversation?.createdAt || new Date(),
-      updatedAt: new Date(),
+      createdAt: activeConversation?.createdAt || Date.now(), // Convert Date to number
+      updatedAt: Date.now(), // Convert Date to number
       pinned: activeConversation?.pinned || false
     };
     

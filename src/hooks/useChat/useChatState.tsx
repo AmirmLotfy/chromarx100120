@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useBookmarkState } from "../../components/BookmarkStateManager";
-import { Message, Conversation } from "@/types/chat";
+import { Message, Conversation, ConversationCategory } from "@/types/chat";
 import { useLanguage } from "@/stores/languageStore";
 import { withErrorHandling } from "@/utils/errorUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -55,7 +55,7 @@ export const useChatState = () => {
         id: Date.now().toString(),
         content: "I'm ready to help you find bookmarks. Describe what you're looking for in natural language, and I'll search your bookmarks for you.",
         sender: "assistant",
-        timestamp: new Date(),
+        timestamp: Date.now(), // Use number timestamp instead of Date
       };
       setMessages([introMessage]);
     }
@@ -171,7 +171,7 @@ export const useChatState = () => {
   }, [chatHistory]);
 
   // Save conversation handler
-  const saveConversation = useCallback((name: string, category: string) => {
+  const saveConversation = useCallback((name: string, category: ConversationCategory) => {
     return saveChatConversation(
       name, 
       category, 
@@ -206,7 +206,7 @@ export const useChatState = () => {
           id: Date.now().toString(),
           content: "I'm ready to help you find bookmarks. Describe what you're looking for in natural language, and I'll search your bookmarks for you.",
           sender: "assistant",
-          timestamp: new Date(),
+          timestamp: Date.now(), // Use number timestamp instead of Date
         };
         setMessages([introMessage]);
       } else {
@@ -246,7 +246,7 @@ export const useChatState = () => {
       id: Date.now().toString(),
       content: inputValue,
       sender: "user",
-      timestamp: new Date(),
+      timestamp: Date.now(), // Use number timestamp instead of Date
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -297,7 +297,7 @@ export const useChatState = () => {
           id: (Date.now() + 1).toString(),
           content: response,
           sender: "assistant",
-          timestamp: new Date(),
+          timestamp: Date.now(), // Use number timestamp instead of Date
           bookmarks: relevantBookmarks,
           webResults,
         };
@@ -320,7 +320,7 @@ export const useChatState = () => {
         id: (Date.now() + 1).toString(),
         content: "I'm sorry, I couldn't process your request. Please try again later.",
         sender: "assistant",
-        timestamp: new Date(),
+        timestamp: Date.now(), // Use number timestamp instead of Date
       };
       
       setMessages((prev) => [...prev, errorMessage]);
