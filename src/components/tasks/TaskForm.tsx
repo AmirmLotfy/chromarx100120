@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
@@ -119,7 +118,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
   const getAIRecommendations = async () => {
     setIsLoading(true);
     try {
-      // Get both duration and suggestions concurrently
       const [duration, taskSuggestions] = await Promise.all([
         suggestTimerDuration(
           `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`,
@@ -131,7 +129,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
         )
       ]);
 
-      // Validate duration is within reasonable bounds
       const validatedDuration = Math.min(Math.max(duration || 25, 5), 120);
       setEstimatedDuration(validatedDuration);
       
@@ -202,7 +199,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
         ...aiRecommendations
       });
 
-      // Reset form
       setTitle("");
       setDescription("");
       setPriority("medium");
@@ -228,7 +224,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
 
   return (
     <div className="relative pb-4">
-      {/* Progress indicator */}
       <div className="mb-6">
         <Progress value={step === 1 ? 50 : 100} className="h-1" />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -238,7 +233,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
       </div>
 
       {step === 1 ? (
-        // Step 1: Basic Task Info
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-base font-medium">Task Title</Label>
@@ -247,7 +241,7 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
               placeholder="What do you need to do?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="h-12 text-base"
+              className="h-12 text-base w-full"
               maxLength={100}
               required
             />
@@ -260,7 +254,7 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
               placeholder="Add more details about your task"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[100px] text-base"
+              className="min-h-[120px] text-base w-full px-3 py-2.5 resize-y"
               maxLength={500}
             />
           </div>
@@ -294,7 +288,6 @@ export const TaskForm = ({ onSubmit }: TaskFormProps) => {
           </Button>
         </div>
       ) : (
-        // Step 2: Additional Details
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-base font-medium">Category</Label>
