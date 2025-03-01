@@ -30,9 +30,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabaseBackup } from "@/services/supabaseBackupService";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
 
-// Define the badge variants explicitly to match the Badge component
-type BadgeVariant = "default" | "outline" | "destructive" | "secondary" | "success" | "info" | "warning";
+// Type-safe badge variants matching what's allowed in the Badge component
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 interface SettingBadge {
   text: string;
@@ -47,11 +48,13 @@ interface SettingProps {
   isChecked: boolean;
   onChange: (checked: boolean) => void;
   badge?: SettingBadge;
+  disabled?: boolean;
 }
 
 const PrivacySettings = () => {
   const settings = useSettings();
   const { user } = useAuth();
+  const { checkAccess } = useFeatureAccess();
   const [confirmDisableBackup, setConfirmDisableBackup] = useState(false);
   const [confirmDisableDataCollection, setConfirmDisableDataCollection] = useState(false);
   const [syncInProgress, setSyncInProgress] = useState(false);
@@ -67,7 +70,12 @@ const PrivacySettings = () => {
     toast.success(`Data collection ${enabled ? 'enabled' : 'disabled'}`);
   };
 
-  const handleExperimentalFeatures = (enabled: boolean) => {
+  const handleExperimentalFeatures = async (enabled: boolean) => {
+    // Check if user has access to experimental features when enabling
+    if (enabled && !(await checkAccess('experimental'))) {
+      return;
+    }
+    
     settings.setExperimentalFeatures(enabled);
     toast.success(`Experimental features ${enabled ? 'enabled' : 'disabled'}`);
   };
@@ -87,6 +95,11 @@ const PrivacySettings = () => {
     
     if (enabled && !user) {
       toast.error("You must be logged in to enable cloud backup");
+      return;
+    }
+    
+    // Check if user has access to cloud backup when enabling
+    if (enabled && !(await checkAccess('cloud_backup'))) {
       return;
     }
     
@@ -162,10 +175,10 @@ const PrivacySettings = () => {
   };
 
   // Reusable Setting component with proper accessibility
-  const Setting = ({ id, icon, title, description, isChecked, onChange, badge }: SettingProps) => (
+  const Setting = ({ id, icon, title, description, isChecked, onChange, badge, disabled = false }: SettingProps) => (
     <div className="flex items-center justify-between py-4 border-b border-border/20 last:border-none">
       <div className="flex gap-3">
-        <div className="mt-0.5 text-primary flex-shrink-0">{icon}</div>
+        <div className="mt-0.5 text-primary flex-shrink-0" aria-hidden="true">{icon}</div>
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <Label htmlFor={id} className="text-sm font-medium cursor-pointer">
@@ -173,14 +186,14 @@ const PrivacySettings = () => {
             </Label>
             {badge && (
               <Badge 
-                variant={badge.variant} 
+                variant={badge.variant}
                 className="text-[10px] h-4"
               >
                 {badge.text}
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground" id={`${id}-description`}>
             {description}
           </p>
         </div>
@@ -190,6 +203,8 @@ const PrivacySettings = () => {
         checked={isChecked}
         onCheckedChange={onChange}
         aria-label={`${title} ${isChecked ? 'enabled' : 'disabled'}`}
+        aria-describedby={`${id}-description`}
+        disabled={disabled}
       />
     </div>
   );
@@ -314,12 +329,12 @@ const PrivacySettings = () => {
                   >
                     {syncInProgress ? (
                       <>
-                        <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                        <Loader2 className="h-3 w-3 mr-1.5 animate-spin" aria-hidden="true" />
                         <span>Syncing...</span>
                       </>
                     ) : (
                       <>
-                        <RefreshCw className="h-3 w-3 mr-1.5" />
+                        <RefreshCw className="h-3 w-3 mr-1.5" aria-hidden="true" />
                         <span>Sync Now</span>
                       </>
                     )}
@@ -332,14 +347,14 @@ const PrivacySettings = () => {
                     disabled={syncInProgress}
                     aria-label="Restore settings from cloud"
                   >
-                    <Download className="h-3 w-3 mr-1.5" />
+                    <Download className="h-3 w-3 mr-1.5" aria-hidden="true" />
                     <span>Restore</span>
                   </Button>
                 </div>
                 
                 {settings.lastSynced && (
                   <div className="flex items-center text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 mr-1.5" />
+                    <Clock className="h-3 w-3 mr-1.5" aria-hidden="true" />
                     <span>Last synced: {new Date(settings.lastSynced).toLocaleString()}</span>
                   </div>
                 )}
@@ -356,7 +371,7 @@ const PrivacySettings = () => {
                   aria-label="Login for cloud backup"
                 >
                   <Link to="/auth">
-                    <Lock className="h-3 w-3 mr-1.5" />
+                    <Lock className="h-3 w-3 mr-1.5" aria-hidden="true" />
                     <span>Login required for cloud backup</span>
                   </Link>
                 </Button>
