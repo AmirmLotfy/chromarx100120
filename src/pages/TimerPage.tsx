@@ -7,10 +7,13 @@ import { TimerSuggestions } from "@/components/timer/TimerSuggestions";
 import { TimerSettings } from "@/components/timer/TimerSettings";
 import { useToast } from "@/hooks/use-toast";
 import { timerService } from "@/services/timerService";
-import { getTimerSuggestion } from "@/utils/timerAI";
-import { TimerSession, TimerStats } from "@/types/timer";
+import { TimerSession } from "@/types/timer";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import ProductivityScore from "@/components/analytics/ProductivityScore";
+import { Clock, CheckCircle2, BarChart3, Zap } from "lucide-react";
 
 const TimerPage = () => {
   const [duration, setDuration] = useState(25);
@@ -54,6 +57,15 @@ const TimerPage = () => {
       );
     }
 
+    // Play completion sound
+    timerService.playCompletionSound();
+    
+    // Show notification
+    toast({
+      title: `${mode.charAt(0).toUpperCase() + mode.slice(1)} session complete!`,
+      description: "Time to take a break or start a new session.",
+    });
+
     // Automatically switch modes and suggest new duration
     setMode(prevMode => prevMode === "focus" ? "break" : "focus");
   };
@@ -70,6 +82,11 @@ const TimerPage = () => {
       
       setCurrentSession(session);
       setIsRunning(true);
+      
+      toast({
+        title: `${mode.charAt(0).toUpperCase() + mode.slice(1)} timer started`,
+        description: `${duration} minute session started.`,
+      });
     } catch (error) {
       console.error('Error starting timer:', error);
       toast({
@@ -102,71 +119,114 @@ const TimerPage = () => {
     requestNotificationPermission();
   }, []);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 space-y-8 max-w-2xl">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Focus Timer</h1>
-          <p className="text-muted-foreground">
-            Enhance your productivity with AI-powered timer suggestions
-          </p>
-        </div>
+      <motion.div 
+        className="container mx-auto px-4 py-4 space-y-6 max-w-md"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div variants={itemVariants} className="space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight text-center">Focus Timer</h1>
+          <Input
+            placeholder="What are you working on?"
+            value={taskContext}
+            onChange={(e) => setTaskContext(e.target.value)}
+            className="bg-background/50 backdrop-blur-sm border-muted text-center"
+          />
+        </motion.div>
 
         {stats && (
-          <Card className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Total Focus Time</p>
-              <p className="text-2xl font-bold">{Math.round(stats.totalFocusTime / 60)}h</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Sessions</p>
-              <p className="text-2xl font-bold">{stats.totalSessions}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Avg. Productivity</p>
-              <p className="text-2xl font-bold">{Math.round(stats.averageProductivity)}%</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Completion Rate</p>
-              <p className="text-2xl font-bold">{Math.round(stats.completionRate)}%</p>
-            </div>
-          </Card>
+          <motion.div 
+            variants={itemVariants}
+            className="grid grid-cols-2 gap-3"
+          >
+            <Card className="p-3 bg-background/50 backdrop-blur-sm border-muted/50 flex flex-col items-center">
+              <Clock className="w-4 h-4 text-primary mb-1" />
+              <p className="text-xs text-muted-foreground">Total Focus</p>
+              <p className="text-lg font-bold">{Math.round(stats.totalFocusTime / 60)}h</p>
+            </Card>
+            <Card className="p-3 bg-background/50 backdrop-blur-sm border-muted/50 flex flex-col items-center">
+              <CheckCircle2 className="w-4 h-4 text-primary mb-1" />
+              <p className="text-xs text-muted-foreground">Sessions</p>
+              <p className="text-lg font-bold">{stats.totalSessions}</p>
+            </Card>
+          </motion.div>
         )}
 
-        <TimerDisplay 
-          timeLeft={timeLeft}
-          mode={mode}
-        />
+        <motion.div variants={itemVariants}>
+          <TimerDisplay 
+            timeLeft={timeLeft}
+            mode={mode}
+          />
+        </motion.div>
 
-        <TimerControls
-          isRunning={isRunning}
-          onStart={handleStart}
-          onPause={() => setIsRunning(false)}
-          onReset={() => {
-            setIsRunning(false);
-            setTimeLeft(duration * 60);
-          }}
-        />
+        <motion.div variants={itemVariants}>
+          <TimerControls
+            isRunning={isRunning}
+            onStart={handleStart}
+            onPause={() => setIsRunning(false)}
+            onReset={() => {
+              setIsRunning(false);
+              setTimeLeft(duration * 60);
+            }}
+          />
+        </motion.div>
 
-        <TimerSuggestions
-          onSelectDuration={(mins) => {
-            setDuration(mins);
-            setTimeLeft(mins * 60);
-          }}
-          taskContext={taskContext}
-          mode={mode}
-        />
+        <motion.div variants={itemVariants}>
+          <TimerSuggestions
+            onSelectDuration={(mins) => {
+              setDuration(mins);
+              setTimeLeft(mins * 60);
+            }}
+            taskContext={taskContext}
+            mode={mode}
+          />
+        </motion.div>
 
-        <TimerSettings
-          duration={duration}
-          mode={mode}
-          onDurationChange={(newDuration) => {
-            setDuration(newDuration);
-            setTimeLeft(newDuration * 60);
-          }}
-          onModeChange={setMode}
-        />
-      </div>
+        {stats && (
+          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 mt-2">
+            <ProductivityScore score={Math.round(stats.averageProductivity)} />
+            <Card className="p-3 bg-background/50 backdrop-blur-sm border-muted/50 flex flex-col items-center h-full justify-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Zap className="w-4 h-4 text-primary" />
+                <p className="text-xs text-muted-foreground">Completion Rate</p>
+              </div>
+              <p className="text-2xl font-bold">{Math.round(stats.completionRate)}%</p>
+              <p className="text-xs text-muted-foreground">of sessions finished</p>
+            </Card>
+          </motion.div>
+        )}
+
+        <motion.div variants={itemVariants}>
+          <TimerSettings
+            duration={duration}
+            mode={mode}
+            onDurationChange={(newDuration) => {
+              setDuration(newDuration);
+              setTimeLeft(newDuration * 60);
+            }}
+            onModeChange={setMode}
+          />
+        </motion.div>
+      </motion.div>
     </Layout>
   );
 };
