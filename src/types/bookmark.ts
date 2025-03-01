@@ -1,3 +1,4 @@
+
 export interface ChromeBookmark {
   id: string;
   parentId?: string;
@@ -13,4 +14,17 @@ export interface ChromeBookmark {
   lastVisited?: number;
   visitCount?: number;
   children?: ChromeBookmark[];
+  // Add the missing properties
+  metadata?: {
+    tags?: string[];
+    notes?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    [key: string]: any;
+  };
+  preview?: {
+    description?: string;
+    ogImage?: string;
+  };
+  version?: number;
 }
