@@ -164,7 +164,7 @@ const SettingsPage = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Header */}
+        {/* Header - Added pt-16 to account for the fixed top-14 header */}
         <motion.div 
           className="flex items-center justify-between px-4 py-3 sticky top-14 z-10 bg-background/80 backdrop-blur-md border-b border-border/20"
           initial={{ opacity: 0, y: -10 }}
@@ -253,9 +253,9 @@ const SettingsPage = () => {
           </div>
         </motion.div>
 
-        {/* Navigation Pills */}
+        {/* Navigation Pills - Added pt-6 instead of pt-4 to increase spacing */}
         <motion.div 
-          className="pt-4 pb-2 px-4"
+          className="pt-6 pb-2 px-4"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
@@ -285,8 +285,8 @@ const SettingsPage = () => {
           </div>
         </motion.div>
 
-        {/* Content */}
-        <div className="px-4 pb-24">
+        {/* Content - Added pt-4 to create more space after the tab pills */}
+        <div className="px-4 pb-24 pt-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

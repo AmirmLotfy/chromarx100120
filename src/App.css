@@ -86,6 +86,11 @@
   }
 }
 
+/* Adjust settings page spacing */
+.settings-page-content {
+  padding-top: 1rem;
+}
+
 /* Remove transparency from main background */
 body, 
 .bg-background,
