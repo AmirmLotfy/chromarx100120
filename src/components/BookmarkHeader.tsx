@@ -73,6 +73,8 @@ const BookmarkHeader = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
+  console.log("BookmarkHeader rendered with view:", view);
+
   const handleCategorySubmit = () => {
     if (!newCategory.trim()) {
       toast.error("Please enter a category name");
@@ -100,10 +102,10 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="bg-background sticky top-0 z-10">
+    <div className="bg-background sticky top-0 z-10 pb-4">
       <div className="flex flex-col space-y-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Bookmarks</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">Bookmarks</h1>
 
           <div className="flex items-center space-x-2">
             <ViewToggle view={view} onViewChange={onViewChange} />
@@ -117,7 +119,8 @@ const BookmarkHeader = ({
                   className="flex items-center space-x-1"
                 >
                   <Trash className="h-4 w-4" />
-                  <span>Delete {selectedBookmarksCount}</span>
+                  <span className="hidden sm:inline">Delete</span>
+                  <span>{selectedBookmarksCount}</span>
                 </Button>
               ) : (
                 <div className="flex items-center space-x-1">
@@ -129,7 +132,7 @@ const BookmarkHeader = ({
                         // Legacy import functionality - should be replaced by importComponent
                         onImport([]);
                       }}
-                      className="flex items-center space-x-1"
+                      className="hidden sm:flex items-center space-x-1"
                     >
                       <Plus className="h-4 w-4" />
                       <span>Import</span>
@@ -140,7 +143,7 @@ const BookmarkHeader = ({
                     variant="outline"
                     size="sm"
                     onClick={onCreateFolder}
-                    className="flex items-center space-x-1"
+                    className="hidden sm:flex items-center space-x-1"
                   >
                     <FolderPlus className="h-4 w-4" />
                     <span>New Folder</span>
@@ -151,12 +154,16 @@ const BookmarkHeader = ({
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-9 w-9"
+                        className="h-9 w-9 sm:hidden"
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onImport([])}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        <span>Import</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={onCreateFolder}>
                         <FolderPlus className="h-4 w-4 mr-2" />
                         <span>New Folder</span>
@@ -194,7 +201,7 @@ const BookmarkHeader = ({
                 className="bg-transparent"
               >
                 <Tag className="h-4 w-4 mr-1" />
-                <span>Categorize</span>
+                <span className="hidden sm:inline">Categorize</span>
               </Button>
             </div>
           </div>

@@ -62,6 +62,16 @@ const BookmarkContent = ({
   const hasActiveFilters = Object.values(activeFilters).some(Boolean);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging
+  console.log("BookmarkContent rendered with:", {
+    bookmarksCount: bookmarks.length,
+    filteredCount: filteredBookmarks.length,
+    categories: categories.length,
+    domains: domains.length,
+    view,
+    activeTab
+  });
+
   const renderEmptyState = () => (
     <motion.div 
       initial={{ opacity: 0 }} 
@@ -142,6 +152,11 @@ const BookmarkContent = ({
           <TabsTrigger 
             value="all" 
             className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            onClick={() => {
+              console.log("All tab clicked");
+              if (selectedCategory) onSelectCategory(null);
+              if (selectedDomain) onSelectDomain(null);
+            }}
           >
             <BookmarkIcon className="h-4 w-4 mr-2" />
             All
@@ -195,7 +210,7 @@ const BookmarkContent = ({
           </motion.div>
         )}
 
-        <ScrollArea className="flex-1 pr-4 -mr-4">
+        <ScrollArea className="flex-1 pr-4 -mr-4 overflow-y-auto">
           <div ref={scrollRef} className="h-full">
             <TabsContent value="all" className="mt-0 space-y-4 h-full">
               {renderContent()}
