@@ -1,4 +1,5 @@
-import { Note, NoteSentiment } from "@/types/note";
+
+import { Note, NoteSentiment, SentimentDetails } from "@/types/note";
 import { storage } from "./storageService";
 import { supabase } from "@/integrations/supabase/client";
 import { auth } from "@/lib/chrome-utils";
@@ -39,14 +40,14 @@ export class NoteService {
                 sentiment: note.sentiment as NoteSentiment,
                 sentimentDetails: note.sentiment_details ? 
                   (typeof note.sentiment_details === 'object' ? 
-                    note.sentiment_details as SentimentDetails : undefined) : 
+                    note.sentiment_details as unknown as SentimentDetails : undefined) : 
                   undefined,
                 summary: note.summary,
                 taskId: note.task_id,
                 bookmarkIds: note.bookmark_ids,
-                folderId: note.folder_id,
+                folderId: note.folder_id || undefined,
                 pinned: note.pinned || false,
-                color: note.color,
+                color: note.color || undefined,
                 version: note.version || 1
               }));
               
@@ -63,7 +64,7 @@ export class NoteService {
       }
       
       // Fall back to local storage if offline or Supabase failed
-      const notes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
+      const notes = await this.storage.get(NOTES_STORAGE_KEY) as Note[] || [];
       return notes;
     } catch (error) {
       console.error("Error getting all notes:", error);
@@ -84,7 +85,7 @@ export class NoteService {
       };
       
       // Save locally
-      const existingNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
+      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) as Note[] || [];
       const updatedNotes = [newNote, ...existingNotes];
       await this.storage.set(NOTES_STORAGE_KEY, updatedNotes);
       
@@ -137,7 +138,7 @@ export class NoteService {
   async updateNote(note: Note): Promise<Note | null> {
     try {
       // Get existing notes
-      const existingNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
+      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) as Note[] || [];
       
       // Find and update the note
       const updatedNotes = existingNotes.map(n => 
@@ -229,7 +230,7 @@ export class NoteService {
   async deleteNote(id: string): Promise<boolean> {
     try {
       // Get existing notes
-      const existingNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
+      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) as Note[] || [];
       
       // Filter out the note to delete
       const updatedNotes = existingNotes.filter(note => note.id !== id);
@@ -284,7 +285,7 @@ export class NoteService {
       await this.processOfflineQueue();
       
       // Get local notes
-      const localNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
+      const localNotes = await this.storage.get(NOTES_STORAGE_KEY) as Note[] || [];
       
       // Get server notes
       const { data: serverNotes, error } = await supabase
@@ -310,14 +311,14 @@ export class NoteService {
         sentiment: note.sentiment as NoteSentiment,
         sentimentDetails: note.sentiment_details ? 
           (typeof note.sentiment_details === 'object' ? 
-            note.sentiment_details as SentimentDetails : undefined) : 
+            note.sentiment_details as unknown as SentimentDetails : undefined) : 
           undefined,
         summary: note.summary,
         taskId: note.task_id,
         bookmarkIds: note.bookmark_ids,
-        folderId: note.folder_id,
+        folderId: note.folder_id || undefined,
         pinned: note.pinned || false,
-        color: note.color,
+        color: note.color || undefined,
         version: note.version || 1
       }));
       
