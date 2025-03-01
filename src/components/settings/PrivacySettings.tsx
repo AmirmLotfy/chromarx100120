@@ -228,7 +228,8 @@ const PrivacySettings = () => {
               "Usage Analytics",
               "Help us improve with anonymous usage data",
               settings.dataCollection,
-              handleDataCollection
+              handleDataCollection,
+              null
             )}
             
             {renderSetting(
@@ -245,7 +246,8 @@ const PrivacySettings = () => {
               "Auto-detect Bookmarks",
               "Automatically scan for bookmark changes",
               settings.autoDetectBookmarks,
-              settings.setAutoDetectBookmarks
+              settings.setAutoDetectBookmarks,
+              null
             )}
           </CardContent>
         </Card>
