@@ -30,9 +30,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabaseBackup } from "@/services/supabaseBackupService";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
-// Define the valid badge variant types to match the Badge component
+// Define the badge variants explicitly to match the Badge component
 type BadgeVariant = "default" | "outline" | "destructive" | "secondary" | "success" | "info" | "warning";
+
+interface SettingBadge {
+  text: string;
+  variant: BadgeVariant;
+}
+
+interface SettingProps {
+  id: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  isChecked: boolean;
+  onChange: (checked: boolean) => void;
+  badge?: SettingBadge;
+}
 
 const PrivacySettings = () => {
   const settings = useSettings();
@@ -132,6 +149,7 @@ const PrivacySettings = () => {
     }
   };
 
+  // Animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -145,23 +163,19 @@ const PrivacySettings = () => {
     show: { opacity: 1, y: 0 }
   };
 
-  const renderSetting = (
-    icon: React.ReactNode,
-    title: string,
-    description: string,
-    isChecked: boolean,
-    onChange: (value: boolean) => void,
-    badge: { text: string; variant?: BadgeVariant } | null
-  ) => (
-    <div className="flex items-center justify-between py-3.5 border-b border-border/20 last:border-none">
+  // Reusable Setting component with proper accessibility
+  const Setting = ({ id, icon, title, description, isChecked, onChange, badge }: SettingProps) => (
+    <div className="flex items-center justify-between py-4 border-b border-border/20 last:border-none">
       <div className="flex gap-3">
-        <div className="mt-0.5 text-primary">{icon}</div>
+        <div className="mt-0.5 text-primary flex-shrink-0">{icon}</div>
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium">{title}</Label>
+            <Label htmlFor={id} className="text-sm font-medium cursor-pointer">
+              {title}
+            </Label>
             {badge && (
               <Badge 
-                variant={badge.variant || "outline"} 
+                variant={badge.variant} 
                 className="text-[10px] h-4"
               >
                 {badge.text}
@@ -174,8 +188,10 @@ const PrivacySettings = () => {
         </div>
       </div>
       <Switch
+        id={id}
         checked={isChecked}
         onCheckedChange={onChange}
+        aria-label={`${title} ${isChecked ? 'enabled' : 'disabled'}`}
       />
     </div>
   );
@@ -226,32 +242,33 @@ const PrivacySettings = () => {
       <motion.div variants={item} key="privacy-settings-card">
         <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
           <CardContent className="p-0 divide-y divide-border/10">
-            {renderSetting(
-              <BarChart className="h-4 w-4" />,
-              "Usage Analytics",
-              "Help us improve with anonymous usage data",
-              settings.dataCollection,
-              handleDataCollection,
-              null
-            )}
+            <Setting
+              id="data-collection"
+              icon={<BarChart className="h-4 w-4" />}
+              title="Usage Analytics"
+              description="Help us improve with anonymous usage data"
+              isChecked={settings.dataCollection}
+              onChange={handleDataCollection}
+            />
             
-            {renderSetting(
-              <Tag className="h-4 w-4" />,
-              "Affiliate Content",
-              "Show relevant product recommendations",
-              settings.affiliateBannersEnabled,
-              handleAffiliateBannersEnabled,
-              { text: "Sponsored", variant: "outline" }
-            )}
+            <Setting
+              id="affiliate-content"
+              icon={<Tag className="h-4 w-4" />}
+              title="Affiliate Content"
+              description="Show relevant product recommendations"
+              isChecked={settings.affiliateBannersEnabled}
+              onChange={handleAffiliateBannersEnabled}
+              badge={{ text: "Sponsored", variant: "outline" }}
+            />
             
-            {renderSetting(
-              <RefreshCw className="h-4 w-4" />,
-              "Auto-detect Bookmarks",
-              "Automatically scan for bookmark changes",
-              settings.autoDetectBookmarks,
-              settings.setAutoDetectBookmarks,
-              null
-            )}
+            <Setting
+              id="auto-detect-bookmarks"
+              icon={<RefreshCw className="h-4 w-4" />}
+              title="Auto-detect Bookmarks"
+              description="Automatically scan for bookmark changes"
+              isChecked={settings.autoDetectBookmarks}
+              onChange={settings.setAutoDetectBookmarks}
+            />
           </CardContent>
         </Card>
       </motion.div>
@@ -265,23 +282,25 @@ const PrivacySettings = () => {
         <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
           <CardContent className="p-0">
             <div className="divide-y divide-border/10">
-              {renderSetting(
-                <Shield className="h-4 w-4" />,
-                "Beta Features",
-                "Enable experimental features and improvements",
-                settings.experimentalFeatures,
-                handleExperimentalFeatures,
-                { text: "Beta", variant: "secondary" }
-              )}
+              <Setting
+                id="beta-features"
+                icon={<Shield className="h-4 w-4" />}
+                title="Beta Features"
+                description="Enable experimental features and improvements"
+                isChecked={settings.experimentalFeatures}
+                onChange={handleExperimentalFeatures}
+                badge={{ text: "Beta", variant: "secondary" }}
+              />
               
-              {renderSetting(
-                <Cloud className="h-4 w-4" />,
-                "Cloud Backup",
-                "Sync your data across devices",
-                settings.cloudBackupEnabled,
-                handleCloudBackup,
-                { text: "New", variant: "secondary" }
-              )}
+              <Setting
+                id="cloud-backup"
+                icon={<Cloud className="h-4 w-4" />}
+                title="Cloud Backup"
+                description="Sync your data across devices"
+                isChecked={settings.cloudBackupEnabled}
+                onChange={handleCloudBackup}
+                badge={{ text: "New", variant: "secondary" }}
+              />
             </div>
             
             {user && settings.cloudBackupEnabled && (
@@ -293,16 +312,17 @@ const PrivacySettings = () => {
                     className="text-xs h-8 rounded-lg shadow-sm"
                     onClick={syncNow}
                     disabled={syncInProgress}
+                    aria-label="Sync settings to cloud now"
                   >
                     {syncInProgress ? (
                       <>
                         <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                        Syncing...
+                        <span>Syncing...</span>
                       </>
                     ) : (
                       <>
                         <RefreshCw className="h-3 w-3 mr-1.5" />
-                        Sync Now
+                        <span>Sync Now</span>
                       </>
                     )}
                   </Button>
@@ -312,16 +332,17 @@ const PrivacySettings = () => {
                     className="text-xs h-8 rounded-lg shadow-sm"
                     onClick={restoreFromCloud}
                     disabled={syncInProgress}
+                    aria-label="Restore settings from cloud"
                   >
                     <Download className="h-3 w-3 mr-1.5" />
-                    Restore
+                    <span>Restore</span>
                   </Button>
                 </div>
                 
                 {settings.lastSynced && (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Clock className="h-3 w-3 mr-1.5" />
-                    Last synced: {new Date(settings.lastSynced).toLocaleString()}
+                    <span>Last synced: {new Date(settings.lastSynced).toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -329,10 +350,16 @@ const PrivacySettings = () => {
             
             {!user && settings.cloudBackupEnabled === false && (
               <div className="px-4 pb-4">
-                <Button variant="link" size="sm" className="text-xs h-auto p-0" asChild>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="text-xs h-auto p-0" 
+                  asChild
+                  aria-label="Login for cloud backup"
+                >
                   <Link to="/auth">
                     <Lock className="h-3 w-3 mr-1.5" />
-                    Login required for cloud backup
+                    <span>Login required for cloud backup</span>
                   </Link>
                 </Button>
               </div>
