@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, BookmarkIcon, Settings, Bell, FolderPlus, UserRound } from "lucide-react";
+import { Home, BookmarkIcon, Bell, UserRound } from "lucide-react";
 
 const Navigation = () => {
   const location = useLocation();
@@ -9,40 +9,34 @@ const Navigation = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 shadow-sm"
+      className="fixed bottom-0 left-0 right-0 z-40 h-16 bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-t border-border/40"
       role="navigation"
       aria-label="Main navigation"
     >
-      <div className="container h-full mx-auto max-w-screen-xl flex items-center justify-around px-4">
+      <div className="container h-full mx-auto max-w-md flex items-center justify-between px-6">
         <NavItem 
           to="/" 
-          icon={<Home className="h-[22px] w-[22px]" />}
-          label="Home"
+          icon={<Home className="h-5 w-5" />}
           isActive={isActive("/")}
+          label="Home"
         />
         <NavItem 
           to="/bookmarks" 
-          icon={<BookmarkIcon className="h-[22px] w-[22px]" />}
-          label="Bookmarks"
+          icon={<BookmarkIcon className="h-5 w-5" />}
           isActive={isActive("/bookmarks")}
-        />
-        <NavItem 
-          to="/collections" 
-          icon={<FolderPlus className="h-[22px] w-[22px]" />}
-          label="Collections"
-          isActive={isActive("/collections")}
+          label="Bookmarks"
         />
         <NavItem 
           to="/notifications" 
-          icon={<Bell className="h-[22px] w-[22px]" />}
-          label="Notifications"
+          icon={<Bell className="h-5 w-5" />}
           isActive={isActive("/notifications")}
+          label="Notifications"
         />
         <NavItem 
           to="/user" 
-          icon={<UserRound className="h-[22px] w-[22px]" />}
-          label="Profile"
+          icon={<UserRound className="h-5 w-5" />}
           isActive={isActive("/user")}
+          label="Profile"
         />
       </div>
     </nav>
@@ -52,28 +46,30 @@ const Navigation = () => {
 interface NavItemProps {
   to: string;
   icon: React.ReactNode;
-  label: string;
   isActive: boolean;
+  label: string;
 }
 
-const NavItem = ({ to, icon, label, isActive }: NavItemProps) => (
+const NavItem = ({ to, icon, isActive, label }: NavItemProps) => (
   <Link 
     to={to} 
-    className="flex-1 flex flex-col items-center"
+    className="flex flex-col items-center"
     aria-label={label}
     aria-current={isActive ? "page" : undefined}
   >
     <Button
       variant="ghost"
       size="icon"
-      className={`flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200
+      className={`relative flex flex-col items-center justify-center rounded-full w-12 h-12 p-0
         ${isActive 
-          ? "text-primary bg-primary/10" 
-          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+          ? "text-primary" 
+          : "text-muted-foreground hover:text-foreground"
         }`}
     >
       {icon}
-      <span className="text-[10px] font-medium mt-0.5">{label}</span>
+      {isActive && (
+        <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
+      )}
     </Button>
   </Link>
 );
