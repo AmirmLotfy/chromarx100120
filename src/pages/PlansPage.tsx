@@ -12,64 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
-
-interface PlanFeature {
-  name: string;
-  included: boolean;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: PlanFeature[];
-}
-
-const plans: Plan[] = [
-  {
-    id: "basic",
-    name: "Basic",
-    price: 0,
-    description: "Essential features for getting started",
-    features: [
-      { name: "Basic bookmark management", included: true },
-      { name: "Simple analytics", included: true },
-      { name: "Limited task tracking", included: true },
-      { name: "Advanced analytics", included: false },
-      { name: "AI-powered suggestions", included: false },
-      { name: "Priority support", included: false },
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 9.99,
-    description: "Perfect for power users",
-    features: [
-      { name: "Basic bookmark management", included: true },
-      { name: "Simple analytics", included: true },
-      { name: "Limited task tracking", included: true },
-      { name: "Advanced analytics", included: true },
-      { name: "AI-powered suggestions", included: true },
-      { name: "Priority support", included: false },
-    ],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: 19.99,
-    description: "Ultimate productivity suite",
-    features: [
-      { name: "Basic bookmark management", included: true },
-      { name: "Simple analytics", included: true },
-      { name: "Limited task tracking", included: true },
-      { name: "Advanced analytics", included: true },
-      { name: "AI-powered suggestions", included: true },
-      { name: "Priority support", included: true },
-    ],
-  },
-];
+import { subscriptionPlans, type Plan } from "@/config/subscriptionPlans";
 
 const PlansPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -98,7 +41,7 @@ const PlansPage = () => {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {plans.map((plan) => (
+          {subscriptionPlans.map((plan) => (
             <Card
               key={plan.id}
               className={`relative ${
@@ -112,7 +55,7 @@ const PlansPage = () => {
               <CardContent>
                 <div className="mb-4">
                   <span className="text-3xl font-bold">
-                    ${plan.price.toFixed(2)}
+                    ${plan.pricing.monthly.toFixed(2)}
                   </span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
@@ -135,10 +78,10 @@ const PlansPage = () => {
               <CardFooter>
                 <Button
                   className="w-full"
-                  variant={plan.price === 0 ? "outline" : "default"}
+                  variant={plan.pricing.monthly === 0 ? "outline" : "default"}
                   onClick={() => handleSubscribe(plan.id)}
                 >
-                  {plan.price === 0 ? "Get Started" : "Subscribe"}
+                  {plan.pricing.monthly === 0 ? "Get Started" : "Subscribe"}
                 </Button>
               </CardFooter>
             </Card>
