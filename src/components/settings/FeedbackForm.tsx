@@ -10,15 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { MessageSquare, HelpCircle } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { chromeDb, FeedbackItem } from "@/lib/chrome-storage";
+import { motion } from "framer-motion";
 
 const FeedbackForm = () => {
   const [type, setType] = useState("suggestion");
@@ -62,23 +57,17 @@ const FeedbackForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <motion.form 
+      onSubmit={handleSubmit} 
+      className="space-y-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="type">Feedback Type</Label>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Choose the type of feedback you'd like to share</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <Label htmlFor="type" className="text-sm font-medium">Feedback Type</Label>
         <Select value={type} onValueChange={setType}>
-          <SelectTrigger id="type" className="h-12 md:h-10">
+          <SelectTrigger id="type" className="h-10">
             <SelectValue placeholder="Select feedback type" />
           </SelectTrigger>
           <SelectContent>
@@ -90,13 +79,13 @@ const FeedbackForm = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="message">Your Message</Label>
+        <Label htmlFor="message" className="text-sm font-medium">Your Message</Label>
         <Textarea
           id="message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Share your thoughts..."
-          className="min-h-[150px] text-base md:text-sm"
+          className="min-h-[120px] text-sm resize-none"
         />
       </div>
 
@@ -105,10 +94,19 @@ const FeedbackForm = () => {
         disabled={!message.trim() || isSubmitting}
         className="w-full"
       >
-        <MessageSquare className="mr-2 h-4 w-4" />
-        {isSubmitting ? "Submitting..." : "Submit Feedback"}
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          <>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Submit Feedback
+          </>
+        )}
       </Button>
-    </form>
+    </motion.form>
   );
 };
 
