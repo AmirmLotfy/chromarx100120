@@ -134,6 +134,28 @@ class CacheManager {
       console.error('Error clearing cache:', error);
     }
   }
+
+  // Add the missing primeCache method
+  async primeCache<T>(key: string, fetchDataFn: () => Promise<T>, ttlMinutes?: number): Promise<T> {
+    // First try to get from cache
+    const cachedData = await this.get<T>(key);
+    if (cachedData !== null) {
+      return cachedData;
+    }
+    
+    // If not in cache, fetch fresh data
+    try {
+      const freshData = await fetchDataFn();
+      
+      // Store in cache for future use
+      await this.set(key, freshData, ttlMinutes);
+      
+      return freshData;
+    } catch (error) {
+      console.error('Error fetching data for cache:', error);
+      throw error; // Re-throw to let caller handle the error
+    }
+  }
 }
 
 export const cache = new CacheManager();
