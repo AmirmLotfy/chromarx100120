@@ -27,6 +27,7 @@ interface ChatHeaderProps {
   onManageConversations: () => void;
   isBookmarkSearchMode?: boolean;
   toggleBookmarkSearchMode?: () => void;
+  toggleHistory: () => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -36,7 +37,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   activeConversation,
   onManageConversations,
   isBookmarkSearchMode = false,
-  toggleBookmarkSearchMode = () => {}
+  toggleBookmarkSearchMode = () => {},
+  toggleHistory
 }) => {
   const [conversationName, setConversationName] = useState(
     activeConversation?.name || ""
@@ -65,13 +67,23 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <header className="border-b px-4 py-3 flex items-center justify-between">
+    <header className="border-b px-4 py-3 flex items-center justify-between bg-background/90 backdrop-blur-sm">
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleHistory}
+          className="md:hidden"
+          title="Chat history"
+        >
+          <History className="h-5 w-5" />
+        </Button>
+        
         <h2 className="text-lg font-semibold">
           {isBookmarkSearchMode ? "Bookmark Search" : "Chat"}
         </h2>
         {activeConversation && (
-          <span className="text-sm text-muted-foreground ml-2">
+          <span className="text-sm text-muted-foreground ml-2 hidden md:inline-block">
             {activeConversation.name}
           </span>
         )}
