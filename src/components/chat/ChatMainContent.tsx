@@ -7,6 +7,7 @@ import { AIProgressIndicator } from "../ui/ai-progress-indicator";
 import { X, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMainContentProps {
   messages: Message[];
@@ -33,6 +34,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   isBookmarkSearchMode,
   markMessagesAsRead
 }) => {
+  const isMobile = useIsMobile();
+  
   // Mark messages as read when they are viewed
   useEffect(() => {
     if (messages.length > 0 && markMessagesAsRead) {
@@ -43,7 +46,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Notifications section */}
-      <div className="px-3 pt-2">
+      <div className={`${isMobile ? 'px-2 pt-1' : 'px-3 pt-2'}`}>
         {(isOffline || !isAIAvailable) && (
           <ChatOfflineNotice 
             isOffline={isOffline} 
@@ -53,21 +56,21 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         )}
         
         {error && (
-          <div className="mb-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm">
+          <div className="mb-3 px-3 py-2.5 bg-destructive/10 border border-destructive/20 rounded-lg text-sm">
             <div className="flex gap-2 items-start">
-              <div className="h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
+              <div className={`h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center ${isMobile ? 'mt-0' : 'mt-0.5'}`}>
                 <X size={12} className="text-destructive" />
               </div>
               <div>
                 <p className="font-medium text-destructive">{error.message || "Error"}</p>
-                <p className="text-xs mt-1 text-destructive/90">{error.message}</p>
+                <p className={`${isMobile ? 'text-[0.7rem]' : 'text-xs'} mt-1 text-destructive/90`}>{error.message}</p>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="mt-2 h-8 text-xs"
+                  className={`mt-2 ${isMobile ? 'h-7 text-[0.7rem]' : 'h-8 text-xs'}`}
                   onClick={retryLastMessage}
                 >
-                  <RefreshCw size={14} className="mr-1" /> Retry
+                  <RefreshCw size={isMobile ? 12 : 14} className="mr-1" /> Retry
                 </Button>
               </div>
             </div>
