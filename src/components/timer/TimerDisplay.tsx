@@ -1,13 +1,18 @@
+
 import { CircularProgress } from "@/components/ui/progress";
 
 interface TimerDisplayProps {
   timeLeft: number;
   mode: "focus" | "break";
+  maxTime: number; // Add maxTime prop for correct percentage calculation
 }
 
-export const TimerDisplay = ({ timeLeft, mode }: TimerDisplayProps) => {
+export const TimerDisplay = ({ timeLeft, mode, maxTime }: TimerDisplayProps) => {
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
+
+  // Calculate the correct percentage for the progress ring
+  const percentage = maxTime > 0 ? (timeLeft / maxTime) * 100 : 0;
 
   return (
     <div className="relative w-64 h-64 mx-auto">
@@ -22,7 +27,7 @@ export const TimerDisplay = ({ timeLeft, mode }: TimerDisplayProps) => {
         </div>
       </div>
       <CircularProgress
-        value={(timeLeft / (25 * 60)) * 100}
+        value={percentage}
         className="w-full h-full -rotate-90"
       />
     </div>

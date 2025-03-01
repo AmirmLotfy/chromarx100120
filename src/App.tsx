@@ -4,6 +4,18 @@ import { Toaster } from "@/components/ui/toaster";
 import Routes from "./Routes";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function LoadingFallback() {
   return (
@@ -15,12 +27,14 @@ function LoadingFallback() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes />
-      </Suspense>
-      <Toaster />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes />
+        </Suspense>
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

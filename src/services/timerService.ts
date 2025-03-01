@@ -9,7 +9,11 @@ class TimerService {
 
   private constructor() {
     if (typeof window !== 'undefined') {
-      this.audioContext = new AudioContext();
+      try {
+        this.audioContext = new AudioContext();
+      } catch (error) {
+        console.error("Could not create audio context:", error);
+      }
     }
   }
 
@@ -121,8 +125,16 @@ class TimerService {
     }
   }
 
-  private async playCompletionSound(): Promise<void> {
-    if (!this.audioContext) return;
+  // Changed from private to public
+  async playCompletionSound(): Promise<void> {
+    if (!this.audioContext) {
+      try {
+        this.audioContext = new AudioContext();
+      } catch (error) {
+        console.error("Could not create audio context:", error);
+        return;
+      }
+    }
 
     try {
       const oscillator = this.audioContext.createOscillator();
@@ -141,7 +153,8 @@ class TimerService {
     }
   }
 
-  private showNotification(): void {
+  // Changed from private to public
+  showNotification(): void {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Timer Complete!', {
         body: 'Your timer session has finished.',

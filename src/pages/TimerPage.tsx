@@ -7,10 +7,10 @@ import { TimerSuggestions } from "@/components/timer/TimerSuggestions";
 import { TimerSettings } from "@/components/timer/TimerSettings";
 import { useToast } from "@/hooks/use-toast";
 import { timerService } from "@/services/timerService";
-import { getTimerSuggestion } from "@/utils/timerAI";
 import { TimerSession, TimerStats } from "@/types/timer";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 const TimerPage = () => {
   const [duration, setDuration] = useState(25);
@@ -21,9 +21,25 @@ const TimerPage = () => {
   const [currentSession, setCurrentSession] = useState<TimerSession | null>(null);
   const { toast } = useToast();
 
-  const { data: stats } = useQuery({
+  // Update timeLeft when duration changes
+  useEffect(() => {
+    if (!isRunning) {
+      setTimeLeft(duration * 60);
+    }
+  }, [duration, isRunning]);
+
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['timerStats'],
     queryFn: () => timerService.getStats(),
+    retry: 2,
+    onError: (error) => {
+      console.error("Failed to fetch timer stats:", error);
+      toast({
+        title: "Error loading stats",
+        description: "We couldn't load your productivity stats.",
+        variant: "destructive",
+      });
+    }
   });
 
   useEffect(() => {
@@ -46,16 +62,29 @@ const TimerPage = () => {
 
   const handleTimerComplete = async () => {
     setIsRunning(false);
-    
-    if (currentSession) {
-      await timerService.completeSession(
-        currentSession.id,
-        mode === 'focus' ? calculateProductivityScore() : undefined
-      );
-    }
+    try {
+      if (currentSession) {
+        await timerService.completeSession(
+          currentSession.id,
+          mode === 'focus' ? calculateProductivityScore() : undefined
+        );
+      }
 
-    // Automatically switch modes and suggest new duration
-    setMode(prevMode => prevMode === "focus" ? "break" : "focus");
+      // Automatically switch modes and suggest new duration
+      setMode(prevMode => prevMode === "focus" ? "break" : "focus");
+      
+      toast({
+        title: "Time's up!",
+        description: `Your ${mode} session is complete.`,
+      });
+    } catch (error) {
+      console.error("Error completing timer session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to complete timer session",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleStart = async () => {
@@ -70,6 +99,10 @@ const TimerPage = () => {
       
       setCurrentSession(session);
       setIsRunning(true);
+      toast({
+        title: "Timer Started",
+        description: `${duration} minute ${mode} session has begun.`,
+      });
     } catch (error) {
       console.error('Error starting timer:', error);
       toast({
@@ -101,6 +134,38 @@ const TimerPage = () => {
   useEffect(() => {
     requestNotificationPermission();
   }, []);
+
+  if (statsLoading) {
+    return (
+      <Layout>
+        <div className="container flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Loading timer data...</span>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (statsError) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-6 space-y-8 max-w-2xl">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Focus Timer</h1>
+            <p className="text-destructive">
+              There was an error loading your timer data. Please try again later.
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-white rounded-md mt-4"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -136,6 +201,7 @@ const TimerPage = () => {
         <TimerDisplay 
           timeLeft={timeLeft}
           mode={mode}
+          maxTime={duration * 60}
         />
 
         <TimerControls
