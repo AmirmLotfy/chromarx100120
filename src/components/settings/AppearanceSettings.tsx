@@ -15,6 +15,7 @@ const AppearanceSettings = () => {
   const { theme, setTheme } = useTheme();
   const settings = useSettings();
   const isMobile = useIsMobile();
+  const [animationSpeed, setAnimationSpeed] = React.useState("normal");
 
   // Animation variants
   const item = {
@@ -159,7 +160,7 @@ const AppearanceSettings = () => {
         </Card>
       </motion.section>
       
-      {/* Animation preferences */}
+      {/* Animation preferences - Fixed implementation */}
       <motion.section variants={item}>
         <h3 className="text-sm font-medium text-muted-foreground mb-3">Animation</h3>
         
@@ -180,22 +181,28 @@ const AppearanceSettings = () => {
             
             <div className="pt-1">
               <Label className="text-base font-medium mb-3 block">Animation Speed</Label>
-              <div className="grid grid-cols-3 gap-2">
+              
+              {/* Fixed RadioGroup implementation */}
+              <RadioGroup
+                value={animationSpeed}
+                onValueChange={setAnimationSpeed}
+                className="grid grid-cols-3 gap-2"
+              >
                 {['slow', 'normal', 'fast'].map((speed) => (
                   <div 
                     key={speed}
                     className={cn(
                       "flex justify-center rounded-lg py-4 border border-border/20 touch-target",
-                      speed === 'normal' ? "bg-primary/10" : "bg-muted/30"
+                      speed === animationSpeed ? "bg-primary/10" : "bg-muted/30"
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <RadioGroupItem value={speed} id={speed} className="text-primary" />
-                      <Label htmlFor={speed} className="text-sm capitalize">{speed}</Label>
+                      <RadioGroupItem value={speed} id={`speed-${speed}`} className="text-primary" />
+                      <Label htmlFor={`speed-${speed}`} className="text-sm capitalize">{speed}</Label>
                     </div>
                   </div>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
           </div>
         </Card>
