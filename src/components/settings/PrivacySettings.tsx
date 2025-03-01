@@ -30,8 +30,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabaseBackup } from "@/services/supabaseBackupService";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 
 // Define the badge variants explicitly to match the Badge component
 type BadgeVariant = "default" | "outline" | "destructive" | "secondary" | "success" | "info" | "warning";
