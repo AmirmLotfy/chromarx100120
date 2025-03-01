@@ -42,7 +42,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
           </motion.div>
         </div>
       ) : (
-        <div className="space-y-6 pb-2">
+        <div className="space-y-6 pb-4">
           {messages.map((message, index) => (
             <motion.div
               key={message.id}

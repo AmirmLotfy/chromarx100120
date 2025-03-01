@@ -14,7 +14,7 @@ const ChatPage = () => {
             </p>
           </div>
           
-          <div className="flex-1">
+          <div className="flex-1 overflow-hidden">
             <ChatInterface />
           </div>
         </div>
