@@ -15,8 +15,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
     return cn(
       "max-w-[85%] space-y-2",
       message.sender === "user"
-        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm"
-        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm"
+        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-md"
+        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-md"
     );
   };
 
@@ -24,14 +24,19 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
     <ScrollArea className="flex-1 p-4 space-y-4">
       {messages.length === 0 && (
         <div className="flex items-center justify-center h-full">
-          <div className="text-center space-y-3 max-w-xs mx-auto p-6 rounded-xl bg-accent/30 border border-border/50">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center space-y-3 max-w-xs mx-auto p-6 rounded-xl bg-accent/30 backdrop-blur-sm border border-border/50 shadow-sm"
+          >
             <p className="text-sm font-medium text-foreground/80">
               Start a conversation to get insights
             </p>
             <p className="text-xs text-muted-foreground">
               Ask questions about your bookmarks or toggle search mode to find specific saved content
             </p>
-          </div>
+          </motion.div>
         </div>
       )}
       <div className="space-y-4">
@@ -52,7 +57,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
               </p>
               
               {message.bookmarks && message.bookmarks.length > 0 && (
-                <div className="pt-2 border-t border-primary/10 space-y-1.5">
+                <div className="pt-2 mt-2 border-t border-primary/10 space-y-1.5">
                   <p className="text-xs font-medium opacity-75">From your bookmarks:</p>
                   <div className="space-y-1.5">
                     {message.bookmarks.map((bookmark, index) => (
@@ -61,7 +66,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                         href={bookmark.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1 px-2 bg-background/20 hover:bg-background/40 transition-colors"
+                        className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1.5 px-2 bg-background/20 hover:bg-background/40 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{bookmark.title}</span>
@@ -72,7 +77,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
               )}
 
               {message.webResults && message.webResults.length > 0 && (
-                <div className="pt-2 border-t border-primary/10 space-y-1.5">
+                <div className="pt-2 mt-2 border-t border-primary/10 space-y-1.5">
                   <p className="text-xs font-medium opacity-75">Related links:</p>
                   <div className="space-y-1.5">
                     {message.webResults.map((result, index) => (
@@ -81,7 +86,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                         href={result.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1 px-2 bg-background/20 hover:bg-background/40 transition-colors"
+                        className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1.5 px-2 bg-background/20 hover:bg-background/40 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{result.title}</span>

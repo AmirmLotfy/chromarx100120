@@ -10,7 +10,7 @@ import ChatOfflineNotice from "./chat/ChatOfflineNotice";
 import ConversationManager from "./chat/ConversationManager";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import BookmarkSearchMode from "./chat/BookmarkSearchMode";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 const ChatInterface = () => {
   const {
@@ -48,7 +48,11 @@ const ChatInterface = () => {
   }, [messages.length, isMobile, isHistoryOpen, setIsHistoryOpen]);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm overflow-hidden">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background rounded-xl border border-accent/40 shadow-lg overflow-hidden"
+    >
       <ChatHeader 
         clearChat={clearChat} 
         messageCount={messages.length} 
@@ -123,7 +127,7 @@ const ChatInterface = () => {
         onUpdateConversation={updateConversation}
         onLoadConversation={loadChatSession}
       />
-    </div>
+    </motion.div>
   );
 };
 

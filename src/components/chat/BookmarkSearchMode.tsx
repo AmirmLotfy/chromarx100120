@@ -20,7 +20,7 @@ const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
     >
       <Alert 
         variant="default" 
-        className="bg-accent/50 border border-primary/20 rounded-xl shadow-sm"
+        className="bg-accent/50 border border-primary/20 rounded-xl shadow-md backdrop-blur-sm"
       >
         <div className="flex items-center space-x-2">
           <div className="rounded-full bg-primary/10 p-1.5">
@@ -33,7 +33,7 @@ const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
           Describe the bookmark you're looking for using keywords, topics, or content you remember.
         </AlertDescription>
         
-        <div className="mt-3 space-y-2 bg-background/50 p-3 rounded-lg border border-border/50">
+        <div className="mt-3 space-y-2 bg-background/70 p-3 rounded-lg border border-border/50 backdrop-blur-sm">
           <div className="flex items-center text-xs text-foreground/70">
             <Search className="h-3 w-3 mr-2 text-primary/70" />
             <span>"article about climate change with graphs"</span>
@@ -53,7 +53,7 @@ const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
             variant="outline" 
             size="sm" 
             onClick={onClose}
-            className="text-xs h-8 font-medium"
+            className="text-xs h-8 font-medium hover:bg-primary/10 hover:text-primary"
           >
             Exit Search Mode
           </Button>
