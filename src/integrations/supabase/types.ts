@@ -324,6 +324,45 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          archived: boolean | null
+          bookmark_context: string[] | null
+          category: Database["public"]["Enums"]["conversation_category"] | null
+          created_at: string
+          id: string
+          is_bookmark_search: boolean | null
+          name: string
+          pinned: boolean | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          archived?: boolean | null
+          bookmark_context?: string[] | null
+          category?: Database["public"]["Enums"]["conversation_category"] | null
+          created_at?: string
+          id?: string
+          is_bookmark_search?: boolean | null
+          name: string
+          pinned?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          archived?: boolean | null
+          bookmark_context?: string[] | null
+          category?: Database["public"]["Enums"]["conversation_category"] | null
+          created_at?: string
+          id?: string
+          is_bookmark_search?: boolean | null
+          name?: string
+          pinned?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           created_at: string | null
@@ -427,6 +466,47 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          bookmarks: Json | null
+          content: string
+          conversation_id: string | null
+          id: string
+          is_read: boolean | null
+          sender: string
+          timestamp: string
+          web_results: Json | null
+        }
+        Insert: {
+          bookmarks?: Json | null
+          content: string
+          conversation_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          sender: string
+          timestamp?: string
+          web_results?: Json | null
+        }
+        Update: {
+          bookmarks?: Json | null
+          content?: string
+          conversation_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          sender?: string
+          timestamp?: string
+          web_results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       note_folders: {
         Row: {
@@ -917,6 +997,12 @@ export type Database = {
     }
     Enums: {
       bookmark_status: "active" | "archived" | "deleted"
+      conversation_category:
+        | "General"
+        | "Work"
+        | "Research"
+        | "Personal"
+        | "Bookmarks"
       storage_type: "sync" | "local"
       subscription_status: "free" | "premium"
       timer_mode: "focus" | "break"

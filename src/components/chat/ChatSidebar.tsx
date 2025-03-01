@@ -1,427 +1,365 @@
 
-import React, { useState } from "react";
-import { X, History, MessageCircle, Circle, Pin, PinOff, Archive, Trash2, RefreshCw, Filter } from "lucide-react";
-import { Button } from "../ui/button";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Conversation, ConversationCategory } from "@/types/chat";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem
-} from "@/components/ui/dropdown-menu";
+import { Archive, ArchiveRestore, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Conversation, ConversationCategory } from "@/types/chat";
+import { cn } from "@/lib/utils";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface ChatSidebarProps {
   isHistoryOpen: boolean;
-  setIsHistoryOpen: (isOpen: boolean) => void;
+  setIsHistoryOpen: (open: boolean) => void;
   chatHistory: Conversation[];
-  archivedConversations: Conversation[];
   loadChatSession: (conversation: Conversation) => void;
   clearChat: () => void;
-  activeConversation: Conversation | undefined;
+  activeConversation?: Conversation;
   isMobile: boolean;
-  archiveConversation: (conversationId: string) => Promise<void>;
-  restoreConversation: (conversationId: string) => Promise<void>;
-  deleteConversation: (conversationId: string) => Promise<void>;
-  updateConversationCategory: (conversationId: string, category: ConversationCategory) => Promise<void>;
-  togglePinned: (conversationId: string) => Promise<void>;
+  archivedConversations: Conversation[];
+  showArchived: boolean;
+  setShowArchived: (show: boolean) => void;
+  archiveConversation: (id: string) => Promise<void>;
+  restoreConversation: (id: string) => Promise<void>;
+  deleteConversation: (id: string) => Promise<void>;
+  updateConversationCategory: (id: string, category: ConversationCategory) => Promise<void>;
+  togglePinned: (id: string) => Promise<void>;
 }
 
-const ChatSidebar: React.FC<ChatSidebarProps> = ({
+const ChatSidebar = ({
   isHistoryOpen,
   setIsHistoryOpen,
   chatHistory,
-  archivedConversations,
   loadChatSession,
   clearChat,
   activeConversation,
   isMobile,
+  archivedConversations,
+  showArchived,
+  setShowArchived,
   archiveConversation,
   restoreConversation,
   deleteConversation,
   updateConversationCategory,
   togglePinned
-}) => {
-  // If sidebar is not open, don't render anything
-  if (!isHistoryOpen) return null;
-
+}: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTab, setSelectedTab] = useState("active");
-  const [categoryFilter, setCategoryFilter] = useState<ConversationCategory | "All">("All");
-  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
-
-  const handleClose = () => {
-    console.log("Closing sidebar");
-    setIsHistoryOpen(false);
-  };
-
-  // Filter conversations based on search query and category
-  const filterConversations = (conversations: Conversation[]) => {
-    return conversations.filter(conversation => {
-      const matchesSearch = conversation.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === "All" || conversation.category === categoryFilter;
+  const [selectedCategory, setSelectedCategory] = useState<"all" | ConversationCategory>("all");
+  
+  // Filter conversations based on search and category
+  const filteredConversations = (showArchived ? archivedConversations : chatHistory).filter(
+    (conversation) => {
+      const matchesSearch = conversation.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesCategory = 
+        selectedCategory === "all" || conversation.category === selectedCategory;
       return matchesSearch && matchesCategory;
-    });
-  };
+    }
+  );
 
-  // Get pinned conversations first, then the rest
-  const sortedConversations = (conversations: Conversation[]) => {
-    const filtered = filterConversations(conversations);
-    return [
-      ...filtered.filter(c => c.pinned),
-      ...filtered.filter(c => !c.pinned)
-    ];
-  };
+  // Get pinned conversations at the top
+  const pinnedConversations = filteredConversations.filter(c => c.pinned);
+  const unpinnedConversations = filteredConversations.filter(c => !c.pinned);
+  const sortedConversations = [...pinnedConversations, ...unpinnedConversations];
 
-  // Active and archived conversations after filtering
-  const filteredActive = sortedConversations(chatHistory);
-  const filteredArchived = filterConversations(archivedConversations);
+  // Get unique categories from conversations
+  const categories = Array.from(
+    new Set([...chatHistory, ...archivedConversations].map((c) => c.category))
+  );
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: isMobile ? -280 : -250 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: isMobile ? -280 : -250 }}
-      transition={{ duration: 0.2 }}
-      className={`fixed inset-y-0 left-0 z-30 w-[85%] sm:w-[320px] bg-background border-r shadow-lg
-                 ${isMobile ? 'h-full' : 'max-h-full'} flex flex-col overflow-hidden`}
+    <motion.div
+      initial={{ x: -300, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: -300, opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className={cn(
+        "bg-background border-r w-80 h-full flex flex-col",
+        isMobile ? "absolute inset-y-0 left-0 z-30" : "relative"
+      )}
     >
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-base font-medium">Chat History</h2>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8"
-          onClick={handleClose}
-        >
-          <X size={18} />
-        </Button>
+      <div className="p-4 border-b flex justify-between items-center">
+        <h2 className="font-semibold text-lg">Chat History</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              clearChat();
+              if (isMobile) setIsHistoryOpen(false);
+            }}
+            size="sm"
+            variant="ghost"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            New Chat
+          </Button>
+        </div>
       </div>
-      
-      <div className="p-3 border-b">
-        <Input
-          placeholder="Search conversations..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full"
-        />
+
+      <div className="p-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search conversations..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
-      
-      <div className="flex items-center justify-between px-3 py-2 border-b">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8">
-              <Filter className="h-4 w-4 mr-2" />
-              {categoryFilter === "All" ? "All Categories" : categoryFilter}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuRadioGroup value={categoryFilter} onValueChange={(value: string) => setCategoryFilter(value as ConversationCategory | "All")}>
-              <DropdownMenuRadioItem value="All">All Categories</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="General">General</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="Work">Work</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="Research">Research</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="Personal">Personal</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="Bookmarks">Bookmarks</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="px-3 py-2 justify-start border-b">
-          <TabsTrigger value="active" className="flex-1">Active</TabsTrigger>
-          <TabsTrigger value="archived" className="flex-1">Archived</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="active" className="flex-1 overflow-y-auto p-2">
-          {filteredActive.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center p-4">
-              <History className="h-12 w-12 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {searchQuery || categoryFilter !== "All" 
-                  ? "No matching conversations found" 
-                  : "No conversation history yet"}
-              </p>
-            </div>
-          )}
-          
-          {filteredActive.map((conversation) => {
-            const hasUnreadMessages = conversation.messages.some(msg => msg.sender === "assistant" && !msg.isRead);
-            const lastMessageDate = new Date(conversation.updatedAt).toLocaleDateString();
-            const isToday = lastMessageDate === new Date().toLocaleDateString();
-            
-            return (
-              <div 
-                key={conversation.id}
-                className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors relative group
-                          ${conversation.pinned ? 'bg-muted/60 border border-primary/20' : ''}
-                          ${activeConversation?.id === conversation.id 
-                            ? 'bg-primary/10 border border-primary/20' 
-                            : 'hover:bg-muted'}`}
-              >
-                <div 
-                  className="flex-1"
-                  onClick={() => {
-                    loadChatSession(conversation);
-                    if (isMobile) setIsHistoryOpen(false);
-                  }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="font-medium truncate text-sm flex-1 pr-6">
-                      {conversation.name}
-                    </div>
-                    {conversation.pinned && (
-                      <Pin className="h-3 w-3 text-primary absolute top-3 right-10" />
-                    )}
-                    {hasUnreadMessages && (
-                      <Circle className="h-2 w-2 fill-primary text-primary flex-shrink-0 absolute top-3 right-3" />
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate mt-1">
-                    {conversation.messages[conversation.messages.length - 1]?.content.substring(0, 50)}
-                    {conversation.messages[conversation.messages.length - 1]?.content.length > 50 ? "..." : ""}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
-                    <span>{isToday ? 'Today' : lastMessageDate}</span>
-                    <span className="text-[10px] opacity-70">
-                      {new Date(conversation.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
-                  </div>
-                  
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="14" 
-                            height="14" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                          >
-                            <circle cx="12" cy="12" r="1"/>
-                            <circle cx="12" cy="5" r="1"/>
-                            <circle cx="12" cy="19" r="1"/>
-                          </svg>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => togglePinned(conversation.id)}>
-                          {conversation.pinned ? (
-                            <>
-                              <PinOff className="h-4 w-4 mr-2" />
-                              Unpin conversation
-                            </>
-                          ) : (
-                            <>
-                              <Pin className="h-4 w-4 mr-2" />
-                              Pin conversation
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <Filter className="h-4 w-4 mr-2" />
-                            Move to category
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onClick={() => updateConversationCategory(conversation.id, "General")}>
-                              General
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateConversationCategory(conversation.id, "Work")}>
-                              Work
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateConversationCategory(conversation.id, "Research")}>
-                              Research
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateConversationCategory(conversation.id, "Personal")}>
-                              Personal
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateConversationCategory(conversation.id, "Bookmarks")}>
-                              Bookmarks
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        
-                        <DropdownMenuSeparator />
-                        
-                        <DropdownMenuItem onClick={() => archiveConversation(conversation.id)}>
-                          <Archive className="h-4 w-4 mr-2" />
-                          Archive conversation
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => setConversationToDelete(conversation.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete conversation
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                
-                {/* Category badge */}
-                <div className="absolute bottom-2 right-2 text-xs bg-secondary/60 text-secondary-foreground rounded-full px-1.5 py-0.5 text-center">
-                  {conversation.category}
-                </div>
-              </div>
-            );
-          })}
-        </TabsContent>
-        
-        <TabsContent value="archived" className="flex-1 overflow-y-auto p-2">
-          {filteredArchived.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center p-4">
-              <Archive className="h-12 w-12 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {searchQuery || categoryFilter !== "All" 
-                  ? "No matching archived conversations found" 
-                  : "No archived conversations yet"}
-              </p>
-            </div>
-          )}
-          
-          {filteredArchived.map((conversation) => (
-            <div 
-              key={conversation.id}
-              className="p-3 rounded-lg mb-2 cursor-pointer transition-colors relative group bg-muted/40 hover:bg-muted"
+
+      <Tabs defaultValue="conversations" className="flex-1 flex flex-col">
+        <div className="border-b px-2">
+          <TabsList className="w-full">
+            <TabsTrigger 
+              value="conversations" 
+              className="flex-1"
+              onClick={() => setShowArchived(false)}
             >
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div className="font-medium truncate text-sm flex-1 pr-6 text-muted-foreground">
-                    {conversation.name}
-                  </div>
+              Conversations
+            </TabsTrigger>
+            <TabsTrigger 
+              value="archived" 
+              className="flex-1"
+              onClick={() => setShowArchived(true)}
+            >
+              Archived
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="conversations" className="flex-1">
+          <div className="flex gap-1 p-2 overflow-x-auto border-b">
+            <Badge
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setSelectedCategory("all")}
+            >
+              All
+            </Badge>
+            {categories.map((category) => (
+              <Badge
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category}
+              </Badge>
+            ))}
+          </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-2">
+              {sortedConversations.length > 0 ? (
+                sortedConversations.map((conversation) => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isActive={activeConversation?.id === conversation.id}
+                    onClick={() => {
+                      loadChatSession(conversation);
+                      if (isMobile) setIsHistoryOpen(false);
+                    }}
+                    onArchive={() => archiveConversation(conversation.id)}
+                    onDelete={() => deleteConversation(conversation.id)}
+                    onCategoryChange={(category) => updateConversationCategory(conversation.id, category)}
+                    onTogglePinned={() => togglePinned(conversation.id)}
+                    isArchived={false}
+                  />
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  {searchQuery
+                    ? "No conversations match your search"
+                    : "No conversations yet"}
                 </div>
-                <div className="text-xs text-muted-foreground truncate mt-1">
-                  {conversation.messages[conversation.messages.length - 1]?.content.substring(0, 50)}
-                  {conversation.messages[conversation.messages.length - 1]?.content.length > 50 ? "..." : ""}
-                </div>
-                <div className="text-xs text-muted-foreground/70 mt-1">
-                  Archived on {new Date(conversation.updatedAt).toLocaleDateString()}
-                </div>
-                
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          width="14" 
-                          height="14" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round"
-                        >
-                          <circle cx="12" cy="12" r="1"/>
-                          <circle cx="12" cy="5" r="1"/>
-                          <circle cx="12" cy="19" r="1"/>
-                        </svg>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => restoreConversation(conversation.id)}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Restore conversation
-                      </DropdownMenuItem>
-                      
-                      <DropdownMenuSeparator />
-                      
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => setConversationToDelete(conversation.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete permanently
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-              
-              {/* Category badge */}
-              <div className="absolute bottom-2 right-2 text-xs bg-secondary/40 text-secondary-foreground/70 rounded-full px-1.5 py-0.5 text-center">
-                {conversation.category}
-              </div>
+              )}
             </div>
-          ))}
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="archived" className="flex-1">
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-2">
+              {sortedConversations.length > 0 ? (
+                sortedConversations.map((conversation) => (
+                  <ConversationItem
+                    key={conversation.id}
+                    conversation={conversation}
+                    isActive={activeConversation?.id === conversation.id}
+                    onClick={() => {
+                      loadChatSession(conversation);
+                      if (isMobile) setIsHistoryOpen(false);
+                    }}
+                    onRestore={() => restoreConversation(conversation.id)}
+                    onDelete={() => deleteConversation(conversation.id)}
+                    isArchived={true}
+                  />
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  {searchQuery
+                    ? "No archived conversations match your search"
+                    : "No archived conversations"}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </TabsContent>
       </Tabs>
-      
-      <div className="p-3 border-t">
-        <Button 
-          className="w-full text-sm h-9"
-          variant="outline"
-          onClick={() => {
-            clearChat();
-            if (isMobile) setIsHistoryOpen(false);
-          }}
-        >
-          <MessageCircle className="h-4 w-4 mr-2" />
-          New Conversation
-        </Button>
-      </div>
-      
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={!!conversationToDelete} onOpenChange={() => setConversationToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedTab === "archived" 
-                ? "This action cannot be undone. This will permanently delete the conversation."
-                : "This conversation will be moved to the archive. You can restore it later or delete it permanently."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (conversationToDelete) {
-                  deleteConversation(conversationToDelete);
-                  setConversationToDelete(null);
-                }
-              }}
-            >
-              {selectedTab === "archived" ? "Delete permanently" : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </motion.div>
+  );
+};
+
+interface ConversationItemProps {
+  conversation: Conversation;
+  isActive: boolean;
+  onClick: () => void;
+  onArchive?: () => void;
+  onRestore?: () => void;
+  onDelete: () => void;
+  onCategoryChange?: (category: ConversationCategory) => void;
+  onTogglePinned?: () => void;
+  isArchived: boolean;
+}
+
+const ConversationItem = ({
+  conversation,
+  isActive,
+  onClick,
+  onArchive,
+  onRestore,
+  onDelete,
+  onCategoryChange,
+  onTogglePinned,
+  isArchived
+}: ConversationItemProps) => {
+  // Generate a readable date string
+  const date = new Date(conversation.updatedAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+  // Get the categories for the dropdown
+  const categories: ConversationCategory[] = [
+    "General",
+    "Work",
+    "Research",
+    "Personal",
+    "Bookmarks"
+  ];
+
+  return (
+    <div
+      className={cn(
+        "p-2 rounded-md hover:bg-accent group flex justify-between items-start cursor-pointer",
+        isActive && "bg-accent"
+      )}
+      onClick={onClick}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium truncate">{conversation.name}</h3>
+          {conversation.pinned && !isArchived && (
+            <div className="h-1 w-1 rounded-full bg-primary" />
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+          <span>{date}</span>
+          <span>•</span>
+          <span>{conversation.category}</span>
+          <span>•</span>
+          <span>{conversation.messages.length} messages</span>
+        </div>
+      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {!isArchived && (
+            <>
+              <DropdownMenuItem onClick={(e) => {
+                e.stopPropagation();
+                if (onTogglePinned) onTogglePinned();
+              }}>
+                {conversation.pinned ? "Unpin" : "Pin"}
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onArchive) onArchive();
+                }}
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                Archive
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {onCategoryChange && (
+                <>
+                  {categories.map((category) => (
+                    <DropdownMenuItem
+                      key={category}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCategoryChange(category);
+                      }}
+                    >
+                      Move to {category}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                </>
+              )}
+            </>
+          )}
+          
+          {isArchived && (
+            <>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onRestore) onRestore();
+                }}
+              >
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+                Restore
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+          
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 };
 

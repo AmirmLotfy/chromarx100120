@@ -60,7 +60,7 @@ export const ConversationService = {
       if (error) throw error;
 
       const conversations: Conversation[] = [];
-      for (const dbConvo of dbConversations) {
+      for (const dbConvo of dbConversations || []) {
         const conversation = mapDbConversation(dbConvo);
         
         // Get messages for this conversation
@@ -72,7 +72,7 @@ export const ConversationService = {
         
         if (messagesError) throw messagesError;
         
-        conversation.messages = dbMessages.map(mapDbMessage);
+        conversation.messages = (dbMessages || []).map(mapDbMessage);
         conversations.push(conversation);
       }
 

@@ -19,6 +19,9 @@ const ChatInterface = () => {
     isHistoryOpen,
     setIsHistoryOpen,
     chatHistory,
+    archivedConversations,
+    showArchived,
+    setShowArchived,
     messagesEndRef,
     handleSendMessage,
     clearChat,
@@ -29,7 +32,12 @@ const ChatInterface = () => {
     activeConversation,
     isBookmarkSearchMode,
     toggleBookmarkSearchMode,
-    markMessagesAsRead
+    markMessagesAsRead,
+    archiveConversation,
+    restoreConversation,
+    deleteConversation,
+    updateConversationCategory,
+    togglePinned
   } = useChatState();
   
   const isMobile = useIsMobile();
@@ -72,6 +80,14 @@ const ChatInterface = () => {
               clearChat={clearChat}
               activeConversation={activeConversation}
               isMobile={isMobile}
+              archivedConversations={archivedConversations}
+              showArchived={showArchived}
+              setShowArchived={setShowArchived}
+              archiveConversation={archiveConversation}
+              restoreConversation={restoreConversation}
+              deleteConversation={deleteConversation}
+              updateConversationCategory={updateConversationCategory}
+              togglePinned={togglePinned}
             />
           )}
         </AnimatePresence>
