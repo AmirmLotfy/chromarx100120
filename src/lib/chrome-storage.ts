@@ -1,4 +1,3 @@
-
 import { storage } from '@/services/storageService';
 
 export interface ChromeUser {
@@ -67,13 +66,65 @@ type StorageKey = keyof StorageData | string;
 
 export const chromeDb = {
   get: async <T>(key: StorageKey): Promise<T | null> => storage.get<T>(key),
-  set: async <T>(key: StorageKey, value: T): Promise<void> => storage.set(key, value),
+  set: async <T>(key: StorageKey, value: T): Promise<void> => {
+    try {
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'id' in value[0]) {
+        const versionedValue = value.map((item: any) => {
+          if (!item.version) {
+            return { ...item, version: 1 };
+          }
+          return item;
+        });
+        
+        await storage.set(key, versionedValue);
+      } else {
+        await storage.set(key, value);
+      }
+    } catch (error) {
+      console.error('Error writing to chrome storage:', error);
+      throw error;
+    }
+  },
   update: async <T extends Record<string, any>>(key: StorageKey, value: Partial<T>): Promise<void> => storage.update(key, value),
   remove: storage.remove.bind(storage),
+  updateWithVersion: async <T extends { id: string; version?: number }>(
+    key: StorageKey,
+    item: T
+  ): Promise<{success: boolean; conflict?: boolean}> => {
+    try {
+      const allItems = await storage.get<T[]>(key as string) || [];
+      const existingIndex = allItems.findIndex(i => 'id' in i && i.id === item.id);
+      
+      if (existingIndex >= 0) {
+        const existing = allItems[existingIndex] as T;
+        const existingVersion = existing.version || 1;
+        const newVersion = item.version || 1;
+        
+        if (existingVersion > newVersion) {
+          return { success: false, conflict: true };
+        }
+        
+        allItems[existingIndex] = {
+          ...item,
+          version: newVersion
+        };
+      } else {
+        allItems.push({
+          ...item,
+          version: item.version || 1
+        });
+      }
+      
+      await storage.set(key, allItems);
+      return { success: true };
+    } catch (error) {
+      console.error(`Error updating ${key} with version:`, error);
+      return { success: false };
+    }
+  },
   getBytesInUse: async (): Promise<number> => {
     try {
       if (typeof chrome === 'undefined' || !chrome.storage?.sync) {
-        // Return estimated localStorage usage if not in extension
         return Object.keys(localStorage).reduce((total, key) => {
           return total + (localStorage.getItem(key)?.length || 0) * 2; // Approximate bytes
         }, 0);
@@ -100,7 +151,6 @@ export const chromeDb = {
   }
 };
 
-// Initialize storage change listener
 if (typeof chrome !== 'undefined' && chrome.storage) {
   chromeDb.listenToChanges();
 }

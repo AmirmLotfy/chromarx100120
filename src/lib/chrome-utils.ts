@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface ChromeUser {
@@ -130,5 +129,159 @@ export const auth = {
       console.error('Error signing out:', error);
       throw error;
     }
+  }
+};
+
+// Add helper for checking if the extension is installed on this browser
+export const checkExtensionInstalled = async (): Promise<boolean> => {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+      return true;
+    }
+    return false;
+  } catch (error) {
+    return false;
+  }
+};
+
+// Add helper for generating device ID
+export const getDeviceId = async (): Promise<string> => {
+  try {
+    // Try to get from storage first
+    const deviceId = localStorage.getItem('deviceId');
+    if (deviceId) return deviceId;
+    
+    // Generate new one if not exists
+    const newDeviceId = crypto.randomUUID();
+    localStorage.setItem('deviceId', newDeviceId);
+    return newDeviceId;
+  } catch (error) {
+    console.error("Error generating device ID:", error);
+    // Fallback
+    return `device-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
+};
+
+// Add device info
+export const getDeviceInfo = async (): Promise<{
+  deviceId: string;
+  deviceName: string;
+  deviceType: string;
+  browser: string;
+}> => {
+  const deviceId = await getDeviceId();
+  
+  // Get device name using navigator info
+  const userAgent = navigator.userAgent;
+  let deviceName = 'Unknown Device';
+  let deviceType = 'desktop';
+  let browser = 'unknown';
+  
+  // Detect browser
+  if (userAgent.indexOf('Chrome') > -1) {
+    browser = 'chrome';
+  } else if (userAgent.indexOf('Firefox') > -1) {
+    browser = 'firefox';
+  } else if (userAgent.indexOf('Safari') > -1) {
+    browser = 'safari';
+  } else if (userAgent.indexOf('Edge') > -1 || userAgent.indexOf('Edg') > -1) {
+    browser = 'edge';
+  }
+  
+  // Detect device type
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+    deviceType = 'mobile';
+    
+    if (/iPad|Tablet/i.test(userAgent)) {
+      deviceType = 'tablet';
+    }
+  }
+  
+  // Create device name
+  const platform = navigator.platform || 'Unknown';
+  deviceName = `${browser.charAt(0).toUpperCase() + browser.slice(1)} on ${platform}`;
+  
+  return {
+    deviceId,
+    deviceName,
+    deviceType,
+    browser
+  };
+};
+
+// Add function to register device with backend
+export const registerDevice = async (): Promise<boolean> => {
+  try {
+    const user = await auth.getCurrentUser();
+    if (!user) return false;
+    
+    const deviceInfo = await getDeviceInfo();
+    
+    // Check if device already registered
+    const { data: existingDevice } = await supabase
+      .from('devices')
+      .select('*')
+      .eq('device_id', deviceInfo.deviceId)
+      .eq('user_id', user.id)
+      .single();
+    
+    if (existingDevice) {
+      // Update device status
+      await supabase
+        .from('devices')
+        .update({
+          is_online: true,
+          last_active: new Date().toISOString()
+        })
+        .eq('device_id', deviceInfo.deviceId);
+    } else {
+      // Register new device
+      await supabase
+        .from('devices')
+        .insert({
+          device_id: deviceInfo.deviceId,
+          device_name: deviceInfo.deviceName,
+          device_type: deviceInfo.deviceType,
+          user_id: user.id,
+          is_online: true
+        });
+    }
+    
+    // Set up device status update on window events
+    window.addEventListener('beforeunload', async () => {
+      try {
+        await supabase
+          .from('devices')
+          .update({
+            is_online: false,
+            last_active: new Date().toISOString()
+          })
+          .eq('device_id', deviceInfo.deviceId);
+      } catch (error) {
+        // Silently fail, since we're unloading anyway
+      }
+    });
+    
+    // Heartbeat to update device status periodically
+    setInterval(async () => {
+      if (navigator.onLine) {
+        try {
+          await supabase
+            .from('devices')
+            .update({
+              is_online: true,
+              last_active: new Date().toISOString()
+            })
+            .eq('device_id', deviceInfo.deviceId);
+        } catch (error) {
+          console.error("Error updating device status:", error);
+        }
+      }
+    }, 1000 * 60 * 5); // Every 5 minutes
+    
+    return true;
+  } catch (error) {
+    console.error("Error registering device:", error);
+    return false;
   }
 };
