@@ -1,12 +1,11 @@
 
-export type NoteSentiment = 'positive' | 'negative' | 'neutral' | undefined;
+export type NoteSentiment = 'positive' | 'negative' | 'neutral';
 
 export interface SentimentDetails {
   score: number;
   confidence: number;
   dominantEmotion?: string;
   language: string;
-  [key: string]: any; // Add index signature for Json compatibility
 }
 
 export interface Note {
@@ -23,38 +22,4 @@ export interface Note {
   summary?: string;
   taskId?: string;
   bookmarkIds?: string[];
-  folderId?: string;
-  pinned?: boolean;
-  color?: string;
-  _hasConflict?: boolean;
-  _remoteVersion?: number;
-}
-
-export interface NoteFolder {
-  id: string;
-  name: string;
-  color?: string;
-  icon?: string;
-  parentId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type NoteSortOption = 'updatedAt' | 'createdAt' | 'title' | 'category';
-export type NoteSortDirection = 'asc' | 'desc';
-
-export interface NoteSort {
-  field: NoteSortOption;
-  direction: NoteSortDirection;
-}
-
-export interface NoteFilter {
-  category?: string;
-  tags?: string[];
-  folder?: string;
-  searchText?: string;
-  dateRange?: {
-    start: string;
-    end: string;
-  };
 }
