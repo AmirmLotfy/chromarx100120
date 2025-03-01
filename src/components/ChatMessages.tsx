@@ -13,10 +13,10 @@ interface ChatMessagesProps {
 const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   const getMessageClassName = (message: Message) => {
     return cn(
-      "max-w-[85%] md:max-w-[75%] space-y-2",
+      "max-w-[90%] md:max-w-[75%] space-y-2",
       message.sender === "user"
-        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-md"
-        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-md"
+        ? "bg-gradient-to-br from-primary/80 to-primary/70 text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-md"
+        : "bg-gradient-to-br from-muted/90 to-muted/70 text-foreground rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-md"
     );
   };
 
@@ -28,18 +28,21 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center space-y-3 max-w-xs mx-auto p-6 rounded-xl bg-accent/30 backdrop-blur-sm border border-border/50 shadow-sm"
+            className="text-center space-y-3 max-w-sm mx-auto p-8 rounded-xl bg-accent/20 backdrop-blur-sm border border-primary/10 shadow-sm"
           >
-            <p className="text-sm font-medium text-foreground/80">
-              Start a conversation to get insights
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Ask questions about your bookmarks or toggle search mode to find specific saved content
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-foreground/90">Start a Conversation</h3>
+            <p className="text-sm text-muted-foreground">
+              Ask questions about your bookmarks or search for specific content
             </p>
           </motion.div>
         </div>
       ) : (
-        <div className="space-y-4 pb-2">
+        <div className="space-y-6 pb-2">
           {messages.map((message, index) => (
             <motion.div
               key={message.id}
@@ -66,7 +69,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                           href={bookmark.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1.5 px-2 bg-background/20 hover:bg-background/40 transition-colors"
+                          className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1.5 px-2 bg-background/30 hover:bg-background/50 transition-colors"
                         >
                           <ExternalLink className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{bookmark.title}</span>
@@ -86,7 +89,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                           href={result.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1.5 px-2 bg-background/20 hover:bg-background/40 transition-colors"
+                          className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1.5 px-2 bg-background/30 hover:bg-background/50 transition-colors"
                         >
                           <ExternalLink className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{result.title}</span>

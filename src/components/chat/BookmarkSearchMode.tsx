@@ -20,20 +20,20 @@ const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
     >
       <Alert 
         variant="default" 
-        className="bg-accent/80 border border-primary/20 rounded-xl shadow-md backdrop-blur-sm"
+        className="bg-gradient-to-r from-primary/10 to-background/80 border border-primary/20 rounded-xl shadow-md backdrop-blur-sm"
       >
         <div className="flex items-center space-x-2">
-          <div className="rounded-full bg-primary/10 p-1.5">
+          <div className="rounded-full bg-primary/20 p-2">
             <BookmarkIcon className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-base font-medium">Bookmark Search</h3>
+          <h3 className="text-base font-semibold">Bookmark Search Mode</h3>
         </div>
         
         <AlertDescription className="text-sm mt-3 text-foreground/80">
           Describe the bookmark you're looking for using keywords, topics, or content you remember.
         </AlertDescription>
         
-        <div className="mt-3 space-y-2 bg-background/70 p-3 rounded-lg border border-border/50 backdrop-blur-sm">
+        <div className="mt-3 space-y-2 bg-background/50 p-4 rounded-lg border border-border/50 backdrop-blur-sm">
           <div className="flex items-center text-xs text-foreground/70">
             <Search className="h-3 w-3 mr-2 text-primary/70" />
             <span>"article about climate change with graphs"</span>
@@ -53,7 +53,7 @@ const BookmarkSearchMode: React.FC<BookmarkSearchModeProps> = ({ onClose }) => {
             variant="outline" 
             size="sm" 
             onClick={onClose}
-            className="text-xs h-8 font-medium hover:bg-primary/10 hover:text-primary"
+            className="text-xs h-8 font-medium bg-background/50 hover:bg-primary/10 hover:text-primary"
           >
             Exit Search Mode
           </Button>

@@ -48,7 +48,7 @@ const ChatInterface = () => {
   }, [messages.length, isMobile, isHistoryOpen, setIsHistoryOpen]);
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden bg-gradient-to-b from-background to-background/80">
       {/* Sidebar for chat history */}
       <ChatSidebar 
         isOpen={isHistoryOpen}
@@ -62,7 +62,7 @@ const ChatInterface = () => {
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex flex-col flex-1 h-[calc(100vh-8rem)] md:h-[75vh] bg-background rounded-xl border border-accent/40 shadow-lg overflow-hidden"
+        className="flex flex-col flex-1 h-[calc(100vh-8rem)] md:h-[75vh] overflow-hidden rounded-xl shadow-lg bg-background/40 backdrop-blur-sm border border-primary/10"
       >
         <ChatHeader 
           clearChat={clearChat} 
@@ -112,7 +112,7 @@ const ChatInterface = () => {
           <ChatMessages messages={messages} messagesEndRef={messagesEndRef} />
         </div>
         
-        <div className="border-t p-3 bg-background/80 backdrop-blur-sm">
+        <div className="p-3 bg-background/30 backdrop-blur-sm border-t border-primary/5">
           <ChatInput
             onSendMessage={handleSendMessage}
             isProcessing={isProcessing}

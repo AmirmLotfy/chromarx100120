@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { PenSquare, History, Trash2, BookmarkPlus, Search } from "lucide-react";
+import { PenSquare, History, Trash2, BookmarkPlus, Search, Menu } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -67,43 +67,47 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <header className="border-b px-4 py-3 flex items-center justify-between bg-background/90 backdrop-blur-sm">
+    <header className="border-b px-4 py-3 flex items-center justify-between bg-background/60 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleHistory}
-          className="md:hidden"
+          className="text-primary/80 hover:text-primary hover:bg-primary/10"
           title="Chat history"
         >
-          <History className="h-5 w-5" />
+          <Menu className="h-5 w-5" />
         </Button>
         
-        <h2 className="text-lg font-semibold">
-          {isBookmarkSearchMode ? "Bookmark Search" : "Chat"}
-        </h2>
-        {activeConversation && (
-          <span className="text-sm text-muted-foreground ml-2 hidden md:inline-block">
-            {activeConversation.name}
-          </span>
-        )}
+        <div className="flex flex-col">
+          <h2 className="text-base font-semibold">
+            {isBookmarkSearchMode ? "Bookmark Search" : "Chat"}
+          </h2>
+          {activeConversation && (
+            <span className="text-xs text-muted-foreground truncate max-w-[150px] md:max-w-[200px]">
+              {activeConversation.name}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <Button
-          variant="ghost"
-          size="icon"
+          variant={isBookmarkSearchMode ? "secondary" : "ghost"}
+          size="sm"
           onClick={toggleBookmarkSearchMode}
-          className={isBookmarkSearchMode ? "bg-secondary" : ""}
+          className="h-8 text-xs font-medium"
           title={isBookmarkSearchMode ? "Exit bookmark search" : "Search bookmarks"}
         >
-          <Search className="h-5 w-5" />
+          <Search className="h-3.5 w-3.5 mr-1.5" />
+          Search
         </Button>
 
         <Button
           variant="ghost"
           size="icon"
           onClick={onManageConversations}
+          className="text-primary/80 hover:text-primary hover:bg-primary/10"
           title="Manage conversations"
         >
           <BookmarkPlus className="h-5 w-5" />
@@ -116,6 +120,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="text-primary/80 hover:text-primary hover:bg-primary/10"
                   title="Save conversation"
                 >
                   <PenSquare className="h-5 w-5" />
@@ -184,7 +189,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               variant="ghost"
               size="icon"
               onClick={clearChat}
-              className="text-muted-foreground"
+              className="text-destructive/70 hover:text-destructive hover:bg-destructive/10"
               title="Clear chat"
             >
               <Trash2 className="h-5 w-5" />
