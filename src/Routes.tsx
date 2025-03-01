@@ -1,5 +1,6 @@
 
-import { Routes as RouterRoutes, Route } from "react-router-dom";
+import { Routes as RouterRoutes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import Index from "@/pages/Index";
 import BookmarksPage from "@/pages/BookmarksPage";
 import ChatPage from "@/pages/ChatPage";
@@ -13,24 +14,118 @@ import PlansPage from "@/pages/PlansPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import SuggestedServicesPage from "@/pages/SuggestedServicesPage";
 import UserPage from "@/pages/UserPage";
+import AuthPage from "@/pages/AuthPage";
 import NotFound from "@/pages/NotFound";
+
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    // Show a minimal loading state while checking auth
+    return (
+      <div className="flex items-center justify-center h-full min-h-[200px]">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
+};
 
 const Routes = () => {
   return (
     <RouterRoutes>
       <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/plans" element={<PlansPage />} />
       <Route path="/suggested-services" element={<SuggestedServicesPage />} />
-      <Route path="/bookmarks" element={<BookmarksPage />} />
-      <Route path="/chat" element={<ChatPage />} />
-      <Route path="/summaries" element={<SummariesPage />} />
-      <Route path="/analytics" element={<AnalyticsPage />} />
-      <Route path="/timer" element={<TimerPage />} />
-      <Route path="/tasks" element={<TaskPage />} />
-      <Route path="/notes" element={<NotesPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/subscription" element={<SubscriptionPage />} />
-      <Route path="/user" element={<UserPage />} />
+      
+      {/* Protected routes */}
+      <Route 
+        path="/bookmarks" 
+        element={
+          <ProtectedRoute>
+            <BookmarksPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/chat" 
+        element={
+          <ProtectedRoute>
+            <ChatPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/summaries" 
+        element={
+          <ProtectedRoute>
+            <SummariesPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/analytics" 
+        element={
+          <ProtectedRoute>
+            <AnalyticsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/timer" 
+        element={
+          <ProtectedRoute>
+            <TimerPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/tasks" 
+        element={
+          <ProtectedRoute>
+            <TaskPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notes" 
+        element={
+          <ProtectedRoute>
+            <NotesPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/subscription" 
+        element={
+          <ProtectedRoute>
+            <SubscriptionPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/user" 
+        element={
+          <ProtectedRoute>
+            <UserPage />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );
