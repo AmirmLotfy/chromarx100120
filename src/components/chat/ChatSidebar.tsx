@@ -24,7 +24,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   activeConversation,
   isMobile
 }) => {
+  // If sidebar is not open, don't render anything
   if (!isHistoryOpen) return null;
+
+  const handleClose = () => {
+    console.log("Closing sidebar");
+    setIsHistoryOpen(false);
+  };
 
   return (
     <motion.div 
@@ -32,7 +38,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: isMobile ? -280 : -250 }}
       transition={{ duration: 0.2 }}
-      className={`absolute inset-y-0 left-0 z-30 w-[70%] sm:w-[280px] bg-background border-r shadow-lg
+      className={`fixed inset-y-0 left-0 z-30 w-[70%] sm:w-[280px] bg-background border-r shadow-lg
                  ${isMobile ? 'h-full' : 'max-h-full'} flex flex-col overflow-hidden`}
     >
       <div className="flex items-center justify-between p-4 border-b">
@@ -41,10 +47,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           variant="ghost" 
           size="icon" 
           className="h-8 w-8"
-          onClick={() => {
-            console.log("Closing history sidebar");
-            setIsHistoryOpen(false);
-          }}
+          onClick={handleClose}
         >
           <X size={18} />
         </Button>

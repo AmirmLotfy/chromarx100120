@@ -22,6 +22,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   isBookmarkSearchMode,
   toggleBookmarkSearchMode,
 }) => {
+  const handleToggleSidebar = () => {
+    console.log("Toggle history sidebar", !isHistoryOpen);
+    setIsHistoryOpen(!isHistoryOpen);
+  };
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-violet-500/10 to-indigo-500/10">
       <div className="flex items-center gap-2">
@@ -29,7 +34,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           variant="ghost" 
           size="icon" 
           className="md:hidden"
-          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          onClick={handleToggleSidebar}
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
           {isHistoryOpen ? <X size={20} /> : <Menu size={20} />}

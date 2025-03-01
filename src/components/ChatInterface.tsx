@@ -60,7 +60,7 @@ const ChatInterface = () => {
       
       {/* Main content area with flexible layout */}
       <div className="flex flex-1 h-full overflow-hidden relative">
-        {/* Chat history sidebar */}
+        {/* Chat history sidebar - use AnimatePresence to handle animations */}
         <AnimatePresence>
           {isHistoryOpen && (
             <ChatSidebar 
@@ -74,6 +74,15 @@ const ChatInterface = () => {
             />
           )}
         </AnimatePresence>
+        
+        {/* Overlay to close sidebar on mobile when clicking outside */}
+        {isHistoryOpen && isMobile && (
+          <div 
+            className="fixed inset-0 bg-black/20 z-20"
+            onClick={() => setIsHistoryOpen(false)}
+            aria-hidden="true"
+          />
+        )}
         
         {/* Main chat area */}
         <div className="flex-1 flex flex-col overflow-hidden">
