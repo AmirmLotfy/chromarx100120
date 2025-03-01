@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2, Plus, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, Plus, Clock, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateTaskSuggestions, suggestTimerDuration } from "@/utils/geminiUtils";
 import { toast } from "sonner";
@@ -103,12 +104,24 @@ export const TaskForm = ({
   const getAIRecommendations = async () => {
     setIsLoading(true);
     try {
-      const [duration, taskSuggestions] = await Promise.all([suggestTimerDuration(`Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`, currentLanguage.code), generateTaskSuggestions(`Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`, currentLanguage.code)]);
+      const [duration, taskSuggestions] = await Promise.all([
+        suggestTimerDuration(
+          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`, 
+          currentLanguage.code
+        ), 
+        generateTaskSuggestions(
+          `Task: ${title}\nDescription: ${description}\nPriority: ${priority}\nCategory: ${category}`, 
+          currentLanguage.code
+        )
+      ]);
+      
       const validatedDuration = Math.min(Math.max(duration || 25, 5), 120);
       setEstimatedDuration(validatedDuration);
+      
       if (taskSuggestions) {
         setSuggestions(taskSuggestions.split('\n').filter(Boolean));
       }
+      
       return {
         estimatedDuration: validatedDuration,
         color: categories.find(c => c.name === category)?.color || `hsl(${Math.random() * 360}, 70%, 50%)`
@@ -184,84 +197,134 @@ export const TaskForm = ({
     }
   };
 
-  const priorityColors = {
-    high: "bg-red-500",
-    medium: "bg-amber-500",
-    low: "bg-emerald-500"
-  };
-
-  return <div className="relative pb-4 w-full max-w-full">
-      <div className="mb-6">
-        <Progress value={step === 1 ? 50 : 100} className="h-1" />
-        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>Basic info</span>
+  return (
+    <div className="relative max-w-md mx-auto w-full px-4 pb-6">
+      <div className="mb-5">
+        <Progress value={step === 1 ? 50 : 100} className="h-1.5 bg-gray-200" indicatorClassName="bg-gradient-to-r from-primary to-purple-500" />
+        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+          <span>Task info</span>
           <span>Details</span>
         </div>
       </div>
 
-      {step === 1 ? <div className="space-y-4 w-full">
-          <div className="space-y-2 w-full">
-            <Label htmlFor="title" className="text-base font-medium">Task Title</Label>
-            <Input id="title" placeholder="What do you need to do?" value={title} onChange={e => setTitle(e.target.value)} maxLength={100} required className="h-12 text-base w-full" />
+      {step === 1 ? (
+        <div className="space-y-5">
+          <div className="space-y-3">
+            <Label htmlFor="title" className="text-base font-medium">What's your task?</Label>
+            <Input 
+              id="title" 
+              placeholder="Enter task title..." 
+              value={title} 
+              onChange={e => setTitle(e.target.value)} 
+              maxLength={100} 
+              required 
+              className="h-14 text-base w-full rounded-xl border-input/60"
+            />
           </div>
           
-          <div className="space-y-2 w-full">
-            <Label htmlFor="description" className="text-base font-medium">Description</Label>
-            <Textarea id="description" placeholder="Add more details about your task" value={description} onChange={e => setDescription(e.target.value)} className="min-h-[120px] text-base w-full px-3 py-2.5 resize-y" maxLength={500} />
+          <div className="space-y-3">
+            <Label htmlFor="description" className="text-base font-medium">Description (optional)</Label>
+            <Textarea 
+              id="description" 
+              placeholder="Add details about your task..." 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              className="min-h-[120px] text-base w-full rounded-xl border-input/60 resize-y" 
+              maxLength={500} 
+            />
           </div>
 
-          <div className="space-y-2 w-full">
+          <div className="space-y-3">
             <Label className="text-base font-medium">Priority</Label>
-            <div className="grid grid-cols-3 gap-2 w-full">
-              {["low", "medium", "high"].map(p => <Button key={p} type="button" variant={priority === p ? "default" : "outline"} className={cn("h-12 capitalize", priority === p && priorityColors[p as TaskPriority])} onClick={() => setPriority(p as TaskPriority)}>
+            <div className="grid grid-cols-3 gap-3">
+              {["low", "medium", "high"].map(p => (
+                <Button
+                  key={p}
+                  type="button"
+                  variant={priority === p ? "default" : "outline"}
+                  className={cn(
+                    "h-14 text-base rounded-xl capitalize transition-all",
+                    priority === p && (
+                      p === "high" ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-500" :
+                      p === "medium" ? "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-500" :
+                      "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500"
+                    )
+                  )}
+                  onClick={() => setPriority(p as TaskPriority)}
+                >
                   {p}
-                </Button>)}
+                </Button>
+              ))}
             </div>
           </div>
 
-          <Button onClick={handleNextStep} className="w-full h-12 mt-4 text-base" disabled={!title.trim()}>
+          <Button 
+            onClick={handleNextStep} 
+            className="w-full h-14 mt-5 text-base rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary shadow-md"
+            disabled={!title.trim()}
+          >
             Continue
+            <ChevronRight className="ml-1 h-5 w-5" />
           </Button>
-        </div> : <div className="space-y-4 w-full">
-          <div className="space-y-2 w-full">
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div className="space-y-3">
             <Label className="text-base font-medium">Category</Label>
             <div className="flex gap-2 w-full">
               <Select value={category} onValueChange={(value: TaskCategory) => setCategory(value)}>
-                <SelectTrigger className="w-full h-12">
+                <SelectTrigger className="w-full h-14 rounded-xl border-input/60">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
-                  {categories.map(cat => <SelectItem key={cat.id} value={cat.name}>
+                <SelectContent className="max-h-[280px]">
+                  {categories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.name}>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{
-                    backgroundColor: cat.color
-                  }} />
+                          backgroundColor: cat.color
+                        }} />
                         {cat.name}
                       </div>
-                    </SelectItem>)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               <Dialog open={isAddingCategory} onOpenChange={setIsAddingCategory}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" type="button" className="shrink-0 h-12 w-12">
+                  <Button variant="outline" size="icon" type="button" className="h-14 w-14 rounded-xl">
                     <Plus className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] w-[calc(100%-2rem)] max-w-full mx-auto">
+                <DialogContent className="sm:max-w-[340px] w-[calc(100%-2rem)] max-w-full mx-auto rounded-xl">
                   <DialogHeader>
                     <DialogTitle>Add New Category</DialogTitle>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4 w-full">
-                    <div className="grid gap-2 w-full">
+                  <div className="grid gap-4 py-3">
+                    <div className="grid gap-2">
                       <Label htmlFor="categoryName">Category name</Label>
-                      <Input id="categoryName" placeholder="Category name" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} className="w-full" />
+                      <Input 
+                        id="categoryName" 
+                        placeholder="Enter category name" 
+                        value={newCategoryName} 
+                        onChange={e => setNewCategoryName(e.target.value)} 
+                        className="h-12 rounded-lg" 
+                      />
                     </div>
-                    <div className="grid gap-2 w-full">
+                    <div className="grid gap-2">
                       <Label htmlFor="categoryColor">Color</Label>
-                      <Input id="categoryColor" type="color" value={newCategoryColor} onChange={e => setNewCategoryColor(e.target.value)} className="h-12 px-2 w-full" />
+                      <Input 
+                        id="categoryColor" 
+                        type="color" 
+                        value={newCategoryColor} 
+                        onChange={e => setNewCategoryColor(e.target.value)} 
+                        className="h-12 px-2 rounded-lg" 
+                      />
                     </div>
-                    <Button onClick={handleAddCategory} className="w-full">
+                    <Button 
+                      onClick={handleAddCategory} 
+                      className="mt-2 h-12 rounded-lg bg-gradient-to-r from-primary to-purple-600"
+                    >
                       Add Category
                     </Button>
                   </div>
@@ -270,55 +333,93 @@ export const TaskForm = ({
             </div>
           </div>
 
-          <div className="space-y-2 w-full">
+          <div className="space-y-3">
             <Label className="text-base font-medium">Due Date</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full h-12 justify-start text-left font-normal">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-14 justify-start text-left font-normal rounded-xl border-input/60"
+                >
                   <CalendarIcon className="mr-2 h-5 w-5" />
-                  {dueDate ? format(dueDate, "PPP") : <span>Pick a due date</span>}
+                  {dueDate ? format(dueDate, "PPP") : <span>Select due date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus disabled={date => date < new Date()} />
+                <Calendar 
+                  mode="single" 
+                  selected={dueDate} 
+                  onSelect={setDueDate} 
+                  initialFocus 
+                  disabled={date => date < new Date()} 
+                  className="rounded-lg border shadow-lg"
+                />
               </PopoverContent>
             </Popover>
           </div>
 
-          <div className="space-y-2 w-full">
+          <div className="space-y-3">
             <Label className="text-base font-medium">Estimated Duration</Label>
-            <div className="flex items-center gap-3 border rounded-md p-3 bg-background w-full">
-              <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <div className="w-full flex gap-2 items-center">
-                <Input type="number" min={5} max={120} value={estimatedDuration} onChange={e => setEstimatedDuration(Number(e.target.value))} className="w-20 h-10 text-center" />
+            <div className="flex items-center gap-3 border rounded-xl p-4 bg-accent/20">
+              <Clock className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="w-full flex items-center gap-3">
+                <Input 
+                  type="number" 
+                  min={5} 
+                  max={120} 
+                  value={estimatedDuration} 
+                  onChange={e => setEstimatedDuration(Number(e.target.value))} 
+                  className="w-20 h-12 text-center rounded-lg" 
+                />
                 <span className="text-muted-foreground">minutes</span>
               </div>
             </div>
           </div>
 
-          {suggestions.length > 0 && <div className="p-4 bg-accent/30 rounded-lg border border-accent w-full">
-              <h4 className="font-medium mb-2">AI Suggestions:</h4>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                {suggestions.map((suggestion, index) => <li key={index} className="flex gap-2">
-                    <span className="text-primary">•</span>
+          {suggestions.length > 0 && (
+            <div className="p-4 bg-gradient-to-r from-accent/30 to-accent/10 rounded-xl border border-accent">
+              <h4 className="font-medium mb-2 flex items-center">
+                <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full mr-2">AI</span>
+                Suggestions
+              </h4>
+              <ul className="space-y-2 text-sm">
+                {suggestions.map((suggestion, index) => (
+                  <li key={index} className="flex gap-2 items-start">
+                    <span className="text-primary mt-0.5">•</span>
                     <span>{suggestion}</span>
-                  </li>)}
+                  </li>
+                ))}
               </ul>
-            </div>}
+            </div>
+          )}
 
-          <div className="flex gap-2 pt-4 w-full">
-            <Button type="button" variant="outline" className="w-1/3 h-12" onClick={handlePrevStep}>
+          <div className="flex gap-3 pt-3">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-1/3 h-14 rounded-xl" 
+              onClick={handlePrevStep}
+            >
+              <ChevronLeft className="mr-1 h-5 w-5" />
               Back
             </Button>
-            <Button className="w-2/3 h-12 text-base" disabled={isLoading} onClick={handleSubmit}>
-              {isLoading ? <>
+            <Button 
+              className="w-2/3 h-14 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary shadow-md"
+              disabled={isLoading} 
+              onClick={handleSubmit}
+            >
+              {isLoading ? (
+                <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Creating Task...
-                </> : "Add Task"}
+                  Creating...
+                </>
+              ) : "Create Task"}
             </Button>
           </div>
-        </div>}
-    </div>;
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default TaskForm;
