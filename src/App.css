@@ -125,17 +125,25 @@ body,
   display: none; /* Chrome, Safari and Opera */
 }
 
-/* Glass card effects */
+/* Enhanced glass card effects */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.glass-card:active {
+  transform: scale(0.98);
 }
 
 .dark .glass-card {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* Enhanced mobile UI styles */
@@ -146,6 +154,7 @@ body,
   
   .touch-button {
     min-height: 44px; /* Apple's recommended minimum touch target size */
+    min-width: 44px;
   }
 
   /* Improved spacing for mobile */
@@ -164,7 +173,7 @@ body,
   }
 }
 
-/* Animations */
+/* Enhanced animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -185,12 +194,27 @@ body,
   }
 }
 
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
 
 .animate-slide-in {
   animation: slideIn 0.4s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Modern mobile-optimized design effects */
