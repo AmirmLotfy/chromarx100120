@@ -16,6 +16,10 @@ interface SettingsState {
     bookmarks: boolean;
     updates: boolean;
     reminders: boolean;
+    email: boolean;
+    push: boolean;
+    desktop: boolean;
+    frequency: 'immediate' | 'daily' | 'weekly';
   };
   experimentalFeatures: boolean;
   affiliateBannersEnabled: boolean;
@@ -27,7 +31,7 @@ interface SettingsState {
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
   setDataCollection: (enabled: boolean, userId?: string) => Promise<void>;
-  setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean, userId?: string) => Promise<void>;
+  setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean | string, userId?: string) => Promise<void>;
   setExperimentalFeatures: (enabled: boolean) => void;
   setAffiliateBannersEnabled: (enabled: boolean) => void;
   setAutoDetectBookmarks: (enabled: boolean) => void;
@@ -45,6 +49,10 @@ interface UserSettingsData {
     bookmarks: boolean;
     updates: boolean;
     reminders: boolean;
+    email: boolean;
+    push: boolean;
+    desktop: boolean;
+    frequency: 'immediate' | 'daily' | 'weekly';
   };
   experimentalFeatures?: boolean;
   affiliateBannersEnabled?: boolean;
@@ -61,6 +69,10 @@ const initialState = {
     bookmarks: true,
     updates: true,
     reminders: true,
+    email: false,
+    push: true,
+    desktop: true,
+    frequency: 'immediate' as const,
   },
   experimentalFeatures: false,
   affiliateBannersEnabled: true,
@@ -128,12 +140,22 @@ export const useSettings = create<SettingsState>()(
         }
       },
       setNotifications: async (type, enabled, userId) => {
-        set((state) => ({
-          notifications: {
-            ...state.notifications,
-            [type]: enabled,
-          },
-        }));
+        // Check if the enabled value is a string (for frequency) or boolean (for toggles)
+        if (type === 'frequency' && typeof enabled === 'string') {
+          set((state) => ({
+            notifications: {
+              ...state.notifications,
+              [type]: enabled,
+            },
+          }));
+        } else if (typeof enabled === 'boolean') {
+          set((state) => ({
+            notifications: {
+              ...state.notifications,
+              [type]: enabled,
+            },
+          }));
+        }
         
         if (userId) {
           const state = get();
