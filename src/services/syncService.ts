@@ -459,7 +459,7 @@ export class SyncService {
           category: data.category,
           content: data.content,
           tags: data.tags,
-          version: data.version,
+          version: data.version || bookmark.version || 1,
           conflictVersion: undefined,
           metadata: {
             ...bookmark.metadata,
