@@ -1,17 +1,27 @@
 
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
-import { Shield, Bell, PaintBucket, FileText, User, ChevronRight, Settings, Search, RotateCcw } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "@/stores/settingsStore";
 import AppearanceSettings from "@/components/settings/AppearanceSettings";
 import LegalAndFeedback from "@/components/settings/LegalAndFeedback";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PrivacySettings from "@/components/settings/PrivacySettings";
 import NotificationSettings from "@/components/settings/NotificationSettings";
 import { useTheme } from "next-themes";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
+import { 
+  Settings,
+  Search,
+  RotateCcw,
+  PaintBucket,
+  Shield,
+  Bell,
+  FileText,
+  ChevronRight,
+  X
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Dialog,
@@ -23,12 +33,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("appearance");
   const [searchQuery, setSearchQuery] = useState("");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const settings = useSettings();
   const { theme } = useTheme();
   const isMobile = useIsMobile();
@@ -91,51 +101,102 @@ const SettingsPage = () => {
     toast.success("Settings have been reset to defaults");
   };
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+  const handleSearch = () => {
+    setIsSearchActive(!isSearchActive);
+    if (!isSearchActive) {
+      setTimeout(() => {
+        document.getElementById('search-input')?.focus();
+      }, 100);
+    } else {
+      setSearchQuery("");
     }
   };
 
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
-
-  // Create a smaller icon size for very small screens
-  const iconSize = isMobile ? 16 : 20;
+  const settingTabs = [
+    { id: "appearance", label: "Appearance", icon: <PaintBucket /> },
+    { id: "privacy", label: "Privacy", icon: <Shield /> },
+    { id: "notifications", label: "Alerts", icon: <Bell /> },
+    { id: "legal", label: "Legal", icon: <FileText /> },
+  ];
 
   return (
     <Layout>
-      <div className={`container mx-auto ${isMobile ? 'px-2' : 'px-4'} h-full flex flex-col`}>
+      <div className="bg-background min-h-screen overflow-hidden">
+        {/* Header */}
         <motion.div 
+          className="flex items-center justify-between px-4 py-3 border-b border-border/30 backdrop-blur-md bg-background/90 fixed top-14 left-0 right-0 z-10"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="space-y-1 flex-shrink-0 pt-2"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Settings className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
-              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold tracking-tight`}>Settings</h1>
-            </div>
+          <AnimatePresence mode="wait">
+            {!isSearchActive ? (
+              <motion.div 
+                key="title"
+                className="flex items-center gap-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Settings className="h-5 w-5 text-primary" />
+                <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="search"
+                className="w-full flex items-center gap-2"
+                initial={{ opacity: 0, width: "50%" }}
+                animate={{ opacity: 1, width: "100%" }}
+                exit={{ opacity: 0, width: "50%" }}
+              >
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search-input"
+                    type="text"
+                    placeholder="Search settings..."
+                    className="pl-9 pr-8 h-9 text-sm w-full bg-muted/40 border-none"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button 
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={handleSearch}
+            >
+              {!isSearchActive ? (
+                <Search className="h-4 w-4" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
+            </Button>
             
             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
-                  className="h-8 gap-1"
+                  size="icon" 
+                  className="h-8 w-8"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  {!isMobile && <span>Reset</span>}
+                  <RotateCcw className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[425px] rounded-xl">
                 <DialogHeader>
                   <DialogTitle>Reset Settings</DialogTitle>
                   <DialogDescription>
@@ -149,78 +210,57 @@ const SettingsPage = () => {
               </DialogContent>
             </Dialog>
           </div>
-          
-          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
-            Customize your experience
-          </p>
-          
-          <div className={`relative mt-3 ${isMobile ? 'mb-2' : 'mb-3'}`}>
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search settings..."
-              className={`pl-9 ${isMobile ? 'h-9 text-sm' : 'h-10'}`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
         </motion.div>
 
-        <div className="flex-1 overflow-hidden mt-1 pb-16">
-          <Tabs defaultValue="appearance" className="h-full flex flex-col" 
-            value={activeTab} 
-            onValueChange={setActiveTab}
+        {/* Navigation Pills */}
+        <div className="pt-20 pb-2 px-4">
+          <motion.div 
+            className="flex space-x-2 overflow-x-auto hide-scrollbar pb-1"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <TabsList className={`justify-start overflow-x-auto px-0 ${isMobile ? 'h-10' : 'h-12'} w-full bg-transparent space-x-1.5 mb-4`}>
-              {[
-                { value: "appearance", label: "Appearance", icon: <PaintBucket className={`h-${isMobile ? '3.5' : '4'} w-${isMobile ? '3.5' : '4'}`} /> },
-                { value: "privacy", label: "Privacy", icon: <Shield className={`h-${isMobile ? '3.5' : '4'} w-${isMobile ? '3.5' : '4'}`} /> },
-                { value: "notifications", label: "Alerts", icon: <Bell className={`h-${isMobile ? '3.5' : '4'} w-${isMobile ? '3.5' : '4'}`} /> },
-                { value: "legal", label: "Legal", icon: <FileText className={`h-${isMobile ? '3.5' : '4'} w-${isMobile ? '3.5' : '4'}`} /> }
-              ].map((tab) => (
-                <TabsTrigger 
-                  key={tab.value} 
-                  value={tab.value}
-                  className={cn(
-                    "data-[state=active]:bg-primary/10 data-[state=active]:text-primary",
-                    "rounded-full flex items-center gap-1.5",
-                    "transition-all duration-200",
-                    isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm gap-2"
-                  )}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <div className={`flex-1 overflow-y-auto max-w-[550px] mx-auto w-full ${isMobile ? 'pb-4' : 'pb-8'}`}>
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="w-full"
+            {settingTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm whitespace-nowrap transition-all",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/30",
+                  activeTab === tab.id 
+                    ? "bg-primary text-primary-foreground font-medium shadow-sm" 
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                )}
               >
-                <TabsContent value="appearance" className="mt-0">
-                  <AppearanceSettings />
-                </TabsContent>
+                <span className={cn(
+                  "h-4 w-4",
+                  activeTab === tab.id ? "text-primary-foreground" : "text-muted-foreground"
+                )}>
+                  {tab.icon}
+                </span>
+                {tab.label}
+              </button>
+            ))}
+          </motion.div>
+        </div>
 
-                <TabsContent value="privacy" className="mt-0">
-                  <PrivacySettings />
-                </TabsContent>
-
-                <TabsContent value="notifications" className="mt-0">
-                  <NotificationSettings />
-                </TabsContent>
-
-                <TabsContent value="legal" className="mt-0">
-                  <LegalAndFeedback />
-                </TabsContent>
-              </motion.div>
-            </div>
-          </Tabs>
+        {/* Content */}
+        <div className="px-4 pb-24">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="w-full"
+            >
+              {activeTab === "appearance" && <AppearanceSettings />}
+              {activeTab === "privacy" && <PrivacySettings />}
+              {activeTab === "notifications" && <NotificationSettings />}
+              {activeTab === "legal" && <LegalAndFeedback />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </Layout>

@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/stores/settingsStore";
@@ -10,6 +10,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
+import {
+  Shield,
+  Lock,
+  Cloud,
+  BarChart,
+  Tag,
+  RefreshCw,
+  Download,
+  Loader2,
+  Clock
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -131,16 +142,51 @@ const PrivacySettings = () => {
     show: { opacity: 1, y: 0 }
   };
 
+  const renderSetting = (
+    icon: React.ReactNode,
+    title: string,
+    description: string,
+    isChecked: boolean,
+    onChange: (checked: boolean) => void,
+    badge?: { text: string, variant?: string }
+  ) => (
+    <div className="flex items-center justify-between py-3.5 border-b border-border/20 last:border-none">
+      <div className="flex gap-3">
+        <div className="mt-0.5 text-primary">{icon}</div>
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">{title}</Label>
+            {badge && (
+              <Badge 
+                variant={badge.variant as any || "outline"} 
+                className="text-[10px] h-4"
+              >
+                {badge.text}
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {description}
+          </p>
+        </div>
+      </div>
+      <Switch
+        checked={isChecked}
+        onCheckedChange={onChange}
+      />
+    </div>
+  );
+
   return (
     <motion.div
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-5"
+      className="space-y-6"
     >
       {/* Confirmation Dialog for Disabling Data Collection */}
       <Dialog open={confirmDisableDataCollection} onOpenChange={setConfirmDisableDataCollection}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] rounded-xl">
           <DialogHeader>
             <DialogTitle>Disable Data Collection?</DialogTitle>
             <DialogDescription>
@@ -156,7 +202,7 @@ const PrivacySettings = () => {
       
       {/* Confirmation Dialog for Disabling Cloud Backup */}
       <Dialog open={confirmDisableBackup} onOpenChange={setConfirmDisableBackup}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] rounded-xl">
           <DialogHeader>
             <DialogTitle>Disable Cloud Backup?</DialogTitle>
             <DialogDescription>
@@ -170,134 +216,122 @@ const PrivacySettings = () => {
         </DialogContent>
       </Dialog>
 
+      <motion.div variants={item} className="mb-3">
+        <h2 className="text-lg font-medium">Privacy & Data</h2>
+        <p className="text-sm text-muted-foreground">Manage how your data is used</p>
+      </motion.div>
+
       <motion.div variants={item}>
-        <Card className="overflow-hidden border border-border/40 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Data & Privacy</CardTitle>
-            <CardDescription>Manage how your data is used</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-medium">Usage Analytics</Label>
-                <p className="text-xs text-muted-foreground">
-                  Help us improve with anonymous usage data
-                </p>
-              </div>
-              <Switch
-                checked={settings.dataCollection}
-                onCheckedChange={handleDataCollection}
-              />
-            </div>
+        <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
+          <CardContent className="p-0 divide-y divide-border/10">
+            {renderSetting(
+              <BarChart className="h-4 w-4" />,
+              "Usage Analytics",
+              "Help us improve with anonymous usage data",
+              settings.dataCollection,
+              handleDataCollection
+            )}
             
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Affiliate Content</Label>
-                  <Badge variant="outline" className="text-[10px] h-4">Sponsored</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Show relevant product recommendations
-                </p>
-              </div>
-              <Switch
-                checked={settings.affiliateBannersEnabled}
-                onCheckedChange={handleAffiliateBannersEnabled}
-              />
-            </div>
+            {renderSetting(
+              <Tag className="h-4 w-4" />,
+              "Affiliate Content",
+              "Show relevant product recommendations",
+              settings.affiliateBannersEnabled,
+              handleAffiliateBannersEnabled,
+              { text: "Sponsored", variant: "outline" }
+            )}
             
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Auto-detect Bookmarks</Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Automatically scan for bookmark changes
-                </p>
-              </div>
-              <Switch
-                checked={settings.autoDetectBookmarks}
-                onCheckedChange={settings.setAutoDetectBookmarks}
-              />
-            </div>
+            {renderSetting(
+              <RefreshCw className="h-4 w-4" />,
+              "Auto-detect Bookmarks",
+              "Automatically scan for bookmark changes",
+              settings.autoDetectBookmarks,
+              settings.setAutoDetectBookmarks
+            )}
           </CardContent>
         </Card>
       </motion.div>
 
+      <motion.div variants={item} className="mb-3 mt-8">
+        <h2 className="text-lg font-medium">Experimental Features</h2>
+        <p className="text-sm text-muted-foreground">Access to pre-release functionality</p>
+      </motion.div>
+
       <motion.div variants={item}>
-        <Card className="overflow-hidden border border-border/40 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Experimental Features</CardTitle>
-            <CardDescription>Access to pre-release functionality</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Beta Features</Label>
-                  <Badge className="bg-amber-500/20 text-amber-600 text-[10px] h-4 border-none">Beta</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Enable experimental features and improvements
-                </p>
-              </div>
-              <Switch
-                checked={settings.experimentalFeatures}
-                onCheckedChange={handleExperimentalFeatures}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Cloud Backup</Label>
-                  <Badge className="bg-blue-500/20 text-blue-600 text-[10px] h-4 border-none">New</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Sync your data across devices
-                </p>
-                {!user && settings.cloudBackupEnabled === false && (
-                  <div className="mt-1">
-                    <Button variant="link" size="sm" className="text-xs h-auto p-0" asChild>
-                      <Link to="/auth">Login required</Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <Switch
-                checked={settings.cloudBackupEnabled}
-                onCheckedChange={handleCloudBackup}
-                disabled={!user && !settings.cloudBackupEnabled}
-              />
+        <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/10">
+              {renderSetting(
+                <Shield className="h-4 w-4" />,
+                "Beta Features",
+                "Enable experimental features and improvements",
+                settings.experimentalFeatures,
+                handleExperimentalFeatures,
+                { text: "Beta", variant: "secondary" }
+              )}
+              
+              {renderSetting(
+                <Cloud className="h-4 w-4" />,
+                "Cloud Backup",
+                "Sync your data across devices",
+                settings.cloudBackupEnabled,
+                handleCloudBackup,
+                { text: "New", variant: "secondary" }
+              )}
             </div>
             
             {user && settings.cloudBackupEnabled && (
-              <div className="pt-2 flex flex-wrap gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={syncNow}
-                  disabled={syncInProgress}
-                >
-                  {syncInProgress ? "Syncing..." : "Sync Now"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs"
-                  onClick={restoreFromCloud}
-                  disabled={syncInProgress}
-                >
-                  Restore from Cloud
-                </Button>
+              <div className="p-4 space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs h-8 rounded-lg shadow-sm"
+                    onClick={syncNow}
+                    disabled={syncInProgress}
+                  >
+                    {syncInProgress ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1.5" />
+                        Sync Now
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs h-8 rounded-lg shadow-sm"
+                    onClick={restoreFromCloud}
+                    disabled={syncInProgress}
+                  >
+                    <Download className="h-3 w-3 mr-1.5" />
+                    Restore
+                  </Button>
+                </div>
+                
+                {settings.lastSynced && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3 mr-1.5" />
+                    Last synced: {new Date(settings.lastSynced).toLocaleString()}
+                  </div>
+                )}
               </div>
             )}
             
-            {settings.lastSynced && settings.cloudBackupEnabled && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Last synced: {new Date(settings.lastSynced).toLocaleString()}
-              </p>
+            {!user && settings.cloudBackupEnabled === false && (
+              <div className="px-4 pb-4">
+                <Button variant="link" size="sm" className="text-xs h-auto p-0" asChild>
+                  <Link to="/auth">
+                    <Lock className="h-3 w-3 mr-1.5" />
+                    Login required for cloud backup
+                  </Link>
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
