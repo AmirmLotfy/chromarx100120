@@ -13,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ExternalLink, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { type CarouselApi } from "@/components/ui/carousel";
 
 const AffiliateBannerCarousel = () => {
   const [currentBanners, setCurrentBanners] = useState(defaultAffiliateBanners);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +33,24 @@ const AffiliateBannerCarousel = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Update the active index when the carousel changes
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const onSelect = () => {
+      setActiveIndex(carouselApi.selectedScrollSnap());
+    };
+
+    carouselApi.on("select", onSelect);
+    
+    // Initial call to set the active index
+    setActiveIndex(carouselApi.selectedScrollSnap());
+
+    return () => {
+      carouselApi.off("select", onSelect);
+    };
+  }, [carouselApi]);
 
   const handleBannerClick = (url: string, title: string) => {
     console.log(`Banner clicked: ${title}`);
@@ -66,10 +86,7 @@ const AffiliateBannerCarousel = () => {
           loop: true,
         }}
         className="w-full"
-        onSelect={(api) => {
-          const index = api?.selectedScrollSnap();
-          if (index !== undefined) setActiveIndex(index);
-        }}
+        setApi={setCarouselApi}
       >
         <CarouselContent>
           {currentBanners.map((banner, index) => (
