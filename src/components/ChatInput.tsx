@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Search, SendHorizonal, Sparkles } from "lucide-react";
+import { Search, SendHorizontal, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -25,7 +25,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showRecentQueries, setShowRecentQueries] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,8 +33,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
       if (
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node)
       ) {
         setShowSuggestions(false);
         setShowRecentQueries(false);
@@ -52,6 +52,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (e.target.value === "") {
       setShowSuggestions(false);
     }
+    
+    // Auto-resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
   };
 
   const handleInputFocus = () => {
@@ -66,6 +72,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
       setInputValue("");
       setShowSuggestions(false);
       setShowRecentQueries(false);
+      
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
     }
   };
 
@@ -85,19 +96,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleRecentQueryClick = (query: string) => {
     setInputValue(query);
     setShowRecentQueries(false);
+    
     // Focus the input after selecting a recent query
-    if (inputRef.current) {
-      inputRef.current.focus();
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
   };
-
-  // Auto-resize textarea based on content
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-    }
-  }, [inputValue]);
 
   return (
     <div className="relative">
@@ -108,19 +112,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2 }}
             className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-lg shadow-md overflow-hidden z-10"
             ref={suggestionsRef}
           >
             <div className="p-2">
-              <h3 className="text-xs font-medium text-muted-foreground mb-2">Recent Queries</h3>
-              <div className="space-y-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xs font-medium text-muted-foreground">Recent Queries</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setShowRecentQueries(false)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
                 {recentQueries.map((query, index) => (
                   <button
                     key={index}
-                    className="w-full text-left p-2 rounded-md hover:bg-secondary text-sm truncate"
+                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm truncate flex items-center"
                     onClick={() => handleRecentQueryClick(query)}
                   >
+                    <span className="h-5 w-5 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+                      <Sparkles className="h-3 w-3 text-primary/70" />
+                    </span>
                     {query}
                   </button>
                 ))}
@@ -137,19 +154,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.2 }}
             className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-lg shadow-md overflow-hidden z-10"
             ref={suggestionsRef}
           >
             <div className="p-2">
-              <h3 className="text-xs font-medium text-muted-foreground mb-2">Suggestions</h3>
-              <div className="space-y-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xs font-medium text-muted-foreground">Suggestions</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setShowSuggestions(false)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
-                    className="w-full text-left p-2 rounded-md hover:bg-secondary text-sm"
+                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
+                    <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 float-left">
+                      <Sparkles className="h-3 w-3 text-primary/70" />
+                    </span>
                     {suggestion}
                   </button>
                 ))}
@@ -159,17 +189,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="flex items-end space-x-2">
-        <div className="relative flex-1 overflow-hidden rounded-lg border bg-background">
+      <div className="flex items-end gap-2">
+        <div className="relative flex-1 overflow-hidden rounded-full border bg-background">
           <textarea
-            ref={inputRef}
+            ref={textareaRef}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
-            placeholder={isBookmarkSearchMode ? "Describe the bookmark you're looking for..." : "Type a message..."}
-            className="flex w-full resize-none bg-transparent px-3 py-2 pr-10 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ minHeight: "40px", maxHeight: "120px" }}
+            placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Type a message..."}
+            className="w-full resize-none bg-transparent px-4 py-3 pr-12 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ minHeight: "44px", maxHeight: "120px" }}
             disabled={isProcessing || disabled}
             rows={1}
           />
@@ -178,7 +208,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <Button
               size="icon"
               variant="ghost"
-              className="absolute right-0 top-0 h-full rounded-l-none"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
               onClick={() => setShowSuggestions(suggestions.length > 0)}
               disabled={suggestions.length === 0}
             >
@@ -194,11 +224,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
           disabled={!inputValue.trim() || isProcessing || disabled}
           onClick={handleSendMessage}
           className={cn(
-            "shrink-0 transition-opacity",
-            (!inputValue.trim() || isProcessing || disabled) && "opacity-50"
+            "h-10 w-10 shrink-0 rounded-full transition-all",
+            (!inputValue.trim() || isProcessing || disabled) 
+              ? "opacity-50" 
+              : "bg-primary hover:bg-primary/90"
           )}
         >
-          {isBookmarkSearchMode ? <Search className="h-5 w-5" /> : <SendHorizonal className="h-5 w-5" />}
+          {isBookmarkSearchMode ? (
+            <Search className="h-5 w-5" />
+          ) : (
+            <SendHorizontal className="h-5 w-5" />
+          )}
           <span className="sr-only">Send</span>
         </Button>
       </div>
