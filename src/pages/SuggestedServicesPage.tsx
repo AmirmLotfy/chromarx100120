@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarousel";
@@ -27,24 +26,24 @@ const ServiceCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: staggerDelay }}
     >
-      <Card className="h-full overflow-hidden border-none shadow-md bg-card hover:shadow-lg transition-all duration-300">
-        <CardContent className="p-5 space-y-3">
-          <div className={`p-3 w-12 h-12 rounded-full flex items-center justify-center ${color}`}>
-            <Icon className="w-6 h-6 text-white" />
+      <Card className="h-full overflow-hidden border-none shadow-sm bg-card hover:shadow-md transition-all duration-300">
+        <CardContent className="p-4 space-y-2">
+          <div className={`p-2 w-8 h-8 rounded-full flex items-center justify-center ${color}`}>
+            <Icon className="w-4 h-4 text-white" />
           </div>
           
-          <h3 className="font-medium text-base">{title}</h3>
+          <h3 className="font-medium text-sm">{title}</h3>
           
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-xs text-muted-foreground line-clamp-2">
             {description}
           </p>
           
           <button 
-            className="flex items-center text-sm font-medium text-primary mt-2 hover:underline"
+            className="flex items-center text-xs font-medium text-primary mt-1 hover:underline"
             onClick={onLearnMore}
           >
             Explore
-            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            <ArrowRight className="ml-1 h-3 w-3" />
           </button>
         </CardContent>
       </Card>
@@ -123,7 +122,7 @@ const SuggestedServicesPage = () => {
       <Layout>
         <div className="container mx-auto px-4 py-6">
           <div className="flex justify-center items-center h-[70vh]">
-            <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+            <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
           </div>
         </div>
       </Layout>
@@ -132,18 +131,18 @@ const SuggestedServicesPage = () => {
 
   return (
     <Layout>
-      <div className="px-4 pt-4 pb-20">
+      <div className="px-3 pt-3 pb-16">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-4"
+          className="space-y-3"
         >
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            <h1 className="text-xl font-medium text-foreground">
               Discover Services
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Enhance your browsing with these handpicked tools
             </p>
           </div>
@@ -153,13 +152,9 @@ const SuggestedServicesPage = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="pb-3"
+              className="pb-2"
             >
-              <Card className="overflow-hidden border-none shadow-md rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
-                <CardContent className="p-0">
-                  <AffiliateBannerCarousel />
-                </CardContent>
-              </Card>
+              <AffiliateBannerCarousel />
             </motion.div>
           )}
 
@@ -176,8 +171,8 @@ const SuggestedServicesPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="all" className="mt-4">
-              <div className="grid grid-cols-2 gap-3">
+            <TabsContent value="all" className="mt-3">
+              <div className="grid grid-cols-2 gap-2">
                 {popularServices.map((service, index) => (
                   <ServiceCard
                     key={service.id}
@@ -192,8 +187,8 @@ const SuggestedServicesPage = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="productivity" className="mt-4">
-              <div className="grid grid-cols-2 gap-3">
+            <TabsContent value="productivity" className="mt-3">
+              <div className="grid grid-cols-2 gap-2">
                 {popularServices
                   .filter(s => ["productivity", "ai", "storage"].includes(s.id))
                   .map((service, index) => (
@@ -210,8 +205,8 @@ const SuggestedServicesPage = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="security" className="mt-4">
-              <div className="grid grid-cols-2 gap-3">
+            <TabsContent value="security" className="mt-3">
+              <div className="grid grid-cols-2 gap-2">
                 {popularServices
                   .filter(s => ["vpn", "passwords", "premium"].includes(s.id))
                   .map((service, index) => (
@@ -229,13 +224,13 @@ const SuggestedServicesPage = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="py-4">
+          <div className="py-3">
             <Button
               variant="outline"
-              className="w-full flex items-center justify-center space-x-2 h-12 rounded-xl border-dashed"
+              className="w-full flex items-center justify-center space-x-2 h-10 rounded-lg border-dashed"
               onClick={() => {}}
             >
-              <span>Request new service</span>
+              <span className="text-sm">Request new service</span>
             </Button>
           </div>
         </motion.div>

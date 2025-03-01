@@ -6,14 +6,14 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 import { defaultAffiliateBanners } from "@/config/affiliateContent";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ExternalLink, X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { type CarouselApi } from "@/components/ui/carousel";
 
 const AffiliateBannerCarousel = () => {
   const [currentBanners, setCurrentBanners] = useState(defaultAffiliateBanners);
@@ -63,21 +63,21 @@ const AffiliateBannerCarousel = () => {
 
   if (isLoading) {
     return (
-      <div className="h-40 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+      <div className="h-32 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-gradient-to-r from-violet-50/30 to-indigo-50/30 dark:from-slate-900/50 dark:to-slate-800/50 p-2">
+    <div className="relative rounded-lg overflow-hidden bg-background p-1 shadow-sm">
       <Button
-        variant="secondary"
+        variant="ghost"
         size="sm"
-        className="absolute top-3 right-3 z-10 bg-black/10 hover:bg-black/20 text-white h-7 w-7 p-0 rounded-full shadow-md"
+        className="absolute top-2 right-2 z-10 h-6 w-6 p-0 rounded-full opacity-70 hover:opacity-100"
         onClick={handleDismiss}
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3 w-3" />
       </Button>
       
       <Carousel
@@ -99,47 +99,34 @@ const AffiliateBannerCarousel = () => {
               >
                 <div 
                   className={cn(
-                    "relative group h-36 sm:h-40 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl cursor-pointer",
-                    activeIndex === index ? "ring-2 ring-primary/40 shadow-lg" : ""
+                    "relative group h-28 rounded-lg overflow-hidden cursor-pointer",
+                    activeIndex === index ? "ring-1 ring-primary/40" : ""
                   )}
                   onClick={() => handleBannerClick(banner.affiliateUrl, banner.title)}
                   style={{
-                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.35)), url(${banner.imageUrl})`,
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.15)), url(${banner.imageUrl})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                   }}
                 >
-                  <div className="absolute inset-0 flex flex-col justify-center p-4 group-hover:bg-black/20 transition-colors">
-                    <div className="flex flex-col h-full">
-                      <div className="mb-auto">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/80 text-white mb-2">
-                          Premium
-                        </span>
-                      </div>
-                      
-                      <div className="mt-auto space-y-1.5">
-                        <h3 className="text-white font-semibold text-base tracking-tight line-clamp-1">
+                  <div className="absolute inset-0 flex flex-col justify-end p-3 group-hover:bg-black/10 transition-colors">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <h3 className="text-white font-medium text-sm tracking-tight mb-0.5">
                           {banner.title}
                         </h3>
-                        <p className="text-white/90 text-xs font-medium line-clamp-2 mb-2.5">
+                        <p className="text-white/90 text-xs line-clamp-1">
                           {banner.description}
                         </p>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="h-8 px-3 text-xs font-medium bg-white/90 hover:bg-white text-primary shadow-sm group-hover:shadow rounded-lg flex items-center gap-1.5"
-                          >
-                            Explore
-                            <ExternalLink className="h-3 w-3 opacity-70" />
-                          </Button>
-                          
-                          <div className="flex items-center justify-center h-8 w-8 bg-black/20 rounded-full">
-                            <ArrowRight className="h-3.5 w-3.5 text-white/90" />
-                          </div>
-                        </div>
                       </div>
+                      
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 w-7 p-0 rounded-full bg-white/80 hover:bg-white text-primary"
+                      >
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -154,16 +141,16 @@ const AffiliateBannerCarousel = () => {
               <div 
                 key={index}
                 className={cn(
-                  "h-1.5 rounded-full transition-all duration-300", 
-                  activeIndex === index ? "w-4 bg-primary" : "w-1.5 bg-primary/30"
+                  "h-1 rounded-full transition-all duration-300", 
+                  activeIndex === index ? "w-3 bg-primary" : "w-1 bg-primary/20"
                 )}
               />
             ))}
           </div>
         </div>
         
-        <CarouselPrevious className="hidden md:flex absolute left-1 -translate-y-1/2 h-7 w-7 opacity-70" />
-        <CarouselNext className="hidden md:flex absolute right-1 -translate-y-1/2 h-7 w-7 opacity-70" />
+        <CarouselPrevious className="hidden md:flex absolute left-1 -translate-y-1/2 h-6 w-6 opacity-60" />
+        <CarouselNext className="hidden md:flex absolute right-1 -translate-y-1/2 h-6 w-6 opacity-60" />
       </Carousel>
     </div>
   );
