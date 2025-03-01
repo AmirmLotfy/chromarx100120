@@ -18,23 +18,55 @@ const TimeDistribution = ({ data }: TimeDistributionProps) => {
   const formatTime = (time: number) => {
     const hours = Math.floor(time / (60 * 60 * 1000));
     const minutes = Math.floor((time % (60 * 60 * 1000)) / (60 * 1000));
-    return `${hours}h ${minutes}m`;
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  };
+
+  const renderCustomizedLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+  }: any) => {
+    if (!isMobile) return null; // Don't show labels on mobile
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+
+    return percent > 0.1 ? (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={10}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    ) : null;
   };
 
   return (
-    <Card className="p-4 md:p-6 space-y-3 w-full">
-      <h3 className="text-base md:text-lg font-semibold">Time Distribution</h3>
-      <div className="h-[200px] md:h-[250px] w-full">
+    <Card className="p-4 space-y-2 h-full rounded-xl border border-border/50 bg-gradient-to-br from-background to-muted/30">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium text-muted-foreground">Time Distribution</h3>
+      </div>
+
+      <div className="h-[140px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={isMobile ? 40 : 60}
-              outerRadius={isMobile ? 60 : 80}
-              paddingAngle={5}
+              innerRadius={isMobile ? 30 : 40}
+              outerRadius={isMobile ? 50 : 65}
+              paddingAngle={2}
               dataKey="time"
+              label={renderCustomizedLabel}
+              labelLine={false}
             >
               {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -43,15 +75,28 @@ const TimeDistribution = ({ data }: TimeDistributionProps) => {
             <Tooltip
               formatter={(value: number) => formatTime(value)}
               labelFormatter={(index) => data[index].category}
-            />
-            <Legend
-              layout={isMobile ? "horizontal" : "vertical"}
-              align={isMobile ? "center" : "right"}
-              verticalAlign={isMobile ? "bottom" : "middle"}
-              wrapperStyle={isMobile ? { fontSize: '12px' } : { fontSize: '14px' }}
+              contentStyle={{ 
+                borderRadius: '8px', 
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                border: 'none',
+                padding: '8px 12px',
+                fontSize: '12px'
+              }}
             />
           </PieChart>
         </ResponsiveContainer>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1">
+        {data.map((entry, index) => (
+          <div key={index} className="flex items-center gap-1.5">
+            <div
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+            />
+            <span className="text-xs truncate">{entry.category}</span>
+          </div>
+        ))}
       </div>
     </Card>
   );

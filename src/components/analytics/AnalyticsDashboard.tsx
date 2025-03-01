@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import ProductivityScore from "./ProductivityScore";
@@ -15,10 +16,16 @@ import { withErrorHandling } from "@/utils/errorUtils";
 import { validateAnalyticsData } from "@/utils/validationUtils";
 import { cache } from "@/utils/cacheUtils";
 import { supabaseBackup } from "@/services/supabaseBackupService";
+import { motion } from "framer-motion";
+import { Download, Filter, ChevronDown, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const AnalyticsDashboard = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showMoreInsights, setShowMoreInsights] = useState(false);
   const [dateRange, setDateRange] = useState({ 
     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     to: new Date() 
@@ -96,9 +103,9 @@ const AnalyticsDashboard = () => {
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="space-y-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className="w-full h-[200px] animate-pulse bg-muted" />
+          <Card key={i} className="w-full h-32 animate-pulse bg-muted/50" />
         ))}
       </div>
     );
@@ -114,25 +121,111 @@ const AnalyticsDashboard = () => {
   } : null;
 
   return (
-    <div className="space-y-8">
-      <AnalyticsFilters
-        onDateChange={setDateRange}
-        onFilterChange={setFilters}
-        onExport={handleExport}
-      />
+    <div className="space-y-6">
+      <div className="flex flex-wrap gap-3 items-center justify-between mb-2">
+        <h2 className="text-lg font-semibold">Your Activity</h2>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 px-2.5 text-xs rounded-full"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-3.5 w-3.5 mr-1.5" />
+            Filters
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 px-2.5 text-xs rounded-full"
+            onClick={handleExport}
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Export
+          </Button>
+        </div>
+      </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <ProductivityScore score={filteredData?.productivityScore || 0} />
-        <TimeDistribution data={filteredData?.timeDistribution || []} />
-        <DomainStats data={filteredData?.domainStats || []} />
-        <ProductivityTrends data={filteredData?.productivityTrends || []} />
-      </div>
+      {showFilters && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.2 }}
+          className="overflow-hidden"
+        >
+          <Card className="p-3 bg-muted/30 border border-muted mb-4">
+            <AnalyticsFilters
+              onDateChange={setDateRange}
+              onFilterChange={setFilters}
+              onExport={handleExport}
+            />
+          </Card>
+        </motion.div>
+      )}
 
-      <div className="grid gap-8">
-        <GoalsDashboard />
-        <ProductivityReports />
-        <ProductivityNotifications />
+      <div className="grid grid-cols-2 gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="col-span-2 md:col-span-1"
+        >
+          <ProductivityScore score={filteredData?.productivityScore || 0} />
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="col-span-2 md:col-span-1"
+        >
+          <TimeDistribution data={filteredData?.timeDistribution || []} />
+        </motion.div>
       </div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+      >
+        <ProductivityTrends data={filteredData?.productivityTrends || []} />
+      </motion.div>
+      
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+      >
+        <DomainStats data={filteredData?.domainStats || []} />
+      </motion.div>
+      
+      <div className="my-6">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-between py-6 rounded-xl border border-border/50"
+          onClick={() => setShowMoreInsights(!showMoreInsights)}
+        >
+          <span className="text-base font-medium">More Insights</span>
+          <ChevronDown className={`h-5 w-5 transition-transform ${showMoreInsights ? 'rotate-180' : ''}`} />
+        </Button>
+      </div>
+      
+      {showMoreInsights && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.4 }}
+          className="space-y-6 overflow-hidden"
+        >
+          <GoalsDashboard />
+          <ProductivityReports />
+          <ProductivityNotifications />
+        </motion.div>
+      )}
     </div>
   );
 };
