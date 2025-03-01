@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Lock, User, Mail, LogIn, UserPlus } from "lucide-react";
+import { Lock, User, Mail, LogIn, UserPlus, Chrome } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
 const AuthPage = () => {
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Redirect if already logged in
@@ -72,6 +73,25 @@ const AuthPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError(null);
+    
+    try {
+      await signInWithGoogle();
+      // No need for toast or navigation here as the OAuth redirect will handle it
+    } catch (error: any) {
+      console.error("Google signin error:", error);
+      setError(error.message || "Failed to sign in with Google. Please try again.");
+      toast({
+        title: "Google sign in failed",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+      setGoogleLoading(false);
     }
   };
 
@@ -152,6 +172,37 @@ const AuthPage = () => {
                     </span>
                   )}
                 </Button>
+                
+                <div className="relative w-full my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-background px-2 text-xs text-muted-foreground">
+                      OR CONTINUE WITH
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                >
+                  {googleLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Connecting...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Chrome className="h-4 w-4" />
+                      Sign in with Google
+                    </span>
+                  )}
+                </Button>
               </CardFooter>
             </form>
           </TabsContent>
@@ -214,6 +265,37 @@ const AuthPage = () => {
                     <span className="flex items-center gap-2">
                       <UserPlus className="h-4 w-4" />
                       Create Account
+                    </span>
+                  )}
+                </Button>
+                
+                <div className="relative w-full my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-background px-2 text-xs text-muted-foreground">
+                      OR CONTINUE WITH
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                >
+                  {googleLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Connecting...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Chrome className="h-4 w-4" />
+                      Sign up with Google
                     </span>
                   )}
                 </Button>
