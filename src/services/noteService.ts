@@ -1,4 +1,3 @@
-
 import { Note, NoteSentiment } from "@/types/note";
 import { storage } from "./storageService";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,12 +37,15 @@ export class NoteService {
                 createdAt: note.created_at,
                 updatedAt: note.updated_at,
                 sentiment: note.sentiment as NoteSentiment,
-                sentimentDetails: note.sentiment_details || undefined,
+                sentimentDetails: note.sentiment_details ? 
+                  (typeof note.sentiment_details === 'object' ? 
+                    note.sentiment_details as SentimentDetails : undefined) : 
+                  undefined,
                 summary: note.summary,
                 taskId: note.task_id,
                 bookmarkIds: note.bookmark_ids,
                 folderId: note.folder_id,
-                pinned: note.pinned,
+                pinned: note.pinned || false,
                 color: note.color,
                 version: note.version || 1
               }));
@@ -61,7 +63,7 @@ export class NoteService {
       }
       
       // Fall back to local storage if offline or Supabase failed
-      const notes = await this.storage.get(NOTES_STORAGE_KEY) || [];
+      const notes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
       return notes;
     } catch (error) {
       console.error("Error getting all notes:", error);
@@ -82,7 +84,7 @@ export class NoteService {
       };
       
       // Save locally
-      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) || [];
+      const existingNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
       const updatedNotes = [newNote, ...existingNotes];
       await this.storage.set(NOTES_STORAGE_KEY, updatedNotes);
       
@@ -106,10 +108,10 @@ export class NoteService {
               user_id: user.id,
               version: 1,
               sentiment: newNote.sentiment,
-              sentiment_details: newNote.sentimentDetails,
-              folder_id: newNote.folderId,
-              pinned: newNote.pinned,
-              color: newNote.color
+              sentiment_details: newNote.sentimentDetails || null,
+              folder_id: newNote.folderId || null,
+              pinned: newNote.pinned || false,
+              color: newNote.color || null
             }).select().single();
             
             if (error) throw error;
@@ -135,7 +137,7 @@ export class NoteService {
   async updateNote(note: Note): Promise<Note | null> {
     try {
       // Get existing notes
-      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) || [];
+      const existingNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
       
       // Find and update the note
       const updatedNotes = existingNotes.map(n => 
@@ -163,13 +165,13 @@ export class NoteService {
                 category: note.category,
                 updated_at: new Date().toISOString(),
                 sentiment: note.sentiment,
-                sentiment_details: note.sentimentDetails,
+                sentiment_details: note.sentimentDetails || null,
                 summary: note.summary,
                 task_id: note.taskId,
                 bookmark_ids: note.bookmarkIds,
-                folder_id: note.folderId,
-                pinned: note.pinned,
-                color: note.color,
+                folder_id: note.folderId || null,
+                pinned: note.pinned || false,
+                color: note.color || null,
                 version: note.version || 1
               })
               .eq('id', note.id)
@@ -227,7 +229,7 @@ export class NoteService {
   async deleteNote(id: string): Promise<boolean> {
     try {
       // Get existing notes
-      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) || [];
+      const existingNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
       
       // Filter out the note to delete
       const updatedNotes = existingNotes.filter(note => note.id !== id);
@@ -282,7 +284,7 @@ export class NoteService {
       await this.processOfflineQueue();
       
       // Get local notes
-      const localNotes = await this.storage.get(NOTES_STORAGE_KEY) || [];
+      const localNotes = await this.storage.get<Note[]>(NOTES_STORAGE_KEY) || [];
       
       // Get server notes
       const { data: serverNotes, error } = await supabase
@@ -306,12 +308,15 @@ export class NoteService {
         createdAt: note.created_at,
         updatedAt: note.updated_at,
         sentiment: note.sentiment as NoteSentiment,
-        sentimentDetails: note.sentiment_details || undefined,
+        sentimentDetails: note.sentiment_details ? 
+          (typeof note.sentiment_details === 'object' ? 
+            note.sentiment_details as SentimentDetails : undefined) : 
+          undefined,
         summary: note.summary,
         taskId: note.task_id,
         bookmarkIds: note.bookmark_ids,
         folderId: note.folder_id,
-        pinned: note.pinned,
+        pinned: note.pinned || false,
         color: note.color,
         version: note.version || 1
       }));
@@ -370,13 +375,13 @@ export class NoteService {
               updated_at: noteToInsert.updatedAt,
               user_id: user.id,
               sentiment: noteToInsert.sentiment,
-              sentiment_details: noteToInsert.sentimentDetails,
+              sentiment_details: noteToInsert.sentimentDetails || null,
               summary: noteToInsert.summary,
               task_id: noteToInsert.taskId,
               bookmark_ids: noteToInsert.bookmarkIds,
-              folder_id: noteToInsert.folderId,
-              pinned: noteToInsert.pinned,
-              color: noteToInsert.color,
+              folder_id: noteToInsert.folderId || null,
+              pinned: noteToInsert.pinned || false,
+              color: noteToInsert.color || null,
               version: noteToInsert.version || 1
             });
           
@@ -450,13 +455,13 @@ export class NoteService {
             user_id: user.id,
             version: note.version || 1,
             sentiment: note.sentiment,
-            sentiment_details: note.sentimentDetails,
+            sentiment_details: note.sentimentDetails || null,
             summary: note.summary,
             task_id: note.taskId,
             bookmark_ids: note.bookmarkIds,
-            folder_id: note.folderId,
-            pinned: note.pinned,
-            color: note.color
+            folder_id: note.folderId || null,
+            pinned: note.pinned || false,
+            color: note.color || null
           });
         } else if (operation === 'update') {
           await supabase
@@ -468,13 +473,13 @@ export class NoteService {
               category: note.category,
               updated_at: new Date().toISOString(),
               sentiment: note.sentiment,
-              sentiment_details: note.sentimentDetails,
+              sentiment_details: note.sentimentDetails || null,
               summary: note.summary,
               task_id: note.taskId,
               bookmark_ids: note.bookmarkIds,
-              folder_id: note.folderId,
-              pinned: note.pinned,
-              color: note.color,
+              folder_id: note.folderId || null,
+              pinned: note.pinned || false,
+              color: note.color || null,
               version: note.version || 1
             })
             .eq('id', note.id);
