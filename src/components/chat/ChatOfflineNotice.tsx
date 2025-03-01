@@ -17,7 +17,10 @@ const ChatOfflineNotice = ({
   if (!isOffline && !isAIUnavailable) return null;
   
   return (
-    <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-500/30">
+    <Alert 
+      variant="default"
+      className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-500/30"
+    >
       {isOffline ? (
         <>
           <WifiOff className="h-4 w-4 text-amber-600" />
