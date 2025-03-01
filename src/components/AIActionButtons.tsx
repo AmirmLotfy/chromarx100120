@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { summarizeContent, suggestBookmarkCategory } from "@/utils/geminiUtils";
+import { summarizeContent, suggestBookmarkCategory, checkGeminiAvailability } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -14,7 +14,7 @@ import {
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { ChromeBookmark } from "@/types/bookmark";
 import { useLanguage } from "@/stores/languageStore";
-import { LoadingOverlay } from "./ui/loading-overlay";
+import { AIProgressIndicator } from "./ui/ai-progress-indicator";
 import { fetchPageContent } from "@/utils/contentExtractor";
 
 interface AIActionButtonsProps {
@@ -26,7 +26,18 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState("");
+  const [progress, setProgress] = useState(0);
   const { currentLanguage } = useLanguage();
+  const [isApiAvailable, setIsApiAvailable] = useState<boolean | null>(null);
+
+  // Check API availability when component mounts
+  useState(() => {
+    const checkAvailability = async () => {
+      const available = await checkGeminiAvailability();
+      setIsApiAvailable(available);
+    };
+    checkAvailability();
+  });
 
   const handleCleanup = async () => {
     if (selectedBookmarks.length === 0) {
@@ -36,9 +47,13 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
 
     setIsProcessing(true);
     setProcessingMessage("Analyzing bookmarks...");
+    setProgress(10);
     try {
       const duplicates = findDuplicateBookmarks(selectedBookmarks);
+      setProgress(50);
+      
       const brokenBookmarks = await findBrokenBookmarks(selectedBookmarks);
+      setProgress(100);
       
       if (duplicates.byUrl.length === 0 && duplicates.byTitle.length === 0 && brokenBookmarks.length === 0) {
         toast.info("No issues found in selected bookmarks");
@@ -47,10 +62,12 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
 
       toast.success("Cleanup completed successfully");
     } catch (error) {
+      console.error("Error in cleanup:", error);
       toast.error("Failed to clean up bookmarks");
     } finally {
       setIsProcessing(false);
       setProcessingMessage("");
+      setProgress(0);
     }
   };
 
@@ -60,13 +77,30 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       return;
     }
 
+    // Check if API is available
+    if (isApiAvailable === false) {
+      toast.error("AI service is currently unavailable. Please try again later.");
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingMessage("Generating summaries...");
+    
     try {
+      const totalBookmarks = selectedBookmarks.length;
+      let completedBookmarks = 0;
+      
       const summaries = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => {
+        selectedBookmarks.map(async (bookmark, index) => {
           try {
+            setProgress(Math.round((index / totalBookmarks) * 100));
+            setProcessingMessage(`Summarizing ${index + 1}/${totalBookmarks}: ${bookmark.title.substring(0, 30)}...`);
+            
             const summary = await summarizeContent(`Title: ${bookmark.title}\nURL: ${bookmark.url}`, currentLanguage.code);
+            
+            completedBookmarks++;
+            setProgress(Math.round((completedBookmarks / totalBookmarks) * 100));
+            
             return {
               id: bookmark.id,
               title: bookmark.title,
@@ -104,6 +138,7 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
     } finally {
       setIsProcessing(false);
       setProcessingMessage("");
+      setProgress(0);
     }
   };
 
@@ -113,38 +148,75 @@ const AIActionButtons = ({ selectedBookmarks = [], onUpdateCategories }: AIActio
       return;
     }
 
+    // Check if API is available
+    if (isApiAvailable === false) {
+      toast.error("AI service is currently unavailable. Please try again later.");
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingMessage("Suggesting categories...");
+    setProgress(10);
+    
     try {
+      const totalBookmarks = selectedBookmarks.length;
+      
       const updatedBookmarks = await Promise.all(
-        selectedBookmarks.map(async (bookmark) => {
-          const content = await fetchPageContent(bookmark.url || "");
-          const category = await suggestBookmarkCategory(
-            bookmark.title, 
-            bookmark.url || "",
-            content,
-            currentLanguage.code
-          );
-          return {
-            ...bookmark,
-            category,
-          };
+        selectedBookmarks.map(async (bookmark, index) => {
+          setProcessingMessage(`Analyzing ${index + 1}/${totalBookmarks}: ${bookmark.title.substring(0, 30)}...`);
+          setProgress(Math.round(((index + 1) / totalBookmarks) * 100));
+          
+          try {
+            const content = await fetchPageContent(bookmark.url || "");
+            const category = await suggestBookmarkCategory(
+              bookmark.title, 
+              bookmark.url || "",
+              content,
+              currentLanguage.code
+            );
+            return {
+              ...bookmark,
+              category,
+            };
+          } catch (error) {
+            console.error(`Error categorizing bookmark ${bookmark.title}:`, error);
+            return {
+              ...bookmark,
+              category: "uncategorized",
+            };
+          }
         })
       );
 
       onUpdateCategories(updatedBookmarks);
       toast.success("Categories suggested successfully!");
     } catch (error) {
-      toast.error("Failed to suggest categories");
+      console.error("Failed to suggest categories:", error);
+      toast.error("Failed to suggest categories. Using default categories.");
+      
+      // Fallback: assign default categories
+      const updatedBookmarks = selectedBookmarks.map(bookmark => ({
+        ...bookmark,
+        category: bookmark.category || "uncategorized",
+      }));
+      
+      onUpdateCategories(updatedBookmarks);
     } finally {
       setIsProcessing(false);
       setProcessingMessage("");
+      setProgress(0);
     }
   };
 
   return (
     <>
-      <LoadingOverlay isLoading={isProcessing} message={processingMessage} />
+      <AIProgressIndicator 
+        isLoading={isProcessing} 
+        message={processingMessage} 
+        progress={progress} 
+        variant="overlay"
+      />
+      
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
         <TooltipProvider>
           <Tooltip>

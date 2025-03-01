@@ -1,9 +1,9 @@
-
 import { ChromeBookmark } from "@/types/bookmark";
 import { fetchPageContent } from "./contentExtractor";
 import { aiRequestManager } from "./aiRequestManager";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { retryWithBackoff } from "./retryUtils";
 
 interface GeminiRequest {
   prompt: string;
@@ -17,22 +17,66 @@ interface GeminiResponse {
   error?: string;
 }
 
+// For local fallback responses when API is unavailable
+const fallbackResponses = {
+  summarize: "Unable to generate summary. Please try again later.",
+  categorize: "uncategorized",
+  sentiment: "neutral",
+  task: "No task suggestions available.",
+  timer: "25",
+  analytics: "No analytics available."
+};
+
 export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
   try {
-    const result = await callAIFunction(request.type, {
-      content: request.prompt,
-      language: request.language,
-      contentType: request.contentType
-    });
+    const result = await retryWithBackoff(
+      () => callAIFunction(request.type, {
+        content: request.prompt,
+        language: request.language,
+        contentType: request.contentType
+      }),
+      {
+        maxRetries: 3,
+        initialDelay: 1000,
+        maxDelay: 10000,
+        onRetry: (error, attempt) => {
+          console.log(`Retry attempt ${attempt} for ${request.type} operation:`, error);
+          if (attempt === 3) {
+            toast.error(`Rate limit reached. Using fallback response.`);
+          }
+        }
+      }
+    );
     return { result };
   } catch (error) {
     console.error('Error getting Gemini response:', error);
-    return { result: '', error: error instanceof Error ? error.message : 'Unknown error' };
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check for rate limit errors
+    if (errorMessage.includes('rate') && errorMessage.includes('limit')) {
+      toast.error("AI service rate limit reached. Please try again later.");
+    }
+    
+    // Use fallback responses based on operation type
+    return { 
+      result: fallbackResponses[request.type] || '', 
+      error: errorMessage 
+    };
   }
 };
 
 const callAIFunction = async (operation: string, params: any): Promise<string> => {
   try {
+    // Check if Gemini API key is available in Supabase
+    const { data: secretExists } = await supabase.functions.invoke('gemini-api', {
+      body: { operation: 'check-api-key' }
+    });
+
+    if (!secretExists || !secretExists.exists) {
+      console.warn('Gemini API key not available');
+      return fallbackResponses[operation] || 'API key not configured';
+    }
+
     const { data, error } = await supabase.functions.invoke('gemini-api', {
       body: { operation, ...params }
     });
@@ -41,7 +85,16 @@ const callAIFunction = async (operation: string, params: any): Promise<string> =
     return data.result;
   } catch (error) {
     console.error('Error calling AI function:', error);
-    toast.error("Failed to process AI request");
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('429')) {
+        throw new Error('Rate limit exceeded. Please try again later.');
+      } else if (error.message.includes('403')) {
+        throw new Error('Access denied. Please check your API key.');
+      }
+    }
+    
     throw error;
   }
 };
@@ -149,4 +202,22 @@ export const analyzeSentiment = async (content: string, language: string): Promi
     'neutral'
   );
   return sentiment.toLowerCase().trim() as 'positive' | 'negative' | 'neutral';
+};
+
+export const checkGeminiAvailability = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('gemini-api', {
+      body: { operation: 'check-api-key' }
+    });
+
+    if (error) {
+      console.error('Error checking Gemini availability:', error);
+      return false;
+    }
+
+    return data.exists === true;
+  } catch (error) {
+    console.error('Error checking Gemini availability:', error);
+    return false;
+  }
 };

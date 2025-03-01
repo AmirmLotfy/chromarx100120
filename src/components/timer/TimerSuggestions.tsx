@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
-import { suggestTimerDuration } from "@/utils/geminiUtils";
+import { Sparkles, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
+import { suggestTimerDuration, checkGeminiAvailability } from "@/utils/geminiUtils";
 import { useLanguage } from "@/stores/languageStore";
 import { toast } from "sonner";
+import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 
 interface TimerSuggestionsProps {
   onSelectDuration: (minutes: number) => void;
@@ -21,9 +22,31 @@ export const TimerSuggestions = ({
   const [suggestion, setSuggestion] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<'good' | 'bad' | null>(null);
+  const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
   const { currentLanguage } = useLanguage();
 
+  // Check API availability when component mounts
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      const available = await checkGeminiAvailability();
+      setApiAvailable(available);
+      
+      if (!available) {
+        // Use default durations if API is not available
+        setSuggestion(mode === "focus" ? 25 : 5);
+      }
+    };
+    
+    checkApiStatus();
+  }, [mode]);
+
   const getSuggestion = async () => {
+    if (apiAvailable === false) {
+      // Use default times based on mode if API is unavailable
+      setSuggestion(mode === "focus" ? 25 : 5);
+      return;
+    }
+    
     try {
       setLoading(true);
       
@@ -49,10 +72,14 @@ Response should be ONLY the number of minutes.`;
       } else {
         console.error("Invalid duration suggestion received");
         toast.error("Could not get a valid duration suggestion");
+        // Fallback to standard durations
+        setSuggestion(mode === "focus" ? 25 : 5);
       }
     } catch (error) {
       console.error("Error getting timer suggestion:", error);
-      toast.error("Failed to get AI suggestion");
+      toast.error("Failed to get AI suggestion, using default value");
+      // Fallback to standard durations
+      setSuggestion(mode === "focus" ? 25 : 5);
     } finally {
       setLoading(false);
     }
@@ -84,9 +111,31 @@ Response should be ONLY the number of minutes.`;
   if (loading) {
     return (
       <Card className="p-4 bg-accent/50">
-        <div className="flex items-center justify-center gap-2">
-          <Sparkles className="w-5 h-5 animate-pulse text-primary" />
-          <p className="text-sm">Getting AI suggestion...</p>
+        <AIProgressIndicator 
+          isLoading={true}
+          message="Getting AI suggestion..."
+          variant="minimal"
+        />
+      </Card>
+    );
+  }
+
+  if (apiAvailable === false) {
+    return (
+      <Card className="p-4 bg-accent/50">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-500" />
+          <p className="text-sm text-muted-foreground">
+            Using standard {mode} duration: {suggestion} minutes
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="ml-auto"
+            onClick={() => onSelectDuration(suggestion || (mode === "focus" ? 25 : 5))}
+          >
+            Apply
+          </Button>
         </div>
       </Card>
     );
