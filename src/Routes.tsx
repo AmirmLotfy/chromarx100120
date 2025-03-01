@@ -22,10 +22,14 @@ import CollectionsPage from "@/pages/CollectionsPage";
 import ExportImportPage from "@/pages/ExportImportPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 
-// Protected route component
+// Protected route component - temporarily disabled for testing
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
+  // Comment: Temporarily bypassing auth check for testing
+  // Original authentication logic is preserved below but not executed
+  
+  /*
   if (loading) {
     // Show a minimal loading state while checking auth
     return (
@@ -38,7 +42,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+  */
   
+  // Simply return the children without checking authentication
   return <>{children}</>;
 };
 

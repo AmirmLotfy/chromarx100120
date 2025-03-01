@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,45 +16,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>({ id: 'test-user-id', email: 'test@example.com' });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Get user on initial load
-    const getUser = async () => {
-      setLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user ? { id: user.id, email: user.email } : null);
-      } catch (error) {
-        console.error('Error getting user:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getUser();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? { id: session.user.id, email: session.user.email } : null);
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Comment: Auth effect temporarily disabled for testing
+    // This preserves the original authentication code for reference
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    console.log('Sign out clicked (disabled in test mode)');
+    // Uncomment to restore real functionality
+    // const { error } = await supabase.auth.signOut();
+    // if (error) throw error;
   };
 
   const signInWithGoogle = async () => {
-    // Chrome extension-friendly Google auth
-    // This redirects to Google's OAuth flow and returns to the extension
+    console.log('Sign in with Google clicked (disabled in test mode)');
+    // Uncomment to restore real functionality
+    /*
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -64,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     
     if (error) throw error;
+    */
   };
 
   return (
