@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -8,7 +7,7 @@ import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CloudSync, Wifi, WifiOff } from "lucide-react";
+import { AlertCircle, CloudOff, CloudDone, Wifi, WifiOff } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const BookmarksPage = () => {
@@ -75,12 +74,10 @@ const BookmarksPage = () => {
   }, [setBookmarks]);
 
   const handleImport = () => {
-    // This is a placeholder function for now
     toast.info("Import functionality coming soon!");
   };
 
   const handleCreateFolder = () => {
-    // This is a placeholder function for now
     toast.info("Create folder functionality coming soon!");
   };
 
@@ -149,7 +146,6 @@ const BookmarksPage = () => {
   return (
     <Layout>
       <div className="space-y-8 pb-16">
-        {/* Sync Status Information */}
         <div className="flex items-center justify-between px-4 py-2 bg-muted/30 rounded-lg">
           <div className="flex items-center space-x-2">
             {isConnected ? (
@@ -173,12 +169,15 @@ const BookmarksPage = () => {
             onClick={handleForceSync}
             disabled={!isConnected || isProcessing}
           >
-            <CloudSync className="h-4 w-4 mr-1" />
+            {syncStatus === 'success' ? (
+              <CloudDone className="h-4 w-4 mr-1" />
+            ) : (
+              <CloudOff className="h-4 w-4 mr-1" />
+            )}
             <span>Sync Now</span>
           </Button>
         </div>
         
-        {/* Processing/Sync Progress */}
         {isProcessing && (
           <div className="px-4 py-3 bg-muted/30 rounded-lg space-y-2">
             <div className="flex items-center space-x-2">
@@ -189,7 +188,6 @@ const BookmarksPage = () => {
           </div>
         )}
 
-        {/* Main Content */}
         <BookmarkHeader
           selectedBookmarksCount={selectedBookmarks.size}
           selectedBookmarks={Array.from(selectedBookmarks)

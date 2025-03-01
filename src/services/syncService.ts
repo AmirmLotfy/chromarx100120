@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { storage } from "@/services/storageService";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -285,7 +284,7 @@ export class SyncService {
           category: bookmark.category,
           content: bookmark.content,
           version: bookmark.version || 1,
-          status: 'active',
+          status: 'active' as 'active' | 'archived' | 'deleted',
         }));
 
         // Use upsert to handle both creates and updates
