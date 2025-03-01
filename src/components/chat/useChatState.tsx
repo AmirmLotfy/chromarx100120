@@ -5,15 +5,17 @@ import { useBookmarkState } from "../BookmarkStateManager";
 import { summarizeContent } from "@/utils/geminiUtils";
 import { searchWebResults } from "@/utils/searchUtils";
 import { getContextFromHistory, generateChatPrompt, extractTopicsFromMessages } from "@/utils/chatContextUtils";
-import { Message } from "@/types/chat";
+import { Message, Conversation } from "@/types/chat";
 import { useLanguage } from "@/stores/languageStore";
 import { testAIReliability } from "@/utils/geminiUtils";
 import { withErrorHandling } from "@/utils/errorUtils";
 import { retryWithBackoff } from "@/utils/retryUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { aiRequestManager } from "@/utils/aiRequestManager";
+import { storage } from "@/services/storageService";
 
 const STORAGE_KEY = 'chromarx_chat_history';
+const CONVERSATIONS_KEY = 'chromarx_conversations';
 const RECENT_QUERIES_KEY = 'chromarx_recent_queries';
 const MAX_RECENT_QUERIES = 5;
 
@@ -24,9 +26,12 @@ export const useChatState = () => {
   const [error, setError] = useState<Error | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isConversationManagerOpen, setConversationManagerOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<Message[][]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
+  const [activeConversation, setActiveConversation] = useState<Conversation | undefined>(undefined);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { bookmarks } = useBookmarkState();
   const { currentLanguage } = useLanguage();
@@ -102,37 +107,33 @@ export const useChatState = () => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Load chat history
+  // Load chat history and conversations
   useEffect(() => {
-    const loadChatHistory = async () => {
+    const loadChatData = async () => {
       try {
-        if (isExtensionEnvironment()) {
-          const result = await chrome.storage.local.get([STORAGE_KEY]);
-          if (result[STORAGE_KEY]) {
-            setChatHistory(result[STORAGE_KEY]);
-          }
-          
-          const queriesResult = await chrome.storage.local.get([RECENT_QUERIES_KEY]);
-          if (queriesResult[RECENT_QUERIES_KEY]) {
-            setRecentQueries(queriesResult[RECENT_QUERIES_KEY]);
-          }
-        } else {
-          const savedHistory = localStorage.getItem(STORAGE_KEY);
-          if (savedHistory) {
-            setChatHistory(JSON.parse(savedHistory));
-          }
-          
-          const savedQueries = localStorage.getItem(RECENT_QUERIES_KEY);
-          if (savedQueries) {
-            setRecentQueries(JSON.parse(savedQueries));
-          }
+        // Load chat history
+        const savedHistory = await storage.get<Message[][]>(STORAGE_KEY);
+        if (savedHistory) {
+          setChatHistory(savedHistory);
+        }
+        
+        // Load saved conversations
+        const savedConversations = await storage.get<Conversation[]>(CONVERSATIONS_KEY);
+        if (savedConversations) {
+          setConversations(savedConversations);
+        }
+        
+        // Load recent queries
+        const queriesResult = await storage.get<string[]>(RECENT_QUERIES_KEY);
+        if (queriesResult) {
+          setRecentQueries(queriesResult);
         }
       } catch (error) {
-        console.error('Error loading chat history:', error);
+        console.error('Error loading chat data:', error);
       }
     };
 
-    loadChatHistory();
+    loadChatData();
   }, [isExtensionEnvironment]);
 
   const saveRecentQuery = useCallback(async (query: string) => {
@@ -142,52 +143,110 @@ export const useChatState = () => {
       
       const updatedQueries = [query, ...recentQueries].slice(0, MAX_RECENT_QUERIES);
       setRecentQueries(updatedQueries);
-      
-      if (isExtensionEnvironment()) {
-        await chrome.storage.local.set({ [RECENT_QUERIES_KEY]: updatedQueries });
-      } else {
-        localStorage.setItem(RECENT_QUERIES_KEY, JSON.stringify(updatedQueries));
-      }
+      await storage.set(RECENT_QUERIES_KEY, updatedQueries);
     } catch (error) {
       console.error('Error saving recent query:', error);
     }
-  }, [recentQueries, isExtensionEnvironment]);
+  }, [recentQueries]);
 
   const saveChatHistory = useCallback(async (newMessages: Message[]) => {
     if (newMessages.length === 0) return;
     
     try {
       const updatedHistory = [newMessages, ...chatHistory].slice(0, 10);
-
-      if (isExtensionEnvironment()) {
-        await chrome.storage.local.set({ [STORAGE_KEY]: updatedHistory });
-      } else {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
-      }
-      
+      await storage.set(STORAGE_KEY, updatedHistory);
       setChatHistory(updatedHistory);
     } catch (error) {
       console.error('Error saving chat history:', error);
       toast.error('Failed to save chat history');
     }
-  }, [chatHistory, isExtensionEnvironment]);
+  }, [chatHistory]);
+
+  const saveConversation = useCallback(async (name: string, category: string) => {
+    if (messages.length === 0) {
+      toast.error("Cannot save an empty conversation");
+      return;
+    }
+    
+    try {
+      const newConversation: Conversation = {
+        id: activeConversation?.id || Date.now().toString(),
+        name,
+        category,
+        messages: [...messages],
+        createdAt: activeConversation?.createdAt || new Date(),
+        updatedAt: new Date(),
+        pinned: activeConversation?.pinned || false
+      };
+      
+      let updatedConversations: Conversation[];
+      
+      if (activeConversation) {
+        // Update existing conversation
+        updatedConversations = conversations.map(c => 
+          c.id === activeConversation.id ? newConversation : c
+        );
+      } else {
+        // Add new conversation
+        updatedConversations = [newConversation, ...conversations];
+      }
+      
+      await storage.set(CONVERSATIONS_KEY, updatedConversations);
+      setConversations(updatedConversations);
+      setActiveConversation(newConversation);
+      
+      toast.success(`Conversation "${name}" saved`);
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      toast.error('Failed to save conversation');
+    }
+  }, [messages, activeConversation, conversations]);
+
+  const updateConversation = useCallback(async (conversation: Conversation) => {
+    try {
+      const updatedConversations = conversations.map(c => 
+        c.id === conversation.id ? conversation : c
+      );
+      
+      await storage.set(CONVERSATIONS_KEY, updatedConversations);
+      setConversations(updatedConversations);
+      
+      if (activeConversation?.id === conversation.id) {
+        setActiveConversation(conversation);
+      }
+      
+      toast.success(`Conversation "${conversation.name}" updated`);
+    } catch (error) {
+      console.error('Error updating conversation:', error);
+      toast.error('Failed to update conversation');
+    }
+  }, [conversations, activeConversation]);
 
   const clearChat = () => {
     if (messages.length > 0) {
       saveChatHistory(messages);
       setMessages([]);
+      setActiveConversation(undefined);
       toast.success("Chat cleared");
     } else {
       toast.info("No messages to clear");
     }
   };
 
-  const loadChatSession = (sessionMessages: Message[]) => {
+  const loadChatSession = useCallback((sessionMessages: Message[]) => {
     setMessages(sessionMessages);
     setIsHistoryOpen(false);
+    
+    // Check if this corresponds to a saved conversation
+    const conversation = conversations.find(c => 
+      c.messages.length > 0 && 
+      c.messages[0].id === sessionMessages[0].id
+    );
+    
+    setActiveConversation(conversation);
     scrollToBottom();
     toast.success("Chat session loaded");
-  };
+  }, [conversations, scrollToBottom]);
 
   const searchBookmarks = useCallback((query: string) => {
     return bookmarks.filter((bookmark) => {
@@ -392,6 +451,8 @@ export const useChatState = () => {
     suggestions,
     isHistoryOpen,
     setIsHistoryOpen,
+    isConversationManagerOpen,
+    setConversationManagerOpen,
     chatHistory,
     messagesEndRef,
     handleSendMessage,
@@ -400,6 +461,10 @@ export const useChatState = () => {
     retryLastMessage,
     checkConnection,
     recentQueries,
-    isMobile
+    isMobile,
+    activeConversation,
+    saveConversation,
+    updateConversation,
+    conversations
   };
 };

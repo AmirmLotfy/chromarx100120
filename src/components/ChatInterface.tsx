@@ -7,8 +7,8 @@ import ChatInput from "./ChatInput";
 import ChatHistory from "./chat/ChatHistory";
 import ChatError from "./chat/ChatError";
 import ChatOfflineNotice from "./chat/ChatOfflineNotice";
+import ConversationManager from "./chat/ConversationManager";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const ChatInterface = () => {
   const {
@@ -28,7 +28,12 @@ const ChatInterface = () => {
     retryLastMessage,
     checkConnection,
     recentQueries,
-    isMobile
+    isMobile,
+    activeConversation,
+    saveConversation,
+    updateConversation,
+    setConversationManagerOpen,
+    isConversationManagerOpen
   } = useChatState();
 
   // Auto-hide history panel on mobile when chat starts
@@ -40,7 +45,13 @@ const ChatInterface = () => {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm">
-      <ChatHeader clearChat={clearChat} messageCount={messages.length} />
+      <ChatHeader 
+        clearChat={clearChat} 
+        messageCount={messages.length} 
+        onSaveConversation={saveConversation}
+        activeConversation={activeConversation}
+        onManageConversations={() => setConversationManagerOpen(true)}
+      />
       
       <div className="flex-1 overflow-hidden flex flex-col">
         {(isOffline || !isAIAvailable) && (
@@ -88,6 +99,16 @@ const ChatInterface = () => {
         setIsHistoryOpen={setIsHistoryOpen}
         chatHistory={chatHistory}
         loadChatSession={loadChatSession}
+        activeConversation={activeConversation}
+      />
+
+      <ConversationManager
+        isOpen={isConversationManagerOpen}
+        setIsOpen={setConversationManagerOpen}
+        conversations={chatHistory}
+        activeConversation={activeConversation}
+        onUpdateConversation={updateConversation}
+        onLoadConversation={loadChatSession}
       />
     </div>
   );

@@ -14,3 +14,16 @@ export interface Message {
     url: string;
   }[];
 }
+
+export interface Conversation {
+  id: string;
+  name: string;
+  category?: string;
+  messages: Message[];
+  createdAt: Date;
+  updatedAt: Date;
+  pinned?: boolean;
+  bookmarkContext?: string[];
+}
+
+export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";
