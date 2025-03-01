@@ -185,7 +185,6 @@ const PrivacySettings = () => {
       className="space-y-6"
       key="privacy-settings-container"
     >
-      {/* Confirmation Dialog for Disabling Data Collection */}
       <Dialog open={confirmDisableDataCollection} onOpenChange={setConfirmDisableDataCollection}>
         <DialogContent className="sm:max-w-[425px] rounded-xl">
           <DialogHeader>
@@ -201,7 +200,6 @@ const PrivacySettings = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Confirmation Dialog for Disabling Cloud Backup */}
       <Dialog open={confirmDisableBackup} onOpenChange={setConfirmDisableBackup}>
         <DialogContent className="sm:max-w-[425px] rounded-xl">
           <DialogHeader>
@@ -253,12 +251,12 @@ const PrivacySettings = () => {
         </Card>
       </motion.div>
 
-      <motion.div variants={item} className="mb-3 mt-8">
+      <motion.div variants={item} className="mb-3 mt-8" key="experimental-heading">
         <h2 className="text-lg font-medium">Experimental Features</h2>
         <p className="text-sm text-muted-foreground">Access to pre-release functionality</p>
       </motion.div>
 
-      <motion.div variants={item}>
+      <motion.div variants={item} key="experimental-card">
         <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
           <CardContent className="p-0">
             <div className="divide-y divide-border/10">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -161,6 +162,21 @@ const SettingsPage = () => {
     }
   };
 
+  const renderSettingsComponent = (tabId) => {
+    switch (tabId) {
+      case "appearance":
+        return <AppearanceSettings key="appearance-settings" />;
+      case "privacy":
+        return <PrivacySettings key="privacy-settings" />;
+      case "notifications":
+        return <NotificationSettings key="notification-settings" />;
+      case "legal":
+        return <LegalAndFeedback key="legal-settings" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-background">
@@ -261,7 +277,7 @@ const SettingsPage = () => {
           <div className="space-y-3">
             {settingTabs.map((tab) => (
               <div 
-                key={tab.id}
+                key={`tab-${tab.id}`}
                 className="rounded-xl overflow-hidden shadow-sm border border-border/5"
               >
                 <button
@@ -319,10 +335,7 @@ const SettingsPage = () => {
                       className="overflow-hidden bg-card"
                     >
                       <div className="p-4">
-                        {tab.id === "appearance" && <AppearanceSettings />}
-                        {tab.id === "privacy" && <PrivacySettings />}
-                        {tab.id === "notifications" && <NotificationSettings />}
-                        {tab.id === "legal" && <LegalAndFeedback />}
+                        {renderSettingsComponent(tab.id)}
                       </div>
                     </motion.div>
                   )}
