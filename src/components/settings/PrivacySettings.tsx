@@ -31,6 +31,9 @@ import {
 } from "@/components/ui/dialog";
 import { supabaseBackup } from "@/services/supabaseBackupService";
 
+// Define the valid badge variant types to match the Badge component
+type BadgeVariant = "default" | "outline" | "destructive" | "secondary" | "success" | "info" | "warning";
+
 const PrivacySettings = () => {
   const settings = useSettings();
   const { user } = useAuth();
@@ -148,7 +151,7 @@ const PrivacySettings = () => {
     description: string,
     isChecked: boolean,
     onChange: (value: boolean) => void,
-    badge: { text: string; variant?: string } | null
+    badge: { text: string; variant?: BadgeVariant } | null
   ) => (
     <div className="flex items-center justify-between py-3.5 border-b border-border/20 last:border-none">
       <div className="flex gap-3">
