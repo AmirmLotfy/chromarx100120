@@ -183,6 +183,7 @@ const PrivacySettings = () => {
       initial="hidden"
       animate="show"
       className="space-y-6"
+      key="privacy-settings-container"
     >
       {/* Confirmation Dialog for Disabling Data Collection */}
       <Dialog open={confirmDisableDataCollection} onOpenChange={setConfirmDisableDataCollection}>
@@ -216,12 +217,12 @@ const PrivacySettings = () => {
         </DialogContent>
       </Dialog>
 
-      <motion.div variants={item} className="mb-3">
+      <motion.div variants={item} className="mb-3" key="privacy-heading">
         <h2 className="text-lg font-medium">Privacy & Data</h2>
         <p className="text-sm text-muted-foreground">Manage how your data is used</p>
       </motion.div>
 
-      <motion.div variants={item}>
+      <motion.div variants={item} key="privacy-settings-card">
         <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
           <CardContent className="p-0 divide-y divide-border/10">
             {renderSetting(

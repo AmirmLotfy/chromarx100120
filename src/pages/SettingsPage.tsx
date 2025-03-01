@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -53,7 +52,6 @@ const SettingsPage = () => {
   const { theme } = useTheme();
   const isMobile = useIsMobile();
 
-  // Settings map for search functionality
   const settingsMap = {
     "theme": "appearance",
     "dark mode": "appearance",
@@ -93,7 +91,6 @@ const SettingsPage = () => {
     "service": "legal",
   };
 
-  // Effect to set active tab based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") return;
     
@@ -123,6 +120,10 @@ const SettingsPage = () => {
     }
   };
 
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId === activeTab ? "" : tabId);
+  };
+
   const settingTabs = [
     { id: "appearance", label: "Appearance", icon: <PaintBucket size={20} /> },
     { id: "privacy", label: "Privacy", icon: <Shield size={20} /> },
@@ -130,7 +131,6 @@ const SettingsPage = () => {
     { id: "legal", label: "Legal", icon: <FileText size={20} /> },
   ];
 
-  // Spring animation variants for a fluid, modern feel
   const fadeVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -161,18 +161,9 @@ const SettingsPage = () => {
     }
   };
 
-  const handleTabClick = (tabId) => {
-    if (activeTab === tabId) {
-      setActiveTab(""); // Close the active tab if clicked again
-    } else {
-      setActiveTab(tabId);
-    }
-  };
-
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Fixed Header - Modern Design */}
         <div className="h-16 w-full" aria-hidden="true" />
         <motion.div 
           className="fixed top-14 left-0 right-0 z-30 border-b border-border/10 bg-background/80 backdrop-blur-md px-4 py-3 flex items-center justify-between"
@@ -266,7 +257,6 @@ const SettingsPage = () => {
           </div>
         </motion.div>
 
-        {/* Accordion-style Settings Menu */}
         <div className="pt-8 px-5 pb-28">
           <div className="space-y-3">
             {settingTabs.map((tab) => (
@@ -314,7 +304,7 @@ const SettingsPage = () => {
                   {activeTab === tab.id && (
                     <motion.div
                       id={`panel-${tab.id}`}
-                      key={`panel-${tab.id}`} // Add key prop to fix AnimatePresence issue
+                      key={`panel-${tab.id}`}
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ 
                         height: "auto", 
