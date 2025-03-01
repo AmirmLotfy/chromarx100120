@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -119,29 +118,20 @@ const SettingsPage = () => {
     { id: "legal", label: "Legal", icon: <FileText size={20} /> },
   ];
 
-  // Spring animation variants
-  const containerVariants = {
+  // Spring animation variants for a fluid, modern feel
+  const fadeVariants = {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
-      transition: { 
-        when: "beforeChildren", 
-        staggerChildren: 0.1,
-        duration: 0.3
-      } 
+      transition: { duration: 0.3 }
     },
     exit: {
       opacity: 0,
-      transition: {
-        when: "afterChildren",
-        staggerChildren: 0.05,
-        staggerDirection: -1,
-        duration: 0.2
-      }
+      transition: { duration: 0.2 }
     }
   };
 
-  const itemVariants = {
+  const slideUpVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: { 
       y: 0, 
@@ -149,47 +139,48 @@ const SettingsPage = () => {
       transition: { 
         type: "spring", 
         stiffness: 300, 
-        damping: 24 
+        damping: 25 
       } 
     },
     exit: { 
-      y: -20, 
+      y: 20, 
       opacity: 0,
-      transition: { 
-        duration: 0.2 
-      }
+      transition: { duration: 0.2 } 
     }
   };
 
   return (
     <Layout>
       <div className="min-h-screen bg-background">
-        {/* Header - Added pt-16 to account for the fixed top-14 header */}
+        {/* Fixed Header - Modern Design */}
+        <div className="h-16 w-full" aria-hidden="true" />
         <motion.div 
-          className="flex items-center justify-between px-4 py-3 sticky top-14 z-10 bg-background/80 backdrop-blur-md border-b border-border/20"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-14 left-0 right-0 z-30 border-b border-border/10 bg-background/80 backdrop-blur-md px-4 py-3 flex items-center justify-between"
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
           <AnimatePresence mode="wait">
             {!isSearchActive ? (
               <motion.div 
                 key="title"
-                className="flex items-center space-x-3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                className="flex items-center gap-2.5"
+                variants={fadeVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
                 <Settings className="h-5 w-5 text-primary" />
-                <h1 className="text-xl font-medium">Settings</h1>
+                <span className="text-xl font-medium">Settings</span>
               </motion.div>
             ) : (
               <motion.div 
                 key="search"
-                className="w-full flex items-center"
-                initial={{ opacity: 0, width: "50%" }}
-                animate={{ opacity: 1, width: "100%" }}
-                exit={{ opacity: 0, width: "50%" }}
+                className="w-full"
+                variants={fadeVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
                 <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -214,12 +205,13 @@ const SettingsPage = () => {
             )}
           </AnimatePresence>
           
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center gap-1">
             <Button 
               variant="ghost" 
               size="icon" 
               className="h-9 w-9 rounded-full"
               onClick={handleSearch}
+              aria-label={isSearchActive ? "Close search" : "Search settings"}
             >
               {!isSearchActive ? (
                 <Search className="h-4.5 w-4.5" />
@@ -234,6 +226,7 @@ const SettingsPage = () => {
                 size="icon" 
                 className="h-9 w-9 rounded-full"
                 onClick={() => setResetDialogOpen(true)}
+                aria-label="Reset settings"
               >
                 <RotateCcw className="h-4.5 w-4.5" />
               </Button>
@@ -253,48 +246,45 @@ const SettingsPage = () => {
           </div>
         </motion.div>
 
-        {/* Navigation Pills - Added pt-6 instead of pt-4 to increase spacing */}
-        <motion.div 
-          className="pt-6 pb-2 px-4"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <div className="flex space-x-2 overflow-x-auto hide-scrollbar pb-1">
+        {/* Tab Navigation - Modern Pills Design */}
+        <div className="pt-6 px-4">
+          <motion.div 
+            className="rounded-full bg-muted/40 p-1 flex w-full overflow-x-auto hide-scrollbar"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
             {settingTabs.map((tab) => (
               <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm whitespace-nowrap transition-all",
+                  "flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm whitespace-nowrap transition-all flex-1 min-w-[25%]",
                   activeTab === tab.id 
                     ? "bg-primary text-primary-foreground font-medium shadow-sm" 
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                    : "text-foreground/70 hover:text-foreground hover:bg-muted/80"
                 )}
                 whileTap={{ scale: 0.95 }}
               >
-                <span className={cn(
-                  "h-4 w-4",
-                  activeTab === tab.id ? "text-primary-foreground" : "text-muted-foreground"
-                )}>
+                <span className={activeTab === tab.id ? "text-primary-foreground" : "text-foreground/60"}>
                   {tab.icon}
                 </span>
-                {tab.label}
+                <span>{tab.label}</span>
               </motion.button>
             ))}
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
-        {/* Content - Added pt-4 to create more space after the tab pills */}
-        <div className="px-4 pb-24 pt-4">
+        {/* Content Area with Card Design */}
+        <div className="mt-6 px-4 pb-24">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              variants={containerVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="w-full"
+              variants={slideUpVariants}
+              className="w-full rounded-xl overflow-hidden"
             >
               {activeTab === "appearance" && <AppearanceSettings />}
               {activeTab === "privacy" && <PrivacySettings />}
