@@ -1,78 +1,82 @@
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import * as ProgressPrimitive from "@radix-ui/react-progress"
 
-interface CircularProgressProps
-  extends React.HTMLAttributes<SVGSVGElement> {
+import { cn } from "@/lib/utils"
+
+interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  indicatorClassName?: string;
+}
+
+const Progress = React.forwardRef<
+  React.ElementRef<typeof ProgressPrimitive.Root>,
+  ProgressProps
+>(({ className, value, indicatorClassName, ...props }, ref) => (
+  <ProgressPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative h-2 w-full overflow-hidden rounded-full bg-secondary",
+      className
+    )}
+    {...props}
+  >
+    <ProgressPrimitive.Indicator
+      className={cn(
+        "h-full w-full flex-1 bg-primary transition-all",
+        indicatorClassName
+      )}
+      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+    />
+  </ProgressPrimitive.Root>
+))
+Progress.displayName = ProgressPrimitive.Root.displayName
+
+// Circular Progress Component for the timer
+interface CircularProgressProps {
   value: number;
   size?: number;
   strokeWidth?: number;
+  className?: string;
 }
 
-export const CircularProgress = React.forwardRef<
-  SVGSVGElement,
-  CircularProgressProps
->(({ value, size = 256, strokeWidth = 8, className, ...props }, ref) => {
+const CircularProgress = ({
+  value,
+  size = 120,
+  strokeWidth = 10,
+  className,
+}: CircularProgressProps) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (value / 100) * circumference;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
 
   return (
     <svg
-      ref={ref}
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className={cn("animate-in fade-in duration-1000", className)}
-      {...props}
+      className={cn("transform", className)}
     >
-      {/* Background circle */}
       <circle
+        className="stroke-muted"
         cx={size / 2}
         cy={size / 2}
         r={radius}
         strokeWidth={strokeWidth}
-        className="stroke-muted fill-none"
+        fill="none"
       />
-      {/* Progress circle */}
       <circle
+        className="stroke-primary transition-all duration-500 ease-in-out"
         cx={size / 2}
         cy={size / 2}
         r={radius}
         strokeWidth={strokeWidth}
+        fill="none"
         strokeDasharray={circumference}
-        strokeDashoffset={offset}
+        strokeDashoffset={strokeDashoffset}
         strokeLinecap="round"
-        className="stroke-primary fill-none transition-all duration-500 ease-in-out"
-        style={{
-          transform: `rotate(-90deg)`,
-          transformOrigin: "50% 50%",
-        }}
       />
     </svg>
   );
-});
-CircularProgress.displayName = "CircularProgress";
+};
 
-// Add linear progress component
-const Progress = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { 
-    value?: number;
-    indicatorClassName?: string;
-  }
->(({ className, value, indicatorClassName, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("relative h-2 w-full overflow-hidden rounded-full bg-secondary", className)}
-    {...props}
-  >
-    <div
-      className={cn("h-full w-full flex-1 bg-primary transition-all", indicatorClassName)}
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
-  </div>
-));
-Progress.displayName = "Progress";
-
-export { Progress };
+export { Progress, CircularProgress }

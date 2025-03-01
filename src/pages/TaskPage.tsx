@@ -8,14 +8,34 @@ import { Task, TaskPriority, TaskCategory, TaskStatus } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { 
+  Plus, 
+  BarChart3, 
+  CheckCircle2, 
+  Clock, 
+  Loader2, 
+  CalendarClock,
+  ListTodo
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("tasks");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchTasks();
@@ -284,12 +304,33 @@ const TaskPage = () => {
     });
   };
 
+  const getCompletedTasksCount = () => {
+    return tasks.filter(task => task.status === "completed").length;
+  };
+
+  const getPendingTasksCount = () => {
+    return tasks.filter(task => task.status === "pending").length;
+  };
+
+  const getTodayTasksCount = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return tasks.filter(task => {
+      const taskDate = new Date(task.dueDate);
+      taskDate.setHours(0, 0, 0, 0);
+      return taskDate.getTime() === today.getTime();
+    }).length;
+  };
+
   if (loading) {
     return (
       <Layout>
-        <div className="container max-w-7xl mx-auto px-4 py-8 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="ml-2">Loading tasks...</span>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground text-sm">Loading your tasks...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -297,23 +338,103 @@ const TaskPage = () => {
 
   return (
     <Layout>
-      <div className="container max-w-7xl mx-auto px-4 py-8">
-        <div className="space-y-2 mb-8">
-          <h1 className="tracking-tight text-lg font-semibold">Tasks</h1>
-          <p className="text-muted-foreground">
-            Manage your tasks with AI-powered prioritization
-          </p>
+      <div className="container max-w-6xl mx-auto px-4 pt-4 pb-24">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Tasks</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Organize and track your productivity
+            </p>
+          </div>
+          
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:shadow-xl transition-all">
+                <Plus className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side={isMobile ? "bottom" : "right"} className="sm:max-w-lg">
+              <SheetHeader className="mb-6">
+                <SheetTitle>Add New Task</SheetTitle>
+                <SheetDescription>
+                  Create a new task to track your progress
+                </SheetDescription>
+              </SheetHeader>
+              <div className="h-[80vh] overflow-y-auto pr-1 pb-10">
+                <TaskForm onSubmit={handleAddTask} />
+                <div className="mt-8 border-t pt-6">
+                  <h3 className="text-lg font-medium mb-4">Templates</h3>
+                  <TaskTemplates onUseTemplate={handleUseTemplate} />
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
 
-        <Tabs defaultValue="tasks" className="space-y-8">
-          <TabsList>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-gradient-to-br from-primary/80 to-primary rounded-xl p-4 shadow-md text-primary-foreground">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">All Tasks</h3>
+              <ListTodo className="h-4 w-4 opacity-80" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{tasks.length}</p>
+          </div>
+          
+          <div className="bg-gradient-to-br from-emerald-500/80 to-emerald-600 rounded-xl p-4 shadow-md text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Completed</h3>
+              <CheckCircle2 className="h-4 w-4 opacity-80" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{getCompletedTasksCount()}</p>
+          </div>
+          
+          <div className="bg-gradient-to-br from-amber-500/80 to-amber-600 rounded-xl p-4 shadow-md text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Pending</h3>
+              <Clock className="h-4 w-4 opacity-80" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{getPendingTasksCount()}</p>
+          </div>
+          
+          <div className="bg-gradient-to-br from-blue-500/80 to-blue-600 rounded-xl p-4 shadow-md text-white">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Today</h3>
+              <CalendarClock className="h-4 w-4 opacity-80" />
+            </div>
+            <p className="text-2xl font-bold mt-2">{getTodayTasksCount()}</p>
+          </div>
+        </div>
+
+        <Tabs 
+          defaultValue="tasks" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
+          <TabsList className="grid grid-cols-2 w-full bg-muted/50 rounded-lg p-1">
+            <TabsTrigger 
+              value="tasks"
+              className={cn(
+                "rounded-md transition-all",
+                activeTab === "tasks" && "data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              )}
+            >
+              <ListTodo className="h-4 w-4 mr-2" />
+              Tasks
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analytics" 
+              className={cn(
+                "rounded-md transition-all",
+                activeTab === "analytics" && "data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              )}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tasks" className="space-y-8">
-            <TaskForm onSubmit={handleAddTask} />
-            <TaskTemplates onUseTemplate={handleUseTemplate} />
+          <TabsContent value="tasks" className="space-y-6">
             <TaskList 
               tasks={tasks} 
               onDelete={handleDeleteTask} 
