@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -134,7 +133,6 @@ export const auth = {
   }
 };
 
-// Add helper for checking if the extension is installed on this browser
 export const checkExtensionInstalled = async (): Promise<boolean> => {
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
@@ -146,25 +144,20 @@ export const checkExtensionInstalled = async (): Promise<boolean> => {
   }
 };
 
-// Add helper for generating device ID
 export const getDeviceId = async (): Promise<string> => {
   try {
-    // Try to get from storage first
     const deviceId = localStorage.getItem('deviceId');
     if (deviceId) return deviceId;
     
-    // Generate new one if not exists
     const newDeviceId = crypto.randomUUID();
     localStorage.setItem('deviceId', newDeviceId);
     return newDeviceId;
   } catch (error) {
     console.error("Error generating device ID:", error);
-    // Fallback
     return `device-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 };
 
-// Add device info
 export const getDeviceInfo = async (): Promise<{
   deviceId: string;
   deviceName: string;
@@ -173,13 +166,11 @@ export const getDeviceInfo = async (): Promise<{
 }> => {
   const deviceId = await getDeviceId();
   
-  // Get device name using navigator info
   const userAgent = navigator.userAgent;
   let deviceName = 'Unknown Device';
   let deviceType = 'desktop';
   let browser = 'unknown';
   
-  // Detect browser
   if (userAgent.indexOf('Chrome') > -1) {
     browser = 'chrome';
   } else if (userAgent.indexOf('Firefox') > -1) {
@@ -190,7 +181,6 @@ export const getDeviceInfo = async (): Promise<{
     browser = 'edge';
   }
   
-  // Detect device type
   if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
     deviceType = 'mobile';
     
@@ -199,7 +189,6 @@ export const getDeviceInfo = async (): Promise<{
     }
   }
   
-  // Create device name
   const platform = navigator.platform || 'Unknown';
   deviceName = `${browser.charAt(0).toUpperCase() + browser.slice(1)} on ${platform}`;
   
@@ -211,7 +200,6 @@ export const getDeviceInfo = async (): Promise<{
   };
 };
 
-// Add function to register device with backend
 export const registerDevice = async (): Promise<boolean> => {
   try {
     const user = await auth.getCurrentUser();
@@ -219,7 +207,6 @@ export const registerDevice = async (): Promise<boolean> => {
     
     const deviceInfo = await getDeviceInfo();
     
-    // Check if device already registered
     const { data: existingDevice } = await supabase
       .from('devices')
       .select('*')
@@ -228,7 +215,6 @@ export const registerDevice = async (): Promise<boolean> => {
       .single();
     
     if (existingDevice) {
-      // Update device status
       await supabase
         .from('devices')
         .update({
@@ -237,7 +223,6 @@ export const registerDevice = async (): Promise<boolean> => {
         })
         .eq('device_id', deviceInfo.deviceId);
     } else {
-      // Register new device
       await supabase
         .from('devices')
         .insert({
@@ -249,7 +234,6 @@ export const registerDevice = async (): Promise<boolean> => {
         });
     }
     
-    // Set up device status update on window events
     window.addEventListener('beforeunload', async () => {
       try {
         await supabase
@@ -264,7 +248,6 @@ export const registerDevice = async (): Promise<boolean> => {
       }
     });
     
-    // Heartbeat to update device status periodically
     setInterval(async () => {
       if (navigator.onLine) {
         try {

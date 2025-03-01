@@ -1,5 +1,5 @@
 
-import { Note } from "@/types/note";
+import { Note, NoteSentiment } from "@/types/note";
 import { storage } from "./storageService";
 import { supabase } from "@/integrations/supabase/client";
 import { auth } from "@/lib/chrome-utils";
@@ -37,8 +37,8 @@ export class NoteService {
                 category: note.category || 'uncategorized',
                 createdAt: note.created_at,
                 updatedAt: note.updated_at,
-                sentiment: note.sentiment as 'positive' | 'negative' | 'neutral' | undefined,
-                sentimentDetails: note.sentiment_details as any,
+                sentiment: note.sentiment as NoteSentiment,
+                sentimentDetails: note.sentiment_details || undefined,
                 summary: note.summary,
                 taskId: note.task_id,
                 bookmarkIds: note.bookmark_ids,
@@ -49,7 +49,7 @@ export class NoteService {
               }));
               
               // Store in local DB for offline access
-              await this.storage.set('notes', notes);
+              await this.storage.set(NOTES_STORAGE_KEY, notes);
               
               return notes;
             }
@@ -106,7 +106,7 @@ export class NoteService {
               user_id: user.id,
               version: 1,
               sentiment: newNote.sentiment,
-              sentiment_details: newNote.sentimentDetails as any,
+              sentiment_details: newNote.sentimentDetails,
               folder_id: newNote.folderId,
               pinned: newNote.pinned,
               color: newNote.color
@@ -135,7 +135,7 @@ export class NoteService {
   async updateNote(note: Note): Promise<Note | null> {
     try {
       // Get existing notes
-      const existingNotes = await this.storage.get<Note[]>('notes') || [];
+      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) || [];
       
       // Find and update the note
       const updatedNotes = existingNotes.map(n => 
@@ -143,7 +143,7 @@ export class NoteService {
       );
       
       // Update local storage
-      await this.storage.set('notes', updatedNotes);
+      await this.storage.set(NOTES_STORAGE_KEY, updatedNotes);
       
       // Update cache
       this.handleNotesChange(updatedNotes);
@@ -227,13 +227,13 @@ export class NoteService {
   async deleteNote(id: string): Promise<boolean> {
     try {
       // Get existing notes
-      const existingNotes = await this.storage.get<Note[]>('notes') || [];
+      const existingNotes = await this.storage.get(NOTES_STORAGE_KEY) || [];
       
       // Filter out the note to delete
       const updatedNotes = existingNotes.filter(note => note.id !== id);
       
       // Update local storage
-      await this.storage.set('notes', updatedNotes);
+      await this.storage.set(NOTES_STORAGE_KEY, updatedNotes);
       
       // Update cache
       this.handleNotesChange(updatedNotes);
@@ -305,8 +305,8 @@ export class NoteService {
         category: note.category || 'uncategorized',
         createdAt: note.created_at,
         updatedAt: note.updated_at,
-        sentiment: note.sentiment as 'positive' | 'negative' | 'neutral' | undefined,
-        sentimentDetails: note.sentiment_details as any,
+        sentiment: note.sentiment as NoteSentiment,
+        sentimentDetails: note.sentiment_details || undefined,
         summary: note.summary,
         taskId: note.task_id,
         bookmarkIds: note.bookmark_ids,
@@ -354,33 +354,31 @@ export class NoteService {
       
       // Create notes on server
       if (notesToCreate.length > 0) {
-        const notesToInsert = notesToCreate.map(note => ({
-          id: note.id,
-          title: note.title,
-          content: note.content,
-          tags: note.tags,
-          category: note.category,
-          created_at: note.createdAt,
-          updated_at: note.updatedAt,
-          user_id: user.id,
-          sentiment: note.sentiment,
-          sentiment_details: note.sentimentDetails as any,
-          summary: note.summary,
-          task_id: note.taskId,
-          bookmark_ids: note.bookmarkIds,
-          folder_id: note.folderId,
-          pinned: note.pinned,
-          color: note.color,
-          version: note.version || 1
-        }));
-        
-        console.log(`Creating ${notesToInsert.length} notes on server`);
+        console.log(`Creating ${notesToCreate.length} notes on server`);
         
         // Since we can't insert an array directly (due to the typing issues), we'll insert them one by one
-        for (const noteToInsert of notesToInsert) {
+        for (const noteToInsert of notesToCreate) {
           const { error: insertError } = await supabase
             .from('notes')
-            .insert(noteToInsert);
+            .insert({
+              id: noteToInsert.id,
+              title: noteToInsert.title,
+              content: noteToInsert.content,
+              tags: noteToInsert.tags,
+              category: noteToInsert.category,
+              created_at: noteToInsert.createdAt,
+              updated_at: noteToInsert.updatedAt,
+              user_id: user.id,
+              sentiment: noteToInsert.sentiment,
+              sentiment_details: noteToInsert.sentimentDetails,
+              summary: noteToInsert.summary,
+              task_id: noteToInsert.taskId,
+              bookmark_ids: noteToInsert.bookmarkIds,
+              folder_id: noteToInsert.folderId,
+              pinned: noteToInsert.pinned,
+              color: noteToInsert.color,
+              version: noteToInsert.version || 1
+            });
           
           if (insertError) {
             console.error("Error inserting note:", insertError);
@@ -450,7 +448,15 @@ export class NoteService {
             created_at: note.createdAt,
             updated_at: note.updatedAt,
             user_id: user.id,
-            version: 1
+            version: note.version || 1,
+            sentiment: note.sentiment,
+            sentiment_details: note.sentimentDetails,
+            summary: note.summary,
+            task_id: note.taskId,
+            bookmark_ids: note.bookmarkIds,
+            folder_id: note.folderId,
+            pinned: note.pinned,
+            color: note.color
           });
         } else if (operation === 'update') {
           await supabase

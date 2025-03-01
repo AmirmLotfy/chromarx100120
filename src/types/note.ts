@@ -1,11 +1,12 @@
 
-export type NoteSentiment = 'positive' | 'negative' | 'neutral';
+export type NoteSentiment = 'positive' | 'negative' | 'neutral' | undefined;
 
 export interface SentimentDetails {
   score: number;
   confidence: number;
   dominantEmotion?: string;
   language: string;
+  [key: string]: any; // Add index signature for Json compatibility
 }
 
 export interface Note {
@@ -25,6 +26,8 @@ export interface Note {
   folderId?: string;
   pinned?: boolean;
   color?: string;
+  _hasConflict?: boolean;
+  _remoteVersion?: number;
 }
 
 export interface NoteFolder {
