@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import Layout from "@/components/Layout";
 import NoteGrid from "@/components/notes/NoteGrid";
 import NoteOrganizer from "@/components/notes/NoteOrganizer";
 import { Note, NoteSort } from "@/types/note";
 import { Button } from "@/components/ui/button";
-import { Plus, List, LayoutGrid, CloudSync, CloudOff, AlertTriangle } from "lucide-react";
+import { Plus, List, LayoutGrid, CloudCog, CloudOff, AlertTriangle } from "lucide-react";
 import { noteService } from "@/services/noteService";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -522,9 +521,9 @@ const NotesPage = () => {
                       syncStatus === 'error' && "border-red-500"
                     )}
                   >
-                    {syncStatus === 'online' && <CloudSync className="h-4 w-4 mr-2 text-green-500" />}
+                    {syncStatus === 'online' && <CloudCog className="h-4 w-4 mr-2 text-green-500" />}
                     {syncStatus === 'offline' && <CloudOff className="h-4 w-4 mr-2 text-gray-500" />}
-                    {syncStatus === 'syncing' && <CloudSync className="h-4 w-4 mr-2 text-blue-500 animate-spin" />}
+                    {syncStatus === 'syncing' && <CloudCog className="h-4 w-4 mr-2 text-blue-500 animate-spin" />}
                     {syncStatus === 'error' && <AlertTriangle className="h-4 w-4 mr-2 text-red-500" />}
                     {syncStatus === 'online' && "Synced"}
                     {syncStatus === 'offline' && "Offline"}
