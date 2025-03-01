@@ -7,12 +7,16 @@ import { useSettings } from "@/stores/settingsStore";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 
 const PrivacySettings = () => {
   const settings = useSettings();
+  const { user } = useAuth();
 
   const handleDataCollection = (enabled: boolean) => {
-    settings.setDataCollection(enabled);
+    settings.setDataCollection(enabled, user?.id);
     toast.success(`Data collection ${enabled ? 'enabled' : 'disabled'}`);
   };
 
@@ -24,6 +28,16 @@ const PrivacySettings = () => {
   const handleAffiliateBannersEnabled = (enabled: boolean) => {
     settings.setAffiliateBannersEnabled(enabled);
     toast.success(`Affiliate content ${enabled ? 'enabled' : 'disabled'}`);
+  };
+
+  const handleCloudBackup = async (enabled: boolean) => {
+    if (enabled && !user) {
+      toast.error("You must be logged in to enable cloud backup");
+      return;
+    }
+    
+    await settings.setCloudBackupEnabled(enabled);
+    toast.success(`Cloud backup ${enabled ? 'enabled' : 'disabled'}`);
   };
 
   const container = {
@@ -132,10 +146,18 @@ const PrivacySettings = () => {
                 <p className="text-xs text-muted-foreground">
                   Sync your data across devices
                 </p>
+                {!user && settings.cloudBackupEnabled === false && (
+                  <div className="mt-1">
+                    <Button variant="link" size="sm" className="text-xs h-auto p-0" asChild>
+                      <Link to="/auth">Login required</Link>
+                    </Button>
+                  </div>
+                )}
               </div>
               <Switch
                 checked={settings.cloudBackupEnabled}
-                onCheckedChange={settings.setCloudBackupEnabled}
+                onCheckedChange={handleCloudBackup}
+                disabled={!user && !settings.cloudBackupEnabled}
               />
             </div>
           </CardContent>

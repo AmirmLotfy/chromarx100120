@@ -6,13 +6,16 @@ import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/stores/settingsStore";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Bell, Bookmark, RefreshCw, Timer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Bell, Bookmark, RefreshCw, Timer, Cloud } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const NotificationSettings = () => {
   const settings = useSettings();
+  const { user } = useAuth();
 
   const handleNotificationChange = (type: keyof typeof settings.notifications, enabled: boolean) => {
-    settings.setNotifications(type, enabled);
+    settings.setNotifications(type, enabled, user?.id);
     toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} notifications ${enabled ? 'enabled' : 'disabled'}`);
   };
 
@@ -50,6 +53,12 @@ const NotificationSettings = () => {
     }
   ];
 
+  const formatLastSynced = () => {
+    if (!settings.lastSynced) return "Never synced";
+    const date = new Date(settings.lastSynced);
+    return `Last synced: ${date.toLocaleTimeString()} ${date.toLocaleDateString()}`;
+  };
+
   return (
     <motion.div
       variants={container}
@@ -64,7 +73,15 @@ const NotificationSettings = () => {
               <Bell className="h-4 w-4 text-primary" />
               <CardTitle className="text-base font-medium">Notification Preferences</CardTitle>
             </div>
-            <CardDescription>Manage how we notify you</CardDescription>
+            <CardDescription className="flex items-center justify-between">
+              <span>Manage how we notify you</span>
+              {settings.cloudBackupEnabled && (
+                <Badge variant="outline" className="text-xs gap-1 items-center">
+                  <Cloud className="h-3 w-3" />
+                  {settings.syncInProgress ? "Syncing..." : formatLastSynced()}
+                </Badge>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {notificationItems.map((item) => (
