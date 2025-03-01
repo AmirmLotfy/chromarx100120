@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -246,10 +247,10 @@ const SettingsPage = () => {
           </div>
         </motion.div>
 
-        {/* Tab Navigation - Modern Pills Design */}
-        <div className="pt-6 px-4">
+        {/* Enhanced Tab Navigation - Modern Card Design with Gradient Accents */}
+        <div className="pt-8 px-5">
           <motion.div 
-            className="rounded-full bg-muted/40 p-1 flex w-full overflow-x-auto hide-scrollbar"
+            className="rounded-xl bg-muted/30 p-1.5 flex w-full overflow-x-auto hide-scrollbar shadow-sm border border-border/5"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
@@ -259,24 +260,33 @@ const SettingsPage = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm whitespace-nowrap transition-all flex-1 min-w-[25%]",
+                  "flex flex-col items-center gap-2 px-3 py-3 rounded-lg text-sm transition-all flex-1 min-w-[25%] touch-target",
                   activeTab === tab.id 
-                    ? "bg-primary text-primary-foreground font-medium shadow-sm" 
+                    ? "bg-gradient-to-br from-primary/90 to-primary/70 text-primary-foreground font-medium shadow-sm" 
                     : "text-foreground/70 hover:text-foreground hover:bg-muted/80"
                 )}
                 whileTap={{ scale: 0.95 }}
               >
-                <span className={activeTab === tab.id ? "text-primary-foreground" : "text-foreground/60"}>
-                  {tab.icon}
-                </span>
-                <span>{tab.label}</span>
+                <div 
+                  className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-full",
+                    activeTab === tab.id 
+                      ? "bg-primary-foreground/20" 
+                      : "bg-primary/10"
+                  )}
+                >
+                  <span className={activeTab === tab.id ? "text-primary-foreground" : "text-primary/70"}>
+                    {tab.icon}
+                  </span>
+                </div>
+                <span className="font-medium">{tab.label}</span>
               </motion.button>
             ))}
           </motion.div>
         </div>
 
-        {/* Content Area with Card Design */}
-        <div className="mt-6 px-4 pb-24">
+        {/* Content Area with enhanced spacing and padding */}
+        <div className="mt-7 px-5 pb-28">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
