@@ -10,6 +10,7 @@ import ChatOfflineNotice from "./chat/ChatOfflineNotice";
 import ConversationManager from "./chat/ConversationManager";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import BookmarkSearchMode from "./chat/BookmarkSearchMode";
+import { AnimatePresence } from "framer-motion";
 
 const ChatInterface = () => {
   const {
@@ -47,7 +48,7 @@ const ChatInterface = () => {
   }, [messages.length, isMobile, isHistoryOpen, setIsHistoryOpen]);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm">
+    <div className="flex flex-col h-[calc(100dvh-12rem)] md:h-[600px] bg-background border rounded-lg shadow-sm overflow-hidden">
       <ChatHeader 
         clearChat={clearChat} 
         messageCount={messages.length} 
@@ -58,10 +59,12 @@ const ChatInterface = () => {
         toggleBookmarkSearchMode={toggleBookmarkSearchMode}
       />
       
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {isBookmarkSearchMode && (
-          <BookmarkSearchMode onClose={toggleBookmarkSearchMode} />
-        )}
+      <div className="flex-1 overflow-hidden flex flex-col relative">
+        <AnimatePresence>
+          {isBookmarkSearchMode && (
+            <BookmarkSearchMode onClose={toggleBookmarkSearchMode} />
+          )}
+        </AnimatePresence>
         
         {(isOffline || !isAIAvailable) && (
           <div className="px-4 pt-3">
@@ -93,7 +96,7 @@ const ChatInterface = () => {
         <ChatMessages messages={messages} messagesEndRef={messagesEndRef} />
       </div>
       
-      <div className="border-t p-3">
+      <div className="border-t p-3 bg-background/80 backdrop-blur-sm">
         <ChatInput
           onSendMessage={handleSendMessage}
           isProcessing={isProcessing}

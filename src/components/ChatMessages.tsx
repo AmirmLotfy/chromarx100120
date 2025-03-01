@@ -3,6 +3,7 @@ import { Message } from "@/types/chat";
 import { ScrollArea } from "./ui/scroll-area";
 import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ChatMessagesProps {
   messages: Message[];
@@ -14,8 +15,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
     return cn(
       "max-w-[85%] space-y-2",
       message.sender === "user"
-        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5"
-        : "bg-muted text-muted-foreground rounded-2xl rounded-tl-sm px-4 py-2.5"
+        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm"
+        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm"
     );
   };
 
@@ -23,66 +24,76 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
     <ScrollArea className="flex-1 p-4 space-y-4">
       {messages.length === 0 && (
         <div className="flex items-center justify-center h-full">
-          <p className="text-sm text-muted-foreground">
-            Start a conversation to get personalized insights from your bookmarks
-          </p>
-        </div>
-      )}
-      {messages.map((message) => (
-        <div
-          key={message.id}
-          className={cn(
-            "flex",
-            message.sender === "user" ? "justify-end" : "justify-start"
-          )}
-        >
-          <div className={getMessageClassName(message)}>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-              {message.content}
+          <div className="text-center space-y-3 max-w-xs mx-auto p-6 rounded-xl bg-accent/30 border border-border/50">
+            <p className="text-sm font-medium text-foreground/80">
+              Start a conversation to get insights
             </p>
-            
-            {message.bookmarks && message.bookmarks.length > 0 && (
-              <div className="pt-2 border-t border-primary/10 space-y-1.5">
-                <p className="text-xs font-medium opacity-75">From your bookmarks:</p>
-                <div className="space-y-1">
-                  {message.bookmarks.map((bookmark, index) => (
-                    <a
-                      key={index}
-                      href={bookmark.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {bookmark.title}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {message.webResults && message.webResults.length > 0 && (
-              <div className="pt-2 border-t border-primary/10 space-y-1.5">
-                <p className="text-xs font-medium opacity-75">Related links:</p>
-                <div className="space-y-1">
-                  {message.webResults.map((result, index) => (
-                    <a
-                      key={index}
-                      href={result.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {result.title}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Ask questions about your bookmarks or toggle search mode to find specific saved content
+            </p>
           </div>
         </div>
-      ))}
+      )}
+      <div className="space-y-4">
+        {messages.map((message, index) => (
+          <motion.div
+            key={message.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+            className={cn(
+              "flex",
+              message.sender === "user" ? "justify-end" : "justify-start"
+            )}
+          >
+            <div className={getMessageClassName(message)}>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {message.content}
+              </p>
+              
+              {message.bookmarks && message.bookmarks.length > 0 && (
+                <div className="pt-2 border-t border-primary/10 space-y-1.5">
+                  <p className="text-xs font-medium opacity-75">From your bookmarks:</p>
+                  <div className="space-y-1.5">
+                    {message.bookmarks.map((bookmark, index) => (
+                      <a
+                        key={index}
+                        href={bookmark.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1 px-2 bg-background/20 hover:bg-background/40 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{bookmark.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {message.webResults && message.webResults.length > 0 && (
+                <div className="pt-2 border-t border-primary/10 space-y-1.5">
+                  <p className="text-xs font-medium opacity-75">Related links:</p>
+                  <div className="space-y-1.5">
+                    {message.webResults.map((result, index) => (
+                      <a
+                        key={index}
+                        href={result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 rounded-md py-1 px-2 bg-background/20 hover:bg-background/40 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{result.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </div>
       <div ref={messagesEndRef} />
     </ScrollArea>
   );
