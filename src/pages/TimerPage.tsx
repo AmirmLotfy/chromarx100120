@@ -16,7 +16,7 @@ import ProductivityScore from "@/components/analytics/ProductivityScore";
 import { Clock, CheckCircle2, BarChart3, Zap } from "lucide-react";
 
 const TimerPage = () => {
-  console.log("Rendering TimerPage"); // Add logging for debugging
+  console.log("Rendering TimerPage");
   
   const [duration, setDuration] = useState(25);
   const [isRunning, setIsRunning] = useState(false);
@@ -26,16 +26,27 @@ const TimerPage = () => {
   const [currentSession, setCurrentSession] = useState<TimerSession | null>(null);
   const { toast } = useToast();
 
-  // Fix the query to handle possible undefined or error states properly
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+  const { 
+    data: stats, 
+    isLoading: statsLoading, 
+    error: statsError 
+  } = useQuery({
     queryKey: ['timerStats'],
-    queryFn: () => timerService.getStats(),
-    // Add error handling
+    queryFn: async () => {
+      try {
+        const result = await timerService.getStats();
+        console.log("Stats fetched successfully:", result);
+        return result;
+      } catch (error) {
+        console.error("Error fetching timer stats:", error);
+        throw error;
+      }
+    },
     retry: 1,
     staleTime: 60000, // 1 minute cache
   });
 
-  console.log("Stats data:", stats); // Add logging for debugging
+  console.log("Stats data:", stats);
   console.log("Stats loading:", statsLoading);
   console.log("Stats error:", statsError);
 
@@ -159,7 +170,7 @@ const TimerPage = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Add a fallback UI for when stats are loading
+  // Fallback UI for when stats are loading
   if (statsLoading) {
     return (
       <Layout>
@@ -171,7 +182,7 @@ const TimerPage = () => {
     );
   }
 
-  // Add error handling UI
+  // Error handling UI
   if (statsError) {
     console.error("Error loading timer stats:", statsError);
     return (
