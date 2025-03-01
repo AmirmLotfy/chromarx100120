@@ -28,7 +28,7 @@ export const useChatState = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isConversationManagerOpen, setConversationManagerOpen] = useState(false);
-  const [chatHistory, setChatHistory] = useState<Message[][]>([]);
+  const [chatHistory, setChatHistory] = useState<Conversation[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | undefined>(undefined);
@@ -132,7 +132,7 @@ export const useChatState = () => {
     const loadChatData = async () => {
       try {
         // Load chat history
-        const savedHistory = await storage.get<Message[][]>(STORAGE_KEY);
+        const savedHistory = await storage.get<Conversation[]>(STORAGE_KEY);
         if (savedHistory) {
           setChatHistory(savedHistory);
         }
@@ -173,7 +173,16 @@ export const useChatState = () => {
     if (newMessages.length === 0) return;
     
     try {
-      const updatedHistory = [newMessages, ...chatHistory].slice(0, 10);
+      // Create a conversation object from the messages
+      const newConversation: Conversation = {
+        id: Date.now().toString(),
+        name: `Chat ${new Date().toLocaleDateString()}`,
+        messages: newMessages,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      const updatedHistory = [newConversation, ...chatHistory].slice(0, 10);
       await storage.set(STORAGE_KEY, updatedHistory);
       setChatHistory(updatedHistory);
     } catch (error) {
