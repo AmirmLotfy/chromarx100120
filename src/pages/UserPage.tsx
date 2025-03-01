@@ -1,11 +1,10 @@
-
 import Layout from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
-import { UserRound, CreditCard, Settings, ExternalLink, Shield, PenLine, MapPin, AtSign, Clock, BookmarkIcon, History, Activity } from "lucide-react";
+import { UserRound, CreditCard, Settings, ExternalLink, Shield, PenLine, MapPin, AtSign, Clock, BookmarkIcon, History, Activity, Palette, Languages, LayoutGrid } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,12 @@ import { getAnalyticsData } from "@/utils/analyticsUtils";
 import { AnalyticsData } from "@/types/analytics";
 import ProductivityTrends from "@/components/analytics/ProductivityTrends";
 import DomainStats from "@/components/analytics/DomainStats";
+import { useSettings } from "@/stores/settingsStore";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useLanguage, SUPPORTED_LANGUAGES } from "@/stores/languageStore";
+import ViewToggle from "@/components/ViewToggle";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProfileData {
   displayName: string;
@@ -24,6 +29,11 @@ interface ProfileData {
   location: string;
   email: string;
   avatarUrl: string;
+}
+
+interface ViewPreferences {
+  defaultView: "grid" | "list";
+  compactMode: boolean;
 }
 
 const UserPage = () => {
@@ -42,18 +52,24 @@ const UserPage = () => {
   });
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(false);
+  const [viewPreferences, setViewPreferences] = useState<ViewPreferences>({
+    defaultView: "grid",
+    compactMode: false
+  });
+  
+  const settings = useSettings();
+  const { theme, colorScheme, setTheme, setColorScheme } = settings;
+  
+  const { currentLanguage, setLanguage } = useLanguage();
 
-  // Load user profile data from storage
   useEffect(() => {
     const loadProfileData = async () => {
       try {
         if (user) {
           setUserName(user.email || 'Guest User');
-          // For now we're using mock data, in a real app this would come from your backend
           setCurrentPlan('free');
           setSubscriptionEnd(null);
           
-          // Try to load profile data from storage
           const storedProfile = await storage.get<ProfileData>('userProfile');
           if (storedProfile) {
             setProfileData({
@@ -63,7 +79,6 @@ const UserPage = () => {
               displayName: storedProfile.displayName || user.email || 'Guest User'
             });
           } else {
-            // Initialize with current user data
             setProfileData({
               ...profileData,
               displayName: user.email || 'Guest User',
@@ -80,7 +95,6 @@ const UserPage = () => {
     loadProfileData();
   }, [user]);
 
-  // Load analytics data
   useEffect(() => {
     const loadAnalytics = async () => {
       try {
@@ -95,6 +109,21 @@ const UserPage = () => {
     };
 
     loadAnalytics();
+  }, []);
+
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const storedPreferences = await storage.get<ViewPreferences>('viewPreferences');
+        if (storedPreferences) {
+          setViewPreferences(storedPreferences);
+        }
+      } catch (error) {
+        console.error('Error loading view preferences:', error);
+      }
+    };
+
+    loadUserPreferences();
   }, []);
 
   const plan = subscriptionPlans.find(p => p.id === currentPlan);
@@ -117,7 +146,6 @@ const UserPage = () => {
     }
 
     try {
-      // Convert to base64 for storage
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
@@ -145,7 +173,40 @@ const UserPage = () => {
     }
   };
 
-  // Format time duration from milliseconds
+  const saveViewPreferences = async () => {
+    try {
+      await storage.set('viewPreferences', viewPreferences);
+      toast.success('View preferences saved');
+    } catch (error) {
+      console.error('Error saving view preferences:', error);
+      toast.error('Failed to save view preferences');
+    }
+  };
+
+  const handleThemeChange = (value: string) => {
+    setTheme(value as 'light' | 'dark' | 'system');
+    toast.success(`Theme changed to ${value}`);
+  };
+
+  const handleColorSchemeChange = (value: string) => {
+    setColorScheme(value as 'default' | 'purple' | 'blue' | 'green');
+    toast.success(`Color scheme changed to ${value}`);
+  };
+
+  const handleViewChange = (view: "grid" | "list") => {
+    setViewPreferences(prev => ({
+      ...prev,
+      defaultView: view
+    }));
+  };
+
+  const handleCompactModeChange = (checked: boolean) => {
+    setViewPreferences(prev => ({
+      ...prev,
+      compactMode: checked
+    }));
+  };
+
   const formatTime = (timeMs: number) => {
     const hours = Math.floor(timeMs / (1000 * 60 * 60));
     const minutes = Math.floor((timeMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -156,7 +217,6 @@ const UserPage = () => {
     return `${minutes}m`;
   };
 
-  // Generate avatar fallback text
   const getInitials = (name: string) => {
     return name.split(' ')
       .map(part => part.charAt(0))
@@ -169,7 +229,6 @@ const UserPage = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Profile Overview */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -294,7 +353,6 @@ const UserPage = () => {
             </CardContent>
           </Card>
 
-          {/* Activity History */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -315,7 +373,6 @@ const UserPage = () => {
                 </div>
               ) : (
                 <>
-                  {/* Summary Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
                       <div className="flex items-center gap-2 text-sm font-medium mb-1 text-muted-foreground">
@@ -360,7 +417,6 @@ const UserPage = () => {
                     </div>
                   </div>
 
-                  {/* Charts Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     {analyticsData?.productivityTrends?.length > 0 && (
                       <ProductivityTrends data={analyticsData.productivityTrends} />
@@ -386,7 +442,125 @@ const UserPage = () => {
             </CardContent>
           </Card>
 
-          {/* Subscription Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-6 w-6" />
+                User Preferences
+              </CardTitle>
+              <CardDescription>
+                Customize your application experience
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Theme Customization</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="theme">Theme Mode</Label>
+                    <RadioGroup
+                      value={theme}
+                      onValueChange={handleThemeChange}
+                      className="flex flex-col space-y-1"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="light" id="theme-light" />
+                        <Label htmlFor="theme-light" className="cursor-pointer">Light</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="dark" id="theme-dark" />
+                        <Label htmlFor="theme-dark" className="cursor-pointer">Dark</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="system" id="theme-system" />
+                        <Label htmlFor="theme-system" className="cursor-pointer">System Default</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="colorScheme">Color Scheme</Label>
+                    <RadioGroup
+                      value={colorScheme}
+                      onValueChange={handleColorSchemeChange}
+                      className="flex flex-col space-y-1"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="default" id="scheme-default" />
+                        <Label htmlFor="scheme-default" className="cursor-pointer">Default</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="purple" id="scheme-purple" />
+                        <Label htmlFor="scheme-purple" className="cursor-pointer">Purple</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="blue" id="scheme-blue" />
+                        <Label htmlFor="scheme-blue" className="cursor-pointer">Blue</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="green" id="scheme-green" />
+                        <Label htmlFor="scheme-green" className="cursor-pointer">Green</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-border space-y-4">
+                <h3 className="text-lg font-medium">Display Preferences</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label>Default View</Label>
+                    <div className="flex items-center">
+                      <ViewToggle 
+                        view={viewPreferences.defaultView} 
+                        onViewChange={handleViewChange}
+                      />
+                      <span className="ml-3 text-sm text-muted-foreground">
+                        {viewPreferences.defaultView === "grid" ? "Grid View" : "List View"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="compact-mode" 
+                        checked={viewPreferences.compactMode}
+                        onCheckedChange={handleCompactModeChange}
+                      />
+                      <Label htmlFor="compact-mode" className="cursor-pointer">
+                        Enable Compact Mode
+                      </Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground pl-6">
+                      Reduces padding and spacing throughout the interface
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-border space-y-4">
+                <h3 className="text-lg font-medium">Language Preferences</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label>Application Language</Label>
+                    <LanguageSelector />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Selected: {currentLanguage.name} ({currentLanguage.nativeName})
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end">
+                <Button onClick={saveViewPreferences}>
+                  Save Preferences
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -441,7 +615,6 @@ const UserPage = () => {
             </CardContent>
           </Card>
 
-          {/* Account Security */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -469,7 +642,6 @@ const UserPage = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
