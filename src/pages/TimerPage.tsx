@@ -10,7 +10,8 @@ import { timerService } from "@/services/timerService";
 import { TimerSession, TimerStats } from "@/types/timer";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock, BarChart4, History } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const TimerPage = () => {
   const [duration, setDuration] = useState(25);
@@ -19,7 +20,9 @@ const TimerPage = () => {
   const [mode, setMode] = useState<"focus" | "break">("focus");
   const [taskContext, setTaskContext] = useState<string>("focus and productivity");
   const [currentSession, setCurrentSession] = useState<TimerSession | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Update timeLeft when duration changes
   useEffect(() => {
@@ -142,9 +145,11 @@ const TimerPage = () => {
   if (statsLoading) {
     return (
       <Layout>
-        <div className="container flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading timer data...</span>
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading your focus data...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -153,17 +158,17 @@ const TimerPage = () => {
   if (statsError) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-6 space-y-8 max-w-2xl">
-          <div className="text-center space-y-2">
+        <div className="container mx-auto px-4 py-6 space-y-6 max-w-md">
+          <div className="text-center space-y-3">
             <h1 className="text-3xl font-bold tracking-tight">Focus Timer</h1>
             <p className="text-destructive">
-              There was an error loading your timer data. Please try again later.
+              There was an error loading your timer data.
             </p>
             <button 
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-primary text-white rounded-md mt-4"
+              className="px-6 py-3 bg-primary text-white rounded-full shadow-md hover:shadow-lg transition-all mt-4"
             >
-              Reload
+              Try Again
             </button>
           </div>
         </div>
@@ -173,40 +178,23 @@ const TimerPage = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 space-y-8 max-w-2xl">
+      <div className="container mx-auto px-4 py-6 space-y-8 max-w-md">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Focus Timer</h1>
-          <p className="text-muted-foreground">
-            Enhance your productivity with AI-powered timer suggestions
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            Focus Timer
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Enhance your productivity with smart focus sessions
           </p>
         </div>
 
-        {stats && (
-          <Card className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Total Focus Time</p>
-              <p className="text-2xl font-bold">{Math.round(stats.totalFocusTime / 60)}h</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Sessions</p>
-              <p className="text-2xl font-bold">{stats.totalSessions}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Avg. Productivity</p>
-              <p className="text-2xl font-bold">{Math.round(stats.averageProductivity)}%</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Completion Rate</p>
-              <p className="text-2xl font-bold">{Math.round(stats.completionRate)}%</p>
-            </div>
-          </Card>
-        )}
-
-        <TimerDisplay 
-          timeLeft={timeLeft}
-          mode={mode}
-          maxTime={duration * 60}
-        />
+        <div className="relative">
+          <TimerDisplay 
+            timeLeft={timeLeft}
+            mode={mode}
+            maxTime={duration * 60}
+          />
+        </div>
 
         <TimerControls
           isRunning={isRunning}
@@ -218,24 +206,80 @@ const TimerPage = () => {
           }}
         />
 
-        <TimerSuggestions
-          onSelectDuration={(mins) => {
-            setDuration(mins);
-            setTimeLeft(mins * 60);
-          }}
-          taskContext={taskContext}
-          mode={mode}
-        />
+        <div className="py-4">
+          <TimerSuggestions
+            onSelectDuration={(mins) => {
+              setDuration(mins);
+              setTimeLeft(mins * 60);
+            }}
+            taskContext={taskContext}
+            mode={mode}
+          />
+        </div>
 
-        <TimerSettings
-          duration={duration}
-          mode={mode}
-          onDurationChange={(newDuration) => {
-            setDuration(newDuration);
-            setTimeLeft(newDuration * 60);
-          }}
-          onModeChange={setMode}
-        />
+        <div className="grid grid-cols-1 gap-4">
+          <Card 
+            className={`p-4 transition-all duration-300 transform ${
+              showSettings ? 'scale-100 opacity-100' : 'scale-95 opacity-90'
+            }`}
+          >
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className="flex items-center justify-between w-full text-left mb-2"
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <h3 className="font-medium">Timer Settings</h3>
+              </div>
+              <div className={`transform transition-transform duration-300 ${showSettings ? 'rotate-180' : ''}`}>
+                ▼
+              </div>
+            </button>
+            
+            {showSettings && (
+              <div className="pt-2 animate-fade-in">
+                <TimerSettings
+                  duration={duration}
+                  mode={mode}
+                  onDurationChange={(newDuration) => {
+                    setDuration(newDuration);
+                    setTimeLeft(newDuration * 60);
+                  }}
+                  onModeChange={setMode}
+                />
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {stats && (
+          <Card className="p-4 bg-gradient-to-br from-background to-accent/30 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart4 className="h-5 w-5 text-primary" />
+              <h3 className="font-medium">Your Focus Stats</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-y-4">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Focus Time</p>
+                <p className="text-xl font-bold">{Math.round(stats.totalFocusTime / 60)}h</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Sessions</p>
+                <p className="text-xl font-bold">{stats.totalSessions}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Productivity</p>
+                <p className="text-xl font-bold">{Math.round(stats.averageProductivity)}%</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Completion</p>
+                <p className="text-xl font-bold">{Math.round(stats.completionRate)}%</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <div className="h-12"></div> {/* Bottom spacing for mobile */}
       </div>
     </Layout>
   );

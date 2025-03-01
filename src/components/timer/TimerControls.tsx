@@ -1,5 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TimerControlsProps {
   isRunning: boolean;
@@ -15,21 +17,30 @@ export const TimerControls = ({
   onReset,
 }: TimerControlsProps) => {
   return (
-    <div className="flex justify-center gap-4">
+    <div className="flex justify-center items-center gap-6">
       <Button
         size="lg"
-        className="w-16 h-16 rounded-full"
+        className={cn(
+          "w-20 h-20 rounded-full shadow-lg transition-all duration-300",
+          "bg-gradient-to-br hover:bg-gradient-to-r",
+          isRunning 
+            ? "from-red-500 to-red-600 hover:from-red-600 hover:to-red-500"
+            : "from-primary to-purple-600 hover:from-purple-600 hover:to-primary"
+        )}
         onClick={isRunning ? onPause : onStart}
       >
-        {isRunning ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+        {isRunning ? 
+          <Pause className="w-8 h-8" /> : 
+          <Play className="w-8 h-8 ml-1" />
+        }
       </Button>
       <Button
-        size="lg"
+        size="icon"
         variant="outline"
-        className="w-16 h-16 rounded-full"
+        className="w-12 h-12 rounded-full border-2 hover:bg-accent/50"
         onClick={onReset}
       >
-        <RotateCcw className="w-6 h-6" />
+        <RotateCcw className="w-5 h-5" />
       </Button>
     </div>
   );
