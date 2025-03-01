@@ -32,8 +32,10 @@ const TimerPage = () => {
     queryKey: ['timerStats'],
     queryFn: () => timerService.getStats(),
     retry: 2,
-    onSettled: (data, error) => {
-      if (error) {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    meta: {
+      onError: (error: Error) => {
         console.error("Failed to fetch timer stats:", error);
         toast({
           title: "Error loading stats",
