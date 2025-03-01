@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ViewToggle from "@/components/ViewToggle";
 
 interface Summary {
   id: string;
@@ -69,6 +70,7 @@ const SummariesPage = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   const handleShare = async (summary: Summary, type: 'copy' | 'email' | 'whatsapp') => {
     const summaryText = `${summary.title}\n\n${summary.content}\n\nOriginal URL: ${summary.url}`;
@@ -565,6 +567,8 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                 </>
               ) : (
                 <>
+                  <ViewToggle view={view} onViewChange={setView} />
+                  
                   <Button
                     variant="ghost"
                     size="icon"
@@ -642,219 +646,219 @@ ${summary.isStarred ? '\n⭐ Starred' : ''}
                   Recent
                 </TabsTrigger>
               </TabsList>
+              
+              <AnimatePresence>
+                {isFilterVisible && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="px-4 py-3 border-b overflow-hidden bg-muted/10 mt-3"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium">Filters</h3>
+                        <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-7 text-xs">
+                          Clear all
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-between text-xs h-8"
+                            >
+                              {activeTag || "Select tag"}
+                              <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0">
+                            <ScrollArea className="h-[200px]">
+                              <div className="p-2">
+                                <div 
+                                  className="px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm"
+                                  onClick={() => setActiveTag(null)}
+                                >
+                                  All tags
+                                </div>
+                                {allTags.map(tag => (
+                                  <div 
+                                    key={tag}
+                                    className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${activeTag === tag ? 'bg-muted' : ''}`}
+                                    onClick={() => setActiveTag(tag)}
+                                  >
+                                    {tag}
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-between text-xs h-8"
+                            >
+                              {activeCategory || "Select category"}
+                              <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0">
+                            <ScrollArea className="h-[200px]">
+                              <div className="p-2">
+                                <div 
+                                  className="px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm"
+                                  onClick={() => setActiveCategory(null)}
+                                >
+                                  All categories
+                                </div>
+                                {allCategories.map(category => (
+                                  <div 
+                                    key={category}
+                                    className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${activeCategory === category ? 'bg-muted' : ''}`}
+                                    onClick={() => setActiveCategory(category)}
+                                  >
+                                    {category}
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-between text-xs h-8"
+                            >
+                              <div className="flex items-center">
+                                <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                                {dateRange?.from ? (
+                                  dateRange.to ? (
+                                    <>
+                                      {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                                    </>
+                                  ) : (
+                                    format(dateRange.from, "LLL dd")
+                                  )
+                                ) : (
+                                  "Date range"
+                                )}
+                              </div>
+                              <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <CalendarComponent
+                              initialFocus
+                              mode="range"
+                              defaultMonth={dateRange?.from}
+                              selected={dateRange}
+                              onSelect={setDateRange}
+                              numberOfMonths={1}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-between text-xs h-8"
+                            >
+                              Sort: {sortBy} {sortOrder === 'asc' ? '↑' : '↓'}
+                              <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0">
+                            <div className="p-2">
+                              <div 
+                                className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${sortBy === 'date' ? 'bg-muted' : ''}`}
+                                onClick={() => setSortBy('date')}
+                              >
+                                Date
+                              </div>
+                              <div 
+                                className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${sortBy === 'title' ? 'bg-muted' : ''}`}
+                                onClick={() => setSortBy('title')}
+                              >
+                                Title
+                              </div>
+                              <div 
+                                className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${sortBy === 'readingTime' ? 'bg-muted' : ''}`}
+                                onClick={() => setSortBy('readingTime')}
+                              >
+                                Reading time
+                              </div>
+                              <Separator className="my-1" />
+                              <div 
+                                className="px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm"
+                                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                              >
+                                {sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓'}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              <div className="flex-1 overflow-hidden mt-3">
+                <ScrollArea className="h-full">
+                  <TabsContent value="all" className="m-0 h-full">
+                    <div className={`p-4 ${view === "grid" ? "grid gap-3 grid-cols-1" : "flex flex-col gap-3"}`}>
+                      {filteredSummaries.length > 0 ? (
+                        filteredSummaries.map(summary => (
+                          <SummaryCard key={summary.id} summary={summary} />
+                        ))
+                      ) : (
+                        <EmptyState />
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="starred" className="m-0 h-full">
+                    <div className={`p-4 ${view === "grid" ? "grid gap-3 grid-cols-1" : "flex flex-col gap-3"}`}>
+                      {filteredSummaries.length > 0 ? (
+                        filteredSummaries.map(summary => (
+                          <SummaryCard key={summary.id} summary={summary} />
+                        ))
+                      ) : (
+                        <EmptyState />
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="recent" className="m-0 h-full">
+                    <div className={`p-4 ${view === "grid" ? "grid gap-3 grid-cols-1" : "flex flex-col gap-3"}`}>
+                      {filteredSummaries.length > 0 ? (
+                        filteredSummaries.map(summary => (
+                          <SummaryCard key={summary.id} summary={summary} />
+                        ))
+                      ) : (
+                        <EmptyState />
+                      )}
+                    </div>
+                  </TabsContent>
+                </ScrollArea>
+              </div>
             </Tabs>
           </div>
         </header>
-        
-        <AnimatePresence>
-          {isFilterVisible && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="px-4 py-3 border-b overflow-hidden bg-muted/10"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Filters</h3>
-                  <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-7 text-xs">
-                    Clear all
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-between text-xs h-8"
-                      >
-                        {activeTag || "Select tag"}
-                        <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <ScrollArea className="h-[200px]">
-                        <div className="p-2">
-                          <div 
-                            className="px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm"
-                            onClick={() => setActiveTag(null)}
-                          >
-                            All tags
-                          </div>
-                          {allTags.map(tag => (
-                            <div 
-                              key={tag}
-                              className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${activeTag === tag ? 'bg-muted' : ''}`}
-                              onClick={() => setActiveTag(tag)}
-                            >
-                              {tag}
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-between text-xs h-8"
-                      >
-                        {activeCategory || "Select category"}
-                        <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <ScrollArea className="h-[200px]">
-                        <div className="p-2">
-                          <div 
-                            className="px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm"
-                            onClick={() => setActiveCategory(null)}
-                          >
-                            All categories
-                          </div>
-                          {allCategories.map(category => (
-                            <div 
-                              key={category}
-                              className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${activeCategory === category ? 'bg-muted' : ''}`}
-                              onClick={() => setActiveCategory(category)}
-                            >
-                              {category}
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-between text-xs h-8"
-                      >
-                        <div className="flex items-center">
-                          <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                          {dateRange?.from ? (
-                            dateRange.to ? (
-                              <>
-                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
-                              </>
-                            ) : (
-                              format(dateRange.from, "LLL dd")
-                            )
-                          ) : (
-                            "Date range"
-                          )}
-                        </div>
-                        <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <CalendarComponent
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange?.from}
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        numberOfMonths={1}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-between text-xs h-8"
-                      >
-                        Sort: {sortBy} {sortOrder === 'asc' ? '↑' : '↓'}
-                        <ChevronDown className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <div className="p-2">
-                        <div 
-                          className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${sortBy === 'date' ? 'bg-muted' : ''}`}
-                          onClick={() => setSortBy('date')}
-                        >
-                          Date
-                        </div>
-                        <div 
-                          className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${sortBy === 'title' ? 'bg-muted' : ''}`}
-                          onClick={() => setSortBy('title')}
-                        >
-                          Title
-                        </div>
-                        <div 
-                          className={`px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm ${sortBy === 'readingTime' ? 'bg-muted' : ''}`}
-                          onClick={() => setSortBy('readingTime')}
-                        >
-                          Reading time
-                        </div>
-                        <Separator className="my-1" />
-                        <div 
-                          className="px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer text-sm"
-                          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                        >
-                          {sortOrder === 'asc' ? 'Ascending ↑' : 'Descending ↓'}
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <TabsContent value="all" className="m-0 h-full">
-              <div className="p-4 grid gap-3">
-                {filteredSummaries.length > 0 ? (
-                  filteredSummaries.map(summary => (
-                    <SummaryCard key={summary.id} summary={summary} />
-                  ))
-                ) : (
-                  <EmptyState />
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="starred" className="m-0 h-full">
-              <div className="p-4 grid gap-3">
-                {filteredSummaries.length > 0 ? (
-                  filteredSummaries.map(summary => (
-                    <SummaryCard key={summary.id} summary={summary} />
-                  ))
-                ) : (
-                  <EmptyState />
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="recent" className="m-0 h-full">
-              <div className="p-4 grid gap-3">
-                {filteredSummaries.length > 0 ? (
-                  filteredSummaries.map(summary => (
-                    <SummaryCard key={summary.id} summary={summary} />
-                  ))
-                ) : (
-                  <EmptyState />
-                )}
-              </div>
-            </TabsContent>
-          </ScrollArea>
-        </div>
       </div>
     </Layout>
   );
