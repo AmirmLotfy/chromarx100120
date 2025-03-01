@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, BookmarkIcon, Settings } from "lucide-react";
+import { Home, BookmarkIcon, Settings, Bell, FolderPlus, Box, Plug, HelpCircle } from "lucide-react";
 
 const Navigation = () => {
   const location = useLocation();
@@ -25,6 +25,18 @@ const Navigation = () => {
           icon={<BookmarkIcon className="h-[22px] w-[22px]" />}
           label="Bookmarks"
           isActive={isActive("/bookmarks")}
+        />
+        <NavItem 
+          to="/collections" 
+          icon={<FolderPlus className="h-[22px] w-[22px]" />}
+          label="Collections"
+          isActive={isActive("/collections")}
+        />
+        <NavItem 
+          to="/notifications" 
+          icon={<Bell className="h-[22px] w-[22px]" />}
+          label="Notifications"
+          isActive={isActive("/notifications")}
         />
         <NavItem 
           to="/settings" 

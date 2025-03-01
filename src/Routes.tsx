@@ -16,6 +16,11 @@ import SuggestedServicesPage from "@/pages/SuggestedServicesPage";
 import UserPage from "@/pages/UserPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "@/pages/NotFound";
+import HelpPage from "@/pages/HelpPage";
+import NotificationsPage from "@/pages/NotificationsPage";
+import CollectionsPage from "@/pages/CollectionsPage";
+import ExportImportPage from "@/pages/ExportImportPage";
+import IntegrationsPage from "@/pages/IntegrationsPage";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -44,6 +49,7 @@ const Routes = () => {
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/plans" element={<PlansPage />} />
       <Route path="/suggested-services" element={<SuggestedServicesPage />} />
+      <Route path="/help" element={<HelpPage />} />
       
       {/* Protected routes */}
       <Route 
@@ -123,6 +129,38 @@ const Routes = () => {
         element={
           <ProtectedRoute>
             <UserPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <NotificationsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/collections" 
+        element={
+          <ProtectedRoute>
+            <CollectionsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/export-import" 
+        element={
+          <ProtectedRoute>
+            <ExportImportPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/integrations" 
+        element={
+          <ProtectedRoute>
+            <IntegrationsPage />
           </ProtectedRoute>
         } 
       />
