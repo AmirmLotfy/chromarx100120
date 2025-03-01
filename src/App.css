@@ -1,4 +1,3 @@
-
 #root {
   width: 100%;
   margin: 0 auto;
@@ -192,4 +191,111 @@ body,
 
 .animate-slide-in {
   animation: slideIn 0.4s ease-out;
+}
+
+/* Modern mobile-optimized design effects */
+.settings-card {
+  @apply rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm transition-all;
+}
+
+.settings-card:active {
+  @apply bg-card/90;
+}
+
+.settings-icon-container {
+  @apply flex h-9 w-9 items-center justify-center rounded-full bg-primary/10;
+}
+
+.settings-icon {
+  @apply h-5 w-5 text-primary;
+}
+
+/* Touch-friendly mobile optimizations */
+@media (max-width: 640px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .mobile-spacing {
+    padding: 1rem;
+  }
+  
+  .mobile-card-spacing {
+    padding: 0.875rem;
+  }
+  
+  .mobile-switch-label {
+    font-size: 0.875rem;
+  }
+  
+  .mobile-tabs {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Enhanced glassmorphism effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.dark .glass-panel {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Additional animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-in {
+  animation: slideIn 0.4s ease-out;
+}
+
+/* Improved card styling */
+.card-gradient {
+  background: linear-gradient(145deg, var(--background), rgba(var(--primary-color), 0.05));
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.dark .glass {
+  background: rgba(20, 20, 20, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Enhanced form controls for mobile */
+.form-input-mobile {
+  @apply h-12 rounded-xl border-transparent bg-muted/50 px-4 py-3 text-base shadow-sm focus:border-primary focus:ring-primary;
+}
+
+.form-button-mobile {
+  @apply h-12 rounded-xl px-4 py-3 text-base font-medium shadow-sm;
+}
+
+/* Card designs optimized for smaller screens */
+@media (max-width: 640px) {
+  .responsive-card {
+    @apply rounded-xl border-transparent bg-card/90 p-4 shadow-sm;
+  }
+  
+  .responsive-card-title {
+    @apply text-base font-medium;
+  }
+  
+  .responsive-card-description {
+    @apply text-xs text-muted-foreground;
+  }
 }
