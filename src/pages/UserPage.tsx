@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
-import { UserRound, CreditCard, Settings, ExternalLink, Shield, PenLine, MapPin, AtSign } from "lucide-react";
+import { UserRound, CreditCard, Settings, ExternalLink, Shield, PenLine, MapPin, AtSign, Clock, BookmarkIcon, History, Activity } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { storage } from "@/services/storageService";
+import { getAnalyticsData } from "@/utils/analyticsUtils";
+import { AnalyticsData } from "@/types/analytics";
+import ProductivityTrends from "@/components/analytics/ProductivityTrends";
+import DomainStats from "@/components/analytics/DomainStats";
+
+interface ProfileData {
+  displayName: string;
+  bio: string;
+  location: string;
+  email: string;
+  avatarUrl: string;
+}
 
 const UserPage = () => {
   const navigate = useNavigate();
@@ -21,13 +33,15 @@ const UserPage = () => {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('Guest User');
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<ProfileData>({
     displayName: '',
     bio: '',
     location: '',
     email: '',
     avatarUrl: ''
   });
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(false);
 
   // Load user profile data from storage
   useEffect(() => {
@@ -40,7 +54,7 @@ const UserPage = () => {
           setSubscriptionEnd(null);
           
           // Try to load profile data from storage
-          const storedProfile = await storage.get('userProfile');
+          const storedProfile = await storage.get<ProfileData>('userProfile');
           if (storedProfile) {
             setProfileData({
               ...profileData,
@@ -65,6 +79,23 @@ const UserPage = () => {
 
     loadProfileData();
   }, [user]);
+
+  // Load analytics data
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        setLoadingAnalytics(true);
+        const data = await getAnalyticsData();
+        setAnalyticsData(data);
+      } catch (error) {
+        console.error('Error loading analytics data:', error);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    loadAnalytics();
+  }, []);
 
   const plan = subscriptionPlans.find(p => p.id === currentPlan);
 
@@ -112,6 +143,17 @@ const UserPage = () => {
       console.error('Error saving profile:', error);
       toast.error('Failed to save profile');
     }
+  };
+
+  // Format time duration from milliseconds
+  const formatTime = (timeMs: number) => {
+    const hours = Math.floor(timeMs / (1000 * 60 * 60));
+    const minutes = Math.floor((timeMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
   };
 
   // Generate avatar fallback text
@@ -249,6 +291,98 @@ const UserPage = () => {
                   <p className="text-sm text-muted-foreground">{profileData.bio}</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Activity History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-6 w-6" />
+                Activity History
+              </CardTitle>
+              <CardDescription>
+                Your recent activity and browsing statistics
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {loadingAnalytics ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-pulse flex flex-col items-center gap-4">
+                    <div className="h-8 w-40 bg-muted rounded"></div>
+                    <div className="h-32 w-full bg-muted rounded"></div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
+                      <div className="flex items-center gap-2 text-sm font-medium mb-1 text-muted-foreground">
+                        <BookmarkIcon className="h-4 w-4" />
+                        Bookmarks
+                      </div>
+                      <div className="text-2xl font-semibold">
+                        {analyticsData?.domainStats.length || 0}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
+                      <div className="flex items-center gap-2 text-sm font-medium mb-1 text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        Time Spent
+                      </div>
+                      <div className="text-2xl font-semibold">
+                        {analyticsData?.timeDistribution.reduce((sum, item) => sum + item.time, 0) 
+                          ? formatTime(analyticsData.timeDistribution.reduce((sum, item) => sum + item.time, 0)) 
+                          : '0m'}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
+                      <div className="flex items-center gap-2 text-sm font-medium mb-1 text-muted-foreground">
+                        <Activity className="h-4 w-4" />
+                        Productivity
+                      </div>
+                      <div className="text-2xl font-semibold">
+                        {analyticsData?.productivityScore || 0}%
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
+                      <div className="flex items-center gap-2 text-sm font-medium mb-1 text-muted-foreground">
+                        <History className="h-4 w-4" />
+                        Domains
+                      </div>
+                      <div className="text-2xl font-semibold">
+                        {analyticsData?.domainStats.reduce((sum, domain) => sum + domain.visits, 0) || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Charts Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    {analyticsData?.productivityTrends?.length > 0 && (
+                      <ProductivityTrends data={analyticsData.productivityTrends} />
+                    )}
+                    
+                    {analyticsData?.domainStats?.length > 0 && (
+                      <DomainStats data={analyticsData.domainStats} />
+                    )}
+                  </div>
+                </>
+              )}
+              
+              <div className="flex justify-end mt-4">
+                <Button 
+                  onClick={() => navigate('/analytics')}
+                  variant="outline" 
+                  className="text-sm"
+                >
+                  View Full Analytics
+                  <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
