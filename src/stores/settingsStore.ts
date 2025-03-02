@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { savePrivacySettings } from '@/services/preferencesService';
@@ -15,10 +16,6 @@ interface SettingsState {
     bookmarks: boolean;
     updates: boolean;
     reminders: boolean;
-    email: boolean;
-    push: boolean;
-    desktop: boolean;
-    frequency: 'immediate' | 'daily' | 'weekly';
   };
   experimentalFeatures: boolean;
   affiliateBannersEnabled: boolean;
@@ -30,7 +27,7 @@ interface SettingsState {
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
   setDataCollection: (enabled: boolean, userId?: string) => Promise<void>;
-  setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean | 'immediate' | 'daily' | 'weekly', userId?: string) => Promise<void>;
+  setNotifications: (type: keyof SettingsState['notifications'], enabled: boolean, userId?: string) => Promise<void>;
   setExperimentalFeatures: (enabled: boolean) => void;
   setAffiliateBannersEnabled: (enabled: boolean) => void;
   setAutoDetectBookmarks: (enabled: boolean) => void;
@@ -40,6 +37,7 @@ interface SettingsState {
   fetchSettingsFromServer: (userId: string) => Promise<void>;
 }
 
+// Interface for the settings JSON structure stored in Supabase
 interface UserSettingsData {
   colorScheme?: 'default' | 'purple' | 'blue' | 'green';
   highContrast?: boolean;
@@ -47,10 +45,6 @@ interface UserSettingsData {
     bookmarks: boolean;
     updates: boolean;
     reminders: boolean;
-    email: boolean;
-    push: boolean;
-    desktop: boolean;
-    frequency: 'immediate' | 'daily' | 'weekly';
   };
   experimentalFeatures?: boolean;
   affiliateBannersEnabled?: boolean;
@@ -67,10 +61,6 @@ const initialState = {
     bookmarks: true,
     updates: true,
     reminders: true,
-    email: false,
-    push: true,
-    desktop: true,
-    frequency: 'immediate' as const,
   },
   experimentalFeatures: false,
   affiliateBannersEnabled: true,
@@ -80,8 +70,11 @@ const initialState = {
   lastSynced: null,
 };
 
+// Helper to safely get current user id
 const getCurrentUserId = (): string | undefined => {
+  // Get the current auth context
   const authContext = useAuth();
+  // Check if user exists and has an id
   return authContext?.user?.id;
 };
 
@@ -89,7 +82,6 @@ export const useSettings = create<SettingsState>()(
   persist(
     (set, get) => ({
       ...initialState,
-      
       setTheme: (theme) => {
         set({ theme });
         const root = document.documentElement;
@@ -136,22 +128,12 @@ export const useSettings = create<SettingsState>()(
         }
       },
       setNotifications: async (type, enabled, userId) => {
-        if (type === 'frequency' && typeof enabled === 'string') {
-          const frequencyValue = enabled as 'immediate' | 'daily' | 'weekly';
-          set((state) => ({
-            notifications: {
-              ...state.notifications,
-              frequency: frequencyValue,
-            },
-          }));
-        } else if (typeof enabled === 'boolean') {
-          set((state) => ({
-            notifications: {
-              ...state.notifications,
-              [type]: enabled,
-            },
-          }));
-        }
+        set((state) => ({
+          notifications: {
+            ...state.notifications,
+            [type]: enabled,
+          },
+        }));
         
         if (userId) {
           const state = get();
@@ -198,11 +180,13 @@ export const useSettings = create<SettingsState>()(
           if (cloudBackupEnabled) {
             await get().syncSettingsWithServer(userId);
             
+            // Trigger initial backup
             import('@/services/supabaseBackupService').then(({ supabaseBackup }) => {
               supabaseBackup.syncAll().catch(console.error);
             });
           }
         } else if (cloudBackupEnabled) {
+          // User not logged in but tried to enable cloud backup
           toast.error('You must be logged in to enable cloud backup');
           set({ cloudBackupEnabled: false });
         }
@@ -250,6 +234,7 @@ export const useSettings = create<SettingsState>()(
           showError: true
         });
 
+        // Make sure to reset syncInProgress even if there was an error
         if (get().syncInProgress) {
           set({ syncInProgress: false });
         }
@@ -271,6 +256,7 @@ export const useSettings = create<SettingsState>()(
           }
           
           if (data) {
+            // Type-cast the settings data to our interface
             const serverSettings = data.settings as UserSettingsData || {};
             
             set({
@@ -286,12 +272,14 @@ export const useSettings = create<SettingsState>()(
               lastSynced: new Date().toISOString(),
             });
             
+            // Apply theme immediately
             const root = document.documentElement;
             root.classList.remove('light', 'dark');
             if (data.theme && data.theme !== 'system') {
               root.classList.add(data.theme);
             }
             
+            // Apply color scheme
             if (serverSettings.colorScheme) {
               root.classList.remove('theme-default', 'theme-purple', 'theme-blue', 'theme-green');
               if (serverSettings.colorScheme !== 'default') {
@@ -299,6 +287,7 @@ export const useSettings = create<SettingsState>()(
               }
             }
           } else {
+            // Record not found, create initial settings
             await get().syncSettingsWithServer(userId);
           }
           
@@ -308,6 +297,7 @@ export const useSettings = create<SettingsState>()(
           showError: true
         });
 
+        // Make sure to reset syncInProgress even if there was an error
         if (get().syncInProgress) {
           set({ syncInProgress: false });
         }
@@ -319,14 +309,18 @@ export const useSettings = create<SettingsState>()(
   )
 );
 
+// Initialize settings sync with server when user is authenticated
 if (typeof window !== 'undefined') {
+  // Setup auth state listener to sync settings when user logs in
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
       const userId = session.user.id;
+      // First fetch settings from server
       useSettings.getState().fetchSettingsFromServer(userId);
     }
   });
   
+  // Check if already logged in on page load
   const checkCurrentUser = async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
