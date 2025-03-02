@@ -60,17 +60,22 @@ const SubscriptionPage = () => {
   }, []);
 
   const handlePlanSelect = (planId: string) => {
-    if (planId === currentPlan) {
-      toast.info("You are already subscribed to this plan");
-      return;
+    try {
+      if (planId === currentPlan) {
+        toast.info("You are already subscribed to this plan");
+        return;
+      }
+      
+      if (planId === "free") {
+        handleSubscribe(planId);
+        return;
+      }
+      
+      setSelectedPlan(planId);
+    } catch (error) {
+      console.error("Error in handlePlanSelect:", error);
+      toast.error("Something went wrong. Please try again.");
     }
-    
-    if (planId === "free") {
-      handleSubscribe(planId);
-      return;
-    }
-    
-    setSelectedPlan(planId);
   };
 
   const handleSubscribe = async (planId: string) => {
@@ -102,11 +107,13 @@ const SubscriptionPage = () => {
       const plan = subscriptionPlans.find(p => p.id === selectedPlan);
       if (!plan) {
         toast.error("Selected plan not found");
+        setPaymentProcessing(false);
         return "";
       }
       
       // Validate payment data
       if (!validatePaymentData(plan.id, plan.pricing.monthly)) {
+        setPaymentProcessing(false);
         return "";
       }
       
@@ -128,7 +135,9 @@ const SubscriptionPage = () => {
         }
       });
     } catch (error) {
+      console.error("Error in createOrder:", error);
       handlePaymentError(error);
+      setPaymentProcessing(false);
       return "";
     }
   };
@@ -149,6 +158,7 @@ const SubscriptionPage = () => {
         toast.error("Payment completed but with an unexpected status. Please contact support.");
       }
     } catch (error) {
+      console.error("Error in onApprove:", error);
       handlePaymentError(error);
     } finally {
       setPaymentProcessing(false);
@@ -156,11 +166,13 @@ const SubscriptionPage = () => {
   };
 
   const onError = (err: any) => {
+    console.error("PayPal error:", err);
     setPaymentProcessing(false);
     handlePaymentError(err);
   };
 
   const onCancel = () => {
+    console.log("Payment cancelled by user");
     setPaymentProcessing(false);
     toast.info("Payment cancelled. Your subscription has not been changed.");
   };
@@ -267,11 +279,10 @@ const SubscriptionPage = () => {
                         </h4>
                         
                         <PayPalScriptProvider options={{ 
-                          clientId: clientId,
+                          clientId: clientId || "",
                           components: "buttons",
                           intent: "capture",
                           currency: "USD",
-                          'data-client-token': 'abc123xyz', // You could fetch a client token for advanced cases
                         }}>
                           <PayPalButtons
                             style={{
@@ -300,6 +311,7 @@ const SubscriptionPage = () => {
                         )}
                         disabled={isLoading || currentPlan === plan.id || paymentProcessing}
                         onClick={() => handlePlanSelect(plan.id)}
+                        type="button"
                       >
                         {currentPlan === plan.id ? (
                           "Current Plan"

@@ -27,6 +27,7 @@ export const getPayPalClientId = async (): Promise<string> => {
     const { data, error } = await supabase.functions.invoke('get-paypal-config');
     
     if (error) {
+      console.error('Error in getPayPalClientId:', error);
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
@@ -49,6 +50,7 @@ export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
     const { data, error } = await supabase.functions.invoke('get-paypal-config');
     
     if (error) {
+      console.error('Error in getPayPalMode:', error);
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
