@@ -1,9 +1,13 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
-import { Check, X, CreditCard, ArrowRight, Info, Settings, RefreshCw } from "lucide-react";
+import { 
+  Check, X, CreditCard, ArrowRight, Info, Settings, 
+  Shield, Zap, Award, RefreshCw, ChevronDown, ChevronUp
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +25,16 @@ import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const filteredPlans = subscriptionPlans.filter(
   plan => plan.id === "free" || plan.id === "basic"
@@ -36,6 +50,8 @@ const SubscriptionPage = () => {
   const [isCheckingConfig, setIsCheckingConfig] = useState(true);
   const [autoRenew, setAutoRenew] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [expandedUsage, setExpandedUsage] = useState(false);
   const { currentPlan, setSubscriptionPlan } = useSubscription();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -156,13 +172,17 @@ const SubscriptionPage = () => {
     const plan = subscriptionPlans.find(p => p.id === selectedPlan);
     if (!plan) return "";
     
+    const amount = billingPeriod === 'yearly' 
+      ? plan.pricing.yearly 
+      : plan.pricing.monthly;
+    
     return actions.order.create({
       purchase_units: [{
         amount: {
-          value: plan.pricing.monthly.toFixed(2),
+          value: amount.toFixed(2),
           currency_code: "USD"
         },
-        description: `ChromarX ${plan.name} Plan Subscription`
+        description: `ChromarX ${plan.name} Plan Subscription (${billingPeriod})`
       }],
       application_context: {
         shipping_preference: "NO_SHIPPING",
@@ -210,45 +230,63 @@ const SubscriptionPage = () => {
     });
   };
 
+  const calculateSavings = (plan: typeof filteredPlans[0]) => {
+    if (billingPeriod === 'monthly' || !plan.pricing.yearly) return 0;
+    const monthlyCost = plan.pricing.monthly * 12;
+    const yearlyCost = plan.pricing.yearly;
+    const savings = monthlyCost - yearlyCost;
+    return Math.round((savings / monthlyCost) * 100);
+  };
+
   return (
     <Layout>
-      <div className="bg-gradient-to-b from-[#F2FCE2] to-white dark:from-[#1A1F2C] dark:to-[#22272E] min-h-screen pb-12">
-        <div className="container max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-3">
+      <div className="bg-gradient-to-b from-[#F2FCE2] to-white dark:from-[#1A1F2C] dark:to-[#22272E] min-h-screen">
+        <div className="container max-w-md mx-auto px-4 py-6 md:py-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold tracking-tight mb-2">
               Choose Your Plan
             </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
               Select the plan that fits your productivity needs
             </p>
           </div>
 
           {subscriptionStatus && subscriptionStatus.subscription.plan_id !== 'free' && (
-            <Card className="mb-8 bg-background/60 backdrop-blur">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold mb-2">Your Current Subscription</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Plan</div>
-                    <div className="font-medium">
-                      {subscriptionStatus.subscription.plan_id === 'basic' ? 'Pro' : 'Premium'} Plan
+            <Card className="mb-6 overflow-hidden shadow-sm border border-[#9b87f5]/20 bg-background/80 backdrop-blur">
+              <div className="bg-[#9b87f5]/10 p-3 border-b border-[#9b87f5]/20">
+                <h3 className="font-semibold flex items-center text-[#9b87f5] dark:text-[#7E69AB]">
+                  <Award className="h-4 w-4 mr-2" />
+                  Current Subscription
+                </h3>
+              </div>
+              <div className="p-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Plan</div>
+                      <div className="font-medium">
+                        {subscriptionStatus.subscription.plan_id === 'basic' ? 'Pro' : 'Premium'} Plan
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <div className="text-xs text-muted-foreground mb-1">Status</div>
+                      <div className="font-medium flex items-center">
+                        <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
+                        <span className="capitalize">{subscriptionStatus.subscription.status}</span>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Status</div>
-                    <div className="font-medium capitalize">
-                      {subscriptionStatus.subscription.status}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Current Period</div>
+                  
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Period</div>
                     <div className="font-medium">
                       {formatDate(subscriptionStatus.subscription.current_period_start)} to {formatDate(subscriptionStatus.subscription.current_period_end)}
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <div className="flex-1">
-                      <div className="text-sm text-muted-foreground mb-1">Auto-renewal</div>
+                  
+                  <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Auto-renewal</div>
                       <div className="font-medium">
                         {autoRenew ? 'Enabled' : 'Disabled'}
                       </div>
@@ -256,7 +294,7 @@ const SubscriptionPage = () => {
                     <Switch
                       checked={autoRenew}
                       onCheckedChange={handleAutoRenewToggle}
-                      className="ml-2"
+                      className="ml-2 data-[state=checked]:bg-[#9b87f5]"
                     />
                   </div>
                 </div>
@@ -265,18 +303,30 @@ const SubscriptionPage = () => {
           )}
 
           {subscriptionStatus && (
-            <Card className="mb-8 bg-background/60 backdrop-blur">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Your Usage</h3>
-                <div className="space-y-4">
+            <Card className="mb-6 overflow-hidden shadow-sm bg-background/80 backdrop-blur">
+              <div className="p-4 border-b flex items-center justify-between cursor-pointer" 
+                   onClick={() => setExpandedUsage(!expandedUsage)}>
+                <h3 className="font-semibold flex items-center">
+                  <Zap className="h-4 w-4 mr-2 text-amber-500" />
+                  Your Usage Limits
+                </h3>
+                {expandedUsage ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+              
+              {expandedUsage && (
+                <div className="p-4 space-y-4">
                   {Object.entries(subscriptionStatus.usageLimits).map(([key, usage]) => (
-                    <div key={key} className="space-y-1">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm capitalize">
+                    <div key={key} className="space-y-1.5">
+                      <div className="flex justify-between mb-1 items-center">
+                        <span className="text-sm font-medium capitalize">
                           {key === 'aiRequests' ? 'AI Requests' : key}
                         </span>
-                        <span className="text-sm text-muted-foreground">
-                          {usage.used} / {usage.limit < 0 ? 'Unlimited' : usage.limit}
+                        <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                          {usage.used} / {usage.limit < 0 ? '∞' : usage.limit}
                         </span>
                       </div>
                       <Progress 
@@ -284,201 +334,326 @@ const SubscriptionPage = () => {
                         className={cn(
                           "h-2",
                           usage.percentage >= 90 ? "bg-red-100 dark:bg-red-900" : 
-                          usage.percentage >= 70 ? "bg-yellow-100 dark:bg-yellow-900" : 
-                          "bg-green-100 dark:bg-green-900"
+                          usage.percentage >= 70 ? "bg-amber-100 dark:bg-amber-900" : 
+                          "bg-emerald-100 dark:bg-emerald-900"
                         )}
                       />
                     </div>
                   ))}
+                  
+                  {subscriptionStatus.needsUpgrade && (
+                    <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-sm">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="mb-2">You're approaching your usage limits. Upgrade to get more resources.</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePlanSelect('basic')}
+                            className="border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800/40 w-full"
+                          >
+                            <Zap className="h-3.5 w-3.5 mr-1.5" />
+                            Upgrade Now
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                {subscriptionStatus.needsUpgrade && (
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-amber-600 dark:text-amber-400 mb-2">
-                      You're approaching your usage limits. Consider upgrading to get more resources.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePlanSelect('basic')}
-                      className="border-amber-600 dark:border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950"
-                    >
-                      Upgrade Now
-                    </Button>
-                  </div>
-                )}
-              </div>
+              )}
             </Card>
           )}
 
           {!isCheckingConfig && !paypalConfigured && (
-            <Card className="mb-8 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700">
-              <div className="p-4 flex items-start gap-3">
-                <Info className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-yellow-800 dark:text-yellow-400">PayPal Not Configured</h3>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1 mb-3">
-                    You need to set up your PayPal credentials to enable payment processing. Paid plans will not be available until this is configured.
-                  </p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="bg-white dark:bg-yellow-900 border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-800"
-                    onClick={goToPayPalConfig}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configure PayPal
-                  </Button>
+            <Card className="mb-6 overflow-hidden shadow-sm border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/20 backdrop-blur">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-medium text-amber-800 dark:text-amber-400 mb-1">PayPal Not Configured</h3>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
+                      Set up your PayPal credentials to enable payment processing. Paid plans won't be available until this is configured.
+                    </p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full justify-center bg-white dark:bg-amber-900/30 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/50"
+                      onClick={goToPayPalConfig}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configure PayPal
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>
           )}
 
-          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
-            {filteredPlans.map((plan) => (
-              <Card 
-                key={plan.id}
-                className={cn(
-                  "relative overflow-hidden transition-all duration-300 hover:shadow-lg",
-                  selectedPlan === plan.id || currentPlan === plan.id 
-                    ? "border-[#9b87f5] dark:border-[#7E69AB] shadow-md" 
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                {plan.id === "basic" && (
-                  <div className="absolute top-0 right-0 left-0 bg-[#9b87f5] dark:bg-[#7E69AB] text-white text-xs font-medium py-1 text-center">
-                    RECOMMENDED
-                  </div>
-                )}
-                
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold tracking-tight">
-                        {plan.id === "basic" ? "Pro" : plan.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {plan.description}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <div className="flex items-baseline">
-                      <span className="text-3xl font-bold">
-                        {plan.pricing.monthly === 0 
-                          ? "Free" 
-                          : `$${plan.pricing.monthly.toFixed(2)}`}
-                      </span>
-                      {plan.pricing.monthly > 0 && (
-                        <span className="text-muted-foreground text-sm ml-1">/month</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <ScrollArea className="h-[180px] pr-4 mb-6">
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm">
-                          {feature.included ? (
-                            <Check className="h-5 w-5 text-[#9b87f5] dark:text-[#7E69AB] shrink-0 mt-0.5" />
-                          ) : (
-                            <X className="h-5 w-5 text-gray-300 dark:text-gray-600 shrink-0 mt-0.5" />
-                          )}
-                          <span className={feature.included ? "text-foreground" : "text-muted-foreground"}>
-                            {feature.name}
-                            {feature.description && (
-                              <span className="text-xs text-muted-foreground block">
-                                {feature.description}
-                              </span>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </ScrollArea>
-                  
-                  {selectedPlan === plan.id && plan.id !== "free" && clientId && paypalConfigured ? (
-                    <div className="mt-4">
-                      <div className="mb-4 flex items-center">
-                        <Switch
-                          checked={autoRenew}
-                          onCheckedChange={setAutoRenew}
-                          id="auto-renew"
-                        />
-                        <label 
-                          htmlFor="auto-renew"
-                          className="ml-2 text-sm cursor-pointer"
-                        >
-                          Auto-renew subscription
-                        </label>
-                      </div>
-                      
-                      {isProcessing ? (
-                        <div className="flex items-center justify-center py-4">
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#9b87f5] border-t-transparent" />
-                          <span className="ml-2 text-sm">Processing payment...</span>
-                        </div>
-                      ) : (
-                        <PayPalScriptProvider options={{ 
-                          clientId: clientId,
-                          components: "buttons",
-                          intent: "capture",
-                          currency: "USD",
-                          "data-client-token": "abc123xyz==",
-                        }}>
-                          <PayPalButtons
-                            style={{
-                              color: "blue",
-                              shape: "rect",
-                              label: "pay",
-                              height: 40
-                            }}
-                            createOrder={createOrder}
-                            onApprove={onApprove}
-                            onError={(err) => {
-                              console.error('PayPal error', err);
-                              toast.error("Payment processing error");
-                            }}
-                            onCancel={() => {
-                              toast.info("Payment cancelled");
-                            }}
-                          />
-                        </PayPalScriptProvider>
-                      )}
-                    </div>
-                  ) : (
-                    <Button
-                      className={cn(
-                        "w-full gap-2 bg-[#9b87f5] hover:bg-[#8a70f0] text-white",
-                        plan.id === "free" && "bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-700",
-                        (!paypalConfigured && plan.id !== "free") && "opacity-50 cursor-not-allowed"
-                      )}
-                      disabled={isLoading || currentPlan === plan.id || (!paypalConfigured && plan.id !== "free")}
-                      onClick={() => handlePlanSelect(plan.id)}
-                    >
-                      {currentPlan === plan.id ? (
-                        "Current Plan"
-                      ) : (
-                        <>
-                          {plan.id === "free" ? "Downgrade" : "Upgrade"}
-                          <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
+          <Tabs defaultValue="monthly" className="mb-5 w-full">
+            <div className="flex justify-center mb-4">
+              <TabsList className="grid grid-cols-2 w-64">
+                <TabsTrigger value="monthly" onClick={() => setBillingPeriod('monthly')}>Monthly</TabsTrigger>
+                <TabsTrigger value="yearly" onClick={() => setBillingPeriod('yearly')}>
+                  <span>Yearly</span>
+                  <span className="ml-1.5 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-[10px] px-1.5 py-0.5 rounded-full font-medium">Save 20%</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="monthly" className="mt-0">
+              <div className="space-y-4">
+                {filteredPlans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    currentPlan={currentPlan}
+                    selectedPlan={selectedPlan}
+                    billingPeriod={billingPeriod}
+                    paypalConfigured={paypalConfigured}
+                    isLoading={isLoading}
+                    handlePlanSelect={handlePlanSelect}
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    isProcessing={isProcessing}
+                    clientId={clientId}
+                    autoRenew={autoRenew}
+                    setAutoRenew={setAutoRenew}
+                    calculateSavings={calculateSavings}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="yearly" className="mt-0">
+              <div className="space-y-4">
+                {filteredPlans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    currentPlan={currentPlan}
+                    selectedPlan={selectedPlan}
+                    billingPeriod="yearly"
+                    paypalConfigured={paypalConfigured}
+                    isLoading={isLoading}
+                    handlePlanSelect={handlePlanSelect}
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    isProcessing={isProcessing}
+                    clientId={clientId}
+                    autoRenew={autoRenew}
+                    setAutoRenew={setAutoRenew}
+                    calculateSavings={calculateSavings}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
           
-          <div className="flex items-center justify-center mt-8 gap-2 text-sm text-muted-foreground">
-            <CreditCard className="h-4 w-4" />
-            <span>Secure payment processing by PayPal</span>
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-8 mb-6">
+            <Shield className="h-3 w-3" />
+            <span>Secure payment processing via PayPal</span>
           </div>
         </div>
       </div>
     </Layout>
+  );
+};
+
+interface PlanCardProps {
+  plan: typeof filteredPlans[0];
+  currentPlan: string;
+  selectedPlan: string | null;
+  billingPeriod: 'monthly' | 'yearly';
+  paypalConfigured: boolean;
+  isLoading: boolean;
+  handlePlanSelect: (planId: string) => void;
+  createOrder: (data: any, actions: any) => Promise<string>;
+  onApprove: (data: any, actions: any) => Promise<void>;
+  isProcessing: boolean;
+  clientId: string | null;
+  autoRenew: boolean;
+  setAutoRenew: (value: boolean) => void;
+  calculateSavings: (plan: typeof filteredPlans[0]) => number;
+}
+
+const PlanCard = ({
+  plan,
+  currentPlan,
+  selectedPlan,
+  billingPeriod,
+  paypalConfigured,
+  isLoading,
+  handlePlanSelect,
+  createOrder,
+  onApprove,
+  isProcessing,
+  clientId,
+  autoRenew,
+  setAutoRenew,
+  calculateSavings
+}: PlanCardProps) => {
+  const savings = calculateSavings(plan);
+  const price = billingPeriod === 'yearly' ? plan.pricing.yearly : plan.pricing.monthly;
+  const isSelected = selectedPlan === plan.id;
+  const isCurrent = currentPlan === plan.id;
+  
+  return (
+    <Card 
+      className={cn(
+        "relative overflow-hidden transition-all duration-200 shadow-sm bg-white dark:bg-[#22272E] border",
+        (isSelected || isCurrent) 
+          ? "border-[#9b87f5] dark:border-[#7E69AB] shadow-[0_0_0_1px_rgba(155,135,245,0.2)]" 
+          : "border-border"
+      )}
+    >
+      {plan.id === "basic" && (
+        <div className="absolute top-0 right-0 left-0 bg-[#9b87f5] dark:bg-[#7E69AB] text-white text-xs font-medium py-1 text-center">
+          RECOMMENDED
+        </div>
+      )}
+      
+      <div className="p-4 pt-5">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="text-lg font-bold">
+              {plan.id === "basic" ? "Pro" : plan.name}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {plan.description}
+            </p>
+          </div>
+        </div>
+        
+        <div className="mb-4">
+          <div className="flex items-baseline">
+            <span className="text-2xl font-bold">
+              {price === 0 
+                ? "Free" 
+                : `$${price.toFixed(2)}`}
+            </span>
+            {price > 0 && (
+              <span className="text-muted-foreground text-xs ml-1">
+                /{billingPeriod === 'yearly' ? 'year' : 'month'}
+              </span>
+            )}
+          </div>
+          
+          {savings > 0 && (
+            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+              Save {savings}% with annual billing
+            </div>
+          )}
+        </div>
+        
+        <Accordion type="single" collapsible className="mb-4">
+          <AccordionItem value="features" className="border-b-0">
+            <AccordionTrigger className="py-2 text-sm font-medium">
+              Plan Features
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul className="space-y-2.5 text-sm py-2">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    {feature.included ? (
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <X className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    )}
+                    <span className={feature.included ? "text-foreground" : "text-muted-foreground"}>
+                      {feature.name}
+                      {feature.description && (
+                        <span className="text-xs text-muted-foreground block mt-0.5">
+                          {feature.description}
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        
+        {isSelected && plan.id !== "free" && clientId && paypalConfigured ? (
+          <div className="mt-3">
+            <div className="mb-4">
+              <div className="flex items-center mb-3">
+                <Switch
+                  checked={autoRenew}
+                  onCheckedChange={setAutoRenew}
+                  id={`auto-renew-${plan.id}`}
+                  className="data-[state=checked]:bg-[#9b87f5]"
+                />
+                <label 
+                  htmlFor={`auto-renew-${plan.id}`}
+                  className="ml-2 text-sm cursor-pointer"
+                >
+                  Auto-renew subscription
+                </label>
+              </div>
+              
+              {isProcessing ? (
+                <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#9b87f5] border-t-transparent mr-2" />
+                  <span className="text-sm">Processing payment...</span>
+                </div>
+              ) : (
+                <PayPalScriptProvider options={{ 
+                  clientId: clientId,
+                  components: "buttons",
+                  intent: "capture",
+                  currency: "USD",
+                  "data-client-token": "abc123xyz==",
+                }}>
+                  <PayPalButtons
+                    style={{
+                      color: "blue",
+                      shape: "rect",
+                      label: "pay",
+                      height: 40
+                    }}
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    onError={(err) => {
+                      console.error('PayPal error', err);
+                      toast.error("Payment processing error");
+                    }}
+                    onCancel={() => {
+                      toast.info("Payment cancelled");
+                    }}
+                  />
+                </PayPalScriptProvider>
+              )}
+            </div>
+          </div>
+        ) : (
+          <Button
+            className={cn(
+              "w-full gap-2 justify-center",
+              plan.id === "basic" ? 
+                "bg-[#9b87f5] hover:bg-[#8a70f0] text-white" :
+                "bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-700",
+              (!paypalConfigured && plan.id !== "free") && "opacity-50 cursor-not-allowed"
+            )}
+            disabled={isLoading || isCurrent || (!paypalConfigured && plan.id !== "free")}
+            onClick={() => handlePlanSelect(plan.id)}
+          >
+            {isCurrent ? (
+              <span className="flex items-center">
+                <Check className="h-4 w-4 mr-1.5" />
+                Current Plan
+              </span>
+            ) : (
+              <>
+                {plan.id === "free" ? "Downgrade" : "Upgrade"}
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    </Card>
   );
 };
 
