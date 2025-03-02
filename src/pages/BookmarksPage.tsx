@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -11,7 +12,6 @@ import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
-import { dummyBookmarks } from "@/utils/dummyBookmarks";
 
 const BookmarksPage = () => {
   const {
@@ -39,6 +39,7 @@ const BookmarksPage = () => {
   const [view, setView] = useState<"grid" | "list">("list");
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
+  // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setIsOfflineMode(false);
@@ -57,20 +58,6 @@ const BookmarksPage = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
-
-  useEffect(() => {
-    if (!loading && (!bookmarks || bookmarks.length === 0)) {
-      console.log('No bookmarks loaded, using dummy data');
-      setBookmarks(dummyBookmarks);
-    }
-  }, [bookmarks, loading, setBookmarks]);
-
-  useEffect(() => {
-    console.log('Initial bookmarks setup');
-    if (bookmarks.length === 0) {
-      setBookmarks(dummyBookmarks);
-    }
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -112,9 +99,12 @@ const BookmarksPage = () => {
   }, [setBookmarks]);
 
   const handleImport = (importedBookmarks: ChromeBookmark[]) => {
+    // Add the imported bookmarks to existing bookmarks
     setBookmarks(prev => [...prev, ...importedBookmarks]);
     
+    // Try to add to Chrome bookmarks if available
     if (chrome.bookmarks && navigator.onLine) {
+      // We'll add them to Chrome in the background
       importedBookmarks.forEach(bookmark => {
         if (bookmark.url) {
           chrome.bookmarks.create({
@@ -152,11 +142,7 @@ const BookmarksPage = () => {
       .length,
   }));
 
-  const displayBookmarks = bookmarks.length > 0 ? bookmarks : dummyBookmarks;
-
-  console.log('Rendering BookmarksPage with bookmarks:', displayBookmarks.length);
-
-  const filteredBookmarks = displayBookmarks
+  const filteredBookmarks = bookmarks
     .filter((bookmark) => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
@@ -181,8 +167,6 @@ const BookmarksPage = () => {
           return 0;
       }
     });
-
-  console.log('Filtered bookmarks:', filteredBookmarks.length);
 
   return (
     <Layout>
@@ -251,7 +235,7 @@ const BookmarksPage = () => {
         <BookmarkHeader
           selectedBookmarksCount={selectedBookmarks.size}
           selectedBookmarks={Array.from(selectedBookmarks)
-            .map(id => displayBookmarks.find(b => b.id === id))
+            .map(id => bookmarks.find(b => b.id === id))
             .filter((b): b is ChromeBookmark => b !== undefined)}
           view={view}
           onViewChange={setView}
@@ -280,7 +264,7 @@ const BookmarksPage = () => {
           selectedDomain={selectedDomain}
           onSelectCategory={setSelectedCategory}
           onSelectDomain={setSelectedDomain}
-          bookmarks={displayBookmarks}
+          bookmarks={bookmarks}
           selectedBookmarks={selectedBookmarks}
           onToggleSelect={(id) => {
             setSelectedBookmarks(prev => {

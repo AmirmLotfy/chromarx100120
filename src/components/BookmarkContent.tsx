@@ -116,9 +116,6 @@ const BookmarkContent = ({
       );
     }
 
-    console.log('Rendering BookmarkList with:', filteredBookmarks.length, 'bookmarks');
-    
-    // Make sure we always render something - if filteredBookmarks is empty, show the empty state
     if (filteredBookmarks.length === 0) {
       return renderEmptyState();
     }
