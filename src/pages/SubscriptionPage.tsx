@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -18,6 +19,8 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 // Filter plans to only show free and basic
 const filteredPlans = subscriptionPlans.filter(
@@ -32,6 +35,7 @@ const SubscriptionPage = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const { currentPlan, setSubscriptionPlan } = useSubscription();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadPayPalConfiguration = async () => {
@@ -151,8 +155,27 @@ const SubscriptionPage = () => {
       console.log("Payment completed successfully:", details);
       
       if (details.status === "COMPLETED" && selectedPlan) {
-        toast.success("Payment successful! Processing your subscription...");
-        await handleSubscribe(selectedPlan);
+        // Instead of directly updating local storage, call server function to verify and process
+        const { data: processResult, error } = await supabase.functions.invoke('process-payment', {
+          body: { 
+            orderId: details.id,
+            planId: selectedPlan,
+            userId: user?.id || 'anonymous'
+          }
+        });
+        
+        if (error) {
+          console.error('Error processing payment server-side:', error);
+          toast.error("Payment verification failed. Please contact support.");
+          return;
+        }
+        
+        if (processResult.success) {
+          toast.success("Payment verified! Activating your subscription...");
+          await handleSubscribe(selectedPlan);
+        } else {
+          toast.error("Payment processed but verification failed. Please contact support.");
+        }
       } else {
         toast.error("Payment completed but with an unexpected status. Please contact support.");
       }
