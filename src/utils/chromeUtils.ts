@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -5,6 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 interface PayPalConfig {
   clientId: string;
   mode: 'sandbox' | 'live';
+}
+
+// Payment processing types
+export interface PaymentResult {
+  success: boolean;
+  orderId?: string;
+  error?: string;
+  payerId?: string;
+  details?: any;
 }
 
 // Default PayPal Client ID as fallback
@@ -55,37 +65,103 @@ export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
   }
 };
 
-// Additional utility functions for PayPal integration
-export const createPayPalOrder = async (planId: string, amount: number): Promise<any> => {
+// Enhanced utility functions for PayPal integration
+export const createPayPalOrder = async (planId: string, amount: number): Promise<PaymentResult> => {
   try {
-    // Normally, you would make an API call to your backend to create the order
-    // But for demonstration, we're creating it directly
+    console.log(`Creating PayPal order for plan: ${planId}, amount: $${amount}`);
+    // Here we would typically make an API call to your backend to create the order
+    // For now, returning a demo response
     return {
-      id: `TEST-${Date.now()}`,
-      status: "CREATED",
-      amount: amount
+      success: true,
+      orderId: `ORDER-${Date.now()}`,
+      details: {
+        id: `ORDER-${Date.now()}`,
+        status: "CREATED",
+        amount: amount,
+        planId: planId,
+        created: new Date().toISOString()
+      }
     };
   } catch (error) {
     console.error('Error creating PayPal order:', error);
-    toast.error('Failed to create order');
-    throw error;
+    toast.error('Failed to create payment order. Please try again.');
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error creating order'
+    };
   }
 };
 
-export const capturePayPalOrder = async (orderId: string): Promise<any> => {
+export const capturePayPalOrder = async (orderId: string): Promise<PaymentResult> => {
   try {
-    // Normally, you would make an API call to your backend to capture the order
-    // But for demonstration, we're capturing it directly
+    console.log(`Capturing PayPal order: ${orderId}`);
+    // Here we would typically make an API call to your backend to capture the order
+    // For now, returning a demo response
     return {
-      id: orderId,
-      status: "COMPLETED",
-      payer: {
-        email_address: "test@example.com"
+      success: true,
+      orderId,
+      payerId: `PAYER-${Date.now()}`,
+      details: {
+        id: orderId,
+        status: "COMPLETED",
+        update_time: new Date().toISOString(),
+        payer: {
+          email_address: "customer@example.com",
+          payer_id: `PAYER-${Date.now()}`
+        }
       }
     };
   } catch (error) {
     console.error('Error capturing PayPal order:', error);
-    toast.error('Failed to process payment');
-    throw error;
+    toast.error('Payment processing failed. Please try again or contact support.');
+    return {
+      success: false,
+      orderId,
+      error: error instanceof Error ? error.message : 'Unknown error processing payment'
+    };
   }
+};
+
+// New function to validate payment data
+export const validatePaymentData = (planId: string, amount: number): boolean => {
+  if (!planId || planId.trim() === '') {
+    toast.error('Invalid subscription plan selected');
+    return false;
+  }
+  
+  if (amount <= 0) {
+    toast.error('Invalid payment amount');
+    return false;
+  }
+  
+  return true;
+};
+
+// New function to handle payment errors with more user-friendly messages
+export const handlePaymentError = (error: any): void => {
+  console.error('Payment processing error:', error);
+  
+  // Extract error message or code for more specific error handling
+  const errorMessage = error?.message || 'Unknown error';
+  
+  if (errorMessage.includes('INSTRUMENT_DECLINED')) {
+    toast.error('Your payment method was declined. Please try another payment method.');
+  } else if (errorMessage.includes('PAYER_ACTION_REQUIRED')) {
+    toast.error('Additional actions required. Please complete all steps in the PayPal window.');
+  } else if (errorMessage.includes('ORDER_ALREADY_CAPTURED')) {
+    toast.info('This payment has already been processed. No further action is needed.');
+  } else if (errorMessage.includes('INTERNAL_SERVER_ERROR')) {
+    toast.error('Payment service is temporarily unavailable. Please try again later.');
+  } else {
+    toast.error('Payment processing failed. Please try again or contact support.');
+  }
+};
+
+// New function to format currency amounts
+export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2
+  }).format(amount);
 };
