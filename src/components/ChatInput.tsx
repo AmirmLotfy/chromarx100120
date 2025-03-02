@@ -191,10 +191,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg overflow-hidden z-10"
+            className="absolute bottom-full left-0 right-0 mb-3 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg overflow-hidden z-10"
             ref={suggestionsRef}
           >
-            <div className="p-2">
+            <div className="p-3">
               <h3 className="text-xs font-medium text-muted-foreground px-2 py-1">Recent</h3>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {recentQueries.map((query, index) => (
@@ -213,20 +213,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
       </AnimatePresence>
 
       <div className="flex items-end gap-2">
-        <Button
-          type="button"
+        <motion.button
+          whileTap={{ scale: 0.95 }}
           onClick={toggleSpeechRecognition}
           disabled={isProcessing || disabled}
           className={cn(
-            "h-10 w-10 rounded-full p-0 flex-shrink-0 transition-colors",
+            "h-12 w-12 rounded-full p-0 flex-shrink-0 transition-colors flex items-center justify-center",
             isListening
               ? "bg-destructive text-destructive-foreground animate-pulse"
               : "bg-muted hover:bg-muted/80 text-muted-foreground"
           )}
           aria-label={isListening ? "Stop recording" : "Start voice input"}
         >
-          <Mic className="h-4 w-4" />
-        </Button>
+          <Mic className="h-5 w-5" />
+        </motion.button>
         
         <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm">
           <textarea
@@ -236,45 +236,49 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
             placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Message..."}
-            className="w-full resize-none bg-transparent pl-4 pr-12 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full resize-none bg-transparent pl-4 pr-12 py-3.5 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             style={{ minHeight: "48px", maxHeight: "120px" }}
             disabled={isProcessing || disabled}
             rows={1}
           />
           
           {/* Clear input button - shows only when there's text */}
-          {inputValue.trim() && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleClearInput}
-              className="absolute right-10 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full hover:bg-muted/80"
-            >
-              <X className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="sr-only">Clear input</span>
-            </Button>
-          )}
+          <AnimatePresence>
+            {inputValue.trim() && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.15 }}
+                type="button"
+                onClick={handleClearInput}
+                className="absolute right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted/80 flex items-center justify-center"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+                <span className="sr-only">Clear input</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
           
           {/* Send button inside the textarea */}
-          <Button
-            type="submit"
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isProcessing || disabled}
             className={cn(
-              "absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full p-0 flex items-center justify-center transition-all",
+              "absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all",
               (!inputValue.trim() || isProcessing || disabled) 
                 ? "bg-muted text-muted-foreground"
                 : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
             )}
           >
             {isBookmarkSearchMode ? (
-              <Search className="h-4 w-4" />
+              <Search className="h-5 w-5" />
             ) : (
-              <SendHorizontal className="h-4 w-4" />
+              <SendHorizontal className="h-5 w-5" />
             )}
             <span className="sr-only">Send</span>
-          </Button>
+          </motion.button>
         </div>
       </div>
     </motion.div>

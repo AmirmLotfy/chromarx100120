@@ -14,12 +14,12 @@ const BookmarkSearchView = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
+        className="w-24 h-24 bg-gradient-to-br from-primary/30 to-primary/5 rounded-full flex items-center justify-center mb-8 shadow-inner"
       >
-        <Search className="h-8 w-8 text-primary/90" />
+        <Search className="h-10 w-10 text-primary/80" strokeWidth={1.5} />
       </motion.div>
-      <h3 className="text-xl font-medium mb-2">Search Bookmarks</h3>
-      <p className="text-sm text-muted-foreground max-w-xs">
+      <h3 className="text-2xl font-medium mb-3">Search Bookmarks</h3>
+      <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
         Find content across your saved bookmarks with natural language search
       </p>
     </motion.div>

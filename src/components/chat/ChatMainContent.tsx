@@ -52,8 +52,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       transition={{ duration: 0.5 }}
     >
       {/* Notifications section */}
-      <AnimatePresence>
-        <div className={`${isMobile ? 'px-3 pt-2' : 'px-4 pt-3'} space-y-2`}>
+      <div className={`${isMobile ? 'px-3 pt-2' : 'px-4 pt-3'} space-y-2`}>
+        <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -78,7 +78,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
               transition={{ duration: 0.3 }}
             >
               <div className="flex gap-2 items-start">
-                <div className={`h-6 w-6 rounded-full bg-destructive/20 flex items-center justify-center ${isMobile ? 'mt-0' : 'mt-0.5'}`}>
+                <div className="h-7 w-7 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
                   <X size={14} className="text-destructive" />
                 </div>
                 <div className="flex-1">
@@ -112,8 +112,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
               />
             </motion.div>
           )}
-        </div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
       
       {/* Chat messages section */}
       <AnimatePresence mode="wait">

@@ -26,17 +26,17 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
+          className="w-24 h-24 bg-gradient-to-br from-primary/30 to-primary/5 rounded-full flex items-center justify-center mb-8 shadow-inner"
         >
-          <Bot className="h-8 w-8 text-primary/90" />
+          <Bot className="h-10 w-10 text-primary/80" strokeWidth={1.5} />
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <h3 className="text-xl font-medium mb-2">Start Chatting</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
+          <h3 className="text-2xl font-medium mb-3">Start Chatting</h3>
+          <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
             Ask questions or get insights about your bookmarks
           </p>
         </motion.div>
@@ -64,20 +64,20 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
 
   return (
     <ScrollArea className="flex-1 px-3 py-2">
-      <div className="space-y-4 pb-4">
+      <div className="space-y-6 pb-6">
         {groupedMessages.map((group, groupIndex) => (
-          <div key={group.date} className="space-y-4">
+          <div key={group.date} className="space-y-6">
             {/* Date divider */}
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-muted"></div>
-              <span className="flex-shrink mx-4 text-xs font-medium text-muted-foreground/70 px-2 py-0.5 bg-muted/30 rounded-full">
+              <span className="flex-shrink mx-4 text-xs font-medium text-muted-foreground/70 px-3 py-1 bg-muted/30 rounded-full">
                 {group.date === new Date().toLocaleDateString() ? "Today" : group.date}
               </span>
               <div className="flex-grow border-t border-muted"></div>
             </div>
             
             {/* List view - chat bubbles */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               {group.messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -91,8 +91,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                   )}
                 >
                   {message.sender === "assistant" && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   
@@ -100,8 +100,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     className={cn(
                       "max-w-[85%] space-y-2 relative",
                       message.sender === "user"
-                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-3.5 py-2.5"
-                        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-3.5 py-2.5",
+                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3"
+                        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-3",
                       !message.isRead && message.sender === "assistant" && "ring-2 ring-primary/10"
                     )}
                   >
@@ -110,19 +110,19 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     </p>
                     
                     {message.bookmarks && message.bookmarks.length > 0 && (
-                      <div className="pt-2 border-t border-primary/10 space-y-1.5 mt-1">
+                      <div className="pt-2 border-t border-primary/10 space-y-2 mt-2">
                         <p className="text-xs font-medium opacity-80">From your bookmarks:</p>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {message.bookmarks.map((bookmark, index) => (
                             <a
                               key={index}
                               href={bookmark.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 group"
+                              className="flex items-center gap-2 text-xs hover:underline opacity-90 hover:opacity-100 group"
                             >
-                              <div className="flex-shrink-0 h-5 w-5 bg-primary/20 rounded-lg flex items-center justify-center">
-                                <ExternalLink className="h-3 w-3" />
+                              <div className="flex-shrink-0 h-6 w-6 bg-primary/20 rounded-lg flex items-center justify-center">
+                                <ExternalLink className="h-3.5 w-3.5" />
                               </div>
                               <span className="truncate group-hover:text-primary transition-colors">
                                 {bookmark.title}
@@ -134,19 +134,19 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     )}
 
                     {message.webResults && message.webResults.length > 0 && (
-                      <div className="pt-2 border-t border-primary/10 space-y-1.5 mt-1">
+                      <div className="pt-2 border-t border-primary/10 space-y-2 mt-2">
                         <p className="text-xs font-medium opacity-80">Related links:</p>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {message.webResults.map((result, index) => (
                             <a
                               key={index}
                               href={result.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 group"
+                              className="flex items-center gap-2 text-xs hover:underline opacity-90 hover:opacity-100 group"
                             >
-                              <div className="flex-shrink-0 h-5 w-5 bg-primary/20 rounded-lg flex items-center justify-center">
-                                <ExternalLink className="h-3 w-3" />
+                              <div className="flex-shrink-0 h-6 w-6 bg-primary/20 rounded-lg flex items-center justify-center">
+                                <ExternalLink className="h-3.5 w-3.5" />
                               </div>
                               <span className="truncate group-hover:text-primary transition-colors">
                                 {result.title}
@@ -158,7 +158,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     )}
                     
                     {/* Status indicators */}
-                    <div className="absolute bottom-0 right-0 transform translate-y-5 flex items-center gap-0.5 text-[10px] text-muted-foreground opacity-70">
+                    <div className="absolute bottom-0 right-0 transform translate-y-6 flex items-center gap-0.5 text-[10px] text-muted-foreground opacity-70">
                       <span>
                         {new Date(message.timestamp || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </span>
@@ -169,8 +169,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                   </div>
                   
                   {message.sender === "user" && (
-                    <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <User className="h-3.5 w-3.5 text-primary" />
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-primary" />
                     </div>
                   )}
                 </motion.div>
@@ -178,7 +178,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} className="h-12" /> {/* Extra space for scroll */}
+        <div ref={messagesEndRef} className="h-16" /> {/* Extra space for scroll */}
       </div>
     </ScrollArea>
   );
