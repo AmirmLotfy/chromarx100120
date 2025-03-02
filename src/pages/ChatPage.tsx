@@ -9,18 +9,14 @@ const ChatPage: React.FC = () => {
   return (
     <Layout>
       <motion.div 
-        className="h-[calc(100vh-4rem)] w-full mx-auto"
+        className="h-[calc(100vh-4rem)] w-full mx-auto overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="h-full flex flex-col">
-          <div className="h-full overflow-hidden flex flex-col rounded-lg bg-background shadow-lg border">
-            <AuthProvider>
-              <ChatInterface />
-            </AuthProvider>
-          </div>
-        </div>
+        <AuthProvider>
+          <ChatInterface />
+        </AuthProvider>
       </motion.div>
     </Layout>
   );

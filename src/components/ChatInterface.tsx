@@ -49,24 +49,8 @@ const ChatInterface = () => {
   }, [messages]);
 
   return (
-    <motion.div 
-      className="flex flex-col h-full overflow-hidden"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Header */}
-      <ChatHeader 
-        isHistoryOpen={isHistoryOpen}
-        setIsHistoryOpen={setIsHistoryOpen}
-        activeConversation={activeConversation}
-        messagesCount={messages.length}
-        clearChat={clearChat}
-        isBookmarkSearchMode={isBookmarkSearchMode}
-        toggleBookmarkSearchMode={toggleBookmarkSearchMode}
-      />
-      
-      {/* Main content area */}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Main content area with sidebar */}
       <div className="flex flex-1 h-full overflow-hidden relative">
         {/* Chat history sidebar with animations */}
         <AnimatePresence>
@@ -106,7 +90,18 @@ const ChatInterface = () => {
         </AnimatePresence>
         
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden max-h-full">
+          {/* Header */}
+          <ChatHeader 
+            isHistoryOpen={isHistoryOpen}
+            setIsHistoryOpen={setIsHistoryOpen}
+            activeConversation={activeConversation}
+            messagesCount={messages.length}
+            clearChat={clearChat}
+            isBookmarkSearchMode={isBookmarkSearchMode}
+            toggleBookmarkSearchMode={toggleBookmarkSearchMode}
+          />
+          
           <ChatMainContent 
             messages={messages}
             messagesEndRef={messagesEndRef}
@@ -121,7 +116,7 @@ const ChatInterface = () => {
           />
           
           {/* Chat input section */}
-          <div className="px-2 pb-3 pt-2">
+          <div className="px-2 pb-3 pt-2 mt-auto">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
@@ -132,7 +127,7 @@ const ChatInterface = () => {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

@@ -13,22 +13,11 @@ interface ChatInputProps {
   isBookmarkSearchMode?: boolean;
 }
 
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onresult?: (event: SpeechRecognitionEvent) => void;
-  onend?: () => void;
-}
-
-interface SpeechRecognitionConstructor {
-  new(): SpeechRecognition;
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -124,11 +113,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const toggleSpeechRecognition = () => {
     // Check if the browser supports speech recognition
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      // Use the appropriate SpeechRecognition constructor
-      const SpeechRecognitionAPI = window.SpeechRecognition || 
-        (window as any).webkitSpeechRecognition;
-      
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognitionAPI) {
       if (isListening) {
         // Stop listening
         if (recognitionRef.current) {
@@ -138,38 +125,47 @@ const ChatInput: React.FC<ChatInputProps> = ({
         setIsListening(false);
       } else {
         // Start listening
-        const recognition = new SpeechRecognitionAPI();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-        
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          // Extract transcript from the results
-          let transcript = '';
+        try {
+          const recognition = new SpeechRecognitionAPI();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
           
-          // Process the speech recognition results
-          for (let i = 0; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-              transcript += event.results[i][0].transcript;
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
+            let transcript = '';
+            
+            // Process the speech recognition results properly
+            for (let i = 0; i < event.results.length; i++) {
+              if (event.results[i].isFinal) {
+                transcript += event.results[i][0].transcript;
+              }
             }
-          }
+            
+            setInputValue(transcript);
+            
+            // Auto-resize textarea
+            if (textareaRef.current) {
+              textareaRef.current.style.height = "auto";
+              textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+            }
+          };
           
-          setInputValue(transcript);
+          recognition.onend = () => {
+            setIsListening(false);
+          };
           
-          // Auto-resize textarea
-          if (textareaRef.current) {
-            textareaRef.current.style.height = "auto";
-            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-          }
-        };
-        
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-        
-        recognition.start();
-        recognitionRef.current = recognition;
-        setIsListening(true);
+          recognition.onerror = (event) => {
+            console.error('Speech recognition error', event);
+            setIsListening(false);
+          };
+          
+          recognition.start();
+          recognitionRef.current = recognition;
+          setIsListening(true);
+        } catch (error) {
+          console.error('Error initializing speech recognition:', error);
+          alert("There was an error starting speech recognition. Please check your browser permissions.");
+        }
       }
     } else {
       alert("Speech recognition is not supported in your browser.");

@@ -9,6 +9,7 @@ import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion, AnimatePresence } from "framer-motion";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface ChatMainContentProps {
   messages: Message[];
@@ -45,12 +46,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   }, [messages, markMessagesAsRead]);
 
   return (
-    <motion.div 
-      className="flex-1 flex flex-col overflow-hidden relative"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+    <div className="flex-1 flex flex-col relative h-full overflow-hidden">
       {/* Notifications section - simplified */}
       <div className={`${isMobile ? 'px-2 pt-2' : 'px-3 pt-2'} space-y-2`}>
         <AnimatePresence>
@@ -116,18 +112,20 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       </div>
       
       {/* Chat messages section */}
-      <AnimatePresence mode="wait">
-        {isBookmarkSearchMode ? (
-          <BookmarkSearchView key="search" />
-        ) : (
-          <ChatMessages 
-            key="messages"
-            messages={messages} 
-            messagesEndRef={messagesEndRef}
-          />
-        )}
-      </AnimatePresence>
-    </motion.div>
+      <ScrollArea className="flex-1">
+        <AnimatePresence mode="wait">
+          {isBookmarkSearchMode ? (
+            <BookmarkSearchView key="search" />
+          ) : (
+            <ChatMessages 
+              key="messages"
+              messages={messages} 
+              messagesEndRef={messagesEndRef}
+            />
+          )}
+        </AnimatePresence>
+      </ScrollArea>
+    </div>
   );
 };
 

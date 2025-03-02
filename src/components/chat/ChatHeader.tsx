@@ -8,7 +8,6 @@ interface ChatHeaderProps {
   setIsHistoryOpen: (isOpen: boolean) => void;
   activeConversation: any | undefined;
   messagesCount: number;
-  clearChat: () => void;
   isBookmarkSearchMode: boolean;
   toggleBookmarkSearchMode: () => void;
 }
@@ -27,7 +26,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <motion.div 
-      className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur-sm"
+      className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
