@@ -25,7 +25,13 @@ export const getPayPalClientId = async (): Promise<string> => {
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    return data.value.client_id;
+    // Check if data.value is an object with a client_id property
+    if (data && data.value && typeof data.value === 'object' && 'client_id' in data.value) {
+      return data.value.client_id as string;
+    }
+    
+    console.warn('PayPal client_id not found in config, using default');
+    return DEFAULT_CLIENT_ID;
   } catch (error) {
     console.error('Error fetching PayPal client ID:', error);
     // Fallback to default client ID if fetch fails
@@ -46,7 +52,14 @@ export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    return data.value.mode || DEFAULT_MODE;
+    // Check if data.value is an object with a mode property
+    if (data && data.value && typeof data.value === 'object' && 'mode' in data.value) {
+      const mode = data.value.mode as string;
+      return (mode === 'sandbox' || mode === 'live') ? mode : DEFAULT_MODE;
+    }
+    
+    console.warn('PayPal mode not found in config, using default');
+    return DEFAULT_MODE;
   } catch (error) {
     console.error('Error fetching PayPal mode:', error);
     // Fallback to default mode if fetch fails
