@@ -5,7 +5,6 @@ import {
   Trash,
   Plus,
   Tag,
-  MoreHorizontal,
   FolderPlus,
   Search,
   X,
@@ -13,12 +12,6 @@ import {
 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
 import ViewToggle from "./ViewToggle";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -120,7 +113,7 @@ const BookmarkHeader = ({
                     variant="outline"
                     size="sm"
                     onClick={() => onImport([])}
-                    className="hidden sm:flex items-center gap-1 h-8 px-3 rounded-full"
+                    className="flex items-center gap-1 h-8 px-3 rounded-full"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span className="text-xs font-medium">Import</span>
@@ -131,33 +124,11 @@ const BookmarkHeader = ({
                   variant="outline"
                   size="sm"
                   onClick={onCreateFolder}
-                  className="hidden sm:flex items-center gap-1 h-8 px-3 rounded-full"
+                  className="flex items-center gap-1 h-8 px-3 rounded-full"
                 >
                   <FolderPlus className="h-3.5 w-3.5" />
                   <span className="text-xs font-medium">New Folder</span>
                 </Button>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 rounded-full sm:hidden"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="rounded-lg">
-                    <DropdownMenuItem onClick={() => onImport([])}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      <span>Import</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={onCreateFolder}>
-                      <FolderPlus className="h-4 w-4 mr-2" />
-                      <span>New Folder</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             )}
           </div>
