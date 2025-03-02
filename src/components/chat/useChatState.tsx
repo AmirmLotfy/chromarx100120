@@ -1,6 +1,8 @@
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { Message, Conversation, ConversationCategory } from "@/types/chat";
 import { ConversationService } from "@/services/conversationService";
 import { useAuth } from "@/hooks/useAuth"; // Assuming you have an auth hook
