@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search, X, Info } from "lucide-react";
+import { Menu, MessageCircle, Search, X, Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 
@@ -94,14 +94,17 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </Button>
         )}
         
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
-          aria-label="Information"
-        >
-          <Info size={18} />
-        </Button>
+        {!isHistoryOpen && messagesCount === 0 && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
+            onClick={clearChat}
+            aria-label="New chat"
+          >
+            <Plus size={18} />
+          </Button>
+        )}
       </div>
     </motion.div>
   );
