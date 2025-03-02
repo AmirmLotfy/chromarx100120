@@ -1,4 +1,3 @@
-
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, User, LogOut, Menu, Bell } from "lucide-react";
@@ -36,7 +35,6 @@ const Header = () => {
   const [showNotificationDot, setShowNotificationDot] = useState(false);
 
   useEffect(() => {
-    // Demo notifications for display purposes
     const demoNotifications: Notification[] = [
       {
         id: "1",
@@ -84,7 +82,6 @@ const Header = () => {
       prev.map(notif => notif.id === id ? { ...notif, read: true } : notif)
     );
     
-    // Check if there are any unread notifications left
     const hasUnread = notifications.some(n => !n.read && n.id !== id);
     setShowNotificationDot(hasUnread);
   };
@@ -150,14 +147,27 @@ const Header = () => {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="end">
-                    <div className="flex items-center justify-between px-4 py-2 border-b">
-                      <h3 className="font-medium text-sm">Notifications</h3>
+                  <PopoverContent 
+                    className="w-80 p-0 border border-border/60 shadow-lg"
+                    style={{ backgroundColor: 'var(--popover)' }}
+                    align="end"
+                    sideOffset={8}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-accent/40">
+                      <h3 className="font-medium text-sm flex items-center gap-1.5">
+                        <Bell className="h-3.5 w-3.5 text-primary/70" />
+                        Notifications
+                        {unreadCount > 0 && (
+                          <Badge variant="secondary" className="ml-1 text-xs py-0 h-5">
+                            {unreadCount} new
+                          </Badge>
+                        )}
+                      </h3>
                       {unreadCount > 0 && (
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs font-normal"
                           onClick={markAllAsRead}
                         >
                           Mark all read
@@ -165,29 +175,31 @@ const Header = () => {
                       )}
                     </div>
                     
-                    <ScrollArea className="h-80">
+                    <ScrollArea className="h-[280px] overflow-hidden bg-popover">
                       {notifications.length > 0 ? (
-                        <div className="py-2">
+                        <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-3 hover:bg-accent/50 cursor-pointer ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-2.5 hover:bg-accent/20 cursor-pointer transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
-                                <div className={`${getTypeColor(notification.type)} w-1 h-full rounded-full`} />
-                                <div className="space-y-1 flex-1">
-                                  <div className="flex justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-sm font-medium">{notification.title}</p>
+                                <div className={`${getTypeColor(notification.type)} w-1 rounded-full flex-shrink-0`} />
+                                <div className="space-y-1 flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <p className="text-sm font-medium truncate pr-1 flex items-center gap-1.5">
+                                      {notification.title}
                                       {!notification.read && (
-                                        <span className="w-2 h-2 bg-primary rounded-full" />
+                                        <span className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0" />
                                       )}
-                                    </div>
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0">
+                                      {formatTime(notification.timestamp)}
+                                    </p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatTime(notification.timestamp)}
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {notification.message}
                                   </p>
                                 </div>
                               </div>
@@ -195,17 +207,17 @@ const Header = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-32">
-                          <Bell className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                        <div className="flex flex-col items-center justify-center h-full py-8">
+                          <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
                           <p className="text-sm text-muted-foreground">No notifications</p>
                         </div>
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-2 border-t">
+                    <div className="px-4 py-2.5 border-t border-border/40 bg-accent/20">
                       <Link 
                         to="/notifications"
-                        className="block text-sm text-center text-primary hover:underline"
+                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1"
                         onClick={() => document.body.click()} // Close the popover
                       >
                         View all notifications
@@ -251,14 +263,27 @@ const Header = () => {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="end">
-                    <div className="flex items-center justify-between px-4 py-2 border-b">
-                      <h3 className="font-medium text-sm">Notifications</h3>
+                  <PopoverContent 
+                    className="w-80 p-0 border border-border/60 shadow-lg"
+                    style={{ backgroundColor: 'var(--popover)' }}
+                    align="end"
+                    sideOffset={8}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-accent/40">
+                      <h3 className="font-medium text-sm flex items-center gap-1.5">
+                        <Bell className="h-3.5 w-3.5 text-primary/70" />
+                        Notifications
+                        {unreadCount > 0 && (
+                          <Badge variant="secondary" className="ml-1 text-xs py-0 h-5">
+                            {unreadCount} new
+                          </Badge>
+                        )}
+                      </h3>
                       {unreadCount > 0 && (
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-xs font-normal"
                           onClick={markAllAsRead}
                         >
                           Mark all read
@@ -266,29 +291,31 @@ const Header = () => {
                       )}
                     </div>
                     
-                    <ScrollArea className="h-80">
+                    <ScrollArea className="h-[280px] overflow-hidden bg-popover">
                       {notifications.length > 0 ? (
-                        <div className="py-2">
+                        <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-3 hover:bg-accent/50 cursor-pointer ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-2.5 hover:bg-accent/20 cursor-pointer transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
-                                <div className={`${getTypeColor(notification.type)} w-1 h-full rounded-full`} />
-                                <div className="space-y-1 flex-1">
-                                  <div className="flex justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-sm font-medium">{notification.title}</p>
+                                <div className={`${getTypeColor(notification.type)} w-1 rounded-full flex-shrink-0`} />
+                                <div className="space-y-1 flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <p className="text-sm font-medium truncate pr-1 flex items-center gap-1.5">
+                                      {notification.title}
                                       {!notification.read && (
-                                        <span className="w-2 h-2 bg-primary rounded-full" />
+                                        <span className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0" />
                                       )}
-                                    </div>
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0">
+                                      {formatTime(notification.timestamp)}
+                                    </p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatTime(notification.timestamp)}
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {notification.message}
                                   </p>
                                 </div>
                               </div>
@@ -296,17 +323,17 @@ const Header = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-32">
-                          <Bell className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                        <div className="flex flex-col items-center justify-center h-full py-8">
+                          <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
                           <p className="text-sm text-muted-foreground">No notifications</p>
                         </div>
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-2 border-t">
+                    <div className="px-4 py-2.5 border-t border-border/40 bg-accent/20">
                       <Link 
                         to="/notifications"
-                        className="block text-sm text-center text-primary hover:underline"
+                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1"
                         onClick={() => document.body.click()} // Close the popover
                       >
                         View all notifications
