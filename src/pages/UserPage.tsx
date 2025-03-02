@@ -258,7 +258,12 @@ const UserPage = () => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="relative pb-20 pt-6 px-4 bg-gradient-to-br from-primary/80 to-primary/40 rounded-b-3xl shadow-md"
+      className="relative pb-20 pt-6 px-4 bg-gradient-to-br from-primary to-primary/70 rounded-b-3xl shadow-md"
+      style={{
+        backgroundImage: "linear-gradient(to bottom right, #8b5cf6, #6366f1)",
+        backgroundSize: "cover",
+        backgroundPosition: "center"
+      }}
     >
       <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2">
         <div className="relative">
@@ -292,9 +297,9 @@ const UserPage = () => {
       </div>
       
       <div className="text-center text-background/90">
-        <h1 className="text-xl font-semibold">{profileData.displayName || userName}</h1>
+        <h1 className="text-xl font-semibold text-white">{profileData.displayName || userName}</h1>
         {profileData.location && (
-          <p className="text-sm mt-1 opacity-80">{profileData.location}</p>
+          <p className="text-sm mt-1 text-white/90">{profileData.location}</p>
         )}
       </div>
     </motion.div>
@@ -307,7 +312,7 @@ const UserPage = () => {
       transition={{ delay: 0.2, duration: 0.3 }}
       className="mt-20 mb-6 text-center px-4"
     >
-      <h1 className="text-xl font-semibold">{profileData.displayName || userName}</h1>
+      <h1 className="text-xl font-semibold text-white">{profileData.displayName || userName}</h1>
       {profileData.location && (
         <p className="text-sm text-muted-foreground mt-1">{profileData.location}</p>
       )}
