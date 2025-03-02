@@ -148,7 +148,7 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[calc(100vw-32px)] max-w-[320px] p-0 border border-border/60 shadow-lg bg-background"
+                    className="w-[calc(100vw-32px)] max-w-[320px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden"
                     align="end"
                     sideOffset={8}
                   >
@@ -263,7 +263,7 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[320px] p-0 border border-border/60 shadow-lg bg-background"
+                    className="w-[320px] max-w-[100vw-32px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden"
                     align="end"
                     sideOffset={8}
                   >
@@ -388,7 +388,6 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {menuOpen && isMobile && (
           <motion.div
