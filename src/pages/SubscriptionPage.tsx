@@ -62,6 +62,7 @@ const SubscriptionPage = () => {
       setIsCheckingConfig(true);
       try {
         const config = await checkPayPalConfiguration();
+        console.log("PayPal config:", config);
         setPaypalConfigured(config.configured);
         setPaypalMode(config.mode);
         setClientId(config.clientId);
@@ -575,7 +576,7 @@ const PlanCard = ({
           </AccordionItem>
         </Accordion>
         
-        {isSelected && plan.id !== "free" && clientId && paypalConfigured ? (
+        {isSelected && plan.id !== "free" ? (
           <div className="mt-3">
             <div className="mb-4">
               <div className="flex items-center mb-3">
@@ -598,32 +599,58 @@ const PlanCard = ({
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#9b87f5] border-t-transparent mr-2" />
                   <span className="text-sm">Processing payment...</span>
                 </div>
+              ) : clientId && paypalConfigured ? (
+                <div>
+                  <PayPalScriptProvider options={{ 
+                    clientId: clientId,
+                    components: "buttons",
+                    intent: "capture",
+                    currency: "USD"
+                  }}>
+                    <PayPalButtons
+                      style={{
+                        color: "blue",
+                        shape: "rect",
+                        label: "pay",
+                        height: 40
+                      }}
+                      createOrder={createOrder}
+                      onApprove={onApprove}
+                      onError={(err) => {
+                        console.error('PayPal error', err);
+                        toast.error("Payment processing error");
+                      }}
+                      onCancel={() => {
+                        toast.info("Payment cancelled");
+                        setSelectedPlan(null);
+                      }}
+                    />
+                  </PayPalScriptProvider>
+                  
+                  <div className="mt-3 flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedPlan(null)}
+                      className="text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               ) : (
-                <PayPalScriptProvider options={{ 
-                  clientId: clientId,
-                  components: "buttons",
-                  intent: "capture",
-                  currency: "USD",
-                  "data-client-token": "abc123xyz==",
-                }}>
-                  <PayPalButtons
-                    style={{
-                      color: "blue",
-                      shape: "rect",
-                      label: "pay",
-                      height: 40
-                    }}
-                    createOrder={createOrder}
-                    onApprove={onApprove}
-                    onError={(err) => {
-                      console.error('PayPal error', err);
-                      toast.error("Payment processing error");
-                    }}
-                    onCancel={() => {
-                      toast.info("Payment cancelled");
-                    }}
-                  />
-                </PayPalScriptProvider>
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center text-sm text-amber-800 dark:text-amber-400">
+                  <p>PayPal is not configured. Please configure PayPal first.</p>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="mt-2 border-amber-300 dark:border-amber-800"
+                    onClick={goToPayPalConfig}
+                  >
+                    <Settings className="h-3.5 w-3.5 mr-1.5" />
+                    Configure PayPal
+                  </Button>
+                </div>
               )}
             </div>
           </div>
