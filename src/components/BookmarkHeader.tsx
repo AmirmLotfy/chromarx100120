@@ -9,7 +9,6 @@ import {
   Search,
   X,
   Menu,
-  FileText
 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -36,7 +35,6 @@ interface BookmarkHeaderProps {
   onFilterChange?: (filters: SearchFilter) => void;
   categories?: string[];
   domains?: string[];
-  onSummarize?: () => void;
 }
 
 const BookmarkHeader = ({
@@ -56,7 +54,6 @@ const BookmarkHeader = ({
   onFilterChange = () => {},
   categories = [],
   domains = [],
-  onSummarize = () => {},
 }: BookmarkHeaderProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
@@ -104,7 +101,31 @@ const BookmarkHeader = ({
                 <Trash className="h-3.5 w-3.5" />
                 <span className="text-xs font-medium">{selectedBookmarksCount}</span>
               </Button>
-            ) : null}
+            ) : (
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {importComponent || (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onImport([])}
+                    className="flex items-center gap-1 h-8 px-3 rounded-full"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span className="text-xs font-medium">Import</span>
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onCreateFolder}
+                  className="flex items-center gap-1 h-8 px-3 rounded-full"
+                >
+                  <FolderPlus className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">New Folder</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -118,40 +139,6 @@ const BookmarkHeader = ({
             categories={categories}
             domains={domains}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 justify-start">
-          {importComponent || (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onImport([])}
-              className="flex items-center gap-1 h-8 px-3 rounded-full"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium">Import</span>
-            </Button>
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCreateFolder}
-            className="flex items-center gap-1 h-8 px-3 rounded-full"
-          >
-            <FolderPlus className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium">New Folder</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSummarize}
-            className="flex items-center gap-1 h-8 px-3 rounded-full"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium">Summarize</span>
-          </Button>
         </div>
 
         {selectedBookmarksCount > 0 ? (
