@@ -16,6 +16,8 @@ interface SettingsState {
     bookmarks: boolean;
     updates: boolean;
     reminders: boolean;
+    sounds: boolean;
+    suggestions: boolean;
   };
   experimentalFeatures: boolean;
   affiliateBannersEnabled: boolean;
@@ -45,6 +47,8 @@ interface UserSettingsData {
     bookmarks: boolean;
     updates: boolean;
     reminders: boolean;
+    sounds: boolean;
+    suggestions: boolean;
   };
   experimentalFeatures?: boolean;
   affiliateBannersEnabled?: boolean;
@@ -61,6 +65,8 @@ const initialState = {
     bookmarks: true,
     updates: true,
     reminders: true,
+    sounds: true,
+    suggestions: true,
   },
   experimentalFeatures: false,
   affiliateBannersEnabled: true,

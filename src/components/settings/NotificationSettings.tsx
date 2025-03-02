@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -114,7 +113,7 @@ const NotificationSettings = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={settings.notifications[item.type as keyof typeof settings.notifications] || false}
+                  checked={settings.notifications[item.type] || false}
                   onCheckedChange={(enabled) => handleNotificationChange(item.type, enabled)}
                   className="data-[state=checked]:bg-primary"
                 />
