@@ -148,7 +148,7 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-80 p-0 border border-border/60 shadow-lg bg-background"
+                    className="w-[calc(100vw-32px)] max-w-[320px] p-0 border border-border/60 shadow-lg bg-background"
                     align="end"
                     sideOffset={8}
                   >
@@ -263,7 +263,7 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-80 p-0 border border-border/60 shadow-lg bg-background"
+                    className="w-[320px] p-0 border border-border/60 shadow-lg bg-background"
                     align="end"
                     sideOffset={8}
                   >
