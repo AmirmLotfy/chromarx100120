@@ -141,7 +141,7 @@ const BookmarkHeader = ({
           />
         </div>
 
-        {selectedBookmarksCount > 0 && (
+        {selectedBookmarksCount > 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -162,7 +162,7 @@ const BookmarkHeader = ({
               </Button>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
