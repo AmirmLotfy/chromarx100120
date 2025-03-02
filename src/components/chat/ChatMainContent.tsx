@@ -46,7 +46,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 
   return (
     <motion.div 
-      className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-transparent to-background/30"
+      className="flex-1 flex flex-col overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}

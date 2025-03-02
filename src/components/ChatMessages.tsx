@@ -21,13 +21,13 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-5 shadow-inner"
+          className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
         >
           <Bot className="h-8 w-8 text-primary/80" />
         </motion.div>
-        <h3 className="text-xl font-medium mb-3">Start a Conversation</h3>
+        <h3 className="text-xl font-medium mb-2">Start Chatting</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
-          Ask questions about your bookmarks or any topic to get personalized insights.
+          Ask questions or get insights about your bookmarks
         </p>
       </div>
     );
@@ -53,7 +53,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
 
   return (
     <ScrollArea className="flex-1 px-3 py-2">
-      <div className="space-y-4 pb-2">
+      <div className="space-y-4 pb-4">
         {groupedMessages.map((group, groupIndex) => (
           <div key={group.date} className="space-y-4">
             {/* Date divider */}
@@ -65,8 +65,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
               <div className="flex-grow border-t border-muted"></div>
             </div>
             
-            {/* List view - traditional chat bubbles */}
-            <div className="space-y-3">
+            {/* List view - chat bubbles */}
+            <div className="space-y-6">
               {group.messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -91,7 +91,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                       message.sender === "user"
                         ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3"
                         : "bg-muted/70 text-foreground rounded-2xl rounded-tl-sm px-4 py-3",
-                      !message.isRead && message.sender === "assistant" && "ring-2 ring-primary/30"
+                      !message.isRead && message.sender === "assistant" && "ring-2 ring-primary/20"
                     )}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -167,7 +167,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} className="h-8" /> {/* Extra space for scroll */}
+        <div ref={messagesEndRef} className="h-12" /> {/* Extra space for scroll */}
       </div>
     </ScrollArea>
   );

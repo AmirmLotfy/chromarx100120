@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, SendHorizontal, Search } from "lucide-react";
+import { Mic, SendHorizontal, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -89,6 +89,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  const handleClearInput = () => {
+    setInputValue("");
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.focus();
+    }
+  };
+
   return (
     <motion.div 
       className="relative"
@@ -125,8 +133,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col gap-2">
-        <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background/80 backdrop-blur-sm shadow-sm">
+      <div className="flex items-end gap-2">
+        <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm">
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -134,40 +142,42 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
             placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Type a message..."}
-            className="w-full resize-none bg-transparent px-4 py-3 pr-12 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ minHeight: "48px", maxHeight: "120px" }}
+            className="w-full resize-none bg-transparent pl-4 pr-12 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ minHeight: "52px", maxHeight: "120px" }}
             disabled={isProcessing || disabled}
             rows={1}
           />
           
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 bottom-2 h-8 w-8 rounded-full hover:bg-muted"
-            disabled={isProcessing || disabled}
-          >
-            <Mic className="h-4 w-4 text-muted-foreground" />
-            <span className="sr-only">Voice input</span>
-          </Button>
-        </div>
-        
-        <div className="flex justify-end">
+          {/* Clear input button - shows only when there's text */}
+          {inputValue.trim() && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleClearInput}
+              className="absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted/80"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+              <span className="sr-only">Clear input</span>
+            </Button>
+          )}
+          
+          {/* Send button inside the textarea */}
           <Button
             type="submit"
-            size="icon"
-            disabled={!inputValue.trim() || isProcessing || disabled}
             onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isProcessing || disabled}
             className={cn(
-              "h-12 w-12 rounded-full transition-all",
+              "absolute right-1 bottom-1.5 h-9 w-9 rounded-full p-0 transition-all",
               (!inputValue.trim() || isProcessing || disabled) 
-                ? "opacity-50" 
-                : "bg-primary hover:bg-primary/90 shadow-md"
+                ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
             )}
           >
             {isBookmarkSearchMode ? (
-              <Search className="h-5 w-5" />
+              <Search className="h-4 w-4" />
             ) : (
-              <SendHorizontal className="h-5 w-5" />
+              <SendHorizontal className="h-4 w-4" />
             )}
             <span className="sr-only">Send</span>
           </Button>

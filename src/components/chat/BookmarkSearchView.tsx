@@ -18,9 +18,9 @@ const BookmarkSearchView = () => {
       >
         <Search className="h-8 w-8 text-primary/80" />
       </motion.div>
-      <h3 className="text-xl font-medium mb-3">Bookmark Search</h3>
+      <h3 className="text-xl font-medium mb-2">Search Bookmarks</h3>
       <p className="text-sm text-muted-foreground max-w-xs">
-        Enter a search term to find content across your bookmarks.
+        Find content across your saved bookmarks with natural language search
       </p>
     </motion.div>
   );

@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search } from "lucide-react";
+import { Menu, MessageCircle, Search, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 
@@ -26,6 +26,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   const handleToggleSidebar = () => {
     console.log("Toggle history sidebar", !isHistoryOpen);
     setIsHistoryOpen(!isHistoryOpen);
+  };
+
+  const handleClearChat = () => {
+    // Only clear if there are messages
+    if (messagesCount > 0) {
+      clearChat();
+    }
   };
 
   return (
@@ -61,12 +68,25 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
+        {/* Clear chat button - only visible when there are messages */}
+        {messagesCount > 0 && !isBookmarkSearchMode && (
+          <Button
+            onClick={handleClearChat}
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            aria-label="Clear conversation"
+          >
+            <Trash2 size={18} />
+          </Button>
+        )}
+        
         <motion.button
           initial={false}
           whileTap={{ scale: 0.94 }}
           onClick={toggleBookmarkSearchMode}
-          className={`relative h-10 px-4 rounded-full text-sm font-medium flex items-center gap-2 ${
+          className={`relative h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1.5 ${
             isBookmarkSearchMode 
               ? "bg-secondary text-secondary-foreground" 
               : "bg-background/80 text-foreground shadow-sm border"
@@ -77,12 +97,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             animate={{ rotate: isBookmarkSearchMode ? 0 : 360 }}
             transition={{ duration: 0.3 }}
           >
-            {isBookmarkSearchMode ? <MessageCircle size={18} /> : <Search size={18} />}
+            {isBookmarkSearchMode ? <MessageCircle size={16} /> : <Search size={16} />}
           </motion.div>
           <span>{isBookmarkSearchMode ? "Chat" : "Search"}</span>
         </motion.button>
-        
-        {/* New chat button is already included in the sidebar, so no need for a duplicate clear/new chat button */}
       </div>
     </motion.div>
   );
