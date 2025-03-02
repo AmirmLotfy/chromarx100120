@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Bell, BookmarkIcon, Check, Clock, Info, Settings, Trash2, ArrowLeft, Filter } from "lucide-react";
+import { Bell, BookmarkIcon, Check, Clock, Info, Trash2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -166,23 +166,6 @@ const NotificationsPage = () => {
               <p className="text-white/80 text-sm">
                 Stay updated with your activity
               </p>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8 text-white/90 hover:text-white hover:bg-white/10"
-                  onClick={() => setIsFiltering(!isFiltering)}
-                >
-                  <Filter className="h-4.5 w-4.5" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8 text-white/90 hover:text-white hover:bg-white/10"
-                >
-                  <Settings className="h-4.5 w-4.5" />
-                </Button>
-              </div>
             </div>
           </div>
         </div>
