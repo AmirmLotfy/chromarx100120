@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -15,7 +14,7 @@ import {
   handlePaymentError,
   formatCurrency
 } from "@/utils/chromeUtils";
-import { PayPalScriptProvider, PayPalButtons, PayPalHostedField, PayPalFastlane } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -184,7 +183,7 @@ const SubscriptionPage = () => {
     }
 
     return (
-      <div className="w-full mt-4 bg-card/50 p-5 rounded-lg border border-border">
+      <div className="w-full mt-4 bg-card/50 p-6 rounded-lg border border-border">
         <h4 className="text-sm font-medium mb-3 flex items-center">
           <Shield className="h-4 w-4 mr-1.5 text-green-500" />
           Secure Payment
@@ -192,43 +191,20 @@ const SubscriptionPage = () => {
         
         <PayPalScriptProvider options={{ 
           clientId: clientId || "",
-          components: "buttons,hosted-fields,fastlane",
+          components: "buttons",
           intent: "capture",
           currency: "USD",
-          dataClientToken: "your-client-token-here", // You'll need to generate this on your server for Fastlane
         }}>
           <div className="w-full space-y-4">
-            {/* PayPal Fastlane Component */}
+            {/* PayPal Buttons Component - using full width container */}
             <div className="w-full">
-              <PayPalFastlane
-                styles={{
-                  base: {
-                    backgroundColor: "white",
-                    color: "#333",
-                    fontSize: "16px",
-                    fontFamily: "Arial, sans-serif",
-                    lineHeight: "1.5",
-                    padding: "10px"
-                  }
-                }}
-                createOrder={createOrder}
-                onApprove={onApprove}
-                onError={onError}
-                onCancel={onCancel}
-              />
-            </div>
-            
-            {/* Fallback to standard PayPal Buttons */}
-            <div className="w-full pt-2 border-t border-border">
-              <p className="text-xs text-center text-muted-foreground mb-3">
-                Or pay with PayPal directly
-              </p>
               <PayPalButtons
                 style={{
                   color: "blue",
                   shape: "rect",
                   label: "pay",
-                  height: 45
+                  height: 48,
+                  layout: "vertical"
                 }}
                 disabled={paymentProcessing}
                 createOrder={createOrder}
