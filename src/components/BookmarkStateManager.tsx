@@ -17,6 +17,11 @@ const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 const BATCH_SIZE = 50; // Process bookmarks in batches
 const MAX_STORAGE_ITEM_SIZE = 8192; // Chrome's max size for a single sync storage item in bytes
 
+// Helper to check if we're in a Chrome extension environment
+const isChromeExtension = () => {
+  return typeof chrome !== 'undefined' && !!chrome.bookmarks;
+};
+
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,21 +238,28 @@ export const useBookmarkState = () => {
         setLoading(false);
       }
 
-      if (chrome.bookmarks) {
-        const results = await chrome.bookmarks.getRecent(1000);
-        setProcessingMessage("Processing bookmarks...");
-        
-        const processed = await processChromeBookmarks(results);
-        
-        await setCachedBookmarks(processed);
-        setBookmarks(processed);
-        setProcessingMessage("");
+      if (isChromeExtension()) {
+        try {
+          const results = await chrome.bookmarks.getRecent(1000);
+          setProcessingMessage("Processing bookmarks...");
+          
+          const processed = await processChromeBookmarks(results);
+          
+          await setCachedBookmarks(processed);
+          setBookmarks(processed);
+          setProcessingMessage("");
 
-        const user = await auth.getCurrentUser();
-        if (user) {
-          for (const bookmark of processed) {
-            await updateBookmark(bookmark);
+          const user = await auth.getCurrentUser();
+          if (user) {
+            for (const bookmark of processed) {
+              await updateBookmark(bookmark);
+            }
           }
+        } catch (error) {
+          console.error("Error loading Chrome bookmarks:", error);
+          console.log("Falling back to dummy bookmarks");
+          setBookmarks(dummyBookmarks);
+          await setCachedBookmarks(dummyBookmarks);
         }
       } else {
         console.log("Chrome bookmarks API not available, loading dummy bookmarks");
@@ -265,7 +277,7 @@ export const useBookmarkState = () => {
   };
 
   const loadFreshBookmarks = async () => {
-    if (chrome.bookmarks) {
+    if (isChromeExtension()) {
       try {
         const results = await chrome.bookmarks.getRecent(1000);
         const previousCount = bookmarks.length;
@@ -290,6 +302,8 @@ export const useBookmarkState = () => {
         console.error("Error loading fresh bookmarks:", error);
         toast.error("Failed to refresh bookmarks");
       }
+    } else {
+      setBookmarks(dummyBookmarks);
     }
   };
 
@@ -411,7 +425,8 @@ export const useBookmarkState = () => {
 
   useEffect(() => {
     loadBookmarks();
-    if (chrome.bookmarks) {
+    
+    if (isChromeExtension()) {
       chrome.bookmarks.onCreated.addListener(loadBookmarks);
       chrome.bookmarks.onRemoved.addListener(loadBookmarks);
       chrome.bookmarks.onChanged.addListener(loadBookmarks);
@@ -441,6 +456,7 @@ export const useBookmarkState = () => {
       };
     } else {
       console.log("Using dummy bookmarks for development");
+      setBookmarks(dummyBookmarks);
     }
   }, []);
 

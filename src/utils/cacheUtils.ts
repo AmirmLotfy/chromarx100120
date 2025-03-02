@@ -135,7 +135,6 @@ class CacheManager {
     }
   }
 
-  // Add the missing primeCache method
   async primeCache<T>(key: string, fetchDataFn: () => Promise<T>, ttlMinutes?: number): Promise<T> {
     // First try to get from cache
     const cachedData = await this.get<T>(key);
@@ -154,6 +153,18 @@ class CacheManager {
     } catch (error) {
       console.error('Error fetching data for cache:', error);
       throw error; // Re-throw to let caller handle the error
+    }
+  }
+
+  // Load dummy data immediately in non-extension context
+  preloadDummyData<T>(key: string, dummyData: T): void {
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+      const entry: CacheEntry<T> = {
+        value: dummyData,
+        expiry: null
+      };
+      this.memoryCache.set(key, entry);
+      localStorage.setItem(key, JSON.stringify(entry));
     }
   }
 }

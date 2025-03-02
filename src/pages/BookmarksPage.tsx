@@ -12,6 +12,8 @@ import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
 
+const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.bookmarks;
+
 const BookmarksPage = () => {
   const {
     bookmarks,
@@ -41,6 +43,10 @@ const BookmarksPage = () => {
   useEffect(() => {
     console.log("BookmarksPage rendered with bookmarks:", bookmarks.length);
   }, [bookmarks]);
+  
+  useEffect(() => {
+    loadBookmarks();
+  }, [loadBookmarks]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -64,7 +70,7 @@ const BookmarksPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      if (chrome.bookmarks) {
+      if (isChromeExtension) {
         await chrome.bookmarks.remove(id);
         setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
       } else {
@@ -78,7 +84,7 @@ const BookmarksPage = () => {
   const handleDeleteSelected = async () => {
     try {
       const promises = Array.from(selectedBookmarks).map((id) =>
-        chrome.bookmarks ? chrome.bookmarks.remove(id) : Promise.resolve()
+        isChromeExtension ? chrome.bookmarks.remove(id) : Promise.resolve()
       );
       await Promise.all(promises);
       setBookmarks((prev) =>
@@ -103,7 +109,7 @@ const BookmarksPage = () => {
   const handleImport = (importedBookmarks: ChromeBookmark[]) => {
     setBookmarks(prev => [...prev, ...importedBookmarks]);
     
-    if (chrome.bookmarks && navigator.onLine) {
+    if (isChromeExtension && navigator.onLine) {
       importedBookmarks.forEach(bookmark => {
         if (bookmark.url) {
           chrome.bookmarks.create({
@@ -170,7 +176,7 @@ const BookmarksPage = () => {
   return (
     <Layout>
       <div className="space-y-4 pb-24 px-2 max-w-md mx-auto">
-        {typeof chrome !== 'undefined' && chrome.bookmarks && (
+        {isChromeExtension && (
           <motion.div 
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
