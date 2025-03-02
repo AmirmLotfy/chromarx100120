@@ -1,4 +1,3 @@
-
 import { chromeDb } from '@/lib/chrome-storage';
 import { retryWithBackoff } from '@/utils/retryUtils';
 import { toast } from 'sonner';
@@ -28,25 +27,18 @@ export class StorageService {
 
   async get<T>(key: string): Promise<T | null> {
     try {
-      // For bookmarks, always return dummy bookmarks if ALWAYS_USE_DUMMY is true
-      if (key === 'bookmarks' && this.ALWAYS_USE_DUMMY) {
-        console.log('Returning dummy bookmarks due to ALWAYS_USE_DUMMY flag');
+      // CRITICAL FIX: For bookmarks, ALWAYS return dummy bookmarks regardless of other conditions
+      if (key === 'bookmarks') {
+        console.log('Forcing return of dummy bookmarks, bypassing all other logic');
         return dummyBookmarks as unknown as T;
       }
       
-      // For bookmarks, we should always have a fallback to dummy bookmarks
-      if (key === 'bookmarks' || key.includes('bookmark')) {
-        if (this.cache.has(key)) {
-          console.log('Returning bookmarks from cache');
-          return this.cache.get(key) as T;
-        }
-        
-        if (key === 'bookmarks') {
-          console.log('No bookmarks in cache, returning dummy bookmarks');
-          return dummyBookmarks as unknown as T;
-        }
+      // For bookmarks, always return dummy bookmarks if ALWAYS_USE_DUMMY is true
+      if (key.includes('bookmark') && this.ALWAYS_USE_DUMMY) {
+        console.log('Returning dummy bookmarks due to bookmark-related key:', key);
+        return dummyBookmarks as unknown as T;
       }
-
+      
       if (this.cache.has(key)) {
         return this.cache.get(key) as T;
       }
