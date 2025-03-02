@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -149,7 +148,6 @@ const SubscriptionPlanCard = ({
                       brand_name: "ChroMarx",
                       landing_page: "BILLING",
                       payment_method: {
-                        payer_selected: "CARD",
                         payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
                       },
                       return_url: chrome.runtime.getURL("index.html#/subscription/success")

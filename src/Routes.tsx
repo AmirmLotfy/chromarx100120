@@ -1,25 +1,26 @@
+
 import {
   createBrowserRouter,
   RouterProvider,
   RouteObject,
 } from "react-router-dom";
 import BookmarksPage from "./pages/BookmarksPage";
-import TasksPage from "./pages/TasksPage";
 import NotesPage from "./pages/NotesPage";
-import HomePage from "./pages/HomePage";
 import SettingsPage from "./pages/SettingsPage";
 import ChatPage from "./pages/ChatPage";
-import LoginPage from "./pages/LoginPage";
-import AuthWrapper from "./components/AuthWrapper";
+import AuthWrapper from "@/components/AuthWrapper";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
+import TaskPage from "./pages/TaskPage"; // Corrected import
+import UserPage from "./pages/UserPage"; // Using UserPage as HomePage equivalent
+import AuthPage from "./pages/AuthPage"; // Using AuthPage as LoginPage equivalent
 
 const routeConfig: RouteObject[] = [
   {
     path: "/",
     element: (
       <AuthWrapper>
-        <HomePage />
+        <UserPage />
       </AuthWrapper>
     ),
   },
@@ -35,7 +36,7 @@ const routeConfig: RouteObject[] = [
     path: "/tasks",
     element: (
       <AuthWrapper>
-        <TasksPage />
+        <TaskPage />
       </AuthWrapper>
     ),
   },
@@ -65,7 +66,7 @@ const routeConfig: RouteObject[] = [
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: <AuthPage />,
   },
   {
     path: "/subscription",
