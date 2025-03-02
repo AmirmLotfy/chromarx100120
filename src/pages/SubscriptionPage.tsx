@@ -3,12 +3,20 @@ import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Check, X, CreditCard, ArrowRight, Info, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Check, X, CreditCard, ArrowRight, Info, Settings, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { checkPayPalConfiguration, verifyPayPalPayment } from "@/utils/chromeUtils";
+import { 
+  checkPayPalConfiguration, 
+  verifyPayPalPayment, 
+  checkSubscriptionStatus, 
+  SubscriptionStatus 
+} from "@/utils/chromeUtils";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,28 +35,41 @@ const SubscriptionPage = () => {
   const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
   const [paypalConfigured, setPaypalConfigured] = useState<boolean>(false);
   const [isCheckingConfig, setIsCheckingConfig] = useState(true);
+  const [autoRenew, setAutoRenew] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const { currentPlan, setSubscriptionPlan } = useSubscription();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    const loadPayPalConfiguration = async () => {
+    const loadData = async () => {
       setIsCheckingConfig(true);
       try {
+        // Load PayPal config
         const config = await checkPayPalConfiguration();
         setPaypalConfigured(config.configured);
         setPaypalMode(config.mode);
         setClientId(config.clientId);
+        
+        // Load subscription status
+        if (user?.id) {
+          const status = await checkSubscriptionStatus(user.id);
+          if (status) {
+            setSubscriptionStatus(status);
+            setAutoRenew(!status.subscription.cancel_at_period_end);
+          }
+        }
       } catch (error) {
-        console.error("Error loading PayPal configuration:", error);
+        console.error("Error loading configuration:", error);
         setPaypalConfigured(false);
       } finally {
         setIsCheckingConfig(false);
       }
     };
     
-    loadPayPalConfiguration();
-  }, []);
+    loadData();
+  }, [user?.id]);
 
   const handlePlanSelect = (planId: string) => {
     if (planId === currentPlan) {
@@ -79,6 +100,14 @@ const SubscriptionPage = () => {
       if (planId === "free") {
         setSelectedPlan(null);
       }
+      
+      // Refresh subscription status
+      if (user?.id) {
+        const status = await checkSubscriptionStatus(user.id);
+        if (status) {
+          setSubscriptionStatus(status);
+        }
+      }
     } catch (error) {
       console.error("Error subscribing to plan:", error);
       toast.error("Failed to update subscription");
@@ -89,6 +118,45 @@ const SubscriptionPage = () => {
 
   const goToPayPalConfig = () => {
     navigate('/paypal-config');
+  };
+
+  const handleAutoRenewToggle = async () => {
+    if (!user?.id || !subscriptionStatus) return;
+    
+    try {
+      const newValue = !autoRenew;
+      setAutoRenew(newValue);
+      
+      // Update subscription in Supabase
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ cancel_at_period_end: !newValue })
+        .eq('user_id', user.id);
+        
+      if (error) {
+        toast.error("Failed to update auto-renewal setting");
+        setAutoRenew(!newValue); // Revert UI state
+        return;
+      }
+      
+      // Update local state
+      setSubscriptionStatus({
+        ...subscriptionStatus,
+        subscription: {
+          ...subscriptionStatus.subscription,
+          cancel_at_period_end: !newValue
+        }
+      });
+      
+      toast.success(newValue ? 
+        "Auto-renewal enabled. Your subscription will renew automatically." : 
+        "Auto-renewal disabled. Your subscription will expire at the end of the billing period."
+      );
+    } catch (error) {
+      console.error("Error updating auto-renewal:", error);
+      toast.error("Failed to update auto-renewal setting");
+      setAutoRenew(!autoRenew); // Revert UI state
+    }
   };
 
   const createOrder = async (data: any, actions: any) => {
@@ -122,7 +190,7 @@ const SubscriptionPage = () => {
       
       if (details.status === "COMPLETED" && selectedPlan) {
         // Verify the payment server-side
-        const paymentVerified = await verifyPayPalPayment(details.id, selectedPlan);
+        const paymentVerified = await verifyPayPalPayment(details.id, selectedPlan, autoRenew);
         
         if (paymentVerified) {
           // Update local subscription status
@@ -142,6 +210,17 @@ const SubscriptionPage = () => {
     }
   };
 
+  // Format date for display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   return (
     <Layout>
       <div className="bg-gradient-to-b from-[#F2FCE2] to-white dark:from-[#1A1F2C] dark:to-[#22272E] min-h-screen pb-12">
@@ -154,6 +233,96 @@ const SubscriptionPage = () => {
               Select the plan that fits your productivity needs
             </p>
           </div>
+
+          {/* Current Subscription Info */}
+          {subscriptionStatus && subscriptionStatus.subscription.plan_id !== 'free' && (
+            <Card className="mb-8 bg-background/60 backdrop-blur">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-2">Your Current Subscription</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Plan</div>
+                    <div className="font-medium">
+                      {subscriptionStatus.subscription.plan_id === 'basic' ? 'Pro' : 'Premium'} Plan
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Status</div>
+                    <div className="font-medium capitalize">
+                      {subscriptionStatus.subscription.status}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Current Period</div>
+                    <div className="font-medium">
+                      {formatDate(subscriptionStatus.subscription.current_period_start)} to {formatDate(subscriptionStatus.subscription.current_period_end)}
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="flex-1">
+                      <div className="text-sm text-muted-foreground mb-1">Auto-renewal</div>
+                      <div className="font-medium">
+                        {autoRenew ? 'Enabled' : 'Disabled'}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={autoRenew}
+                      onCheckedChange={handleAutoRenewToggle}
+                      className="ml-2"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Usage Limits */}
+          {subscriptionStatus && (
+            <Card className="mb-8 bg-background/60 backdrop-blur">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Your Usage</h3>
+                <div className="space-y-4">
+                  {Object.entries(subscriptionStatus.usageLimits).map(([key, usage]) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm capitalize">
+                          {key === 'aiRequests' ? 'AI Requests' : key}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {usage.used} / {usage.limit < 0 ? 'Unlimited' : usage.limit}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={usage.limit < 0 ? 0 : usage.percentage} 
+                        className={cn(
+                          "h-2",
+                          usage.percentage >= 90 ? "bg-red-100 dark:bg-red-900" : 
+                          usage.percentage >= 70 ? "bg-yellow-100 dark:bg-yellow-900" : 
+                          "bg-green-100 dark:bg-green-900"
+                        )}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                {subscriptionStatus.needsUpgrade && (
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-amber-600 dark:text-amber-400 mb-2">
+                      You're approaching your usage limits. Consider upgrading to get more resources.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePlanSelect('basic')}
+                      className="border-amber-600 dark:border-amber-400 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950"
+                    >
+                      Upgrade Now
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
 
           {/* PayPal Configuration Warning */}
           {!isCheckingConfig && !paypalConfigured && (
@@ -246,6 +415,20 @@ const SubscriptionPage = () => {
                   
                   {selectedPlan === plan.id && plan.id !== "free" && clientId && paypalConfigured ? (
                     <div className="mt-4">
+                      <div className="mb-4 flex items-center">
+                        <Switch
+                          checked={autoRenew}
+                          onCheckedChange={setAutoRenew}
+                          id="auto-renew"
+                        />
+                        <label 
+                          htmlFor="auto-renew"
+                          className="ml-2 text-sm cursor-pointer"
+                        >
+                          Auto-renew subscription
+                        </label>
+                      </div>
+                      
                       {isProcessing ? (
                         <div className="flex items-center justify-center py-4">
                           <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#9b87f5] border-t-transparent" />

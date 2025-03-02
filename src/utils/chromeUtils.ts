@@ -13,6 +13,31 @@ interface PayPalConfig {
 const DEFAULT_CLIENT_ID = "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R";
 const DEFAULT_MODE = 'sandbox';
 
+// Subscription types
+export interface SubscriptionStatus {
+  subscription: {
+    plan_id: string;
+    status: string;
+    current_period_end?: string;
+    current_period_start?: string;
+    cancel_at_period_end?: boolean;
+  };
+  renewalNeeded: boolean;
+  usageLimits: {
+    aiRequests: UsageLimit;
+    bookmarks: UsageLimit;
+    tasks: UsageLimit;
+    notes: UsageLimit;
+  };
+  needsUpgrade: boolean;
+}
+
+interface UsageLimit {
+  limit: number;
+  used: number;
+  percentage: number;
+}
+
 export const checkPayPalConfiguration = async (): Promise<PayPalConfig> => {
   try {
     const { data, error } = await supabase.functions.invoke('check-paypal-config');
@@ -66,7 +91,11 @@ export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
 };
 
 // Verify and process payment using Supabase Edge Function
-export const verifyPayPalPayment = async (orderId: string, planId: string): Promise<boolean> => {
+export const verifyPayPalPayment = async (
+  orderId: string, 
+  planId: string, 
+  autoRenew: boolean = true
+): Promise<boolean> => {
   try {
     // First check if PayPal is configured
     const { configured } = await checkPayPalConfiguration();
@@ -80,7 +109,8 @@ export const verifyPayPalPayment = async (orderId: string, planId: string): Prom
     const { data, error } = await supabase.functions.invoke('process-payment', {
       body: {
         orderId,
-        planId
+        planId,
+        autoRenew
       }
     });
 
@@ -102,6 +132,79 @@ export const verifyPayPalPayment = async (orderId: string, planId: string): Prom
     console.error('Unexpected error verifying payment:', error);
     toast.error('Payment verification failed');
     return false;
+  }
+};
+
+// Check subscription status and usage limits
+export const checkSubscriptionStatus = async (userId: string): Promise<SubscriptionStatus | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('check-subscription', {
+      body: userId
+    });
+
+    if (error) {
+      console.error('Error checking subscription status:', error);
+      return null;
+    }
+
+    if (!data.success) {
+      console.error('Failed to check subscription:', data.error);
+      return null;
+    }
+
+    return {
+      subscription: data.subscription,
+      renewalNeeded: data.renewalNeeded,
+      usageLimits: data.usageLimits,
+      needsUpgrade: data.needsUpgrade
+    };
+  } catch (error) {
+    console.error('Unexpected error checking subscription:', error);
+    return null;
+  }
+};
+
+// Show upgrade notification if needed
+export const checkAndShowUpgradeNotification = async (userId: string): Promise<void> => {
+  try {
+    const status = await checkSubscriptionStatus(userId);
+    
+    if (!status) return;
+    
+    // Show renewal notification
+    if (status.renewalNeeded) {
+      const endDate = new Date(status.subscription.current_period_end || '').toLocaleDateString();
+      toast.info(
+        `Your subscription will expire on ${endDate}. Please renew to avoid losing access to premium features.`,
+        {
+          duration: 10000,
+          action: {
+            label: "Renew Now",
+            onClick: () => window.location.href = "/subscription"
+          }
+        }
+      );
+    }
+    
+    // Show upgrade notification for free users
+    if (status.needsUpgrade) {
+      const highestUsage = Object.entries(status.usageLimits)
+        .map(([key, usage]) => ({ key, percentage: usage.percentage }))
+        .sort((a, b) => b.percentage - a.percentage)[0];
+        
+      toast.warning(
+        `You're using ${highestUsage.percentage}% of your ${highestUsage.key} limit. Upgrade to get more!`,
+        {
+          duration: 10000,
+          action: {
+            label: "Upgrade",
+            onClick: () => window.location.href = "/subscription"
+          }
+        }
+      );
+    }
+  } catch (error) {
+    console.error('Error showing upgrade notification:', error);
   }
 };
 

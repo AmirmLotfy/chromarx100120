@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { chromeDb } from '@/lib/chrome-storage';
 import { subscriptionPlans, PlanLimits } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { checkSubscriptionStatus } from '@/utils/chromeUtils';
 
 interface UsageData {
   bookmarks: number;
@@ -24,6 +27,9 @@ interface SubscriptionHook {
     name: string;
     limits: Record<string, number>;
   } | null;
+  isAutoRenewEnabled: boolean;
+  setAutoRenew: (enabled: boolean) => Promise<boolean>;
+  expirationDate: Date | null;
 }
 
 interface StorageSubscription {
@@ -31,6 +37,7 @@ interface StorageSubscription {
   status: string;
   createdAt: string;
   endDate: string;
+  autoRenew?: boolean;
 }
 
 // Helper function for tracking subscription analytics
@@ -57,10 +64,59 @@ export const useSubscription = (): SubscriptionHook => {
     notes: 0,
     aiRequests: 0
   });
+  const [isAutoRenewEnabled, setIsAutoRenewEnabled] = useState(true);
+  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchSubscriptionData = async () => {
       try {
+        // First try to get data from Supabase if user is logged in
+        if (user?.id) {
+          const status = await checkSubscriptionStatus(user.id);
+          
+          if (status) {
+            // Update local state with Supabase data
+            setCurrentPlan(status.subscription.plan_id || 'free');
+            setIsAutoRenewEnabled(!status.subscription.cancel_at_period_end);
+            
+            if (status.subscription.current_period_end) {
+              setExpirationDate(new Date(status.subscription.current_period_end));
+            }
+            
+            // Update usage data
+            setUsage({
+              bookmarks: status.usageLimits.bookmarks.used,
+              tasks: status.usageLimits.tasks.used,
+              notes: status.usageLimits.notes.used,
+              aiRequests: status.usageLimits.aiRequests.used
+            });
+            
+            // Also update local storage for offline access
+            const createdAt = status.subscription.current_period_start || new Date().toISOString();
+            const endDate = status.subscription.current_period_end || new Date().toISOString();
+            
+            await chromeDb.set('user_subscription', {
+              planId: status.subscription.plan_id,
+              status: status.subscription.status,
+              createdAt,
+              endDate,
+              autoRenew: !status.subscription.cancel_at_period_end
+            });
+            
+            await chromeDb.set('usage', {
+              bookmarks: status.usageLimits.bookmarks.used,
+              tasks: status.usageLimits.tasks.used,
+              notes: status.usageLimits.notes.used,
+              aiRequests: status.usageLimits.aiRequests.used
+            });
+            
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback to local storage if Supabase data not available
         const storedUsage = await chromeDb.get<UsageData>('usage');
         if (storedUsage) {
           setUsage(storedUsage);
@@ -74,6 +130,9 @@ export const useSubscription = (): SubscriptionHook => {
           const endDate = new Date(subscription.endDate);
           const now = new Date();
           
+          setExpirationDate(endDate);
+          setIsAutoRenewEnabled(subscription.autoRenew !== false);
+          
           if (subscription.status === 'active' && endDate > now) {
             setCurrentPlan(subscription.planId);
           } else if (endDate <= now && subscription.planId !== 'free') {
@@ -82,7 +141,8 @@ export const useSubscription = (): SubscriptionHook => {
               planId: 'free',
               status: 'expired',
               createdAt: subscription.createdAt,
-              endDate: subscription.endDate
+              endDate: subscription.endDate,
+              autoRenew: false
             });
             toast.info("Your subscription has expired. You've been moved to the Free plan.");
           } else {
@@ -95,7 +155,8 @@ export const useSubscription = (): SubscriptionHook => {
             planId: 'free',
             status: 'active',
             createdAt,
-            endDate: createdAt // No expiration for free plan
+            endDate: createdAt, // No expiration for free plan
+            autoRenew: false
           });
           setCurrentPlan('free');
         }
@@ -108,7 +169,7 @@ export const useSubscription = (): SubscriptionHook => {
     };
 
     fetchSubscriptionData();
-  }, []);
+  }, [user?.id]);
 
   const incrementUsage = async (type: keyof UsageData): Promise<boolean> => {
     try {
@@ -143,8 +204,30 @@ export const useSubscription = (): SubscriptionHook => {
         [type]: (usage[type] || 0) + 1
       };
 
+      // Update local storage
       await chromeDb.set('usage', newUsage);
       setUsage(newUsage);
+      
+      // Also increment in Supabase if user is logged in
+      if (user?.id) {
+        try {
+          const { error } = await supabase
+            .from('usage_statistics')
+            .upsert(
+              {
+                user_id: user.id,
+                [`${type === 'aiRequests' ? 'api_calls' : type}_used`]: newUsage[type]
+              },
+              { onConflict: 'user_id' }
+            );
+            
+          if (error) {
+            console.error('Error updating usage in Supabase:', error);
+          }
+        } catch (supabaseError) {
+          console.error('Error with Supabase usage update:', supabaseError);
+        }
+      }
       
       const plan = subscriptionPlans.find(p => p.id === currentPlan);
       if (plan) {
@@ -263,10 +346,35 @@ export const useSubscription = (): SubscriptionHook => {
         status: 'active',
         createdAt,
         endDate: endDate.toISOString(),
+        autoRenew: planId !== 'free' && isAutoRenewEnabled
       };
 
+      // Update in local storage
       await chromeDb.set('user_subscription', subscriptionData);
       setCurrentPlan(planId);
+      setExpirationDate(endDate);
+      
+      // Also update in Supabase if user is logged in
+      if (user?.id) {
+        try {
+          const { error } = await supabase
+            .from('subscriptions')
+            .upsert({
+              user_id: user.id,
+              plan_id: planId,
+              status: 'active',
+              current_period_start: createdAt,
+              current_period_end: endDate.toISOString(),
+              cancel_at_period_end: !isAutoRenewEnabled
+            });
+            
+          if (error) {
+            console.error('Error updating subscription in Supabase:', error);
+          }
+        } catch (supabaseError) {
+          console.error('Error with Supabase subscription update:', supabaseError);
+        }
+      }
       
       await trackSubscriptionEvent(
         currentPlan === 'free' ? 'plan_upgraded' : 
@@ -295,6 +403,46 @@ export const useSubscription = (): SubscriptionHook => {
     }
   };
 
+  const setAutoRenew = async (enabled: boolean): Promise<boolean> => {
+    try {
+      setIsAutoRenewEnabled(enabled);
+      
+      // Update locally
+      const subscription = await chromeDb.get<StorageSubscription>('user_subscription');
+      if (subscription) {
+        await chromeDb.set('user_subscription', {
+          ...subscription,
+          autoRenew: enabled
+        });
+      }
+      
+      // Update in Supabase if user is logged in
+      if (user?.id) {
+        try {
+          const { error } = await supabase
+            .from('subscriptions')
+            .update({
+              cancel_at_period_end: !enabled
+            })
+            .eq('user_id', user.id);
+            
+          if (error) {
+            console.error('Error updating auto-renewal in Supabase:', error);
+            return false;
+          }
+        } catch (supabaseError) {
+          console.error('Error with Supabase auto-renewal update:', supabaseError);
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error setting auto-renewal:', error);
+      return false;
+    }
+  };
+
   return {
     isLoading,
     currentPlan,
@@ -304,6 +452,9 @@ export const useSubscription = (): SubscriptionHook => {
     hasReachedLimit,
     setSubscriptionPlan,
     getRemainingQuota,
-    getPlanDetails
+    getPlanDetails,
+    isAutoRenewEnabled,
+    setAutoRenew,
+    expirationDate
   };
 };
