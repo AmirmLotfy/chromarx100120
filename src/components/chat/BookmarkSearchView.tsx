@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 const BookmarkSearchView = () => {
   return (
     <motion.div 
-      className="flex-1 flex flex-col items-center justify-center p-6 text-center min-h-[300px]"
+      className="flex-1 flex flex-col items-center justify-center p-6 text-center min-h-[300px] overflow-hidden"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}

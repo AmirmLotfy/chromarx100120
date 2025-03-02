@@ -10,6 +10,7 @@ interface ChatHeaderProps {
   messagesCount: number;
   isBookmarkSearchMode: boolean;
   toggleBookmarkSearchMode: () => void;
+  clearChat?: () => void; // Add this optional prop
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -19,6 +20,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   messagesCount,
   isBookmarkSearchMode,
   toggleBookmarkSearchMode,
+  clearChat, // Added the prop here
 }) => {
   const handleToggleSidebar = () => {
     setIsHistoryOpen(!isHistoryOpen);

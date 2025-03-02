@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, SendHorizontal, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,13 +10,6 @@ interface ChatInputProps {
   disabled?: boolean;
   recentQueries?: string[];
   isBookmarkSearchMode?: boolean;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -131,7 +123,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           recognition.interimResults = true;
           recognition.lang = 'en-US';
           
-          recognition.onresult = (event: SpeechRecognitionEvent) => {
+          recognition.onresult = (event) => {
             let transcript = '';
             
             // Process the speech recognition results properly
