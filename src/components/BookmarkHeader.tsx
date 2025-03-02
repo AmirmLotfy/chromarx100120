@@ -11,7 +11,6 @@ import {
   Menu,
 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
-import ViewToggle from "./ViewToggle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -59,8 +58,6 @@ const BookmarkHeader = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
-  console.log("BookmarkHeader rendered with view:", view);
-
   const handleCategorySubmit = () => {
     if (!newCategory.trim()) {
       toast.error("Please enter a category name");
@@ -93,9 +90,7 @@ const BookmarkHeader = ({
         <div className="flex justify-between items-center pt-3">
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Bookmarks</h1>
 
-          <div className="flex items-center gap-1.5">
-            <ViewToggle view={view} onViewChange={onViewChange} />
-
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {selectedBookmarksCount > 0 ? (
               <Button
                 variant="destructive"
@@ -107,7 +102,7 @@ const BookmarkHeader = ({
                 <span className="text-xs font-medium">{selectedBookmarksCount}</span>
               </Button>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {importComponent || (
                   <Button
                     variant="outline"

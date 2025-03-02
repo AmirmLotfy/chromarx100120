@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkList from "./BookmarkList";
@@ -62,15 +61,8 @@ const BookmarkContent = ({
   const hasActiveFilters = Object.values(activeFilters).some(Boolean);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Debug logging
-  console.log("BookmarkContent rendered with:", {
-    bookmarksCount: bookmarks.length,
-    filteredCount: filteredBookmarks.length,
-    categories: categories.length,
-    domains: domains.length,
-    view,
-    activeTab
-  });
+  // Always use list view, regardless of what's passed in
+  const actualView = "list";
 
   const renderEmptyState = () => (
     <motion.div 
@@ -127,7 +119,7 @@ const BookmarkContent = ({
         onToggleSelect={onToggleSelect}
         onDelete={onDelete}
         formatDate={formatDate}
-        view={view}
+        view={actualView}
         onReorder={onReorder}
         onUpdateCategories={onUpdateCategories}
       />
