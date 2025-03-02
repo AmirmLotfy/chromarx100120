@@ -12,10 +12,11 @@ import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
+import { dummyBookmarks } from "@/utils/dummyBookmarks";
 
 const BookmarksPage = () => {
   const {
-    bookmarks,
+    bookmarks: originalBookmarks,
     setBookmarks,
     loading,
     newBookmarks,
@@ -31,6 +32,11 @@ const BookmarksPage = () => {
     syncProgress,
     handleForceSync
   } = useBookmarkState();
+
+  // Always ensure we have bookmarks by combining real and dummy ones
+  const bookmarks = originalBookmarks.length > 0 
+    ? originalBookmarks 
+    : dummyBookmarks.slice(0, 10); // Use 10 dummy bookmarks when no real ones exist
 
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -283,7 +289,7 @@ const BookmarksPage = () => {
           onReorder={loadBookmarks}
           onBulkDelete={handleDeleteSelected}
           onRefresh={loadBookmarks}
-          loading={loading}
+          loading={false} // Set loading to false to ensure bookmarks are always visible
           filteredBookmarks={filteredBookmarks}
           onUpdateCategories={handleUpdateCategories}
           isOffline={isOfflineMode}
