@@ -58,15 +58,19 @@ export const subscriptionPlans: Plan[] = [
       monthly: 0,
       yearly: 0
     },
-    description: "Basic features for getting started",
+    description: "Essential features for personal use",
     features: [
-      { name: "Basic bookmark management", included: true },
-      { name: "Basic analytics", included: true },
-      { name: "Limited AI features", included: true, description: "Basic summarization only" },
+      { name: "Basic bookmark management", included: true, description: "Organize up to 50 bookmarks" },
+      { name: "Simple search functionality", included: true },
+      { name: "Basic AI summarization", included: true, description: "10 summaries per month" },
+      { name: "Basic notes & tasks", included: true, description: "Up to 30 each" },
+      { name: "Simple productivity timer", included: true },
       { name: "Community support", included: true },
       { name: "Advanced AI features", included: false },
+      { name: "Advanced analytics & insights", included: false },
+      { name: "Custom collections", included: false },
       { name: "Priority support", included: false },
-      { name: "Advanced analytics", included: false },
+      { name: "Cross-device sync", included: false },
       { name: "Unlimited storage", included: false },
     ],
     limits: {
@@ -78,28 +82,32 @@ export const subscriptionPlans: Plan[] = [
   },
   {
     id: "basic",
-    name: "Basic",
+    name: "Pro",
     pricing: {
       monthly: 4.99,
       yearly: 49.99
     },
-    description: "Enhanced features for productivity",
+    description: "Advanced features for power users",
     features: [
-      { name: "Enhanced bookmark management", included: true },
-      { name: "Weekly analytics reports", included: true },
-      { name: "AI summarization & detection", included: true },
+      { name: "Enhanced bookmark management", included: true, description: "Organize up to 500 bookmarks" },
+      { name: "Advanced search & filters", included: true },
+      { name: "AI summarization & content analysis", included: true, description: "100 AI operations per month" },
+      { name: "Advanced notes & tasks", included: true, description: "Up to 200 each" },
+      { name: "Customizable productivity timer", included: true },
+      { name: "Advanced analytics dashboard", included: true },
+      { name: "Custom bookmark collections", included: true },
       { name: "Priority email support", included: true },
-      { name: "Advanced AI features", included: false },
-      { name: "24/7 chat support", included: false },
-      { name: "Custom analytics", included: false },
-      { name: "Unlimited storage", included: false },
+      { name: "Cross-device synchronization", included: true },
+      { name: "Productivity reports & insights", included: true },
+      { name: "Tag-based organization", included: true },
+      { name: "Offline access", included: true },
     ],
     isPopular: true,
     limits: {
-      bookmarks: 200,
-      tasks: 100,
-      notes: 100,
-      aiRequests: 50
+      bookmarks: 500,
+      tasks: 200,
+      notes: 200,
+      aiRequests: 100
     }
   },
   {

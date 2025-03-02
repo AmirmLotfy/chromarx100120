@@ -176,26 +176,23 @@ const SubscriptionPage = () => {
                   
                   <ScrollArea className="h-[180px] pr-4 mb-6">
                     <ul className="space-y-3">
-                      {comparisonFeatures.map((feature, index) => {
-                        const included = plan.features.some(
-                          f => f.name.toLowerCase().includes(feature.toLowerCase()) && f.included
-                        );
-                        
-                        return (
-                          <li key={index} className="flex items-start gap-2 text-sm">
-                            {included ? (
-                              <Check className="h-5 w-5 text-[#9b87f5] dark:text-[#7E69AB] shrink-0 mt-0.5" />
-                            ) : (
-                              <X className="h-5 w-5 text-gray-300 dark:text-gray-600 shrink-0 mt-0.5" />
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          {feature.included ? (
+                            <Check className="h-5 w-5 text-[#9b87f5] dark:text-[#7E69AB] shrink-0 mt-0.5" />
+                          ) : (
+                            <X className="h-5 w-5 text-gray-300 dark:text-gray-600 shrink-0 mt-0.5" />
+                          )}
+                          <span className={feature.included ? "text-foreground" : "text-muted-foreground"}>
+                            {feature.name}
+                            {feature.description && (
+                              <span className="text-xs text-muted-foreground block">
+                                {feature.description}
+                              </span>
                             )}
-                            <span className={included ? "text-foreground" : "text-muted-foreground"}>
-                              {feature}
-                              {feature === "Bookmark management" && plan.id === "free" && " (up to 50)"}
-                              {feature === "Bookmark management" && plan.id === "basic" && " (up to 200)"}
-                            </span>
-                          </li>
-                        );
-                      })}
+                          </span>
+                        </li>
+                      ))}
                     </ul>
                   </ScrollArea>
                   
