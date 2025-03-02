@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,20 +13,15 @@ const DEFAULT_MODE = 'live';
 
 export const getPayPalClientId = async (): Promise<string> => {
   try {
-    // Try to fetch from Supabase directly
-    const { data, error } = await supabase
-      .from('app_configuration')
-      .select('value')
-      .eq('key', 'paypal')
-      .single();
-
+    // Try to fetch from Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('get-paypal-config');
+    
     if (error) {
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    // Check if data.value is an object with a client_id property
-    if (data && data.value && typeof data.value === 'object' && 'client_id' in data.value) {
-      return data.value.client_id as string;
+    if (data && data.clientId) {
+      return data.clientId;
     }
     
     console.warn('PayPal client_id not found in config, using default');
@@ -41,21 +35,15 @@ export const getPayPalClientId = async (): Promise<string> => {
 
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
   try {
-    // Try to fetch from Supabase directly
-    const { data, error } = await supabase
-      .from('app_configuration')
-      .select('value')
-      .eq('key', 'paypal')
-      .single();
-
+    // Try to fetch from Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('get-paypal-config');
+    
     if (error) {
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    // Check if data.value is an object with a mode property
-    if (data && data.value && typeof data.value === 'object' && 'mode' in data.value) {
-      const mode = data.value.mode as string;
-      return (mode === 'sandbox' || mode === 'live') ? mode : DEFAULT_MODE;
+    if (data && data.mode && (data.mode === 'sandbox' || data.mode === 'live')) {
+      return data.mode;
     }
     
     console.warn('PayPal mode not found in config, using default');

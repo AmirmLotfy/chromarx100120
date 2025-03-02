@@ -14,29 +14,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Create a Supabase client with the Admin key
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    )
-
-    // Query the app_configuration table for PayPal config
-    const { data, error } = await supabaseAdmin
-      .from('app_configuration')
-      .select('value')
-      .eq('key', 'paypal')
-      .single()
-
-    if (error) {
-      console.error('Error fetching PayPal config:', error)
-      throw error
+    // Get client ID and secret from environment variables
+    const clientId = Deno.env.get('PAYPAL_CLIENT_ID') || '';
+    const secretKey = Deno.env.get('PAYPAL_SECRET_KEY') || '';
+    
+    // Simple validation
+    if (!clientId || !secretKey) {
+      throw new Error('PayPal credentials not configured');
     }
+
+    // Determine mode - default to live
+    const mode = 'live';  // You can make this configurable if needed
 
     // Return the PayPal configuration
     return new Response(
       JSON.stringify({
-        clientId: data.value.client_id,
-        mode: data.value.mode
+        clientId,
+        mode
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
