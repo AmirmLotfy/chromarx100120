@@ -119,7 +119,7 @@ const ChatInterface = () => {
           />
           
           {/* Chat input section */}
-          <div className="p-3">
+          <div className="px-3 pb-3 pt-1">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}

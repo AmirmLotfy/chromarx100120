@@ -72,7 +72,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
               <div className={`h-6 w-6 rounded-full bg-destructive/20 flex items-center justify-center ${isMobile ? 'mt-0' : 'mt-0.5'}`}>
                 <X size={14} className="text-destructive" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-destructive">{error.message || "Error"}</p>
                 <Button 
                   variant="outline" 

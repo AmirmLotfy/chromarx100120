@@ -1,5 +1,5 @@
 
-import { Bookmark } from "lucide-react";
+import { Bookmark, Search } from "lucide-react";
 import { motion } from "framer-motion";
 
 const BookmarkSearchView = () => {
@@ -14,9 +14,9 @@ const BookmarkSearchView = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-5 shadow-inner"
+        className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
       >
-        <Bookmark className="h-8 w-8 text-primary/80" />
+        <Search className="h-8 w-8 text-primary/80" />
       </motion.div>
       <h3 className="text-xl font-medium mb-3">Bookmark Search</h3>
       <p className="text-sm text-muted-foreground max-w-xs">

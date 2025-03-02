@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search, X, Plus } from "lucide-react";
+import { Menu, MessageCircle, Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 
@@ -35,15 +35,15 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
+          className="h-10 w-10 rounded-full bg-background/80 shadow-sm"
           onClick={handleToggleSidebar}
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
-          {isHistoryOpen ? <X size={18} /> : <Menu size={18} />}
+          <Menu size={20} />
         </Button>
         
         <div className="flex flex-col">
@@ -61,12 +61,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center">
         <motion.button
           initial={false}
           whileTap={{ scale: 0.94 }}
           onClick={toggleBookmarkSearchMode}
-          className={`relative h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1.5 ${
+          className={`relative h-10 px-4 rounded-full text-sm font-medium flex items-center gap-2 ${
             isBookmarkSearchMode 
               ? "bg-secondary text-secondary-foreground" 
               : "bg-background/80 text-foreground shadow-sm border"
@@ -77,34 +77,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             animate={{ rotate: isBookmarkSearchMode ? 0 : 360 }}
             transition={{ duration: 0.3 }}
           >
-            {isBookmarkSearchMode ? <MessageCircle size={16} /> : <Search size={16} />}
+            {isBookmarkSearchMode ? <MessageCircle size={18} /> : <Search size={18} />}
           </motion.div>
-          <span className="text-xs">{isBookmarkSearchMode ? "Chat" : "Search"}</span>
+          <span>{isBookmarkSearchMode ? "Chat" : "Search"}</span>
         </motion.button>
         
-        {!isHistoryOpen && messagesCount > 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
-            onClick={clearChat}
-            aria-label="Clear chat"
-          >
-            <X size={18} />
-          </Button>
-        )}
-        
-        {!isHistoryOpen && messagesCount === 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
-            onClick={clearChat}
-            aria-label="New chat"
-          >
-            <Plus size={18} />
-          </Button>
-        )}
+        {/* New chat button is already included in the sidebar, so no need for a duplicate clear/new chat button */}
       </div>
     </motion.div>
   );
