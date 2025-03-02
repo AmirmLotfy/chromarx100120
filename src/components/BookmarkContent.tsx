@@ -76,11 +76,11 @@ const BookmarkContent = ({
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="flex flex-col items-center justify-center h-60 border-2 border-dashed rounded-xl bg-accent/5"
+      className="flex flex-col items-center justify-center h-60 border border-dashed rounded-xl bg-accent/5"
     >
       <div className="text-center p-6">
-        <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
-          <BookmarkIcon className="h-8 w-8 text-primary" />
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-900/20 dark:to-purple-800/30 flex items-center justify-center mx-auto mb-4">
+          <BookmarkIcon className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
         </div>
         <p className="text-lg font-medium mb-2">No bookmarks found</p>
         <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
@@ -107,7 +107,10 @@ const BookmarkContent = ({
       return (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-24 w-full rounded-xl bg-gradient-to-r from-accent/10 to-muted/20 animate-pulse" />
+            <div 
+              key={index} 
+              className="h-24 w-full rounded-xl bg-gradient-to-r from-slate-200 to-slate-100 dark:from-slate-800/40 dark:to-slate-700/40 animate-pulse" 
+            />
           ))}
         </div>
       );
@@ -151,7 +154,7 @@ const BookmarkContent = ({
         <TabsList className="mb-4 rounded-full p-1 bg-muted/30 backdrop-blur-sm sticky top-0 z-10 grid grid-cols-3 w-full sm:w-auto">
           <TabsTrigger 
             value="all" 
-            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs h-9"
+            className="rounded-full data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm text-xs h-9"
             onClick={() => {
               console.log("All tab clicked");
               if (selectedCategory) onSelectCategory(null);
@@ -163,14 +166,14 @@ const BookmarkContent = ({
           </TabsTrigger>
           <TabsTrigger 
             value="categories" 
-            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs h-9"
+            className="rounded-full data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm text-xs h-9"
           >
             <FolderIcon className="h-3.5 w-3.5 mr-1.5" />
             Categories
           </TabsTrigger>
           <TabsTrigger 
             value="domains" 
-            className="rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs h-9"
+            className="rounded-full data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm text-xs h-9"
           >
             <GlobeIcon className="h-3.5 w-3.5 mr-1.5" />
             Domains
@@ -181,7 +184,7 @@ const BookmarkContent = ({
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4 flex items-center p-3 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-950/20 dark:to-amber-900/20 border rounded-lg border-amber-200 dark:border-amber-800/50 text-sm"
+            className="mb-4 flex items-center p-3 bg-amber-50/80 dark:bg-amber-900/20 border rounded-lg border-amber-200 dark:border-amber-800/50 text-sm"
           >
             <CloudOff className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
             <p className="text-xs sm:text-sm">Offline mode: Some features like drag-and-drop organization and AI categorization are limited.</p>
@@ -192,10 +195,10 @@ const BookmarkContent = ({
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-4 flex items-center justify-between p-3 bg-accent/20 backdrop-blur-sm border rounded-lg"
+            className="mb-4 flex items-center justify-between p-3 bg-accent/10 backdrop-blur-sm border rounded-lg"
           >
             <div className="flex items-center">
-              <Filter className="h-4 w-4 mr-2 text-primary" />
+              <Filter className="h-4 w-4 mr-2 text-indigo-500" />
               <p className="text-xs sm:text-sm">Filtered results</p>
             </div>
             <Button 
@@ -225,9 +228,9 @@ const BookmarkContent = ({
               {selectedCategory && (
                 <div className="mt-6 space-y-4">
                   <h2 className="text-lg font-semibold flex items-center">
-                    <FolderIcon className="h-5 w-5 mr-2 text-primary opacity-70" />
+                    <FolderIcon className="h-5 w-5 mr-2 text-indigo-500 opacity-80" />
                     <span>Category: </span>
-                    <span className="ml-2 text-primary font-bold">{selectedCategory}</span>
+                    <span className="ml-2 text-indigo-600 dark:text-indigo-400 font-bold">{selectedCategory}</span>
                   </h2>
                   {renderContent()}
                 </div>
@@ -243,9 +246,9 @@ const BookmarkContent = ({
               {selectedDomain && (
                 <div className="mt-6 space-y-4">
                   <h2 className="text-lg font-semibold flex items-center">
-                    <GlobeIcon className="h-5 w-5 mr-2 text-primary opacity-70" />
+                    <GlobeIcon className="h-5 w-5 mr-2 text-indigo-500 opacity-80" />
                     <span>Domain: </span>
-                    <span className="ml-2 text-primary font-bold">{selectedDomain}</span>
+                    <span className="ml-2 text-indigo-600 dark:text-indigo-400 font-bold">{selectedDomain}</span>
                   </h2>
                   {renderContent()}
                 </div>

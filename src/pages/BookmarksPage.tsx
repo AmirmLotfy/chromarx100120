@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
+import { motion } from "framer-motion";
 
 const BookmarksPage = () => {
   const {
@@ -169,8 +170,12 @@ const BookmarksPage = () => {
 
   return (
     <Layout>
-      <div className="space-y-4 pb-16 px-1">
-        <div className="flex items-center justify-between p-3 bg-accent/10 rounded-xl backdrop-blur-sm">
+      <div className="space-y-4 pb-24 px-2 max-w-md mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl backdrop-blur-sm border border-indigo-100 dark:border-indigo-900/30"
+        >
           <div className="flex items-center space-x-2">
             {isConnected ? (
               <Wifi className="h-4 w-4 text-green-500" />
@@ -189,7 +194,7 @@ const BookmarksPage = () => {
           <Button 
             size="sm" 
             variant="outline" 
-            className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs"
+            className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
             onClick={handleForceSync}
             disabled={!isConnected || isProcessing}
           >
@@ -200,7 +205,7 @@ const BookmarksPage = () => {
             )}
             <span>Sync</span>
           </Button>
-        </div>
+        </motion.div>
         
         {isProcessing && (
           <AIProgressIndicator 
@@ -212,7 +217,11 @@ const BookmarksPage = () => {
         )}
 
         {isOfflineMode && (
-          <div className="px-3 py-2.5 bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="px-3 py-2.5 bg-amber-50/80 dark:bg-amber-900/20 border border-amber-200/70 dark:border-amber-800/30 rounded-xl"
+          >
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-500" />
               <span className="text-xs font-medium text-amber-800 dark:text-amber-400">Offline Mode</span>
@@ -220,7 +229,7 @@ const BookmarksPage = () => {
             <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
               You're currently offline. Some features like syncing and AI-powered categorization are limited.
             </p>
-          </div>
+          </motion.div>
         )}
 
         <BookmarkHeader

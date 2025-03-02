@@ -23,11 +23,16 @@ export interface ChromeBookmark {
     syncStatus?: 'synced' | 'pending' | 'conflict';
     lastSyncedAt?: string;
     deviceId?: string;
+    color?: string; // Theme color for the bookmark
+    icon?: string; // Custom icon for bookmark
+    isImportant?: boolean; // Flag for important bookmarks
     [key: string]: any;
   };
   preview?: {
     description?: string;
     ogImage?: string;
+    favicon?: string; // Favicon URL
+    themeColor?: string; // Website theme color
   };
   version?: number;
   // Conflict resolution properties
@@ -38,4 +43,11 @@ export interface ChromeBookmark {
   };
   // Offline tracking
   offlineChanges?: boolean;
+  // UI enhancements
+  uiState?: {
+    expanded?: boolean;
+    highlighted?: boolean;
+    recentlyAdded?: boolean;
+    animationState?: 'default' | 'adding' | 'removing' | 'updating';
+  };
 }

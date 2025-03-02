@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import SearchBar, { SearchFilter } from "./SearchBar";
+import { motion } from "framer-motion";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -94,12 +95,12 @@ const BookmarkHeader = ({
   };
 
   return (
-    <div className="bg-background/80 backdrop-blur-sm sticky top-0 z-10 pb-4 space-y-4">
-      <div className="flex flex-col space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary-color to-secondary-color bg-clip-text text-transparent">Bookmarks</h1>
+    <div className="bg-background/95 backdrop-blur-md sticky top-0 z-10 pb-3 px-1 space-y-3 rounded-b-xl shadow-sm">
+      <div className="flex flex-col space-y-3">
+        <div className="flex justify-between items-center pt-3">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Bookmarks</h1>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <ViewToggle view={view} onViewChange={onViewChange} />
 
             {selectedBookmarksCount > 0 ? (
@@ -175,7 +176,11 @@ const BookmarkHeader = ({
         </div>
 
         {selectedBookmarksCount > 0 && (
-          <div className="flex items-center justify-between bg-accent/20 p-2.5 rounded-xl animate-fade-in">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between bg-primary/5 p-2.5 rounded-xl"
+          >
             <span className="text-xs sm:text-sm font-medium">
               {selectedBookmarksCount} bookmark{selectedBookmarksCount === 1 ? "" : "s"} selected
             </span>
@@ -184,18 +189,18 @@ const BookmarkHeader = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsDialogOpen(true)}
-                className="h-7 text-xs rounded-full hover:bg-accent px-2"
+                className="h-7 text-xs rounded-full hover:bg-primary/10 px-2.5"
               >
                 <Tag className="h-3.5 w-3.5 mr-1.5" />
                 <span>Categorize</span>
               </Button>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="rounded-xl">
+        <DialogContent className="rounded-xl max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Category</DialogTitle>
           </DialogHeader>
@@ -219,7 +224,7 @@ const BookmarkHeader = ({
               >
                 Cancel
               </Button>
-              <Button onClick={handleCategorySubmit} className="rounded-lg">Save</Button>
+              <Button onClick={handleCategorySubmit} className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white">Save</Button>
             </div>
           </div>
         </DialogContent>
