@@ -1,3 +1,4 @@
+
 // If the file doesn't exist, create it with basic cache functionality
 
 interface CacheEntry<T> {
@@ -155,23 +156,15 @@ class CacheManager {
     }
   }
 
-  // Preload dummy data immediately in non-extension context
+  // Load dummy data immediately in non-extension context
   preloadDummyData<T>(key: string, dummyData: T): void {
-    // Only preload in non-extension context or when running in development mode
-    if (typeof chrome === 'undefined' || !chrome.storage || process.env.NODE_ENV === 'development') {
-      console.log('Preloading dummy data for:', key);
+    if (typeof chrome === 'undefined' || !chrome.storage) {
       const entry: CacheEntry<T> = {
         value: dummyData,
         expiry: null
       };
       this.memoryCache.set(key, entry);
-      
-      try {
-        localStorage.setItem(key, JSON.stringify(entry));
-        console.log('Dummy data cached in localStorage');
-      } catch (error) {
-        console.warn('Failed to store dummy data in localStorage:', error);
-      }
+      localStorage.setItem(key, JSON.stringify(entry));
     }
   }
 }
