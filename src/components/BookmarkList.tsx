@@ -102,9 +102,8 @@ const BookmarkList = ({
                   }}
                   controls={
                     <BookmarkControls
-                      bookmark={bookmark}
-                      onDelete={() => onDelete(bookmark.id)}
-                      onUpdateCategories={onUpdateCategories}
+                      sortBy="dateAdded"
+                      onSortChange={() => {}}
                     />
                   }
                   shareComponent={
@@ -112,10 +111,8 @@ const BookmarkList = ({
                   }
                   aiActions={
                     <BookmarkAIActions
-                      bookmark={bookmark}
-                      onUpdateBookmark={(updatedBookmark) => {
-                        onUpdateCategories([updatedBookmark]);
-                      }}
+                      selectedBookmarks={[bookmark]}
+                      onUpdateCategories={onUpdateCategories}
                     />
                   }
                 />
