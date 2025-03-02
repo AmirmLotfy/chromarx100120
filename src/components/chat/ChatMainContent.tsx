@@ -20,6 +20,7 @@ interface ChatMainContentProps {
   isProcessing: boolean;
   isBookmarkSearchMode: boolean;
   markMessagesAsRead?: () => void;
+  viewMode?: "grid" | "list";
 }
 
 const ChatMainContent: React.FC<ChatMainContentProps> = ({
@@ -32,7 +33,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   retryLastMessage,
   isProcessing,
   isBookmarkSearchMode,
-  markMessagesAsRead
+  markMessagesAsRead,
+  viewMode = "list"
 }) => {
   const isMobile = useIsMobile();
   
@@ -44,9 +46,9 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   }, [messages, markMessagesAsRead]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-transparent to-background/30">
       {/* Notifications section */}
-      <div className={`${isMobile ? 'px-2 pt-1' : 'px-3 pt-2'}`}>
+      <div className={`${isMobile ? 'px-3 pt-1.5' : 'px-4 pt-2'}`}>
         {(isOffline || !isAIAvailable) && (
           <ChatOfflineNotice 
             isOffline={isOffline} 
@@ -56,10 +58,10 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         )}
         
         {error && (
-          <div className="mb-3 px-3 py-2.5 bg-destructive/10 border border-destructive/20 rounded-lg text-sm">
+          <div className="mb-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-xl text-sm">
             <div className="flex gap-2 items-start">
-              <div className={`h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center ${isMobile ? 'mt-0' : 'mt-0.5'}`}>
-                <X size={12} className="text-destructive" />
+              <div className={`h-6 w-6 rounded-full bg-destructive/20 flex items-center justify-center ${isMobile ? 'mt-0' : 'mt-0.5'}`}>
+                <X size={14} className="text-destructive" />
               </div>
               <div>
                 <p className="font-medium text-destructive">{error.message || "Error"}</p>
@@ -96,6 +98,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         <ChatMessages 
           messages={messages} 
           messagesEndRef={messagesEndRef} 
+          viewMode={viewMode}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Search, SendHorizontal, Sparkles, X } from "lucide-react";
+import { Search, SendHorizontal, Sparkles, X, Mic, Image, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -104,7 +104,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className="relative">
+    <motion.div 
+      className="relative"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.1 }}
+    >
       {/* Recent Queries Dropdown */}
       <AnimatePresence>
         {showRecentQueries && recentQueries.length > 0 && (
@@ -113,7 +118,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-lg shadow-md overflow-hidden z-10"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-xl shadow-lg overflow-hidden z-10"
             ref={suggestionsRef}
           >
             <div className="p-2">
@@ -132,7 +137,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 {recentQueries.map((query, index) => (
                   <button
                     key={index}
-                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm truncate flex items-center"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm truncate flex items-center"
                     onClick={() => handleRecentQueryClick(query)}
                   >
                     <span className="h-5 w-5 flex-shrink-0 rounded-full bg-primary/10 flex items-center justify-center mr-2">
@@ -155,7 +160,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-lg shadow-md overflow-hidden z-10"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-background border rounded-xl shadow-lg overflow-hidden z-10"
             ref={suggestionsRef}
           >
             <div className="p-2">
@@ -174,13 +179,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
-                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm"
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm flex items-center"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 float-left">
+                    <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 flex-shrink-0">
                       <Sparkles className="h-3 w-3 text-primary/70" />
                     </span>
-                    {suggestion}
+                    <span className="line-clamp-2">{suggestion}</span>
                   </button>
                 ))}
               </div>
@@ -189,8 +194,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="flex items-end gap-2">
-        <div className="relative flex-1 overflow-hidden rounded-full border bg-background">
+      <div className="flex flex-col gap-2">
+        <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm">
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -204,41 +209,77 @@ const ChatInput: React.FC<ChatInputProps> = ({
             rows={1}
           />
           
-          {inputValue.length > 0 && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
-              onClick={() => setShowSuggestions(suggestions.length > 0)}
-              disabled={suggestions.length === 0}
-            >
-              <Sparkles className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">Show suggestions</span>
-            </Button>
-          )}
+          <div className="absolute right-2 bottom-2 flex items-center">
+            {!isBookmarkSearchMode && (
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full hover:bg-muted"
+                  disabled={isProcessing || disabled}
+                >
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                  <span className="sr-only">Attach file</span>
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full hover:bg-muted"
+                  disabled={isProcessing || disabled}
+                >
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  <span className="sr-only">Add image</span>
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 rounded-full hover:bg-muted"
+                  disabled={isProcessing || disabled}
+                >
+                  <Mic className="h-4 w-4 text-muted-foreground" />
+                  <span className="sr-only">Voice input</span>
+                </Button>
+              </>
+            )}
+            
+            {inputValue.length > 0 && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-full hover:bg-muted"
+                onClick={() => setShowSuggestions(suggestions.length > 0)}
+                disabled={suggestions.length === 0 || isProcessing || disabled}
+              >
+                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <span className="sr-only">Show suggestions</span>
+              </Button>
+            )}
+          </div>
         </div>
         
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!inputValue.trim() || isProcessing || disabled}
-          onClick={handleSendMessage}
-          className={cn(
-            "h-10 w-10 shrink-0 rounded-full transition-all",
-            (!inputValue.trim() || isProcessing || disabled) 
-              ? "opacity-50" 
-              : "bg-primary hover:bg-primary/90"
-          )}
-        >
-          {isBookmarkSearchMode ? (
-            <Search className="h-5 w-5" />
-          ) : (
-            <SendHorizontal className="h-5 w-5" />
-          )}
-          <span className="sr-only">Send</span>
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!inputValue.trim() || isProcessing || disabled}
+            onClick={handleSendMessage}
+            className={cn(
+              "h-10 w-10 rounded-full transition-all",
+              (!inputValue.trim() || isProcessing || disabled) 
+                ? "opacity-50" 
+                : "bg-primary hover:bg-primary/90 shadow-md"
+            )}
+          >
+            {isBookmarkSearchMode ? (
+              <Search className="h-5 w-5" />
+            ) : (
+              <SendHorizontal className="h-5 w-5" />
+            )}
+            <span className="sr-only">Send</span>
+          </Button>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

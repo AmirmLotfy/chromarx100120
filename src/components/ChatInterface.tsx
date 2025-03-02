@@ -2,11 +2,13 @@
 import { useEffect } from "react";
 import { useChatState } from "./chat/useChatState";
 import ChatInput from "./ChatInput";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ChatHeader from "./chat/ChatHeader";
 import ChatSidebar from "./chat/ChatSidebar";
 import ChatMainContent from "./chat/ChatMainContent";
+import ViewToggle from "./ViewToggle";
+import { useState } from "react";
 
 const ChatInterface = () => {
   const {
@@ -41,6 +43,7 @@ const ChatInterface = () => {
   } = useChatState();
   
   const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -49,13 +52,13 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
-  // Debug log to verify state changes
-  useEffect(() => {
-    console.log("History sidebar state:", isHistoryOpen);
-  }, [isHistoryOpen]);
-
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background rounded-lg shadow-lg border">
+    <motion.div 
+      className="flex flex-col h-full overflow-hidden rounded-xl"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       {/* Header */}
       <ChatHeader 
         isHistoryOpen={isHistoryOpen}
@@ -94,8 +97,11 @@ const ChatInterface = () => {
         
         {/* Overlay to close sidebar on mobile when clicking outside */}
         {isHistoryOpen && isMobile && (
-          <div 
-            className="fixed inset-0 bg-black/20 z-20"
+          <motion.div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => setIsHistoryOpen(false)}
             aria-hidden="true"
           />
@@ -103,6 +109,12 @@ const ChatInterface = () => {
         
         {/* Main chat area */}
         <div className="flex-1 flex flex-col overflow-hidden">
+          {!isBookmarkSearchMode && (
+            <div className="px-3 pt-3 flex justify-between items-center">
+              <ViewToggle view={viewMode} onViewChange={setViewMode} />
+            </div>
+          )}
+          
           <ChatMainContent 
             messages={messages}
             messagesEndRef={messagesEndRef}
@@ -114,10 +126,11 @@ const ChatInterface = () => {
             isProcessing={isProcessing}
             isBookmarkSearchMode={isBookmarkSearchMode}
             markMessagesAsRead={markMessagesAsRead}
+            viewMode={viewMode}
           />
           
           {/* Chat input section */}
-          <div className="p-3 border-t">
+          <div className="p-3 pb-4">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
@@ -129,7 +142,7 @@ const ChatInterface = () => {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

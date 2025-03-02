@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search, X } from "lucide-react";
+import { Menu, MessageCircle, Search, X, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { motion } from "framer-motion";
 
@@ -29,71 +29,81 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-violet-500/10 to-indigo-500/10">
+    <motion.div 
+      className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-primary/5 to-secondary/5 backdrop-blur-sm"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="flex items-center gap-2">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="md:hidden"
+          className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
           onClick={handleToggleSidebar}
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
-          {isHistoryOpen ? <X size={20} /> : <Menu size={20} />}
+          {isHistoryOpen ? <X size={18} /> : <Menu size={18} />}
         </Button>
         
         <div className="flex flex-col">
-          <h1 className="text-lg font-medium">
+          <h1 className="text-base font-semibold flex items-center gap-1.5">
             {activeConversation?.name || "New Chat"}
+            {activeConversation?.pinned && (
+              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            )}
           </h1>
           <p className="text-xs text-muted-foreground">
             {messagesCount === 0 
               ? "Start a new conversation" 
-              : `${messagesCount} messages`}
+              : `${messagesCount} messages${activeConversation?.category ? ` • ${activeConversation.category}` : ''}`}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <Button
-          variant={isBookmarkSearchMode ? "secondary" : "outline"}
-          size="sm"
-          className={`h-8 px-2 text-xs gap-1 transition-all duration-300 relative ${
-            isBookmarkSearchMode 
-              ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
-              : "bg-background text-muted-foreground hover:bg-background/80"
-          }`}
+      <div className="flex items-center gap-1.5">
+        <motion.button
+          initial={false}
+          whileTap={{ scale: 0.94 }}
           onClick={toggleBookmarkSearchMode}
+          className={`relative h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1.5 ${
+            isBookmarkSearchMode 
+              ? "bg-secondary text-secondary-foreground" 
+              : "bg-background/80 text-foreground shadow-sm border"
+          }`}
         >
           <motion.div
             initial={false}
             animate={{ rotate: isBookmarkSearchMode ? 0 : 360 }}
             transition={{ duration: 0.3 }}
-            className="relative"
           >
             {isBookmarkSearchMode ? <MessageCircle size={16} /> : <Search size={16} />}
           </motion.div>
-          <span>{isBookmarkSearchMode ? "Chat Mode" : "Search Mode"}</span>
-          <motion.div
-            className="absolute bottom-0 left-0 h-0.5 bg-primary rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: isBookmarkSearchMode ? "100%" : "0%" }}
-            transition={{ duration: 0.3 }}
-          />
-        </Button>
+          <span className="text-xs">{isBookmarkSearchMode ? "Chat" : "Search"}</span>
+        </motion.button>
         
         {!isHistoryOpen && messagesCount > 0 && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
             onClick={clearChat}
             aria-label="Clear chat"
           >
             <X size={18} />
           </Button>
         )}
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full bg-background/80 shadow-sm"
+          aria-label="Information"
+        >
+          <Info size={18} />
+        </Button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
