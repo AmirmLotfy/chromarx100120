@@ -14,16 +14,18 @@ const DEFAULT_MODE = 'live';
 
 export const getPayPalClientId = async (): Promise<string> => {
   try {
-    // Try to fetch from Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('get-paypal-config', {
-      method: 'GET'
-    });
+    // Try to fetch from Supabase directly
+    const { data, error } = await supabase
+      .from('app_configuration')
+      .select('value')
+      .eq('key', 'paypal')
+      .single();
 
     if (error) {
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    return data.clientId;
+    return data.value.client_id;
   } catch (error) {
     console.error('Error fetching PayPal client ID:', error);
     // Fallback to default client ID if fetch fails
@@ -33,16 +35,18 @@ export const getPayPalClientId = async (): Promise<string> => {
 
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
   try {
-    // Try to fetch from Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('get-paypal-config', {
-      method: 'GET'
-    });
+    // Try to fetch from Supabase directly
+    const { data, error } = await supabase
+      .from('app_configuration')
+      .select('value')
+      .eq('key', 'paypal')
+      .single();
 
     if (error) {
       throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    return data.mode || DEFAULT_MODE;
+    return data.value.mode || DEFAULT_MODE;
   } catch (error) {
     console.error('Error fetching PayPal mode:', error);
     // Fallback to default mode if fetch fails

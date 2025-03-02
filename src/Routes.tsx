@@ -1,4 +1,3 @@
-
 import { Routes as RouterRoutes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "@/pages/Index";
@@ -21,8 +20,8 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import CollectionsPage from "@/pages/CollectionsPage";
 import ExportImportPage from "@/pages/ExportImportPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
+import PayPalConfigPage from "./pages/PayPalConfigPage";
 
-// Protected route component - temporarily disabled for testing
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
@@ -170,6 +169,7 @@ const Routes = () => {
           </ProtectedRoute>
         } 
       />
+      <Route path="/paypal-config" element={<PayPalConfigPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );
