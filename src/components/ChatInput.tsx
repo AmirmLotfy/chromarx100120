@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, SendHorizontal, Search, X } from "lucide-react";
+import { Mic, SendHorizontal, Search, X, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -197,14 +197,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
           onClick={toggleSpeechRecognition}
           disabled={isProcessing || disabled}
           className={cn(
-            "h-12 w-12 rounded-full p-0 flex-shrink-0 transition-colors flex items-center justify-center",
+            "h-12 w-12 rounded-full p-0 flex-shrink-0 transition-all flex items-center justify-center",
             isListening
               ? "bg-destructive text-destructive-foreground animate-pulse"
               : "bg-muted hover:bg-muted/80 text-muted-foreground"
           )}
           aria-label={isListening ? "Stop recording" : "Start voice input"}
         >
-          <Mic className="h-5 w-5" />
+          {isListening ? (
+            <MicOff className="h-5 w-5" />
+          ) : (
+            <Mic className="h-5 w-5" />
+          )}
         </motion.button>
         
         <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm">

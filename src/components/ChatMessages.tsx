@@ -62,11 +62,11 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   });
 
   return (
-    <div className="px-2 py-2 w-full">
-      <div className="space-y-4 w-full">
+    <div className="w-full px-3 py-2">
+      <div className="space-y-6 w-full">
         {groupedMessages.map((group, groupIndex) => (
-          <div key={group.date} className="space-y-4 w-full">
-            {/* Date divider - simplified */}
+          <div key={group.date} className="space-y-5 w-full">
+            {/* Date divider */}
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-muted"></div>
               <span className="flex-shrink mx-4 text-xs text-muted-foreground/70 px-2 py-0.5 bg-muted/20 rounded-full">
@@ -75,8 +75,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
               <div className="flex-grow border-t border-muted"></div>
             </div>
             
-            {/* List view - chat bubbles */}
-            <div className="space-y-3 w-full">
+            {/* Message bubbles */}
+            <div className="space-y-4 w-full">
               {group.messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -90,8 +90,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                   )}
                 >
                   {message.sender === "assistant" && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   
@@ -99,8 +99,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     className={cn(
                       "max-w-[85%] relative",
                       message.sender === "user"
-                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-3 py-2.5"
-                        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-3 py-2.5",
+                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm"
+                        : "bg-muted/80 text-foreground rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm",
                       !message.isRead && message.sender === "assistant" && "ring-1 ring-primary/10"
                     )}
                   >
@@ -132,7 +132,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                       </div>
                     )}
 
-                    {/* Simplified web results */}
+                    {/* Web results */}
                     {message.webResults && message.webResults.length > 0 && (
                       <div className="pt-2 border-t border-primary/10 mt-2">
                         <p className="text-xs font-medium opacity-80">Related:</p>
@@ -157,15 +157,15 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                       </div>
                     )}
                     
-                    {/* Simplified time indicator */}
+                    {/* Time indicator */}
                     <div className="absolute bottom-0 right-0 transform translate-y-5 flex items-center text-[10px] text-muted-foreground opacity-70">
                       {new Date(message.timestamp || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </div>
                   </div>
                   
                   {message.sender === "user" && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <User className="h-3.5 w-3.5 text-primary" />
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-primary" />
                     </div>
                   )}
                 </motion.div>
@@ -173,7 +173,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} className="h-16" /> {/* Extra space for scroll */}
+        <div ref={messagesEndRef} className="h-20" /> {/* Extra space for scroll */}
       </div>
     </div>
   );

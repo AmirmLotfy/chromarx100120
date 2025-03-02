@@ -46,9 +46,9 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   }, [messages, markMessagesAsRead]);
 
   return (
-    <div className="flex-1 flex flex-col relative overflow-hidden">
+    <div className="flex-1 flex flex-col relative">
       {/* Notifications section */}
-      <div className={`${isMobile ? 'px-2 pt-2' : 'px-3 pt-2'} space-y-2 sticky top-0 z-10 bg-background`}>
+      <div className="sticky top-0 z-10 px-3 pt-2 space-y-2 bg-background/95 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -67,7 +67,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           
           {error && (
             <motion.div 
-              className="mb-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm"
+              className="mb-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-xl text-sm"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -118,7 +118,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
             {isBookmarkSearchMode ? (
               <BookmarkSearchView key="search" />
             ) : (
-              <div className="pb-4">
+              <div className="pb-6">
                 <ChatMessages 
                   key="messages"
                   messages={messages} 
