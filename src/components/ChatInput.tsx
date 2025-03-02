@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, SendHorizontal, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,7 @@ interface ChatInputProps {
 }
 
 interface SpeechRecognitionEvent extends Event {
-  results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
-  };
+  results: SpeechRecognitionResultList;
 }
 
 interface SpeechRecognition extends EventTarget {
@@ -149,10 +144,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
         recognition.lang = 'en-US';
         
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = Array.from(event.results)
-            .map(result => result[0])
-            .map(result => result.transcript)
-            .join('');
+          // Extract transcript from the results
+          let transcript = '';
+          
+          // Process the speech recognition results
+          for (let i = 0; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              transcript += event.results[i][0].transcript;
+            }
+          }
           
           setInputValue(transcript);
           
