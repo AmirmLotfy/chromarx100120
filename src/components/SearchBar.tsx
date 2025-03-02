@@ -106,7 +106,7 @@ const SearchBar = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="end">
+            <PopoverContent className="w-80 p-4 bg-background border shadow-md" align="end">
               <div className="space-y-4">
                 <h4 className="font-medium">Filter Bookmarks</h4>
                 
@@ -220,7 +220,6 @@ const SearchBar = ({
         )}
       </div>
       
-      {/* Active filters display */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2">
           {filters.category && (

@@ -68,7 +68,7 @@ const DropdownMenuContent = React.forwardRef<
         className
       )}
       style={{
-        backgroundColor: 'var(--popover)',
+        backgroundColor: 'var(--background)',
         backdropFilter: 'none'
       }}
       {...props}

@@ -83,7 +83,7 @@ const AnalyticsFilters = ({ onDateChange, onFilterChange }: AnalyticsFiltersProp
                 Custom
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 bg-background border shadow-md" align="start">
               <Calendar
                 initialFocus
                 mode="range"
