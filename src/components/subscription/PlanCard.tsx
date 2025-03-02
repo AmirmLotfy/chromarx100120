@@ -1,200 +1,93 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
+import { Plan } from "@/config/subscriptionPlans";
+import { useState } from "react";
 import { toast } from "sonner";
-import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { useEffect } from "react";
-import { getPayPalClientId } from "@/utils/chromeUtils";
-import type { Plan } from "@/config/subscriptionPlans";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 interface PlanCardProps extends Plan {
-  onSubscribe?: (planId: string) => Promise<void>;
-  isSelected?: boolean;
   onSelect?: (planId: string) => void;
+  isSelected?: boolean;
+  isCurrentPlan?: boolean;
 }
 
-const PlanCard = ({ 
-  id, 
-  name, 
-  pricing, 
-  description, 
-  features, 
+const PlanCard = ({
+  id,
+  name,
+  pricing,
+  description,
+  features,
   isPopular,
-  isSelected,
   onSelect,
-  onSubscribe 
+  isSelected,
+  isCurrentPlan
 }: PlanCardProps) => {
-  const [paypalClientId, setPaypalClientId] = useState<string>("");
-  const [isYearly, setIsYearly] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    const fetchPayPalClientId = async () => {
-      const clientId = await getPayPalClientId();
-      if (clientId) {
-        setPaypalClientId(clientId);
-      } else {
-        toast.error("Payment configuration not found");
+  const handleSelect = async () => {
+    if (isCurrentPlan) {
+      toast.info("You are already subscribed to this plan");
+      return;
+    }
+    
+    if (onSelect) {
+      setIsLoading(true);
+      try {
+        onSelect(id);
+      } finally {
+        setIsLoading(false);
       }
-    };
-
-    fetchPayPalClientId();
-  }, []);
-
-  const currentPrice = isYearly ? pricing.yearly : pricing.monthly;
-  const priceLabel = isYearly ? "/year" : "/month";
-  const savings = isYearly ? Math.round((pricing.monthly * 12 - pricing.yearly) / (pricing.monthly * 12) * 100) : 0;
-
-  const handlePlanSelect = () => {
-    onSelect?.(id);
-  };
-
-  const handlePaymentSuccess = async (data: any) => {
-    try {
-      setIsProcessing(true);
-      await onSubscribe?.(id);
-      toast.success(`Successfully subscribed to ${name} plan`);
-    } catch (error) {
-      console.error('Subscription error:', error);
-      toast.error("Failed to process subscription");
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   return (
-    <Card 
-      className={`relative cursor-pointer transition-all ${
-        isPopular ? 'border-primary shadow-lg' : ''
-      } ${isSelected ? 'ring-2 ring-primary scale-105' : 'hover:scale-102'}`}
-      onClick={handlePlanSelect}
-    >
+    <div className={`relative rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden ${isSelected || isCurrentPlan ? "border-primary" : ""}`}>
       {isPopular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="bg-primary text-primary-foreground text-sm px-3 py-1 rounded-full">
-            Most Popular
-          </span>
+        <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-medium py-1 px-3 rounded-bl">
+          Popular
         </div>
       )}
-      
-      <CardHeader>
-        <CardTitle>{name}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      
-      <CardContent>
+
+      <div className="p-6">
+        <h3 className="text-2xl font-bold">{name}</h3>
+        <p className="text-muted-foreground mt-1.5 mb-4">{description}</p>
+
         <div className="mb-6">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Label htmlFor={`${id}-billing-toggle`}>Monthly</Label>
-            <Switch
-              id={`${id}-billing-toggle`}
-              checked={isYearly}
-              onCheckedChange={setIsYearly}
-              onClick={(e) => e.stopPropagation()}
-            />
-            <Label htmlFor={`${id}-billing-toggle`}>Yearly</Label>
-          </div>
-          
-          <div className="text-center">
-            <span className="text-3xl font-bold">${currentPrice.toFixed(2)}</span>
-            <span className="text-muted-foreground">{priceLabel}</span>
-            {isYearly && savings > 0 && (
-              <p className="text-sm text-green-600 mt-1">Save {savings}%</p>
-            )}
-          </div>
+          <span className="text-3xl font-bold">
+            ${pricing.monthly.toFixed(2)}
+          </span>
+          <span className="text-muted-foreground ml-1">/month</span>
         </div>
 
-        <ul className="space-y-2">
+        <ul className="space-y-2 mb-6">
           {features.map((feature, index) => (
-            <li
-              key={index}
-              className="flex items-center text-sm text-muted-foreground"
-            >
+            <li key={index} className="flex items-start gap-2">
               {feature.included ? (
-                <Check className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
+                <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               ) : (
-                <X className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                <span className="h-5 w-5 shrink-0" />
               )}
-              <span>{feature.name}</span>
+              <span className={feature.included ? "" : "text-muted-foreground"}>
+                {feature.name}
+              </span>
             </li>
           ))}
         </ul>
-      </CardContent>
 
-      <CardFooter>
-        {isSelected && pricing.monthly > 0 && paypalClientId && !isProcessing ? (
-          <div className="w-full" onClick={(e) => e.stopPropagation()}>
-            <PayPalScriptProvider options={{ 
-              clientId: paypalClientId,
-              currency: "USD",
-              intent: "capture",
-              components: "buttons,hosted-fields"
-            }}>
-              <PayPalButtons
-                style={{ 
-                  layout: "horizontal",
-                  shape: "rect",
-                  label: "pay"
-                }}
-                createOrder={(data, actions) => {
-                  return actions.order.create({
-                    intent: "CAPTURE",
-                    purchase_units: [{
-                      amount: {
-                        value: currentPrice.toString(),
-                        currency_code: "USD"
-                      },
-                      description: `${name} Subscription - ${isYearly ? 'Yearly' : 'Monthly'}`
-                    }],
-                    application_context: {
-                      shipping_preference: "NO_SHIPPING",
-                      user_action: "PAY_NOW",
-                      brand_name: "ChroMarx",
-                      landing_page: "BILLING",
-                      payment_method: {
-                        payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
-                      }
-                    }
-                  });
-                }}
-                onApprove={async (data, actions) => {
-                  if (!actions.order) return;
-                  try {
-                    const order = await actions.order.capture();
-                    await handlePaymentSuccess(order);
-                  } catch (error) {
-                    console.error('Payment error:', error);
-                    toast.error("Failed to process payment");
-                  }
-                }}
-                onError={() => {
-                  toast.error("Payment failed");
-                }}
-              />
-            </PayPalScriptProvider>
-          </div>
-        ) : (
-          <Button 
-            className="w-full" 
-            variant={isSelected ? "default" : "outline"}
-            disabled={isProcessing}
-          >
-            {pricing.monthly === 0 ? "Select Free Plan" : "Select Plan"}
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+        <Button
+          className="w-full"
+          variant={pricing.monthly === 0 ? "outline" : "default"}
+          disabled={isLoading || isCurrentPlan}
+          onClick={handleSelect}
+        >
+          {isCurrentPlan
+            ? "Current Plan"
+            : pricing.monthly === 0
+            ? "Get Started"
+            : "Subscribe"}
+        </Button>
+      </div>
+    </div>
   );
 };
 
