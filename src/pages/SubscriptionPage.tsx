@@ -272,8 +272,8 @@ const SubscriptionPage = () => {
                     </ScrollArea>
                     
                     {selectedPlan === plan.id && plan.id !== "free" && clientId ? (
-                      <div className="mt-4 bg-card/50 p-3 rounded-lg border border-border">
-                        <h4 className="text-sm font-medium mb-2 flex items-center">
+                      <div className="w-full mt-4 bg-card/50 p-4 rounded-lg border border-border">
+                        <h4 className="text-sm font-medium mb-3 flex items-center">
                           <Shield className="h-4 w-4 mr-1.5 text-green-500" />
                           Secure Payment
                         </h4>
@@ -284,19 +284,21 @@ const SubscriptionPage = () => {
                           intent: "capture",
                           currency: "USD",
                         }}>
-                          <PayPalButtons
-                            style={{
-                              color: "blue",
-                              shape: "rect",
-                              label: "pay",
-                              height: 40
-                            }}
-                            disabled={paymentProcessing}
-                            createOrder={createOrder}
-                            onApprove={onApprove}
-                            onError={onError}
-                            onCancel={onCancel}
-                          />
+                          <div className="w-full">
+                            <PayPalButtons
+                              style={{
+                                color: "blue",
+                                shape: "rect",
+                                label: "pay",
+                                height: 45
+                              }}
+                              disabled={paymentProcessing}
+                              createOrder={createOrder}
+                              onApprove={onApprove}
+                              onError={onError}
+                              onCancel={onCancel}
+                            />
+                          </div>
                         </PayPalScriptProvider>
                         
                         <p className="text-xs text-center text-muted-foreground mt-3">
