@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { chromeDb } from '@/lib/chrome-storage';
-import { subscriptionPlans } from '@/config/subscriptionPlans';
+import { subscriptionPlans, PlanLimits } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
 
 interface UsageData {
@@ -208,7 +209,7 @@ export const useSubscription = (): SubscriptionHook => {
     
     return {
       name: plan.id === 'basic' ? 'Pro' : plan.name,
-      limits: plan.limits as Record<string, number>
+      limits: plan.limits as unknown as Record<string, number>
     };
   };
 
