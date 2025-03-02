@@ -6,27 +6,46 @@ import { supabase } from "@/integrations/supabase/client";
 interface PayPalConfig {
   clientId: string;
   mode: 'sandbox' | 'live';
+  configured: boolean;
 }
 
 // Default PayPal Client ID as fallback
 const DEFAULT_CLIENT_ID = "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R";
-const DEFAULT_MODE = 'live';
+const DEFAULT_MODE = 'sandbox';
+
+export const checkPayPalConfiguration = async (): Promise<PayPalConfig> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('check-paypal-config');
+    
+    if (error) {
+      console.error('Error checking PayPal configuration:', error);
+      return {
+        clientId: DEFAULT_CLIENT_ID,
+        mode: DEFAULT_MODE,
+        configured: false
+      };
+    }
+    
+    return {
+      clientId: data.clientId || DEFAULT_CLIENT_ID,
+      mode: data.mode || DEFAULT_MODE,
+      configured: data.configured || false
+    };
+  } catch (error) {
+    console.error('Error checking PayPal configuration:', error);
+    return {
+      clientId: DEFAULT_CLIENT_ID,
+      mode: DEFAULT_MODE,
+      configured: false
+    };
+  }
+};
 
 export const getPayPalClientId = async (): Promise<string> => {
   try {
-    // Try to fetch from Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('get-paypal-config');
-    
-    if (error) {
-      throw new Error(`Failed to fetch PayPal config: ${error.message}`);
-    }
-
-    if (data && data.clientId) {
-      return data.clientId;
-    }
-    
-    console.warn('PayPal client_id not found in config, using default');
-    return DEFAULT_CLIENT_ID;
+    // Use the new check function
+    const config = await checkPayPalConfiguration();
+    return config.clientId;
   } catch (error) {
     console.error('Error fetching PayPal client ID:', error);
     // Fallback to default client ID if fetch fails
@@ -36,19 +55,9 @@ export const getPayPalClientId = async (): Promise<string> => {
 
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
   try {
-    // Try to fetch from Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('get-paypal-config');
-    
-    if (error) {
-      throw new Error(`Failed to fetch PayPal config: ${error.message}`);
-    }
-
-    if (data && data.mode && (data.mode === 'sandbox' || data.mode === 'live')) {
-      return data.mode;
-    }
-    
-    console.warn('PayPal mode not found in config, using default');
-    return DEFAULT_MODE;
+    // Use the new check function
+    const config = await checkPayPalConfiguration();
+    return config.mode;
   } catch (error) {
     console.error('Error fetching PayPal mode:', error);
     // Fallback to default mode if fetch fails
@@ -59,6 +68,15 @@ export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
 // Verify and process payment using Supabase Edge Function
 export const verifyPayPalPayment = async (orderId: string, planId: string): Promise<boolean> => {
   try {
+    // First check if PayPal is configured
+    const { configured } = await checkPayPalConfiguration();
+    
+    if (!configured) {
+      console.error('PayPal is not properly configured');
+      toast.error('PayPal is not properly configured. Please set up your PayPal credentials first.');
+      return false;
+    }
+    
     const { data, error } = await supabase.functions.invoke('process-payment', {
       body: {
         orderId,

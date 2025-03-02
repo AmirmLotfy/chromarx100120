@@ -9,3 +9,6 @@ verify_jwt = true
 
 [functions.process-payment]
 verify_jwt = false
+
+[functions.check-paypal-config]
+verify_jwt = false
