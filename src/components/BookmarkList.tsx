@@ -40,6 +40,7 @@ import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCle
 import { useLanguage } from "@/stores/languageStore";
 import { fetchPageContent } from "@/utils/contentExtractor";
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { motion } from "framer-motion";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
