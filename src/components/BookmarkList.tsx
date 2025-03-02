@@ -5,6 +5,7 @@ import SortableBookmark from "@/components/SortableBookmark";
 import BookmarkControls from "@/components/BookmarkControls";
 import BookmarkShare from "@/components/BookmarkShare";
 import BookmarkAIActions from "@/components/BookmarkAIActions";
+import BookmarkActionBar from "@/components/BookmarkActionBar";
 import { extractDomain } from "@/utils/domainUtils";
 import { AnimatePresence } from "framer-motion";
 import { DndContext, useSensors, useSensor, PointerSensor } from "@dnd-kit/core";
@@ -84,57 +85,88 @@ const BookmarkList = ({
     onUpdateCategories(updatedBookmarks);
   };
 
-  return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div ref={bookmarkListRef} className="space-y-3">
-        <SortableContext items={bookmarks.map(b => b.id)} strategy={verticalListSortingStrategy}>
-          <AnimatePresence>
-            {bookmarks.map((bookmark) => {
-              const isExpanded = expandedBookmark === bookmark.id;
-              const isSelected = selectedBookmarks.has(bookmark.id);
-              const domain = bookmark.url ? extractDomain(bookmark.url) : "";
+  const handleSelectAll = () => {
+    // If all are selected, unselect all. Otherwise, select all.
+    if (selectedBookmarks.size === bookmarks.length) {
+      bookmarks.forEach(bookmark => {
+        if (selectedBookmarks.has(bookmark.id)) {
+          onToggleSelect(bookmark.id);
+        }
+      });
+    } else {
+      bookmarks.forEach(bookmark => {
+        if (!selectedBookmarks.has(bookmark.id)) {
+          onToggleSelect(bookmark.id);
+        }
+      });
+    }
+  };
 
-              return (
-                <SortableBookmark
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  isSelected={isSelected}
-                  onToggleSelect={() => onToggleSelect(bookmark.id)}
-                  onDelete={() => onDelete(bookmark.id)}
-                  formatDate={formatDate}
-                  view={view}
-                  domain={domain}
-                  isExpanded={isExpanded}
-                  onToggleExpand={() => {
-                    console.log("Toggle expand for bookmark:", bookmark.id, "Current:", isExpanded);
-                    setExpandedBookmark(isExpanded ? null : bookmark.id);
-                  }}
-                  controls={
-                    <BookmarkControls
-                      sortBy="dateAdded"
-                      onSortChange={() => {}}
-                    />
-                  }
-                  shareComponent={
-                    <BookmarkShare
-                      bookmark={bookmark}
-                    />
-                  }
-                  aiActions={
-                    <BookmarkAIActions
-                      selectedBookmarks={[bookmark]}
-                      onUpdateCategories={onUpdateCategories}
-                    />
-                  }
-                  tabIndex={0}
-                  onFocus={() => console.log("Bookmark focused:", bookmark.id)}
-                />
-              );
-            })}
-          </AnimatePresence>
-        </SortableContext>
-      </div>
-    </DndContext>
+  // Get array of selected bookmarks objects
+  const selectedBookmarksArray = bookmarks.filter(b => 
+    selectedBookmarks.has(b.id)
+  );
+
+  return (
+    <div className="space-y-4">
+      <BookmarkActionBar 
+        bookmarks={bookmarks}
+        selectedBookmarks={selectedBookmarksArray}
+        onSelectAll={handleSelectAll}
+        onUpdateCategories={onUpdateCategories}
+      />
+      
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div ref={bookmarkListRef} className="space-y-3">
+          <SortableContext items={bookmarks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+            <AnimatePresence>
+              {bookmarks.map((bookmark) => {
+                const isExpanded = expandedBookmark === bookmark.id;
+                const isSelected = selectedBookmarks.has(bookmark.id);
+                const domain = bookmark.url ? extractDomain(bookmark.url) : "";
+
+                return (
+                  <SortableBookmark
+                    key={bookmark.id}
+                    bookmark={bookmark}
+                    isSelected={isSelected}
+                    onToggleSelect={() => onToggleSelect(bookmark.id)}
+                    onDelete={() => onDelete(bookmark.id)}
+                    formatDate={formatDate}
+                    view={view}
+                    domain={domain}
+                    isExpanded={isExpanded}
+                    onToggleExpand={() => {
+                      console.log("Toggle expand for bookmark:", bookmark.id, "Current:", isExpanded);
+                      setExpandedBookmark(isExpanded ? null : bookmark.id);
+                    }}
+                    controls={
+                      <BookmarkControls
+                        sortBy="dateAdded"
+                        onSortChange={() => {}}
+                      />
+                    }
+                    shareComponent={
+                      <BookmarkShare
+                        bookmark={bookmark}
+                      />
+                    }
+                    aiActions={
+                      <BookmarkAIActions
+                        selectedBookmarks={[bookmark]}
+                        onUpdateCategories={onUpdateCategories}
+                      />
+                    }
+                    tabIndex={0}
+                    onFocus={() => console.log("Bookmark focused:", bookmark.id)}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </SortableContext>
+        </div>
+      </DndContext>
+    </div>
   );
 };
 
