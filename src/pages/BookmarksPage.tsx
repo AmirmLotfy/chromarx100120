@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -39,7 +38,10 @@ const BookmarksPage = () => {
   const [view, setView] = useState<"grid" | "list">("list");
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
-  // Monitor online/offline status
+  useEffect(() => {
+    console.log("BookmarksPage rendered with bookmarks:", bookmarks.length);
+  }, [bookmarks]);
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOfflineMode(false);
@@ -99,12 +101,9 @@ const BookmarksPage = () => {
   }, [setBookmarks]);
 
   const handleImport = (importedBookmarks: ChromeBookmark[]) => {
-    // Add the imported bookmarks to existing bookmarks
     setBookmarks(prev => [...prev, ...importedBookmarks]);
     
-    // Try to add to Chrome bookmarks if available
     if (chrome.bookmarks && navigator.onLine) {
-      // We'll add them to Chrome in the background
       importedBookmarks.forEach(bookmark => {
         if (bookmark.url) {
           chrome.bookmarks.create({
@@ -171,41 +170,43 @@ const BookmarksPage = () => {
   return (
     <Layout>
       <div className="space-y-4 pb-24 px-2 max-w-md mx-auto">
-        <motion.div 
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl backdrop-blur-sm border border-indigo-100 dark:border-indigo-900/30"
-        >
-          <div className="flex items-center space-x-2">
-            {isConnected ? (
-              <Wifi className="h-4 w-4 text-green-500" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-red-500" />
-            )}
-            <span className="text-xs">
-              {isConnected ? "Online" : "Offline"} 
-              {syncStatus === 'success' && lastSynced && (
-                <span className="text-muted-foreground ml-2 hidden sm:inline text-xs">
-                  Last synced: {new Date(lastSynced).toLocaleString()}
-                </span>
-              )}
-            </span>
-          </div>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
-            onClick={handleForceSync}
-            disabled={!isConnected || isProcessing}
+        {typeof chrome !== 'undefined' && chrome.bookmarks && (
+          <motion.div 
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl backdrop-blur-sm border border-indigo-100 dark:border-indigo-900/30"
           >
-            {syncStatus === 'success' ? (
-              <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
-            ) : (
-              <WifiOff className="h-3.5 w-3.5 mr-1" />
-            )}
-            <span>Sync</span>
-          </Button>
-        </motion.div>
+            <div className="flex items-center space-x-2">
+              {isConnected ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-500" />
+              )}
+              <span className="text-xs">
+                {isConnected ? "Online" : "Offline"} 
+                {syncStatus === 'success' && lastSynced && (
+                  <span className="text-muted-foreground ml-2 hidden sm:inline text-xs">
+                    Last synced: {new Date(lastSynced).toLocaleString()}
+                  </span>
+                )}
+              </span>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
+              onClick={handleForceSync}
+              disabled={!isConnected || isProcessing}
+            >
+              {syncStatus === 'success' ? (
+                <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
+              ) : (
+                <WifiOff className="h-3.5 w-3.5 mr-1" />
+              )}
+              <span>Sync</span>
+            </Button>
+          </motion.div>
+        )}
         
         {isProcessing && (
           <AIProgressIndicator 
