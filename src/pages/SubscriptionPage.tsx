@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -21,8 +20,8 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
-// Filter plans to only show free and basic
 const filteredPlans = subscriptionPlans.filter(
   plan => plan.id === "free" || plan.id === "basic"
 );
@@ -46,13 +45,11 @@ const SubscriptionPage = () => {
     const loadData = async () => {
       setIsCheckingConfig(true);
       try {
-        // Load PayPal config
         const config = await checkPayPalConfiguration();
         setPaypalConfigured(config.configured);
         setPaypalMode(config.mode);
         setClientId(config.clientId);
         
-        // Load subscription status
         if (user?.id) {
           const status = await checkSubscriptionStatus(user.id);
           if (status) {
@@ -82,7 +79,6 @@ const SubscriptionPage = () => {
       return;
     }
     
-    // For paid plans, check if PayPal is configured
     if (!paypalConfigured && planId !== "free") {
       toast.error("PayPal is not configured. Please set up your PayPal credentials first.");
       return;
@@ -101,7 +97,6 @@ const SubscriptionPage = () => {
         setSelectedPlan(null);
       }
       
-      // Refresh subscription status
       if (user?.id) {
         const status = await checkSubscriptionStatus(user.id);
         if (status) {
@@ -127,7 +122,6 @@ const SubscriptionPage = () => {
       const newValue = !autoRenew;
       setAutoRenew(newValue);
       
-      // Update subscription in Supabase
       const { error } = await supabase
         .from('subscriptions')
         .update({ cancel_at_period_end: !newValue })
@@ -135,11 +129,10 @@ const SubscriptionPage = () => {
         
       if (error) {
         toast.error("Failed to update auto-renewal setting");
-        setAutoRenew(!newValue); // Revert UI state
+        setAutoRenew(!newValue);
         return;
       }
       
-      // Update local state
       setSubscriptionStatus({
         ...subscriptionStatus,
         subscription: {
@@ -155,7 +148,7 @@ const SubscriptionPage = () => {
     } catch (error) {
       console.error("Error updating auto-renewal:", error);
       toast.error("Failed to update auto-renewal setting");
-      setAutoRenew(!autoRenew); // Revert UI state
+      setAutoRenew(!autoRenew);
     }
   };
 
@@ -184,16 +177,13 @@ const SubscriptionPage = () => {
     try {
       setIsProcessing(true);
       
-      // Capture the order first
       const details = await actions.order.capture();
       console.log("PayPal payment completed:", details);
       
       if (details.status === "COMPLETED" && selectedPlan) {
-        // Verify the payment server-side
         const paymentVerified = await verifyPayPalPayment(details.id, selectedPlan, autoRenew);
         
         if (paymentVerified) {
-          // Update local subscription status
           await handleSubscribe(selectedPlan);
           toast.success(`Payment successful! You are now subscribed to the ${selectedPlan} plan.`);
         } else {
@@ -210,7 +200,6 @@ const SubscriptionPage = () => {
     }
   };
 
-  // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -234,7 +223,6 @@ const SubscriptionPage = () => {
             </p>
           </div>
 
-          {/* Current Subscription Info */}
           {subscriptionStatus && subscriptionStatus.subscription.plan_id !== 'free' && (
             <Card className="mb-8 bg-background/60 backdrop-blur">
               <div className="p-6">
@@ -276,7 +264,6 @@ const SubscriptionPage = () => {
             </Card>
           )}
 
-          {/* Usage Limits */}
           {subscriptionStatus && (
             <Card className="mb-8 bg-background/60 backdrop-blur">
               <div className="p-6">
@@ -324,7 +311,6 @@ const SubscriptionPage = () => {
             </Card>
           )}
 
-          {/* PayPal Configuration Warning */}
           {!isCheckingConfig && !paypalConfigured && (
             <Card className="mb-8 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700">
               <div className="p-4 flex items-start gap-3">
@@ -348,7 +334,6 @@ const SubscriptionPage = () => {
             </Card>
           )}
 
-          {/* Plans Grid */}
           <div className="grid gap-6 md:grid-cols-2 md:gap-8">
             {filteredPlans.map((plan) => (
               <Card 
