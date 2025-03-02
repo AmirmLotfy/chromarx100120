@@ -15,19 +15,14 @@ const DEFAULT_MODE = 'live';
 export const getPayPalClientId = async (): Promise<string> => {
   try {
     // Try to fetch from Supabase Edge Function
-    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/get-paypal-config`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabase.supabaseKey}`
-      }
+    const { data, error } = await supabase.functions.invoke('get-paypal-config', {
+      method: 'GET'
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PayPal config: ${response.statusText}`);
+    if (error) {
+      throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    const data = await response.json();
     return data.clientId;
   } catch (error) {
     console.error('Error fetching PayPal client ID:', error);
@@ -39,19 +34,14 @@ export const getPayPalClientId = async (): Promise<string> => {
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
   try {
     // Try to fetch from Supabase Edge Function
-    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/get-paypal-config`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabase.supabaseKey}`
-      }
+    const { data, error } = await supabase.functions.invoke('get-paypal-config', {
+      method: 'GET'
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PayPal config: ${response.statusText}`);
+    if (error) {
+      throw new Error(`Failed to fetch PayPal config: ${error.message}`);
     }
 
-    const data = await response.json();
     return data.mode || DEFAULT_MODE;
   } catch (error) {
     console.error('Error fetching PayPal mode:', error);
