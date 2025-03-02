@@ -24,7 +24,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<typeof window.SpeechRecognition | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,7 +42,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       
-      // Clean up speech recognition on unmount
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -52,7 +51,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     
-    // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
@@ -71,7 +69,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       setInputValue("");
       setShowRecentQueries(false);
       
-      // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
       }
@@ -89,7 +86,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     setInputValue(query);
     setShowRecentQueries(false);
     
-    // Focus the input after selecting a recent query
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
@@ -104,19 +100,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const toggleSpeechRecognition = () => {
-    // Check if the browser supports speech recognition
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (SpeechRecognitionAPI) {
       if (isListening) {
-        // Stop listening
         if (recognitionRef.current) {
           recognitionRef.current.stop();
           recognitionRef.current = null;
         }
         setIsListening(false);
       } else {
-        // Start listening
         try {
           const recognition = new SpeechRecognitionAPI();
           recognition.continuous = true;
@@ -126,7 +119,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
           recognition.onresult = (event) => {
             let transcript = '';
             
-            // Process the speech recognition results properly
             for (let i = 0; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 transcript += event.results[i][0].transcript;
@@ -135,7 +127,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
             
             setInputValue(transcript);
             
-            // Auto-resize textarea
             if (textareaRef.current) {
               textareaRef.current.style.height = "auto";
               textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
@@ -171,7 +162,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
-      {/* Recent Queries Dropdown */}
       <AnimatePresence>
         {showRecentQueries && recentQueries.length > 0 && (
           <motion.div
@@ -230,7 +220,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
             rows={1}
           />
           
-          {/* Clear input button - shows only when there's text */}
           <AnimatePresence>
             {inputValue.trim() && (
               <motion.button
@@ -248,7 +237,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
             )}
           </AnimatePresence>
           
-          {/* Send button inside the textarea */}
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleSendMessage}
