@@ -15,7 +15,7 @@ import {
   handlePaymentError,
   formatCurrency
 } from "@/utils/chromeUtils";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { PayPalScriptProvider, PayPalButtons, PayPalHostedField, PayPalFastlane } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -177,6 +177,76 @@ const SubscriptionPage = () => {
     toast.info("Payment cancelled. Your subscription has not been changed.");
   };
 
+  // Function to render the appropriate payment method
+  const renderPaymentMethod = (plan: any) => {
+    if (selectedPlan !== plan.id || plan.id === "free" || !clientId) {
+      return null;
+    }
+
+    return (
+      <div className="w-full mt-4 bg-card/50 p-5 rounded-lg border border-border">
+        <h4 className="text-sm font-medium mb-3 flex items-center">
+          <Shield className="h-4 w-4 mr-1.5 text-green-500" />
+          Secure Payment
+        </h4>
+        
+        <PayPalScriptProvider options={{ 
+          clientId: clientId || "",
+          components: "buttons,hosted-fields,fastlane",
+          intent: "capture",
+          currency: "USD",
+          dataClientToken: "your-client-token-here", // You'll need to generate this on your server for Fastlane
+        }}>
+          <div className="w-full space-y-4">
+            {/* PayPal Fastlane Component */}
+            <div className="w-full">
+              <PayPalFastlane
+                styles={{
+                  base: {
+                    backgroundColor: "white",
+                    color: "#333",
+                    fontSize: "16px",
+                    fontFamily: "Arial, sans-serif",
+                    lineHeight: "1.5",
+                    padding: "10px"
+                  }
+                }}
+                createOrder={createOrder}
+                onApprove={onApprove}
+                onError={onError}
+                onCancel={onCancel}
+              />
+            </div>
+            
+            {/* Fallback to standard PayPal Buttons */}
+            <div className="w-full pt-2 border-t border-border">
+              <p className="text-xs text-center text-muted-foreground mb-3">
+                Or pay with PayPal directly
+              </p>
+              <PayPalButtons
+                style={{
+                  color: "blue",
+                  shape: "rect",
+                  label: "pay",
+                  height: 45
+                }}
+                disabled={paymentProcessing}
+                createOrder={createOrder}
+                onApprove={onApprove}
+                onError={onError}
+                onCancel={onCancel}
+              />
+            </div>
+          </div>
+        </PayPalScriptProvider>
+        
+        <p className="text-xs text-center text-muted-foreground mt-3">
+          Your subscription will begin immediately after payment
+        </p>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       <div className="bg-gradient-to-b from-[#F2FCE2] to-white dark:from-[#1A1F2C] dark:to-[#22272E] min-h-screen pb-12">
@@ -271,41 +341,9 @@ const SubscriptionPage = () => {
                       </ul>
                     </ScrollArea>
                     
-                    {selectedPlan === plan.id && plan.id !== "free" && clientId ? (
-                      <div className="w-full mt-4 bg-card/50 p-4 rounded-lg border border-border">
-                        <h4 className="text-sm font-medium mb-3 flex items-center">
-                          <Shield className="h-4 w-4 mr-1.5 text-green-500" />
-                          Secure Payment
-                        </h4>
-                        
-                        <PayPalScriptProvider options={{ 
-                          clientId: clientId || "",
-                          components: "buttons",
-                          intent: "capture",
-                          currency: "USD",
-                        }}>
-                          <div className="w-full">
-                            <PayPalButtons
-                              style={{
-                                color: "blue",
-                                shape: "rect",
-                                label: "pay",
-                                height: 45
-                              }}
-                              disabled={paymentProcessing}
-                              createOrder={createOrder}
-                              onApprove={onApprove}
-                              onError={onError}
-                              onCancel={onCancel}
-                            />
-                          </div>
-                        </PayPalScriptProvider>
-                        
-                        <p className="text-xs text-center text-muted-foreground mt-3">
-                          Your subscription will begin immediately after payment
-                        </p>
-                      </div>
-                    ) : (
+                    {renderPaymentMethod(plan)}
+                    
+                    {!(selectedPlan === plan.id && plan.id !== "free" && clientId) && (
                       <Button
                         className={cn(
                           "w-full gap-2 bg-[#9b87f5] hover:bg-[#8a70f0] text-white",

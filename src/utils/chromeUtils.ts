@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -166,4 +165,17 @@ export const formatCurrency = (amount: number, currency: string = 'USD'): string
     currency,
     minimumFractionDigits: 2
   }).format(amount);
+};
+
+// New function to generate a PayPal client token (needed for Fastlane)
+export const generateClientToken = async (): Promise<string | null> => {
+  try {
+    // In a real implementation, this would call your backend to generate a client token
+    // For now, we're returning a placeholder as this would need server-side implementation
+    console.log('Generating PayPal client token');
+    return null;
+  } catch (error) {
+    console.error('Error generating PayPal client token:', error);
+    return null;
+  }
 };
