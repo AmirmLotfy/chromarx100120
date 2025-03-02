@@ -1,17 +1,15 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Bell, BookmarkIcon, Check, Clock, Info, Settings, Trash2, ArrowLeft, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-// Mock notification type
 interface Notification {
   id: string;
   title: string;
@@ -24,12 +22,10 @@ interface Notification {
 const NotificationsPage = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [isFiltering, setIsFiltering] = useState(false);
 
   useEffect(() => {
-    // In a real app, you would fetch notifications from your backend or storage
-    // For demo purposes, we'll create some mock notifications
     const mockNotifications: Notification[] = [
       {
         id: "1",
@@ -133,9 +129,9 @@ const NotificationsPage = () => {
     }
   };
 
-  const filteredNotifications = activeTab === "all" 
+  const filteredNotifications = activeCategory === "all" 
     ? notifications 
-    : notifications.filter(n => n.type === activeTab);
+    : notifications.filter(n => n.type === activeCategory);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -155,9 +151,8 @@ const NotificationsPage = () => {
   return (
     <Layout>
       <div className="bg-background pb-20">
-        {/* Modern Header with Gradient */}
         <div className="bg-gradient-to-r from-primary/80 to-primary/90 text-white">
-          <div className="container px-4 pt-6 pb-16 relative">
+          <div className="container px-4 pt-6 pb-8 relative">
             <div className="flex items-center gap-2 mb-2">
               <Link to="/">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-white">
@@ -189,38 +184,48 @@ const NotificationsPage = () => {
                 </Button>
               </div>
             </div>
-            
-            {/* Tab Menu (moved up into the gradient header) */}
-            <div className="absolute -bottom-5 left-0 right-0 px-4">
-              <div className="bg-background rounded-lg shadow-lg mx-auto">
-                <Tabs 
-                  defaultValue="all" 
-                  onValueChange={setActiveTab}
-                  className="w-full"
-                >
-                  <TabsList className="grid w-full grid-cols-4 p-1 rounded-lg bg-background">
-                    <TabsTrigger value="all" className="rounded-md text-sm py-2">
-                      All
-                    </TabsTrigger>
-                    <TabsTrigger value="bookmarks" className="rounded-md text-sm py-2">
-                      Bookmarks
-                    </TabsTrigger>
-                    <TabsTrigger value="reminders" className="rounded-md text-sm py-2">
-                      Reminders
-                    </TabsTrigger>
-                    <TabsTrigger value="system" className="rounded-md text-sm py-2">
-                      System
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="container mx-auto px-4 pt-8">
-          {/* Action Buttons */}
+        <div className="bg-background shadow-sm border-b">
+          <div className="container px-4 py-2">
+            <ToggleGroup
+              type="single"
+              value={activeCategory}
+              onValueChange={(value) => {
+                if (value) setActiveCategory(value);
+              }}
+              className="flex justify-between w-full bg-muted/30 p-1 rounded-full"
+            >
+              <ToggleGroupItem 
+                value="all" 
+                className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-white rounded-full text-xs py-2"
+              >
+                All
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="bookmarks" 
+                className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-white rounded-full text-xs py-2"
+              >
+                Bookmarks
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="reminders" 
+                className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-white rounded-full text-xs py-2"
+              >
+                Reminders
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="system" 
+                className="flex-1 data-[state=on]:bg-primary data-[state=on]:text-white rounded-full text-xs py-2"
+              >
+                System
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 pt-6">
           {filteredNotifications.length > 0 && (
             <div className="flex justify-between mb-4">
               <Button 
@@ -246,7 +251,6 @@ const NotificationsPage = () => {
             </div>
           )}
 
-          {/* Notification List */}
           <motion.div
             variants={container}
             initial="hidden"
@@ -311,9 +315,9 @@ const NotificationsPage = () => {
                 </div>
                 <p className="text-lg font-medium">No notifications</p>
                 <p className="text-sm text-muted-foreground mt-1 text-center max-w-xs">
-                  {activeTab === "all" 
+                  {activeCategory === "all" 
                     ? "You're all caught up! We'll notify you when something new happens."
-                    : `No ${activeTab} notifications available right now.`}
+                    : `No ${activeCategory} notifications available right now.`}
                 </p>
               </div>
             )}
