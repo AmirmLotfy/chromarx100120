@@ -78,7 +78,6 @@ const BookmarkList = ({
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Group bookmarks by domain and create a flat list for virtualization
   const domainGroups = Object.entries(groupedByDomain).map(([domain, bookmarks]) => ({
     type: 'header' as const,
     domain,
@@ -173,14 +172,12 @@ const BookmarkList = ({
   const handleSelectAll = () => {
     const allSelected = bookmarks.length === selectedBookmarks.size;
     if (allSelected) {
-      // Deselect all
       bookmarks.forEach(bookmark => {
         if (selectedBookmarks.has(bookmark.id)) {
           onToggleSelect(bookmark.id);
         }
       });
     } else {
-      // Select all
       bookmarks.forEach(bookmark => {
         if (!selectedBookmarks.has(bookmark.id)) {
           onToggleSelect(bookmark.id);
@@ -311,7 +308,6 @@ const BookmarkList = ({
         return;
       }
 
-      // Create new folder and move bookmarks
       if (chrome.bookmarks) {
         const folder = await chrome.bookmarks.create({ title: newFolderName });
         const moves = Array.from(selectedBookmarks).map(id => 
@@ -448,129 +444,137 @@ const BookmarkList = ({
         strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
       >
         <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSelectAll}
-              className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
+          <div className="flex flex-wrap gap-2 items-center">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-1.5 mr-auto"
             >
-              <CheckSquare className="h-4 w-4 mr-1.5" />
-              {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+                className="h-9 rounded-full px-3 font-medium text-xs shadow-sm bg-background border-muted-foreground/20"
+              >
+                <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
+                {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
+              </Button>
+            </motion.div>
             
             <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMoveDialogOpen(true)}
-                    disabled={isProcessing || selectedBookmarks.size === 0}
-                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                  >
-                    <FolderPlus className="h-4 w-4 mr-1.5" />
-                    Move
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Move selected bookmarks to a new folder
-                </TooltipContent>
-              </Tooltip>
+              <div className="flex flex-wrap gap-1.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsMoveDialogOpen(true)}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      <span className="sr-only">Move</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Move selected
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsCategorizeDialogOpen(true)}
-                    disabled={isProcessing || selectedBookmarks.size === 0}
-                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                  >
-                    <Globe className="h-4 w-4 mr-1.5" />
-                    Categorize
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Set category for selected bookmarks
-                </TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsCategorizeDialogOpen(true)}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                    >
+                      <Globe className="h-4 w-4" />
+                      <span className="sr-only">Categorize</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Categorize selected
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsTagDialogOpen(true)}
-                    disabled={isProcessing || selectedBookmarks.size === 0}
-                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                  >
-                    <Tag className="h-4 w-4 mr-1.5" />
-                    Tag
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Add tags to selected bookmarks
-                </TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsTagDialogOpen(true)}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                    >
+                      <Tag className="h-4 w-4" />
+                      <span className="sr-only">Tag</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Tag selected
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleCleanup}
-                    disabled={isProcessing}
-                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1.5" />
-                    Cleanup
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Find and remove duplicate or broken bookmarks
-                </TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCleanup}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Cleanup</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Delete selected
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleGenerateSummaries}
-                    disabled={isProcessing}
-                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                  >
-                    <FileText className="h-4 w-4 mr-1.5" />
-                    Summarize
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Generate summaries for selected bookmarks
-                </TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateSummaries}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="sr-only">Summarize</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Summarize selected
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleSuggestCategories}
-                    disabled={isProcessing}
-                    className="w-full sm:w-auto bg-gradient-to-r from-accent to-muted hover:from-accent/90 hover:to-muted/90 transition-all duration-300 shadow-sm"
-                  >
-                    <Sparkles className="h-4 w-4 mr-1.5" />
-                    Categorize
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Suggest categories for selected bookmarks
-                </TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSuggestCategories}
+                      disabled={isProcessing || selectedBookmarks.size === 0}
+                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span className="sr-only">AI Categorize</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    AI categorization
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </TooltipProvider>
           </div>
 
-          {/* Move Dialog */}
           <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
             <DialogContent>
               <DialogHeader>
@@ -595,7 +599,6 @@ const BookmarkList = ({
             </DialogContent>
           </Dialog>
 
-          {/* Categorize Dialog */}
           <Dialog open={isCategorizeDialogOpen} onOpenChange={setIsCategorizeDialogOpen}>
             <DialogContent>
               <DialogHeader>
@@ -620,7 +623,6 @@ const BookmarkList = ({
             </DialogContent>
           </Dialog>
 
-          {/* Tag Dialog */}
           <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
             <DialogContent>
               <DialogHeader>
