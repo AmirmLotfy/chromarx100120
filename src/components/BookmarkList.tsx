@@ -98,6 +98,7 @@ const BookmarkList = ({
                   domain={domain}
                   isExpanded={isExpanded}
                   onToggleExpand={() => {
+                    console.log("Toggle expand for bookmark:", bookmark.id, "Current:", isExpanded);
                     setExpandedBookmark(isExpanded ? null : bookmark.id);
                   }}
                   controls={

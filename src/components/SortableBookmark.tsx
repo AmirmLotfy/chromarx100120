@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChromeBookmark } from "@/types/bookmark";
 import DraggableBookmark from "./DraggableBookmark";
 import React, { ReactNode } from "react";
+import { motion } from "framer-motion";
 
 interface SortableBookmarkProps {
   bookmark: ChromeBookmark;
@@ -72,11 +73,20 @@ const SortableBookmark = ({
         view={view}
       />
       {isExpanded && (
-        <div className="mt-2 pl-4 border-l-2 border-l-gray-200 dark:border-l-gray-700">
-          {controls}
-          {shareComponent}
-          {aiActions}
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="mt-3 pl-4 border-l-2 border-l-gray-200 dark:border-l-gray-700 py-3 space-y-3"
+        >
+          <div className="flex flex-wrap gap-2">
+            {aiActions}
+            {shareComponent}
+          </div>
+          <div>
+            {controls}
+          </div>
+        </motion.div>
       )}
     </div>
   );

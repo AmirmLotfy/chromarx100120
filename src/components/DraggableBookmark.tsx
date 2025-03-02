@@ -2,7 +2,7 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { Card, CardContent } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { ExternalLink, Trash2, Share2, CheckSquare, Loader2 } from "lucide-react";
+import { ExternalLink, Trash2, Share2, CheckSquare, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useLongPress } from "use-long-press";
@@ -17,6 +17,8 @@ interface DraggableBookmarkProps {
   onDelete: (id: string) => void;
   formatDate: (timestamp?: number) => string;
   view: "grid" | "list";
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 const DraggableBookmark = ({
@@ -26,6 +28,8 @@ const DraggableBookmark = ({
   onDelete,
   formatDate,
   view,
+  isExpanded,
+  onToggleExpand,
 }: DraggableBookmarkProps) => {
   const [isPressed, setIsPressed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -194,6 +198,23 @@ const DraggableBookmark = ({
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          {onToggleExpand && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-accent/50 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onToggleExpand) onToggleExpand();
+              }}
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
