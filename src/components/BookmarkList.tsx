@@ -22,6 +22,7 @@ import { CheckSquare, FileText, Globe, Sparkles, Trash2, FolderPlus, Tag } from 
 import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory, summarizeBookmark } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +41,6 @@ import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCle
 import { useLanguage } from "@/stores/languageStore";
 import { fetchPageContent } from "@/utils/contentExtractor";
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { motion } from "framer-motion";
 
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
@@ -446,25 +446,18 @@ const BookmarkList = ({
       >
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2 items-center">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-1.5 mr-auto"
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                className="h-9 rounded-full px-3 font-medium text-xs shadow-sm bg-background border-muted-foreground/20"
-              >
-                <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
-                {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
-              </Button>
-            </motion.div>
-            
             <TooltipProvider>
               <div className="flex flex-wrap gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="h-9 rounded-full px-3 font-medium text-xs shadow-sm bg-background border-muted-foreground/20"
+                >
+                  <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
+                  {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
+                </Button>
+
                 <Button
                   variant="outline"
                   size="sm"
