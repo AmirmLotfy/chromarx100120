@@ -421,6 +421,8 @@ const SubscriptionPage = () => {
                     autoRenew={autoRenew}
                     setAutoRenew={setAutoRenew}
                     calculateSavings={calculateSavings}
+                    goToPayPalConfig={goToPayPalConfig}
+                    setSelectedPlan={setSelectedPlan}
                   />
                 ))}
               </div>
@@ -445,6 +447,8 @@ const SubscriptionPage = () => {
                     autoRenew={autoRenew}
                     setAutoRenew={setAutoRenew}
                     calculateSavings={calculateSavings}
+                    goToPayPalConfig={goToPayPalConfig}
+                    setSelectedPlan={setSelectedPlan}
                   />
                 ))}
               </div>
@@ -476,6 +480,8 @@ interface PlanCardProps {
   autoRenew: boolean;
   setAutoRenew: (value: boolean) => void;
   calculateSavings: (plan: typeof filteredPlans[0]) => number;
+  goToPayPalConfig: () => void;
+  setSelectedPlan: (value: string | null) => void;
 }
 
 const PlanCard = ({
@@ -492,7 +498,9 @@ const PlanCard = ({
   clientId,
   autoRenew,
   setAutoRenew,
-  calculateSavings
+  calculateSavings,
+  goToPayPalConfig,
+  setSelectedPlan
 }: PlanCardProps) => {
   const savings = calculateSavings(plan);
   const price = billingPeriod === 'yearly' ? plan.pricing.yearly : plan.pricing.monthly;
