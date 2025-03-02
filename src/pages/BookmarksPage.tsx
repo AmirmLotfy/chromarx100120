@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -11,6 +12,8 @@ import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
+import { cache } from "@/utils/cacheUtils";
+import { dummyBookmarks } from "@/utils/dummyBookmarks";
 
 const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.bookmarks;
 
@@ -39,6 +42,15 @@ const BookmarksPage = () => {
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    // Preload with dummy data if no data is available
+    if (!isChromeExtension && bookmarks.length === 0 && !loading) {
+      console.log("Preloading with dummy bookmarks");
+      setBookmarks(dummyBookmarks);
+      cache.preloadDummyData('bookmarks', dummyBookmarks);
+    }
+  }, [bookmarks.length, loading, setBookmarks]);
 
   useEffect(() => {
     console.log("BookmarksPage rendered with bookmarks:", bookmarks.length);
