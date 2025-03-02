@@ -51,8 +51,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Notifications section */}
-      <div className={`${isMobile ? 'px-3 pt-2' : 'px-4 pt-3'} space-y-2`}>
+      {/* Notifications section - simplified */}
+      <div className={`${isMobile ? 'px-2 pt-2' : 'px-3 pt-2'} space-y-2`}>
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -71,15 +71,15 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           
           {error && (
             <motion.div 
-              className="mb-2 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-xl text-sm"
+              className="mb-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg text-sm"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex gap-2 items-start">
-                <div className="h-7 w-7 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
-                  <X size={14} className="text-destructive" />
+                <div className="h-6 w-6 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
+                  <X size={12} className="text-destructive" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-destructive text-xs">{error.message || "Error"}</p>

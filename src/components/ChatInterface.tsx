@@ -51,7 +51,7 @@ const ChatInterface = () => {
   return (
     <motion.div 
       className="flex flex-col h-full overflow-hidden"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
@@ -68,7 +68,7 @@ const ChatInterface = () => {
       
       {/* Main content area */}
       <div className="flex flex-1 h-full overflow-hidden relative">
-        {/* Chat history sidebar - use AnimatePresence for animations */}
+        {/* Chat history sidebar with animations */}
         <AnimatePresence>
           {isHistoryOpen && (
             <ChatSidebar 
@@ -95,7 +95,7 @@ const ChatInterface = () => {
         <AnimatePresence>
           {isHistoryOpen && isMobile && (
             <motion.div 
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -121,7 +121,7 @@ const ChatInterface = () => {
           />
           
           {/* Chat input section */}
-          <div className="px-3 pb-4 pt-2">
+          <div className="px-2 pb-3 pt-2">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
