@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { chromeDb } from '@/lib/chrome-storage';
 import { subscriptionPlans } from '@/config/subscriptionPlans';
@@ -36,7 +35,6 @@ interface StorageSubscription {
 // Helper function for tracking subscription analytics
 const trackSubscriptionEvent = async (eventName: string, planId: string) => {
   try {
-    // Store subscription events for analytics
     const events = await chromeDb.get<any[]>('subscription_events') || [];
     events.push({
       event: eventName,
@@ -62,23 +60,19 @@ export const useSubscription = (): SubscriptionHook => {
   useEffect(() => {
     const fetchSubscriptionData = async () => {
       try {
-        // Fetch actual usage data
         const storedUsage = await chromeDb.get<UsageData>('usage');
         if (storedUsage) {
           setUsage(storedUsage);
         }
         
-        // Fetch current subscription plan
         const subscription = await chromeDb.get<StorageSubscription>('user_subscription');
         if (subscription) {
-          // Check if subscription is still valid
           const endDate = new Date(subscription.endDate);
           const now = new Date();
           
           if (subscription.status === 'active' && endDate > now) {
             setCurrentPlan(subscription.planId);
           } else if (endDate <= now && subscription.planId !== 'free') {
-            // Subscription expired - revert to free plan
             setCurrentPlan('free');
             await chromeDb.set('user_subscription', {
               planId: 'free',
@@ -91,7 +85,7 @@ export const useSubscription = (): SubscriptionHook => {
             setCurrentPlan(subscription.planId || 'free');
           }
         } else {
-          setCurrentPlan('free'); // Default to free plan
+          setCurrentPlan('free');
         }
       } catch (error) {
         console.error('Error fetching subscription data:', error);
@@ -106,7 +100,6 @@ export const useSubscription = (): SubscriptionHook => {
 
   const incrementUsage = async (type: keyof UsageData): Promise<boolean> => {
     try {
-      // Immediately check if the user has reached their limit
       if (hasReachedLimit(type)) {
         const plan = subscriptionPlans.find(p => p.id === currentPlan);
         if (!plan) return false;
@@ -131,7 +124,6 @@ export const useSubscription = (): SubscriptionHook => {
         return false;
       }
 
-      // If not limited, increment the usage
       const newUsage = {
         ...usage,
         [type]: (usage[type] || 0) + 1
@@ -140,7 +132,6 @@ export const useSubscription = (): SubscriptionHook => {
       await chromeDb.set('usage', newUsage);
       setUsage(newUsage);
       
-      // Check if approaching limit (80% capacity)
       const plan = subscriptionPlans.find(p => p.id === currentPlan);
       if (plan) {
         const limit = plan.limits[type];
@@ -189,11 +180,11 @@ export const useSubscription = (): SubscriptionHook => {
       if (!plan) return true;
 
       const limit = plan.limits[type];
-      if (limit === -1) return false; // Unlimited
+      if (limit === -1) return false;
       return (usage[type] || 0) >= limit;
     } catch (error) {
       console.error('Error checking limits:', error);
-      return true; // Default to limited for safety
+      return true;
     }
   };
 
@@ -203,7 +194,7 @@ export const useSubscription = (): SubscriptionHook => {
       if (!plan) return 0;
 
       const limit = plan.limits[type];
-      if (limit === -1) return -1; // Unlimited
+      if (limit === -1) return -1;
       return Math.max(0, limit - (usage[type] || 0));
     } catch (error) {
       console.error('Error calculating remaining quota:', error);
@@ -217,7 +208,7 @@ export const useSubscription = (): SubscriptionHook => {
     
     return {
       name: plan.id === 'basic' ? 'Pro' : plan.name,
-      limits: plan.limits
+      limits: plan.limits as Record<string, number>
     };
   };
 
@@ -226,10 +217,8 @@ export const useSubscription = (): SubscriptionHook => {
       const plan = subscriptionPlans.find(p => p.id === planId);
       if (!plan) throw new Error('Invalid plan ID');
       
-      // Update subscription
       const createdAt = new Date().toISOString();
       const endDate = new Date();
-      // Set expiration 30 days from now for paid plans
       if (planId !== 'free') {
         endDate.setDate(endDate.getDate() + 30);
       }
@@ -244,7 +233,6 @@ export const useSubscription = (): SubscriptionHook => {
       await chromeDb.set('user_subscription', subscriptionData);
       setCurrentPlan(planId);
       
-      // Track the subscription change
       await trackSubscriptionEvent(
         planId === 'free' ? 'plan_downgraded' : 'plan_upgraded',
         planId

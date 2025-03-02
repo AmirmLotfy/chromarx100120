@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -13,7 +12,6 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Filter to only show Free and Pro plans
 const filteredPlans = subscriptionPlans.filter(
   plan => plan.id === "free" || plan.id === "basic"
 );
@@ -25,7 +23,6 @@ const SubscriptionPage = () => {
   const { currentPlan, setSubscriptionPlan } = useSubscription();
   const isMobile = useIsMobile();
 
-  // Simplified feature list for modern design
   const comparisonFeatures = [
     "Bookmark management",
     "AI summarization",
@@ -48,7 +45,6 @@ const SubscriptionPage = () => {
     
     setSelectedPlan(planId);
     
-    // Load PayPal script when a paid plan is selected
     if (planId !== "free" && !clientId) {
       loadPayPalScript();
     }
@@ -77,7 +73,6 @@ const SubscriptionPage = () => {
       await setSubscriptionPlan(planId);
       toast.success(`Successfully subscribed to ${planId} plan`);
       
-      // If switching to free plan, reset selection
       if (planId === "free") {
         setSelectedPlan(null);
       }
@@ -137,7 +132,6 @@ const SubscriptionPage = () => {
             </p>
           </div>
 
-          {/* Plan Selection Section */}
           <div className="grid gap-6 md:grid-cols-2 md:gap-8">
             {filteredPlans.map((plan) => (
               <Card 
@@ -208,7 +202,7 @@ const SubscriptionPage = () => {
                   {selectedPlan === plan.id && plan.id !== "free" && clientId ? (
                     <div className="mt-4">
                       <PayPalScriptProvider options={{ 
-                        "client-id": clientId,
+                        clientId: clientId,
                         components: "buttons",
                         intent: "capture",
                         currency: "USD"
@@ -254,7 +248,6 @@ const SubscriptionPage = () => {
             ))}
           </div>
           
-          {/* Payment Security Notice */}
           <div className="flex items-center justify-center mt-8 gap-2 text-sm text-muted-foreground">
             <CreditCard className="h-4 w-4" />
             <span>Secure payment processing by PayPal</span>
