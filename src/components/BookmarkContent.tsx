@@ -1,14 +1,10 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import BookmarkList from "./BookmarkList";
 import BookmarkCategories from "./BookmarkCategories";
 import BookmarkDomains from "./BookmarkDomains";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  CloudOff, Filter, X, BookmarkIcon, 
-  FolderIcon, GlobeIcon, LayoutGrid 
-} from "lucide-react";
+import { CloudOff, Filter, X, BookmarkIcon, FolderIcon, GlobeIcon } from "lucide-react";
 import { SearchFilter } from "./SearchBar";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -65,14 +61,13 @@ const BookmarkContent = ({
   const hasActiveFilters = Object.values(activeFilters).some(Boolean);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Use user selected view
-  const actualView = view;
+  // Always use list view, regardless of what's passed in
+  const actualView = "list";
 
   const renderEmptyState = () => (
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      transition={{ duration: 0.3 }}
       className="flex flex-col items-center justify-center h-60 border border-dashed rounded-xl bg-accent/5"
     >
       <div className="text-center p-6">
@@ -148,16 +143,17 @@ const BookmarkContent = ({
         onValueChange={setActiveTab} 
         className="h-full flex flex-col"
       >
-        <TabsList className="mb-4 rounded-full p-1 bg-muted/30 backdrop-blur-sm sticky top-0 z-10 grid grid-cols-3 w-full">
+        <TabsList className="mb-4 rounded-full p-1 bg-muted/30 backdrop-blur-sm sticky top-0 z-10 grid grid-cols-3 w-full sm:w-auto">
           <TabsTrigger 
             value="all" 
             className="rounded-full data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm text-xs h-9"
             onClick={() => {
+              console.log("All tab clicked");
               if (selectedCategory) onSelectCategory(null);
               if (selectedDomain) onSelectDomain(null);
             }}
           >
-            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
+            <BookmarkIcon className="h-3.5 w-3.5 mr-1.5" />
             All
           </TabsTrigger>
           <TabsTrigger 
@@ -180,11 +176,10 @@ const BookmarkContent = ({
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
             className="mb-4 flex items-center p-3 bg-amber-50/80 dark:bg-amber-900/20 border rounded-lg border-amber-200 dark:border-amber-800/50 text-sm"
           >
             <CloudOff className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
-            <p className="text-xs">Offline mode: Some features are limited</p>
+            <p className="text-xs sm:text-sm">Offline mode: Some features like drag-and-drop organization and AI categorization are limited.</p>
           </motion.div>
         )}
 
@@ -192,12 +187,11 @@ const BookmarkContent = ({
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
             className="mb-4 flex items-center justify-between p-3 bg-accent/10 backdrop-blur-sm border rounded-lg"
           >
             <div className="flex items-center">
               <Filter className="h-4 w-4 mr-2 text-indigo-500" />
-              <p className="text-xs">Filtered results</p>
+              <p className="text-xs sm:text-sm">Filtered results</p>
             </div>
             <Button 
               variant="ghost" 
@@ -211,7 +205,7 @@ const BookmarkContent = ({
           </motion.div>
         )}
 
-        <ScrollArea className="flex-1 px-1 overflow-y-auto rounded-lg">
+        <ScrollArea className="flex-1 px-1 overflow-y-auto">
           <div ref={scrollRef} className="h-full pb-20">
             <TabsContent value="all" className="mt-0 space-y-4 h-full">
               {renderContent()}
