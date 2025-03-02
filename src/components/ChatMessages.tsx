@@ -62,10 +62,10 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   });
 
   return (
-    <div className="px-2 py-2">
-      <div className="space-y-4">
+    <div className="px-2 py-2 w-full">
+      <div className="space-y-4 w-full">
         {groupedMessages.map((group, groupIndex) => (
-          <div key={group.date} className="space-y-4">
+          <div key={group.date} className="space-y-4 w-full">
             {/* Date divider - simplified */}
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-muted"></div>
@@ -76,7 +76,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             </div>
             
             {/* List view - chat bubbles */}
-            <div className="space-y-3">
+            <div className="space-y-3 w-full">
               {group.messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -86,7 +86,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                   className={cn(
                     "flex",
                     message.sender === "user" ? "justify-end" : "justify-start",
-                    "gap-2 items-end"
+                    "gap-2 items-end w-full"
                   )}
                 >
                   {message.sender === "assistant" && (
@@ -173,7 +173,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} className="h-12" /> {/* Extra space for scroll */}
+        <div ref={messagesEndRef} className="h-16" /> {/* Extra space for scroll */}
       </div>
     </div>
   );

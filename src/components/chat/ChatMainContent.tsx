@@ -48,7 +48,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   return (
     <div className="flex-1 flex flex-col relative overflow-hidden">
       {/* Notifications section */}
-      <div className={`${isMobile ? 'px-2 pt-2' : 'px-3 pt-2'} space-y-2`}>
+      <div className={`${isMobile ? 'px-2 pt-2' : 'px-3 pt-2'} space-y-2 sticky top-0 z-10 bg-background`}>
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -112,8 +112,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       </div>
       
       {/* Chat messages section with improved scrolling */}
-      <div className="flex-1 h-full overflow-hidden">
-        <ScrollArea className="h-full pr-2">
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full w-full pb-4">
           <AnimatePresence mode="wait">
             {isBookmarkSearchMode ? (
               <BookmarkSearchView key="search" />
