@@ -17,6 +17,7 @@ const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 const BATCH_SIZE = 50; // Process bookmarks in batches
 const MAX_STORAGE_ITEM_SIZE = 8192; // Chrome's max size for a single sync storage item in bytes
+const ALWAYS_USE_DUMMY = true;
 
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -238,6 +239,14 @@ export const useBookmarkState = () => {
         setBookmarks(dummyBookmarks);
       }
 
+      if (ALWAYS_USE_DUMMY) {
+        console.log('Bypassing Chrome API, using dummy bookmarks');
+        await setCachedBookmarks(dummyBookmarks);
+        setBookmarks(dummyBookmarks);
+        setLoading(false);
+        return;
+      }
+
       if (chrome.bookmarks) {
         try {
           const results = await chrome.bookmarks.getRecent(1000);
@@ -439,7 +448,8 @@ export const useBookmarkState = () => {
 
   useEffect(() => {
     loadBookmarks();
-    if (chrome.bookmarks) {
+    
+    if (!ALWAYS_USE_DUMMY && chrome.bookmarks) {
       chrome.bookmarks.onCreated.addListener(loadBookmarks);
       chrome.bookmarks.onRemoved.addListener(loadBookmarks);
       chrome.bookmarks.onChanged.addListener(loadBookmarks);
