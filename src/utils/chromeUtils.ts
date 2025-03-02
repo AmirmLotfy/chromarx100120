@@ -1,25 +1,63 @@
 
 import { toast } from "sonner";
-import { storage } from "@/lib/chrome-utils";
+import { supabase } from "@/integrations/supabase/client";
 
-// PayPal configuration
+// PayPal configuration types
 interface PayPalConfig {
   clientId: string;
   mode: 'sandbox' | 'live';
 }
 
-// Default PayPal Client ID - should be replaced with your live Client ID
+// Default PayPal Client ID as fallback
 const DEFAULT_CLIENT_ID = "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R";
-const DEFAULT_MODE = 'live'; // Default to live mode
+const DEFAULT_MODE = 'live';
 
 export const getPayPalClientId = async (): Promise<string> => {
-  // For production, always return the pre-configured client ID
-  return DEFAULT_CLIENT_ID;
+  try {
+    // Try to fetch from Supabase Edge Function
+    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/get-paypal-config`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabase.supabaseKey}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PayPal config: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.clientId;
+  } catch (error) {
+    console.error('Error fetching PayPal client ID:', error);
+    // Fallback to default client ID if fetch fails
+    return DEFAULT_CLIENT_ID;
+  }
 };
 
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
-  // For production, always return the pre-configured mode
-  return DEFAULT_MODE;
+  try {
+    // Try to fetch from Supabase Edge Function
+    const response = await fetch(`${supabase.supabaseUrl}/functions/v1/get-paypal-config`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabase.supabaseKey}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PayPal config: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.mode || DEFAULT_MODE;
+  } catch (error) {
+    console.error('Error fetching PayPal mode:', error);
+    // Fallback to default mode if fetch fails
+    return DEFAULT_MODE;
+  }
 };
 
 // Additional utility functions for PayPal integration
