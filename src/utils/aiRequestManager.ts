@@ -1,4 +1,3 @@
-
 import { cache } from "./cacheUtils";
 import { toast } from "sonner";
 import { chromeDb } from "@/lib/chrome-storage";
@@ -12,6 +11,20 @@ interface RequestQuota {
 interface AIResponse {
   result: string;
   timestamp: number;
+}
+
+interface UserSubscription {
+  planId: string;
+  status: string;
+  createdAt: string;
+  endDate: string;
+}
+
+interface UsageData {
+  bookmarks: number;
+  tasks: number;
+  notes: number;
+  aiRequests: number;
 }
 
 // Cache for AI responses
@@ -42,7 +55,7 @@ class AIRequestManager {
 
   private async loadCurrentPlan(): Promise<void> {
     try {
-      const subscription = await chromeDb.get('user_subscription');
+      const subscription = await chromeDb.get<UserSubscription>('user_subscription');
       if (subscription && subscription.planId) {
         this.currentPlan = subscription.planId;
       }
@@ -158,7 +171,7 @@ class AIRequestManager {
 
   private async incrementUsageCounter(): Promise<void> {
     try {
-      const currentUsage = await chromeDb.get('usage') || { 
+      const currentUsage = await chromeDb.get<UsageData>('usage') || { 
         bookmarks: 0, 
         tasks: 0, 
         notes: 0, 

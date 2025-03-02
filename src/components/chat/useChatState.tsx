@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
@@ -101,7 +100,6 @@ export const useChatState = () => {
         description: "You've reached your AI request limit. Please upgrade your plan for more AI interactions.",
         variant: "destructive",
         action: {
-          label: "Upgrade",
           onClick: () => window.location.href = "/subscription"
         }
       });
