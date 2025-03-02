@@ -12,10 +12,6 @@ import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
-import { cache } from "@/utils/cacheUtils";
-import { dummyBookmarks } from "@/utils/dummyBookmarks";
-
-const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.bookmarks;
 
 const BookmarksPage = () => {
   const {
@@ -43,23 +39,7 @@ const BookmarksPage = () => {
   const [view, setView] = useState<"grid" | "list">("list");
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
-  useEffect(() => {
-    // Preload with dummy data if no data is available
-    if (!isChromeExtension && bookmarks.length === 0 && !loading) {
-      console.log("Preloading with dummy bookmarks");
-      setBookmarks(dummyBookmarks);
-      cache.preloadDummyData('bookmarks', dummyBookmarks);
-    }
-  }, [bookmarks.length, loading, setBookmarks]);
-
-  useEffect(() => {
-    console.log("BookmarksPage rendered with bookmarks:", bookmarks.length);
-  }, [bookmarks]);
-  
-  useEffect(() => {
-    loadBookmarks();
-  }, [loadBookmarks]);
-
+  // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setIsOfflineMode(false);
@@ -82,7 +62,7 @@ const BookmarksPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      if (isChromeExtension) {
+      if (chrome.bookmarks) {
         await chrome.bookmarks.remove(id);
         setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
       } else {
@@ -96,7 +76,7 @@ const BookmarksPage = () => {
   const handleDeleteSelected = async () => {
     try {
       const promises = Array.from(selectedBookmarks).map((id) =>
-        isChromeExtension ? chrome.bookmarks.remove(id) : Promise.resolve()
+        chrome.bookmarks ? chrome.bookmarks.remove(id) : Promise.resolve()
       );
       await Promise.all(promises);
       setBookmarks((prev) =>
@@ -119,9 +99,12 @@ const BookmarksPage = () => {
   }, [setBookmarks]);
 
   const handleImport = (importedBookmarks: ChromeBookmark[]) => {
+    // Add the imported bookmarks to existing bookmarks
     setBookmarks(prev => [...prev, ...importedBookmarks]);
     
-    if (isChromeExtension && navigator.onLine) {
+    // Try to add to Chrome bookmarks if available
+    if (chrome.bookmarks && navigator.onLine) {
+      // We'll add them to Chrome in the background
       importedBookmarks.forEach(bookmark => {
         if (bookmark.url) {
           chrome.bookmarks.create({
@@ -188,43 +171,41 @@ const BookmarksPage = () => {
   return (
     <Layout>
       <div className="space-y-4 pb-24 px-2 max-w-md mx-auto">
-        {isChromeExtension && (
-          <motion.div 
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl backdrop-blur-sm border border-indigo-100 dark:border-indigo-900/30"
+        <motion.div 
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl backdrop-blur-sm border border-indigo-100 dark:border-indigo-900/30"
+        >
+          <div className="flex items-center space-x-2">
+            {isConnected ? (
+              <Wifi className="h-4 w-4 text-green-500" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-red-500" />
+            )}
+            <span className="text-xs">
+              {isConnected ? "Online" : "Offline"} 
+              {syncStatus === 'success' && lastSynced && (
+                <span className="text-muted-foreground ml-2 hidden sm:inline text-xs">
+                  Last synced: {new Date(lastSynced).toLocaleString()}
+                </span>
+              )}
+            </span>
+          </div>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
+            onClick={handleForceSync}
+            disabled={!isConnected || isProcessing}
           >
-            <div className="flex items-center space-x-2">
-              {isConnected ? (
-                <Wifi className="h-4 w-4 text-green-500" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-red-500" />
-              )}
-              <span className="text-xs">
-                {isConnected ? "Online" : "Offline"} 
-                {syncStatus === 'success' && lastSynced && (
-                  <span className="text-muted-foreground ml-2 hidden sm:inline text-xs">
-                    Last synced: {new Date(lastSynced).toLocaleString()}
-                  </span>
-                )}
-              </span>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
-              onClick={handleForceSync}
-              disabled={!isConnected || isProcessing}
-            >
-              {syncStatus === 'success' ? (
-                <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
-              ) : (
-                <WifiOff className="h-3.5 w-3.5 mr-1" />
-              )}
-              <span>Sync</span>
-            </Button>
-          </motion.div>
-        )}
+            {syncStatus === 'success' ? (
+              <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
+            ) : (
+              <WifiOff className="h-3.5 w-3.5 mr-1" />
+            )}
+            <span>Sync</span>
+          </Button>
+        </motion.div>
         
         {isProcessing && (
           <AIProgressIndicator 
