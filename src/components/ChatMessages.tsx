@@ -2,7 +2,6 @@
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { ExternalLink, User, Bot } from "lucide-react";
-import { ScrollArea } from "./ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -63,8 +62,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   });
 
   return (
-    <ScrollArea className="flex-1 px-2 py-2">
-      <div className="space-y-4 pb-4">
+    <div className="px-2 py-2">
+      <div className="space-y-4">
         {groupedMessages.map((group, groupIndex) => (
           <div key={group.date} className="space-y-4">
             {/* Date divider - simplified */}
@@ -176,7 +175,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
         ))}
         <div ref={messagesEndRef} className="h-12" /> {/* Extra space for scroll */}
       </div>
-    </ScrollArea>
+    </div>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, SendHorizontal, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<typeof window.SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -116,7 +117,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           recognition.interimResults = true;
           recognition.lang = 'en-US';
           
-          recognition.onresult = (event) => {
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
             let transcript = '';
             
             for (let i = 0; i < event.results.length; i++) {

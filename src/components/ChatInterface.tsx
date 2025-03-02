@@ -91,16 +91,18 @@ const ChatInterface = () => {
         
         {/* Main chat area */}
         <div className="flex-1 flex flex-col overflow-hidden max-h-full">
-          {/* Header */}
-          <ChatHeader 
-            isHistoryOpen={isHistoryOpen}
-            setIsHistoryOpen={setIsHistoryOpen}
-            activeConversation={activeConversation}
-            messagesCount={messages.length}
-            clearChat={clearChat}
-            isBookmarkSearchMode={isBookmarkSearchMode}
-            toggleBookmarkSearchMode={toggleBookmarkSearchMode}
-          />
+          {/* Header - fixed position to ensure it's always visible */}
+          <div className="sticky top-0 z-10 w-full">
+            <ChatHeader 
+              isHistoryOpen={isHistoryOpen}
+              setIsHistoryOpen={setIsHistoryOpen}
+              activeConversation={activeConversation}
+              messagesCount={messages.length}
+              clearChat={clearChat}
+              isBookmarkSearchMode={isBookmarkSearchMode}
+              toggleBookmarkSearchMode={toggleBookmarkSearchMode}
+            />
+          </div>
           
           <ChatMainContent 
             messages={messages}

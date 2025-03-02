@@ -10,7 +10,7 @@ interface ChatHeaderProps {
   messagesCount: number;
   isBookmarkSearchMode: boolean;
   toggleBookmarkSearchMode: () => void;
-  clearChat?: () => void; // Add this optional prop
+  clearChat: () => void; // Added clearChat prop
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -20,7 +20,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   messagesCount,
   isBookmarkSearchMode,
   toggleBookmarkSearchMode,
-  clearChat, // Added the prop here
+  clearChat,
 }) => {
   const handleToggleSidebar = () => {
     setIsHistoryOpen(!isHistoryOpen);
@@ -28,7 +28,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <motion.div 
-      className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10"
+      className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur-sm z-10"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
