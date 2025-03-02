@@ -158,7 +158,10 @@ class CacheManager {
 
   // Load dummy data immediately in non-extension context
   preloadDummyData<T>(key: string, dummyData: T): void {
-    if (typeof chrome === 'undefined' || !chrome.storage) {
+    console.log(`Preloading dummy data for ${key}`);
+    const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.bookmarks;
+    
+    if (!isChromeExtension) {
       const entry: CacheEntry<T> = {
         value: dummyData,
         expiry: null
