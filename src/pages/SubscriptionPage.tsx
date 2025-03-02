@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getPayPalClientId, getPayPalMode, setPayPalConfig } from "@/utils/chromeUtils";
+import { getPayPalClientId, getPayPalMode } from "@/utils/chromeUtils";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
+// Filter plans to only show free and basic
 const filteredPlans = subscriptionPlans.filter(
   plan => plan.id === "free" || plan.id === "basic"
 );
@@ -23,28 +22,19 @@ const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
-  const [showPayPalConfig, setShowPayPalConfig] = useState(false);
-  const [newClientId, setNewClientId] = useState('');
+  const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('live');
   const { currentPlan, setSubscriptionPlan } = useSubscription();
   const isMobile = useIsMobile();
 
-  const comparisonFeatures = [
-    "Bookmark management",
-    "AI summarization",
-    "Analytics",
-    "Priority support",
-    "Custom integrations",
-    "Unlimited storage"
-  ];
-
   useEffect(() => {
-    const loadInitialPayPalConfig = async () => {
+    const loadPayPalConfiguration = async () => {
       const mode = await getPayPalMode();
       setPaypalMode(mode);
+      const paypalClientId = await getPayPalClientId();
+      setClientId(paypalClientId);
     };
     
-    loadInitialPayPalConfig();
+    loadPayPalConfiguration();
   }, []);
 
   const handlePlanSelect = (planId: string) => {
@@ -59,27 +49,6 @@ const SubscriptionPage = () => {
     }
     
     setSelectedPlan(planId);
-    
-    if (planId !== "free" && !clientId) {
-      loadPayPalScript();
-    }
-  };
-
-  const loadPayPalScript = async () => {
-    try {
-      setIsLoading(true);
-      const paypalClientId = await getPayPalClientId();
-      if (paypalClientId) {
-        setClientId(paypalClientId);
-      } else {
-        toast.error("Could not load payment system");
-      }
-    } catch (error) {
-      console.error("Error loading PayPal:", error);
-      toast.error("Payment system unavailable");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleSubscribe = async (planId: string) => {
@@ -96,37 +65,6 @@ const SubscriptionPage = () => {
       toast.error("Failed to update subscription");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const savePayPalConfig = async () => {
-    if (!newClientId || newClientId.trim() === '') {
-      toast.error("Please enter a valid PayPal Client ID");
-      return;
-    }
-
-    const success = await setPayPalConfig(newClientId, paypalMode);
-    if (success) {
-      setClientId(newClientId);
-      toast.success(`PayPal ${paypalMode} mode configured successfully`);
-      setShowPayPalConfig(false);
-      
-      // Reload PayPal script with new client ID
-      await loadPayPalScript();
-    }
-  };
-
-  const togglePayPalMode = async () => {
-    const newMode = paypalMode === 'sandbox' ? 'live' : 'sandbox';
-    setPaypalMode(newMode);
-    
-    // If we have a client ID saved, update the config with the new mode
-    if (clientId) {
-      await setPayPalConfig(clientId, newMode);
-      toast.success(`Switched to PayPal ${newMode} mode`);
-      
-      // Reload PayPal script with new mode
-      await loadPayPalScript();
     }
   };
 
@@ -176,49 +114,6 @@ const SubscriptionPage = () => {
             <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
               Select the plan that fits your productivity needs
             </p>
-            
-            {/* PayPal Configuration Section - For Admin Use */}
-            <div className="mt-4 mb-6">
-              <Dialog open={showPayPalConfig} onOpenChange={setShowPayPalConfig}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-xs"
-                  >
-                    Configure PayPal {paypalMode === 'sandbox' ? '(Sandbox)' : '(Live)'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>PayPal Configuration</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="flex items-center justify-between">
-                      <span>Mode:</span>
-                      <Button 
-                        onClick={togglePayPalMode} 
-                        variant="outline" 
-                        size="sm"
-                      >
-                        {paypalMode === 'sandbox' ? 'Switch to Live' : 'Switch to Sandbox'}
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <span>PayPal {paypalMode} Client ID:</span>
-                      <Input
-                        value={newClientId}
-                        onChange={(e) => setNewClientId(e.target.value)}
-                        placeholder={`Enter your PayPal ${paypalMode} Client ID`}
-                      />
-                    </div>
-                    <Button onClick={savePayPalConfig} className="w-full">
-                      Save Configuration
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
           </div>
 
           {/* Plans Grid */}
@@ -307,7 +202,6 @@ const SubscriptionPage = () => {
                             console.error('PayPal error', err);
                             toast.error("Payment processing error");
                           }}
-                          fundingSource="card"
                         />
                       </PayPalScriptProvider>
                     </div>
@@ -337,7 +231,7 @@ const SubscriptionPage = () => {
           
           <div className="flex items-center justify-center mt-8 gap-2 text-sm text-muted-foreground">
             <CreditCard className="h-4 w-4" />
-            <span>Secure payment processing by PayPal ({paypalMode} mode)</span>
+            <span>Secure payment processing by PayPal</span>
           </div>
         </div>
       </div>

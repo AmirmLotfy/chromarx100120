@@ -26,13 +26,13 @@ jobs:
 
       - name: Set PayPal Config
         run: |
-          firebase functions:config:set paypal.client_id="$PAYPAL_CLIENT_ID" paypal.secret_key="$PAYPAL_SECRET_KEY" paypal.mode="live" --token "$FIREBASE_TOKEN"
+          firebase functions:config:set paypal.client_id="${{ secrets.PAYPAL_CLIENT_ID }}" paypal.secret_key="${{ secrets.PAYPAL_SECRET_KEY }}" paypal.mode="live" --token "${{ secrets.FIREBASE_TOKEN }}"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
           PAYPAL_SECRET_KEY: ${{ secrets.PAYPAL_SECRET_KEY }}
 
       - name: Deploy to Firebase
-        run: firebase deploy --only functions --token "$FIREBASE_TOKEN"
+        run: firebase deploy --only functions --token "${{ secrets.FIREBASE_TOKEN }}"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

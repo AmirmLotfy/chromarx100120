@@ -8,52 +8,18 @@ interface PayPalConfig {
   mode: 'sandbox' | 'live';
 }
 
-// Sandbox client ID - for development only
-const SANDBOX_CLIENT_ID = "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R";
+// Default PayPal Client ID - should be replaced with your live Client ID
+const DEFAULT_CLIENT_ID = "AZDxjDScFpQtjWTOUtWKbyN_bDt4OgqaF4eYXlewfBP4-8aqX3PiV8e1GWU6liB2CUXlkA59kJXE7M6R";
+const DEFAULT_MODE = 'live'; // Default to live mode
 
-// Default to sandbox mode for development, but allow overriding via storage
-export const getPayPalClientId = async (): Promise<string | null> => {
-  try {
-    // Try to get the PayPal config from storage first
-    const paypalConfig = await storage.get<PayPalConfig>('paypal_config');
-    
-    if (paypalConfig && paypalConfig.clientId) {
-      console.log(`Using ${paypalConfig.mode} PayPal Client ID from storage`);
-      return paypalConfig.clientId;
-    }
-    
-    // Fall back to sandbox client ID if no config in storage
-    console.log("Using default sandbox PayPal Client ID");
-    return SANDBOX_CLIENT_ID;
-  } catch (error) {
-    console.error('Error getting PayPal client ID:', error);
-    toast.error('Failed to load payment configuration');
-    return null;
-  }
+export const getPayPalClientId = async (): Promise<string> => {
+  // For production, always return the pre-configured client ID
+  return DEFAULT_CLIENT_ID;
 };
 
-// Function to save PayPal configuration to storage
-export const setPayPalConfig = async (clientId: string, mode: 'sandbox' | 'live'): Promise<boolean> => {
-  try {
-    await storage.set('paypal_config', { clientId, mode });
-    console.log(`PayPal config saved with mode: ${mode}`);
-    return true;
-  } catch (error) {
-    console.error('Error saving PayPal config:', error);
-    toast.error('Failed to save PayPal configuration');
-    return false;
-  }
-};
-
-// Get the current PayPal mode
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
-  try {
-    const paypalConfig = await storage.get<PayPalConfig>('paypal_config');
-    return paypalConfig?.mode || 'sandbox';
-  } catch (error) {
-    console.error('Error getting PayPal mode:', error);
-    return 'sandbox';
-  }
+  // For production, always return the pre-configured mode
+  return DEFAULT_MODE;
 };
 
 // Additional utility functions for PayPal integration
