@@ -2,6 +2,7 @@
 import { chromeDb } from '@/lib/chrome-storage';
 import { retryWithBackoff } from '@/utils/retryUtils';
 import { toast } from 'sonner';
+import { dummyBookmarks } from '@/utils/dummyBookmarks';
 
 export class StorageService {
   private static instance: StorageService;
@@ -11,6 +12,9 @@ export class StorageService {
   private constructor() {
     // Check if we're running in a Chrome extension context
     this.isExtension = typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
+    
+    // Set up default cache for bookmarks
+    this.cache.set('bookmarks', dummyBookmarks);
   }
 
   static getInstance(): StorageService {
@@ -22,6 +26,18 @@ export class StorageService {
 
   async get<T>(key: string): Promise<T | null> {
     try {
+      // For bookmarks, we should always have a fallback to dummy bookmarks
+      if (key === 'bookmarks' || key.includes('bookmark')) {
+        if (this.cache.has(key)) {
+          return this.cache.get(key) as T;
+        }
+        
+        if (key === 'bookmarks' && (!this.cache.has(key) || (this.cache.get(key) as any[]).length === 0)) {
+          console.log('No bookmarks in cache, returning dummy bookmarks');
+          return dummyBookmarks as unknown as T;
+        }
+      }
+
       if (this.cache.has(key)) {
         return this.cache.get(key) as T;
       }
@@ -29,7 +45,14 @@ export class StorageService {
       if (!this.isExtension) {
         // If not in extension, try localStorage as fallback
         const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : null;
+        const parsedValue = stored ? JSON.parse(stored) : null;
+        
+        // If retrieving bookmarks and got null or empty array, return dummy bookmarks
+        if (key === 'bookmarks' && (!parsedValue || (Array.isArray(parsedValue) && parsedValue.length === 0))) {
+          return dummyBookmarks as unknown as T;
+        }
+        
+        return parsedValue;
       }
 
       const result = await chrome.storage.sync.get(key);
@@ -38,10 +61,22 @@ export class StorageService {
       if (value !== null) {
         this.cache.set(key, value);
       }
+      
+      // If retrieving bookmarks and got null or empty array, return dummy bookmarks
+      if (key === 'bookmarks' && (!value || (Array.isArray(value) && value.length === 0))) {
+        return dummyBookmarks as unknown as T;
+      }
+      
       return value as T;
     } catch (error) {
       console.error(`Error reading ${key} from storage:`, error);
       toast.error(`Failed to read ${key} from storage`);
+      
+      // If error retrieving bookmarks, return dummy bookmarks
+      if (key === 'bookmarks') {
+        return dummyBookmarks as unknown as T;
+      }
+      
       return null;
     }
   }

@@ -17,10 +17,10 @@ const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 const BATCH_SIZE = 50; // Process bookmarks in batches
 const MAX_STORAGE_ITEM_SIZE = 8192; // Chrome's max size for a single sync storage item in bytes
-const ALWAYS_USE_DUMMY = true;
+const ALWAYS_USE_DUMMY = true; // Always use dummy bookmarks instead of Chrome API
 
 export const useBookmarkState = () => {
-  const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
+  const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>(dummyBookmarks); // Initialize with dummy bookmarks immediately
   const [loading, setLoading] = useState(true);
   const [newBookmarks, setNewBookmarks] = useState<ChromeBookmark[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -34,7 +34,12 @@ export const useBookmarkState = () => {
   
   const handleBookmarksChanged = useCallback((updatedBookmarks: ChromeBookmark[]) => {
     console.log("Bookmarks updated from sync:", updatedBookmarks.length);
-    setBookmarks(updatedBookmarks);
+    if (updatedBookmarks.length > 0) {
+      setBookmarks(updatedBookmarks);
+    } else {
+      // If empty array is received, keep using dummy bookmarks
+      setBookmarks(dummyBookmarks);
+    }
   }, []);
   
   const { 
@@ -109,6 +114,12 @@ export const useBookmarkState = () => {
 
   const getCachedBookmarks = async () => {
     try {
+      // If ALWAYS_USE_DUMMY is true, immediately return dummy bookmarks
+      if (ALWAYS_USE_DUMMY) {
+        console.log('ALWAYS_USE_DUMMY flag is on, returning dummy bookmarks');
+        return dummyBookmarks;
+      }
+
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
@@ -228,6 +239,13 @@ export const useBookmarkState = () => {
     await withErrorHandling(async () => {
       setLoading(true);
       
+      if (ALWAYS_USE_DUMMY) {
+        console.log('ALWAYS_USE_DUMMY flag is on, using dummy bookmarks');
+        setBookmarks(dummyBookmarks);
+        setLoading(false);
+        return;
+      }
+      
       const cached = await getCachedBookmarks();
       if (cached && cached.length > 0) {
         console.log('Using cached bookmarks:', cached.length);
@@ -296,6 +314,11 @@ export const useBookmarkState = () => {
       showError: true,
       rethrow: false,
     }).finally(() => {
+      // Always make sure we have bookmarks to display
+      if (bookmarks.length === 0) {
+        console.log('No bookmarks after load, setting dummy bookmarks');
+        setBookmarks(dummyBookmarks);
+      }
       setLoading(false);
       setProcessingMessage("");
     });
@@ -447,6 +470,7 @@ export const useBookmarkState = () => {
   };
 
   useEffect(() => {
+    console.log('Initial load of bookmarks starting');
     loadBookmarks();
     
     if (!ALWAYS_USE_DUMMY && chrome.bookmarks) {
@@ -482,9 +506,10 @@ export const useBookmarkState = () => {
 
   useEffect(() => {
     if (bookmarks.length === 0) {
+      console.log('Bookmark state is empty, setting dummy bookmarks');
       setBookmarks(dummyBookmarks);
     }
-  }, []);
+  }, [bookmarks]);
 
   return {
     bookmarks,

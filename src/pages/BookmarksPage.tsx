@@ -68,6 +68,15 @@ const BookmarksPage = () => {
     }
   }, [bookmarks, loading, setBookmarks]);
 
+  // Force initial load of dummy bookmarks
+  useEffect(() => {
+    // This will ensure we have some data to show immediately
+    console.log('Initial bookmarks setup');
+    if (bookmarks.length === 0) {
+      setBookmarks(dummyBookmarks);
+    }
+  }, []);
+
   const handleDelete = async (id: string) => {
     try {
       if (chrome.bookmarks) {
@@ -150,6 +159,8 @@ const BookmarksPage = () => {
   // Always use dummy bookmarks if no bookmarks are available
   const displayBookmarks = bookmarks.length > 0 ? bookmarks : dummyBookmarks;
 
+  console.log('Rendering BookmarksPage with bookmarks:', displayBookmarks.length);
+
   const filteredBookmarks = displayBookmarks
     .filter((bookmark) => {
       const searchLower = searchQuery.toLowerCase();
@@ -175,6 +186,8 @@ const BookmarksPage = () => {
           return 0;
       }
     });
+
+  console.log('Filtered bookmarks:', filteredBookmarks.length);
 
   return (
     <Layout>
