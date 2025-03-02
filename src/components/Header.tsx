@@ -148,12 +148,11 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-80 p-0 border border-border/60 shadow-lg"
-                    style={{ backgroundColor: 'var(--popover)' }}
+                    className="w-80 p-0 border border-border/60 shadow-lg bg-background"
                     align="end"
                     sideOffset={8}
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-accent/40">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted">
                       <h3 className="font-medium text-sm flex items-center gap-1.5">
                         <Bell className="h-3.5 w-3.5 text-primary/70" />
                         Notifications
@@ -175,13 +174,13 @@ const Header = () => {
                       )}
                     </div>
                     
-                    <ScrollArea className="h-[280px] overflow-hidden bg-popover">
+                    <ScrollArea className="h-[280px] overflow-hidden bg-background">
                       {notifications.length > 0 ? (
                         <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-2.5 hover:bg-accent/20 cursor-pointer transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-2.5 hover:bg-muted transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
@@ -214,7 +213,7 @@ const Header = () => {
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-2.5 border-t border-border/40 bg-accent/20">
+                    <div className="px-4 py-2.5 border-t border-border/40 bg-muted/50">
                       <Link 
                         to="/notifications"
                         className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1"
@@ -264,12 +263,11 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-80 p-0 border border-border/60 shadow-lg"
-                    style={{ backgroundColor: 'var(--popover)' }}
+                    className="w-80 p-0 border border-border/60 shadow-lg bg-background"
                     align="end"
                     sideOffset={8}
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-accent/40">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted">
                       <h3 className="font-medium text-sm flex items-center gap-1.5">
                         <Bell className="h-3.5 w-3.5 text-primary/70" />
                         Notifications
@@ -291,13 +289,13 @@ const Header = () => {
                       )}
                     </div>
                     
-                    <ScrollArea className="h-[280px] overflow-hidden bg-popover">
+                    <ScrollArea className="h-[280px] overflow-hidden bg-background">
                       {notifications.length > 0 ? (
                         <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-2.5 hover:bg-accent/20 cursor-pointer transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-2.5 hover:bg-muted transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
@@ -330,7 +328,7 @@ const Header = () => {
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-2.5 border-t border-border/40 bg-accent/20">
+                    <div className="px-4 py-2.5 border-t border-border/40 bg-muted/50">
                       <Link 
                         to="/notifications"
                         className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1"
