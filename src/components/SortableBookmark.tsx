@@ -4,7 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChromeBookmark } from "@/types/bookmark";
 import DraggableBookmark from "./DraggableBookmark";
 import React, { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SortableBookmarkProps {
   bookmark: ChromeBookmark;
@@ -55,6 +55,15 @@ const SortableBookmark = ({
     touchAction: "none",
   };
 
+  // Debug logging for component props
+  console.log("SortableBookmark rendering:", { 
+    bookmarkId: bookmark.id, 
+    isExpanded, 
+    hasActions: !!aiActions, 
+    hasShare: !!shareComponent,
+    hasControls: !!controls
+  });
+
   return (
     <div 
       ref={setNodeRef} 
@@ -71,23 +80,27 @@ const SortableBookmark = ({
         onDelete={onDelete}
         formatDate={formatDate}
         view={view}
+        isExpanded={isExpanded}
+        onToggleExpand={onToggleExpand}
       />
-      {isExpanded && (
-        <motion.div 
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          className="mt-3 pl-4 border-l-2 border-l-gray-200 dark:border-l-gray-700 py-3 space-y-3"
-        >
-          <div className="flex flex-wrap gap-2">
-            {aiActions}
-            {shareComponent}
-          </div>
-          <div>
-            {controls}
-          </div>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-3 pl-4 border-l-2 border-l-gray-200 dark:border-l-gray-700 py-3 space-y-3"
+          >
+            <div className="flex flex-wrap gap-2">
+              {aiActions}
+              {shareComponent}
+            </div>
+            <div>
+              {controls}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

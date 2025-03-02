@@ -47,7 +47,8 @@ const BookmarkList = ({
   console.log("BookmarkList rendering with:", { 
     bookmarks: bookmarks.length,
     view,
-    expandedBookmark
+    expandedBookmark,
+    selectedBookmarksCount: selectedBookmarks.size
   });
   
   if (bookmarks.length === 0) {
@@ -74,6 +75,13 @@ const BookmarkList = ({
       
       onReorder(newBookmarks);
     }
+  };
+
+  const handleUpdateBookmark = (updatedBookmark: ChromeBookmark) => {
+    const updatedBookmarks = bookmarks.map(b => 
+      b.id === updatedBookmark.id ? updatedBookmark : b
+    );
+    onUpdateCategories(updatedBookmarks);
   };
 
   return (
@@ -108,7 +116,9 @@ const BookmarkList = ({
                     />
                   }
                   shareComponent={
-                    <BookmarkShare bookmark={bookmark} />
+                    <BookmarkShare
+                      bookmark={bookmark}
+                    />
                   }
                   aiActions={
                     <BookmarkAIActions
@@ -116,6 +126,8 @@ const BookmarkList = ({
                       onUpdateCategories={onUpdateCategories}
                     />
                   }
+                  tabIndex={0}
+                  onFocus={() => console.log("Bookmark focused:", bookmark.id)}
                 />
               );
             })}
