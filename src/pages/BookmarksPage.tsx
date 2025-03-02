@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -60,7 +59,6 @@ const BookmarksPage = () => {
     };
   }, []);
 
-  // Ensure dummy bookmarks are always available
   useEffect(() => {
     if (!loading && (!bookmarks || bookmarks.length === 0)) {
       console.log('No bookmarks loaded, using dummy data');
@@ -68,9 +66,7 @@ const BookmarksPage = () => {
     }
   }, [bookmarks, loading, setBookmarks]);
 
-  // Force initial load of dummy bookmarks
   useEffect(() => {
-    // This will ensure we have some data to show immediately
     console.log('Initial bookmarks setup');
     if (bookmarks.length === 0) {
       setBookmarks(dummyBookmarks);
@@ -156,7 +152,6 @@ const BookmarksPage = () => {
       .length,
   }));
 
-  // Always use dummy bookmarks if no bookmarks are available
   const displayBookmarks = bookmarks.length > 0 ? bookmarks : dummyBookmarks;
 
   console.log('Rendering BookmarksPage with bookmarks:', displayBookmarks.length);
