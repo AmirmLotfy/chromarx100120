@@ -2,7 +2,7 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { Card, CardContent } from "./ui/card";
 import { cn } from "@/lib/utils";
-import { ExternalLink, Trash2, Share2, CheckSquare, Loader2 } from "lucide-react";
+import { ExternalLink, Trash2, Share2, CheckSquare, Loader2, ChevronDown, ChevronUp, FileText, Tag, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useLongPress } from "use-long-press";
@@ -17,6 +17,8 @@ interface DraggableBookmarkProps {
   onDelete: (id: string) => void;
   formatDate: (timestamp?: number) => string;
   view: "grid" | "list";
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 const DraggableBookmark = ({
@@ -26,6 +28,8 @@ const DraggableBookmark = ({
   onDelete,
   formatDate,
   view,
+  isExpanded,
+  onToggleExpand,
 }: DraggableBookmarkProps) => {
   const [isPressed, setIsPressed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,6 +91,60 @@ const DraggableBookmark = ({
     } else {
       onToggleSelect(bookmark.id);
     }
+  };
+
+  // Main action buttons for summarize, categorize, select functionality
+  const renderMainActionButtons = () => {
+    return (
+      <div className="flex items-center gap-1 mt-2 border-t pt-2 border-gray-100 dark:border-gray-800">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 hover:bg-accent/50 transition-colors flex items-center gap-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleExpand) {
+              onToggleExpand();
+              console.log("Expand clicked to show AI actions");
+            }
+          }}
+          title="Summarize with AI"
+        >
+          <FileText className="h-4 w-4" />
+          <span className="sr-only">Summarize</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 hover:bg-accent/50 transition-colors flex items-center gap-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onToggleExpand) {
+              onToggleExpand();
+              console.log("Expand clicked to show categorization");
+            }
+          }}
+          title="Categorize with AI"
+        >
+          <Tag className="h-4 w-4" />
+          <span className="sr-only">Categorize</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 hover:bg-accent/50 transition-colors flex items-center gap-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(bookmark.id);
+            console.log("Select toggled");
+          }}
+          title="Select bookmark"
+        >
+          <CheckCircle className="h-4 w-4" />
+          <span className="sr-only">Select</span>
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -161,6 +219,9 @@ const DraggableBookmark = ({
               {formatDate(bookmark.dateAdded)}
             </span>
           </div>
+          
+          {/* Add the main action buttons */}
+          {renderMainActionButtons()}
         </div>
         <div className="flex items-center gap-1 ml-2 shrink-0">
           <Button
@@ -194,6 +255,23 @@ const DraggableBookmark = ({
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          {onToggleExpand && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-accent/50 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onToggleExpand) onToggleExpand();
+              }}
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,7 +15,6 @@ import { useLanguage } from "@/stores/languageStore";
 import { LoadingOverlay } from "./ui/loading-overlay";
 import { useState } from "react";
 import { auth } from "@/lib/chrome-utils";
-import { chromeDb } from "@/lib/chrome-storage";
 import { fetchPageContent } from "@/utils/contentExtractor";
 
 interface BookmarkAIActionsProps {

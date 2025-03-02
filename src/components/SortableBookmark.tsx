@@ -3,25 +3,39 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChromeBookmark } from "@/types/bookmark";
 import DraggableBookmark from "./DraggableBookmark";
+import React, { ReactNode } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SortableBookmarkProps {
   bookmark: ChromeBookmark;
-  selected: boolean;
-  onToggleSelect: (id: string) => void;
-  onDelete: (id: string) => void;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onDelete: () => void;
   formatDate: (timestamp?: number) => string;
   view: "grid" | "list";
+  domain?: string;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  controls?: ReactNode;
+  shareComponent?: ReactNode;
+  aiActions?: ReactNode;
   tabIndex?: number;
   onFocus?: () => void;
 }
 
 const SortableBookmark = ({
   bookmark,
-  selected,
+  isSelected,
   onToggleSelect,
   onDelete,
   formatDate,
   view,
+  domain,
+  isExpanded,
+  onToggleExpand,
+  controls,
+  shareComponent,
+  aiActions,
   tabIndex,
   onFocus,
 }: SortableBookmarkProps) => {
@@ -41,6 +55,15 @@ const SortableBookmark = ({
     touchAction: "none",
   };
 
+  // Debug logging for component props
+  console.log("SortableBookmark rendering:", { 
+    bookmarkId: bookmark.id, 
+    isExpanded, 
+    hasActions: !!aiActions, 
+    hasShare: !!shareComponent,
+    hasControls: !!controls
+  });
+
   return (
     <div 
       ref={setNodeRef} 
@@ -52,12 +75,32 @@ const SortableBookmark = ({
     >
       <DraggableBookmark
         bookmark={bookmark}
-        selected={selected}
+        selected={isSelected}
         onToggleSelect={onToggleSelect}
         onDelete={onDelete}
         formatDate={formatDate}
         view={view}
+        isExpanded={isExpanded}
+        onToggleExpand={onToggleExpand}
       />
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-3 pl-4 border-l-2 border-l-gray-200 dark:border-l-gray-700 py-3 space-y-3"
+          >
+            <div className="flex flex-wrap gap-2">
+              {aiActions}
+              {shareComponent}
+            </div>
+            <div>
+              {controls}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

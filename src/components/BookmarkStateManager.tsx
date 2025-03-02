@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { toast } from "sonner";
@@ -17,6 +16,11 @@ const CACHE_KEY = 'bookmark_cache';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 const BATCH_SIZE = 50; // Process bookmarks in batches
 const MAX_STORAGE_ITEM_SIZE = 8192; // Chrome's max size for a single sync storage item in bytes
+
+// Helper to check if we're in a Chrome extension environment
+const isChromeExtension = () => {
+  return typeof chrome !== 'undefined' && !!chrome.bookmarks;
+};
 
 export const useBookmarkState = () => {
   const [bookmarks, setBookmarks] = useState<ChromeBookmark[]>([]);
@@ -47,39 +51,31 @@ export const useBookmarkState = () => {
   } = useBookmarkSync(handleBookmarksChanged);
 
   const splitBookmarksForStorage = useCallback(async (bookmarks: ChromeBookmark[]) => {
-    // Chrome sync storage has limitations on item size
-    // We'll split bookmarks into chunks if needed
     try {
       const bookmarksJSON = JSON.stringify(bookmarks);
       
       if (bookmarksJSON.length <= MAX_STORAGE_ITEM_SIZE) {
-        // Can store in a single item
         await chromeDb.set('bookmarks', bookmarks);
         return;
       }
       
-      // Need to split into chunks
-      const chunkSize = 20; // Adjust based on your bookmark size
+      const chunkSize = 20;
       const chunks = [];
       
       for (let i = 0; i < bookmarks.length; i += chunkSize) {
         chunks.push(bookmarks.slice(i, i + chunkSize));
       }
       
-      // Clear existing chunks
-      for (let i = 0; i < 100; i++) { // Assuming max 100 chunks
+      for (let i = 0; i < 100; i++) {
         await chromeDb.remove(`bookmarks_chunk_${i}`);
       }
       
-      // Store new chunks
       for (let i = 0; i < chunks.length; i++) {
         await chromeDb.set(`bookmarks_chunk_${i}`, chunks[i]);
       }
       
-      // Store chunk count
       await chromeDb.set('bookmarks_chunk_count', chunks.length);
       
-      // Clear main bookmarks key
       await chromeDb.remove('bookmarks');
       
       console.log(`Split ${bookmarks.length} bookmarks into ${chunks.length} chunks`);
@@ -91,16 +87,13 @@ export const useBookmarkState = () => {
 
   const loadSplitBookmarks = useCallback(async (): Promise<ChromeBookmark[]> => {
     try {
-      // Check if we have split bookmarks
       const chunkCount = await chromeDb.get<number>('bookmarks_chunk_count');
       
       if (!chunkCount) {
-        // No split bookmarks, try regular storage
         const regularBookmarks = await chromeDb.get<ChromeBookmark[]>('bookmarks');
         return regularBookmarks || [];
       }
       
-      // Load all chunks
       let allBookmarks: ChromeBookmark[] = [];
       
       for (let i = 0; i < chunkCount; i++) {
@@ -120,7 +113,6 @@ export const useBookmarkState = () => {
 
   const getCachedBookmarks = async () => {
     try {
-      // Try local storage first for quick load
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
@@ -130,14 +122,12 @@ export const useBookmarkState = () => {
         }
       }
 
-      // If no local cache, try Chrome sync storage
       const syncedData = await chromeDb.get<{ data: ChromeBookmark[]; timestamp: number }>(CACHE_KEY);
       if (syncedData && Date.now() - syncedData.timestamp < CACHE_EXPIRY) {
         console.log('Using synced cache for bookmarks');
         return syncedData.data;
       }
 
-      // Try loading split bookmarks if regular storage fails
       const splitBookmarks = await loadSplitBookmarks();
       if (splitBookmarks.length > 0) {
         return splitBookmarks;
@@ -157,14 +147,11 @@ export const useBookmarkState = () => {
     };
 
     try {
-      // Update both local and sync storage
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       
-      // Try to store in Chrome storage, falling back to split storage if needed
       try {
         await chromeDb.set(CACHE_KEY, cacheData);
       } catch (error) {
-        // Storage might be too large, use split storage
         console.warn("Cache might be too large for single storage item, using split storage");
         await splitBookmarksForStorage(data);
       }
@@ -180,7 +167,6 @@ export const useBookmarkState = () => {
     const processed: ChromeBookmark[] = [];
     let progress = 0;
     
-    // Process bookmarks in batches
     for (let i = 0; i < bookmarks.length; i += BATCH_SIZE) {
       const batch = bookmarks.slice(i, i + BATCH_SIZE);
       const batchPromises = batch.map(async (bookmark): Promise<ChromeBookmark> => {
@@ -213,7 +199,6 @@ export const useBookmarkState = () => {
           return chromeBookmark;
         } catch (error) {
           console.error("Error processing bookmark:", bookmark, error);
-          // Return a minimal valid bookmark to avoid breaking the app
           return {
             id: bookmark.id || `error-${Date.now()}-${Math.random()}`,
             title: bookmark.title || "Error loading bookmark",
@@ -234,7 +219,6 @@ export const useBookmarkState = () => {
         console.error("Error processing bookmark batch:", error);
       }
       
-      // Update progress
       progress = Math.round((processed.length / bookmarks.length) * 100);
       setSyncProgress(progress);
       console.log(`Processing bookmarks: ${progress}%`);
@@ -248,32 +232,39 @@ export const useBookmarkState = () => {
     await withErrorHandling(async () => {
       setLoading(true);
       
-      // Try to get cached bookmarks first
       const cached = await getCachedBookmarks();
       if (cached) {
         setBookmarks(cached);
         setLoading(false);
       }
 
-      // Load fresh data
-      if (chrome.bookmarks) {
-        const results = await chrome.bookmarks.getRecent(1000);
-        setProcessingMessage("Processing bookmarks...");
-        
-        const processed = await processChromeBookmarks(results);
-        
-        // Update local storage and state
-        await setCachedBookmarks(processed);
-        setBookmarks(processed);
-        setProcessingMessage("");
+      if (isChromeExtension()) {
+        try {
+          const results = await chrome.bookmarks.getRecent(1000);
+          setProcessingMessage("Processing bookmarks...");
+          
+          const processed = await processChromeBookmarks(results);
+          
+          await setCachedBookmarks(processed);
+          setBookmarks(processed);
+          setProcessingMessage("");
 
-        // Sync with server if we have new bookmarks
-        const user = await auth.getCurrentUser();
-        if (user) {
-          for (const bookmark of processed) {
-            await updateBookmark(bookmark);
+          const user = await auth.getCurrentUser();
+          if (user) {
+            for (const bookmark of processed) {
+              await updateBookmark(bookmark);
+            }
           }
+        } catch (error) {
+          console.error("Error loading Chrome bookmarks:", error);
+          console.log("Falling back to dummy bookmarks");
+          setBookmarks(dummyBookmarks);
+          await setCachedBookmarks(dummyBookmarks);
         }
+      } else {
+        console.log("Chrome bookmarks API not available, loading dummy bookmarks");
+        setBookmarks(dummyBookmarks);
+        await setCachedBookmarks(dummyBookmarks);
       }
     }, {
       errorMessage: "Failed to load bookmarks",
@@ -286,7 +277,7 @@ export const useBookmarkState = () => {
   };
 
   const loadFreshBookmarks = async () => {
-    if (chrome.bookmarks) {
+    if (isChromeExtension()) {
       try {
         const results = await chrome.bookmarks.getRecent(1000);
         const previousCount = bookmarks.length;
@@ -311,6 +302,8 @@ export const useBookmarkState = () => {
         console.error("Error loading fresh bookmarks:", error);
         toast.error("Failed to refresh bookmarks");
       }
+    } else {
+      setBookmarks(dummyBookmarks);
     }
   };
 
@@ -341,7 +334,6 @@ export const useBookmarkState = () => {
 
   const handleSuggestCategories = async () => {
     try {
-      // Check authentication first
       const user = await auth.getCurrentUser();
       if (!user) {
         toast.error("Please sign in to use AI features");
@@ -384,14 +376,12 @@ export const useBookmarkState = () => {
         })
       );
 
-      // Update the bookmarks with new categories
       setBookmarks(prevBookmarks => 
         prevBookmarks.map(bookmark => 
           categorizedBookmarks.find(cb => cb.id === bookmark.id) || bookmark
         )
       );
       
-      // Sync categorized bookmarks to server
       for (const bookmark of categorizedBookmarks) {
         if (bookmark.category) {
           await chromeDb.set(`bookmark-category-${bookmark.id}`, bookmark.category);
@@ -435,12 +425,12 @@ export const useBookmarkState = () => {
 
   useEffect(() => {
     loadBookmarks();
-    if (chrome.bookmarks) {
+    
+    if (isChromeExtension()) {
       chrome.bookmarks.onCreated.addListener(loadBookmarks);
       chrome.bookmarks.onRemoved.addListener(loadBookmarks);
       chrome.bookmarks.onChanged.addListener(loadBookmarks);
       
-      // Listen for changes from other devices
       chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes[CACHE_KEY]) {
           console.log('Bookmark changes detected from sync');
@@ -448,7 +438,6 @@ export const useBookmarkState = () => {
         }
       });
 
-      // Listen for custom storage-changed event
       const handleStorageChange = (event: CustomEvent) => {
         const { key } = event.detail;
         if (key === 'bookmarks' || key.startsWith('bookmarks_chunk_')) {
@@ -465,6 +454,9 @@ export const useBookmarkState = () => {
         chrome.bookmarks.onChanged.removeListener(loadBookmarks);
         window.removeEventListener('storage-changed', handleStorageChange as EventListener);
       };
+    } else {
+      console.log("Using dummy bookmarks for development");
+      setBookmarks(dummyBookmarks);
     }
   }, []);
 
