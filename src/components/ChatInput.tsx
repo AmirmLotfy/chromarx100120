@@ -22,8 +22,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [showRecentQueries, setShowRecentQueries] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,6 +42,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      
+      // Clean up speech recognition on unmount
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
   }, []);
 
@@ -97,6 +104,54 @@ const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  const toggleSpeechRecognition = () => {
+    // Check if the browser supports speech recognition
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      // @ts-ignore - TypeScript doesn't know about webkit prefixed version
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (isListening) {
+        // Stop listening
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+          recognitionRef.current = null;
+        }
+        setIsListening(false);
+      } else {
+        // Start listening
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('');
+          
+          setInputValue(transcript);
+          
+          // Auto-resize textarea
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+          }
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognition.start();
+        recognitionRef.current = recognition;
+        setIsListening(true);
+      }
+    } else {
+      alert("Speech recognition is not supported in your browser.");
+    }
+  };
+
   return (
     <motion.div 
       className="relative"
@@ -134,6 +189,21 @@ const ChatInput: React.FC<ChatInputProps> = ({
       </AnimatePresence>
 
       <div className="flex items-end gap-2">
+        <Button
+          type="button"
+          onClick={toggleSpeechRecognition}
+          disabled={isProcessing || disabled}
+          className={cn(
+            "h-10 w-10 rounded-full p-0 flex-shrink-0 transition-colors",
+            isListening
+              ? "bg-destructive text-destructive-foreground animate-pulse"
+              : "bg-muted hover:bg-muted/80 text-muted-foreground"
+          )}
+          aria-label={isListening ? "Stop recording" : "Start voice input"}
+        >
+          <Mic className="h-4 w-4" />
+        </Button>
+        
         <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm">
           <textarea
             ref={textareaRef}
@@ -141,9 +211,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
-            placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Type a message..."}
+            placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Message..."}
             className="w-full resize-none bg-transparent pl-4 pr-12 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ minHeight: "52px", maxHeight: "120px" }}
+            style={{ minHeight: "48px", maxHeight: "120px" }}
             disabled={isProcessing || disabled}
             rows={1}
           />
@@ -155,9 +225,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
               variant="ghost"
               size="icon"
               onClick={handleClearInput}
-              className="absolute right-10 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted/80"
+              className="absolute right-10 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full hover:bg-muted/80"
             >
-              <X className="h-4 w-4 text-muted-foreground" />
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="sr-only">Clear input</span>
             </Button>
           )}
@@ -168,9 +238,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isProcessing || disabled}
             className={cn(
-              "absolute right-1 bottom-1.5 h-9 w-9 rounded-full p-0 transition-all",
+              "absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full p-0 flex items-center justify-center transition-all",
               (!inputValue.trim() || isProcessing || disabled) 
-                ? "bg-muted text-muted-foreground hover:bg-muted/80"
+                ? "bg-muted text-muted-foreground"
                 : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
             )}
           >

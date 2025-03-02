@@ -9,13 +9,13 @@ const ChatPage: React.FC = () => {
   return (
     <Layout>
       <motion.div 
-        className="container mx-auto h-full p-0 max-w-3xl" 
+        className="container mx-auto h-full p-0 max-w-md" 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
         <div className="h-full flex flex-col">
-          <div className="flex-1 overflow-hidden flex flex-col rounded-xl shadow-lg bg-gradient-to-b from-background/95 to-background/90 backdrop-blur-sm border">
+          <div className="h-full overflow-hidden flex flex-col rounded-2xl shadow-lg bg-background/95 backdrop-blur-sm border">
             <AuthProvider>
               <ChatInterface />
             </AuthProvider>

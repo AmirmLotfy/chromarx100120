@@ -50,7 +50,7 @@ const ChatInterface = () => {
 
   return (
     <motion.div 
-      className="flex flex-col h-full overflow-hidden rounded-xl"
+      className="flex flex-col h-full overflow-hidden rounded-2xl"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -66,9 +66,9 @@ const ChatInterface = () => {
         toggleBookmarkSearchMode={toggleBookmarkSearchMode}
       />
       
-      {/* Main content area with flexible layout */}
+      {/* Main content area */}
       <div className="flex flex-1 h-full overflow-hidden relative">
-        {/* Chat history sidebar - use AnimatePresence to handle animations */}
+        {/* Chat history sidebar - use AnimatePresence for animations */}
         <AnimatePresence>
           {isHistoryOpen && (
             <ChatSidebar 
@@ -91,7 +91,7 @@ const ChatInterface = () => {
           )}
         </AnimatePresence>
         
-        {/* Overlay to close sidebar on mobile when clicking outside */}
+        {/* Overlay to close sidebar on mobile */}
         {isHistoryOpen && isMobile && (
           <motion.div 
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"

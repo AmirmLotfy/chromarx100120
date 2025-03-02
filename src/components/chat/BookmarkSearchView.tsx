@@ -16,7 +16,7 @@ const BookmarkSearchView = () => {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
       >
-        <Search className="h-8 w-8 text-primary/80" />
+        <Search className="h-8 w-8 text-primary/90" />
       </motion.div>
       <h3 className="text-xl font-medium mb-2">Search Bookmarks</h3>
       <p className="text-sm text-muted-foreground max-w-xs">

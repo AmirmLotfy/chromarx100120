@@ -1,9 +1,9 @@
 
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { ExternalLink, User, Bot, Check } from "lucide-react";
+import { ExternalLink, User, Bot, Check, Mic } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessagesProps {
@@ -16,20 +16,31 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
   
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+      <motion.div 
+        className="flex-1 flex flex-col items-center justify-center p-6 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
           className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
         >
-          <Bot className="h-8 w-8 text-primary/80" />
+          <Bot className="h-8 w-8 text-primary/90" />
         </motion.div>
-        <h3 className="text-xl font-medium mb-2">Start Chatting</h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Ask questions or get insights about your bookmarks
-        </p>
-      </div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <h3 className="text-xl font-medium mb-2">Start Chatting</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Ask questions or get insights about your bookmarks
+          </p>
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -66,7 +77,7 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
             </div>
             
             {/* List view - chat bubbles */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {group.messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -76,12 +87,12 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                   className={cn(
                     "flex",
                     message.sender === "user" ? "justify-end" : "justify-start",
-                    "gap-2"
+                    "gap-2 items-end"
                   )}
                 >
                   {message.sender === "assistant" && (
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                      <Bot className="h-4 w-4 text-primary" />
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-3.5 w-3.5 text-primary" />
                     </div>
                   )}
                   
@@ -89,9 +100,9 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     className={cn(
                       "max-w-[85%] space-y-2 relative",
                       message.sender === "user"
-                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3"
-                        : "bg-muted/70 text-foreground rounded-2xl rounded-tl-sm px-4 py-3",
-                      !message.isRead && message.sender === "assistant" && "ring-2 ring-primary/20"
+                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-3.5 py-2.5"
+                        : "bg-muted text-foreground rounded-2xl rounded-tl-sm px-3.5 py-2.5",
+                      !message.isRead && message.sender === "assistant" && "ring-2 ring-primary/10"
                     )}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -158,8 +169,8 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                   </div>
                   
                   {message.sender === "user" && (
-                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                      <User className="h-4 w-4 text-primary" />
+                    <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <User className="h-3.5 w-3.5 text-primary" />
                     </div>
                   )}
                 </motion.div>

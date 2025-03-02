@@ -24,20 +24,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   toggleBookmarkSearchMode,
 }) => {
   const handleToggleSidebar = () => {
-    console.log("Toggle history sidebar", !isHistoryOpen);
     setIsHistoryOpen(!isHistoryOpen);
-  };
-
-  const handleClearChat = () => {
-    // Only clear if there are messages
-    if (messagesCount > 0) {
-      clearChat();
-    }
   };
 
   return (
     <motion.div 
-      className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-primary/5 to-secondary/5 backdrop-blur-sm"
+      className="flex items-center justify-between px-4 py-3 border-b bg-background/90 backdrop-blur-sm shadow-sm"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -46,11 +38,11 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-10 w-10 rounded-full bg-background/80 shadow-sm"
+          className="h-9 w-9 rounded-full hover:bg-accent"
           onClick={handleToggleSidebar}
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
-          <Menu size={20} />
+          <Menu size={18} />
         </Button>
         
         <div className="flex flex-col">
@@ -69,27 +61,27 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Clear chat button - only visible when there are messages */}
+        {/* Clear chat button */}
         {messagesCount > 0 && !isBookmarkSearchMode && (
           <Button
-            onClick={handleClearChat}
+            onClick={clearChat}
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             aria-label="Clear conversation"
           >
-            <Trash2 size={18} />
+            <Trash2 size={16} />
           </Button>
         )}
         
         <motion.button
           initial={false}
-          whileTap={{ scale: 0.94 }}
+          whileTap={{ scale: 0.95 }}
           onClick={toggleBookmarkSearchMode}
-          className={`relative h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1.5 ${
+          className={`relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
             isBookmarkSearchMode 
-              ? "bg-secondary text-secondary-foreground" 
-              : "bg-background/80 text-foreground shadow-sm border"
+              ? "bg-primary text-primary-foreground" 
+              : "bg-accent text-foreground hover:bg-accent/80"
           }`}
         >
           <motion.div
@@ -97,7 +89,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             animate={{ rotate: isBookmarkSearchMode ? 0 : 360 }}
             transition={{ duration: 0.3 }}
           >
-            {isBookmarkSearchMode ? <MessageCircle size={16} /> : <Search size={16} />}
+            {isBookmarkSearchMode ? <MessageCircle size={14} /> : <Search size={14} />}
           </motion.div>
           <span>{isBookmarkSearchMode ? "Chat" : "Search"}</span>
         </motion.button>
