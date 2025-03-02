@@ -1,6 +1,5 @@
-
 import { Link, useLocation } from "react-router-dom";
-import { Home, Search, Bookmark, User } from "lucide-react";
+import { Home, Bookmark, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -27,12 +26,6 @@ const Navigation = () => {
             icon={<Bookmark className="h-5 w-5" />}
             isActive={isActive("/bookmarks")}
             label="Bookmarks"
-          />
-          <NavItem 
-            to="/search" 
-            icon={<Search className="h-5 w-5" />}
-            isActive={isActive("/search")}
-            label="Search"
           />
           <NavItem 
             to="/user" 
@@ -80,13 +73,11 @@ const ActiveIndicator = ({ location }: { location: string }) => {
     switch (path) {
       case "/": return 0;
       case "/bookmarks": return 1;
-      case "/search": return 2;
-      case "/user": return 3;
+      case "/user": return 2;
       default: 
         // Try to match the first part of the path
         if (path.startsWith("/bookmarks")) return 1;
-        if (path.startsWith("/search")) return 2;
-        if (path.startsWith("/user")) return 3;
+        if (path.startsWith("/user")) return 2;
         return 0; // Default to home
     }
   };
