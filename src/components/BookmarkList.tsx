@@ -465,59 +465,38 @@ const BookmarkList = ({
             
             <TooltipProvider>
               <div className="flex flex-wrap gap-1.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsMoveDialogOpen(true)}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
-                    >
-                      <FolderPlus className="h-4 w-4" />
-                      <span className="sr-only">Move</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    Move selected
-                  </TooltipContent>
-                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMoveDialogOpen(true)}
+                  disabled={isProcessing || selectedBookmarks.size === 0}
+                  className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
+                >
+                  <FolderPlus className="h-3.5 w-3.5 mr-1.5" />
+                  <span>Move</span>
+                </Button>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsCategorizeDialogOpen(true)}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
-                    >
-                      <Globe className="h-4 w-4" />
-                      <span className="sr-only">Categorize</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    Categorize selected
-                  </TooltipContent>
-                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCategorizeDialogOpen(true)}
+                  disabled={isProcessing || selectedBookmarks.size === 0}
+                  className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
+                >
+                  <Globe className="h-3.5 w-3.5 mr-1.5" />
+                  <span>Category</span>
+                </Button>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsTagDialogOpen(true)}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
-                    >
-                      <Tag className="h-4 w-4" />
-                      <span className="sr-only">Tag</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    Tag selected
-                  </TooltipContent>
-                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsTagDialogOpen(true)}
+                  disabled={isProcessing || selectedBookmarks.size === 0}
+                  className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
+                >
+                  <Tag className="h-3.5 w-3.5 mr-1.5" />
+                  <span>Tag</span>
+                </Button>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -526,14 +505,14 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleCleanup}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                      className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Cleanup</span>
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      <span>Delete</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    Delete selected
+                    Clean up duplicates and broken bookmarks
                   </TooltipContent>
                 </Tooltip>
 
@@ -544,14 +523,14 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleGenerateSummaries}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                      className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
                     >
-                      <FileText className="h-4 w-4" />
-                      <span className="sr-only">Summarize</span>
+                      <FileText className="h-3.5 w-3.5 mr-1.5" />
+                      <span>Summary</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    Summarize selected
+                    Generate AI summaries of bookmarks
                   </TooltipContent>
                 </Tooltip>
 
@@ -562,14 +541,14 @@ const BookmarkList = ({
                       size="sm"
                       onClick={handleSuggestCategories}
                       disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 w-9 p-0 rounded-full shadow-sm bg-background border-muted-foreground/20"
+                      className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
                     >
-                      <Sparkles className="h-4 w-4" />
-                      <span className="sr-only">AI Categorize</span>
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      <span>AI Sort</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    AI categorization
+                    Use AI to categorize bookmarks
                   </TooltipContent>
                 </Tooltip>
               </div>
