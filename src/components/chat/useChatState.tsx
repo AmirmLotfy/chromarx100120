@@ -91,6 +91,23 @@ export const useChatState = () => {
   const handleSendMessage = async (messageContent: string) => {
     if (isProcessing || !isAIAvailable) return;
 
+    // Check if user has reached their AI request limit
+    const { useSubscription } = await import('@/hooks/use-subscription');
+    const { incrementUsage, hasReachedLimit } = useSubscription();
+    
+    if (hasReachedLimit('aiRequests')) {
+      toast({
+        title: "AI Request Limit Reached",
+        description: "You've reached your AI request limit. Please upgrade your plan for more AI interactions.",
+        variant: "destructive",
+        action: {
+          label: "Upgrade",
+          onClick: () => window.location.href = "/subscription"
+        }
+      });
+      return;
+    }
+
     const userMessage: Message = {
       id: uuidv4(),
       content: messageContent,
@@ -107,6 +124,9 @@ export const useChatState = () => {
       const response = await generateResponse(messageContent, isBookmarkSearchMode);
 
       if (response) {
+        // Increment AI request usage count
+        await incrementUsage('aiRequests');
+        
         const assistantMessage: Message = {
           id: uuidv4(),
           content: response.response,

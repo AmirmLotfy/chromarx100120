@@ -2,6 +2,7 @@
 import { useSubscription } from './use-subscription';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
+import { subscriptionPlans } from '@/config/subscriptionPlans';
 
 export const useFeatureAccess = () => {
   const { 
@@ -66,16 +67,20 @@ export const useFeatureAccess = () => {
 
   // Helper function to find which plan has a specific feature
   const subscriptionPlanWithFeature = (feature: string) => {
-    // This would typically come from a context or config
-    const planNames = {
-      'free': 'Free',
-      'basic': 'Pro',
-      'premium': 'Premium'
-    };
+    // Find the lowest tier plan that includes this feature
+    const featureLowerCase = feature.toLowerCase();
     
-    // Check which plan first includes this feature
-    // For now we'll assume Pro plan has most features
-    return planNames['basic']; // "Pro"
+    for (const plan of subscriptionPlans) {
+      const hasFeature = plan.features.some(f => 
+        f.included && f.name.toLowerCase().includes(featureLowerCase)
+      );
+      
+      if (hasFeature) {
+        return plan.id === 'basic' ? 'Pro' : plan.name;
+      }
+    }
+    
+    return subscriptionPlans[subscriptionPlans.length - 1].name; // Highest tier
   };
 
   return {

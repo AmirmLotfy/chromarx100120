@@ -64,6 +64,9 @@ export const useSubscription = (): SubscriptionHook => {
         const storedUsage = await chromeDb.get<UsageData>('usage');
         if (storedUsage) {
           setUsage(storedUsage);
+        } else {
+          // Initialize usage data if it doesn't exist
+          await chromeDb.set('usage', usage);
         }
         
         const subscription = await chromeDb.get<StorageSubscription>('user_subscription');
@@ -86,6 +89,14 @@ export const useSubscription = (): SubscriptionHook => {
             setCurrentPlan(subscription.planId || 'free');
           }
         } else {
+          // Initialize subscription if it doesn't exist
+          const createdAt = new Date().toISOString();
+          await chromeDb.set('user_subscription', {
+            planId: 'free',
+            status: 'active',
+            createdAt,
+            endDate: createdAt // No expiration for free plan
+          });
           setCurrentPlan('free');
         }
       } catch (error) {
@@ -106,7 +117,9 @@ export const useSubscription = (): SubscriptionHook => {
         if (!plan) return false;
         
         const nextPlan = subscriptionPlans.find(p => 
-          p.id !== 'free' && p.limits[type] > (plan.limits[type] || 0)
+          p.id !== 'free' && 
+          p.id !== currentPlan && 
+          (p.limits[type] > (plan.limits[type] || 0) || p.limits[type] === -1)
         );
         
         if (nextPlan) {
@@ -138,7 +151,9 @@ export const useSubscription = (): SubscriptionHook => {
         const limit = plan.limits[type];
         if (limit !== -1 && newUsage[type] >= limit * 0.8 && newUsage[type] < limit) {
           const nextPlan = subscriptionPlans.find(p => 
-            p.id !== 'free' && p.limits[type] > (plan.limits[type] || 0)
+            p.id !== 'free' &&
+            p.id !== currentPlan &&
+            (p.limits[type] > (plan.limits[type] || 0) || p.limits[type] === -1)
           );
           
           if (nextPlan) {
@@ -167,8 +182,22 @@ export const useSubscription = (): SubscriptionHook => {
       const plan = subscriptionPlans.find(p => p.id === currentPlan);
       if (!plan) return false;
 
-      const featureObj = plan.features.find(f => f.name.toLowerCase().includes(feature.toLowerCase()));
-      return featureObj?.included || false;
+      // Case-insensitive search for the feature in the plan's features
+      const featureObj = plan.features.find(f => 
+        f.name.toLowerCase().includes(feature.toLowerCase())
+      );
+      
+      // If the feature is explicitly listed, return its inclusion status
+      if (featureObj) {
+        return featureObj.included;
+      }
+      
+      // For features not explicitly listed, check if any similar feature is included
+      const similarFeatures = plan.features.filter(f => 
+        f.name.toLowerCase().includes(feature.toLowerCase().split(' ')[0])
+      );
+      
+      return similarFeatures.some(f => f.included);
     } catch (error) {
       console.error('Error checking feature access:', error);
       return false;
@@ -181,11 +210,11 @@ export const useSubscription = (): SubscriptionHook => {
       if (!plan) return true;
 
       const limit = plan.limits[type];
-      if (limit === -1) return false;
+      if (limit === -1) return false; // -1 means unlimited
       return (usage[type] || 0) >= limit;
     } catch (error) {
       console.error('Error checking limits:', error);
-      return true;
+      return true; // Fail closed - restrict access on error
     }
   };
 
@@ -195,7 +224,7 @@ export const useSubscription = (): SubscriptionHook => {
       if (!plan) return 0;
 
       const limit = plan.limits[type];
-      if (limit === -1) return -1;
+      if (limit === -1) return -1; // -1 signifies unlimited
       return Math.max(0, limit - (usage[type] || 0));
     } catch (error) {
       console.error('Error calculating remaining quota:', error);
@@ -207,9 +236,13 @@ export const useSubscription = (): SubscriptionHook => {
     const plan = subscriptionPlans.find(p => p.id === currentPlan);
     if (!plan) return null;
     
+    // Type assertion is needed here since TypeScript can't infer
+    // that the shape of plan.limits matches Record<string, number>
     return {
       name: plan.id === 'basic' ? 'Pro' : plan.name,
-      limits: plan.limits as unknown as Record<string, number>
+      limits: Object.fromEntries(
+        Object.entries(plan.limits)
+      ) as Record<string, number>
     };
   };
 
@@ -221,6 +254,7 @@ export const useSubscription = (): SubscriptionHook => {
       const createdAt = new Date().toISOString();
       const endDate = new Date();
       if (planId !== 'free') {
+        // Set 30-day subscription for paid plans
         endDate.setDate(endDate.getDate() + 30);
       }
 
@@ -235,9 +269,26 @@ export const useSubscription = (): SubscriptionHook => {
       setCurrentPlan(planId);
       
       await trackSubscriptionEvent(
-        planId === 'free' ? 'plan_downgraded' : 'plan_upgraded',
+        currentPlan === 'free' ? 'plan_upgraded' : 
+          (planId === 'free' ? 'plan_downgraded' : 'plan_changed'),
         planId
       );
+      
+      // Reset usage data when downgrading to make sure limits are enforced
+      if (planId === 'free' && currentPlan !== 'free') {
+        // Reset usage to current plan limits to enforce new restrictions
+        const freePlan = subscriptionPlans.find(p => p.id === 'free');
+        if (freePlan) {
+          const newUsage = {
+            bookmarks: Math.min(usage.bookmarks, freePlan.limits.bookmarks),
+            tasks: Math.min(usage.tasks, freePlan.limits.tasks),
+            notes: Math.min(usage.notes, freePlan.limits.notes),
+            aiRequests: Math.min(usage.aiRequests, freePlan.limits.aiRequests)
+          };
+          await chromeDb.set('usage', newUsage);
+          setUsage(newUsage);
+        }
+      }
     } catch (error) {
       console.error('Error setting subscription plan:', error);
       throw error;

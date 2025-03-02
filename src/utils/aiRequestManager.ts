@@ -1,6 +1,7 @@
 
 import { cache } from "./cacheUtils";
 import { toast } from "sonner";
+import { chromeDb } from "@/lib/chrome-storage";
 
 interface RequestQuota {
   count: number;
@@ -25,14 +26,42 @@ const quotaKey = 'ai_request_quota';
 class AIRequestManager {
   private static instance: AIRequestManager;
   private quota: RequestQuota | null = null;
+  private currentPlan: string = 'free';
 
-  private constructor() {}
+  private constructor() {
+    // Load current plan asynchronously
+    this.loadCurrentPlan();
+  }
 
   static getInstance(): AIRequestManager {
     if (!AIRequestManager.instance) {
       AIRequestManager.instance = new AIRequestManager();
     }
     return AIRequestManager.instance;
+  }
+
+  private async loadCurrentPlan(): Promise<void> {
+    try {
+      const subscription = await chromeDb.get('user_subscription');
+      if (subscription && subscription.planId) {
+        this.currentPlan = subscription.planId;
+      }
+    } catch (error) {
+      console.error('Error loading current plan:', error);
+    }
+  }
+
+  private getPlanLimits(): { daily: number; hourly: number } {
+    // These should ideally come from subscription plan configuration
+    switch (this.currentPlan) {
+      case 'premium':
+        return { daily: -1, hourly: -1 }; // Unlimited
+      case 'basic': // Pro plan
+        return { daily: 100, hourly: 20 };
+      case 'free':
+      default:
+        return { daily: 10, hourly: 5 };
+    }
   }
 
   private async getQuota(): Promise<RequestQuota> {
@@ -55,8 +84,20 @@ class AIRequestManager {
   }
 
   private async updateQuota(): Promise<{success: boolean; message?: string}> {
+    const limits = this.getPlanLimits();
     let quota = await this.getQuota();
     const now = Date.now();
+
+    // Unlimited plan handling
+    if (limits.daily === -1) {
+      // Just update the last request time but don't increment count
+      this.quota = {
+        ...quota,
+        lastRequestTime: now
+      };
+      await cache.set(quotaKey, this.quota);
+      return { success: true };
+    }
 
     // Check if we've passed the reset time
     if (now > quota.resetTime) {
@@ -67,21 +108,23 @@ class AIRequestManager {
       };
     } else {
       // Check for rate limiting
-      if (quota.count >= DAILY_QUOTA) {
+      if (quota.count >= limits.daily) {
         return {
           success: false,
-          message: "Daily AI request quota exceeded. Please try again tomorrow."
+          message: "Daily AI request quota exceeded. Please try again tomorrow or upgrade your plan."
         };
       }
 
       // Check for hourly quota
-      const hourlyRequests = quota.count % HOURLY_QUOTA;
-      if (hourlyRequests >= HOURLY_QUOTA && 
-          now - quota.lastRequestTime < 60 * 60 * 1000) {
-        return {
-          success: false,
-          message: "Hourly AI request quota exceeded. Please try again later."
-        };
+      if (limits.hourly > 0) {
+        const hourlyRequests = quota.count % limits.hourly;
+        if (hourlyRequests >= limits.hourly && 
+            now - quota.lastRequestTime < 60 * 60 * 1000) {
+          return {
+            success: false,
+            message: "Hourly AI request quota exceeded. Please try again later or upgrade your plan."
+          };
+        }
       }
 
       // Check for request throttling
@@ -101,7 +144,32 @@ class AIRequestManager {
 
     this.quota = quota;
     await cache.set(quotaKey, quota);
+    
+    // Update usage statistics in the subscription system
+    try {
+      await this.incrementUsageCounter();
+    } catch (error) {
+      console.error('Error incrementing AI usage counter:', error);
+      // Don't fail the request if this update fails
+    }
+    
     return { success: true };
+  }
+
+  private async incrementUsageCounter(): Promise<void> {
+    try {
+      const currentUsage = await chromeDb.get('usage') || { 
+        bookmarks: 0, 
+        tasks: 0, 
+        notes: 0, 
+        aiRequests: 0 
+      };
+      
+      currentUsage.aiRequests = (currentUsage.aiRequests || 0) + 1;
+      await chromeDb.set('usage', currentUsage);
+    } catch (error) {
+      console.error('Error updating AI usage statistics:', error);
+    }
   }
 
   async getCachedResponse(key: string): Promise<string | null> {
@@ -129,6 +197,9 @@ class AIRequestManager {
     fallbackValue?: T
   ): Promise<T> {
     try {
+      // Reload current plan before making request
+      await this.loadCurrentPlan();
+      
       // Check cache first if a cache key is provided
       if (cacheKey) {
         const cached = await this.getCachedResponse(cacheKey);
@@ -140,7 +211,12 @@ class AIRequestManager {
       // Update quota and check for rate limiting
       const quotaCheck = await this.updateQuota();
       if (!quotaCheck.success) {
-        toast.error(quotaCheck.message || "Rate limit exceeded");
+        toast.error(quotaCheck.message || "Rate limit exceeded", {
+          action: {
+            label: "Upgrade",
+            onClick: () => window.location.href = "/subscription"
+          }
+        });
         throw new Error(quotaCheck.message || "Quota exceeded");
       }
 
@@ -167,42 +243,61 @@ class AIRequestManager {
   }
 
   getRemainingQuota = async (): Promise<{ daily: number; hourly: number }> => {
+    const limits = this.getPlanLimits();
+    
+    // If user has unlimited quota, return that info
+    if (limits.daily === -1) {
+      return { daily: -1, hourly: -1 };
+    }
+    
     const quota = await this.getQuota();
     
     // Calculate daily and hourly remaining quota
-    const hourlyRequests = quota.count % HOURLY_QUOTA;
+    const hourlyRequests = quota.count % limits.hourly;
     const hoursSinceLastRequest = (Date.now() - quota.lastRequestTime) / (60 * 60 * 1000);
     
     // If it's been more than an hour, reset hourly quota
     const hourlyRemaining = hoursSinceLastRequest > 1 ? 
-      HOURLY_QUOTA : 
-      HOURLY_QUOTA - hourlyRequests;
+      limits.hourly : 
+      Math.max(0, limits.hourly - hourlyRequests);
     
     return {
-      daily: DAILY_QUOTA - quota.count,
+      daily: Math.max(0, limits.daily - quota.count),
       hourly: hourlyRemaining
     };
   };
 
   // Method to check if we're throttled without incrementing counter
   async isThrottled(): Promise<{throttled: boolean; reason?: string}> {
+    // Reload current plan
+    await this.loadCurrentPlan();
+    
+    const limits = this.getPlanLimits();
+    
+    // Unlimited plan is never throttled
+    if (limits.daily === -1) {
+      return { throttled: false };
+    }
+    
     const quota = await this.getQuota();
     const now = Date.now();
     
-    if (quota.count >= DAILY_QUOTA) {
+    if (quota.count >= limits.daily) {
       return {
         throttled: true,
         reason: "Daily quota exceeded"
       };
     }
     
-    const hourlyRequests = quota.count % HOURLY_QUOTA;
-    if (hourlyRequests >= HOURLY_QUOTA && 
-        now - quota.lastRequestTime < 60 * 60 * 1000) {
-      return {
-        throttled: true,
-        reason: "Hourly quota exceeded"
-      };
+    if (limits.hourly > 0) {
+      const hourlyRequests = quota.count % limits.hourly;
+      if (hourlyRequests >= limits.hourly && 
+          now - quota.lastRequestTime < 60 * 60 * 1000) {
+        return {
+          throttled: true,
+          reason: "Hourly quota exceeded"
+        };
+      }
     }
     
     if (now - quota.lastRequestTime < MIN_REQUEST_INTERVAL_MS) {
