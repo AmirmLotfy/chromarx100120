@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Mic, SendHorizontal, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,30 @@ interface ChatInputProps {
   disabled?: boolean;
   recentQueries?: string[];
   isBookmarkSearchMode?: boolean;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult?: (event: SpeechRecognitionEvent) => void;
+  onend?: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new(): SpeechRecognition;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -107,8 +130,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const toggleSpeechRecognition = () => {
     // Check if the browser supports speech recognition
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      // @ts-ignore - TypeScript doesn't know about webkit prefixed version
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      // Use the appropriate SpeechRecognition constructor
+      const SpeechRecognitionAPI = window.SpeechRecognition || 
+        (window as any).webkitSpeechRecognition;
       
       if (isListening) {
         // Stop listening
@@ -119,7 +143,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         setIsListening(false);
       } else {
         // Start listening
-        const recognition = new SpeechRecognition();
+        const recognition = new SpeechRecognitionAPI();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
