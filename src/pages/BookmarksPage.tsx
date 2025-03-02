@@ -124,25 +124,25 @@ const BookmarksPage = () => {
   };
 
   const categories = Array.from(
-    new Set(bookmarks.map((b) => b.category).filter(Boolean) as string[])
+    new Set(originalBookmarks.map((b) => b.category).filter(Boolean) as string[])
   ).map((name) => ({
     name,
-    count: bookmarks.filter((b) => b.category === name).length,
+    count: originalBookmarks.filter((b) => b.category === name).length,
   }));
 
   const domains = Array.from(
     new Set(
-      bookmarks
+      originalBookmarks
         .map((b) => (b.url ? extractDomain(b.url) : null))
         .filter(Boolean) as string[]
     )
   ).map((domain) => ({
     domain,
-    count: bookmarks.filter((b) => b.url && extractDomain(b.url) === domain)
+    count: originalBookmarks.filter((b) => b.url && extractDomain(b.url) === domain)
       .length,
   }));
 
-  const filteredBookmarks = bookmarks
+  const filteredBookmarks = originalBookmarks
     .filter((bookmark) => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
@@ -240,7 +240,7 @@ const BookmarksPage = () => {
         <BookmarkHeader
           selectedBookmarksCount={selectedBookmarks.size}
           selectedBookmarks={Array.from(selectedBookmarks)
-            .map(id => bookmarks.find(b => b.id === id))
+            .map(id => originalBookmarks.find(b => b.id === id))
             .filter((b): b is ChromeBookmark => b !== undefined)}
           view={view}
           onViewChange={setView}
@@ -284,7 +284,7 @@ const BookmarksPage = () => {
             selectedDomain={selectedDomain}
             onSelectCategory={setSelectedCategory}
             onSelectDomain={setSelectedDomain}
-            bookmarks={bookmarks}
+            bookmarks={originalBookmarks}
             selectedBookmarks={selectedBookmarks}
             onToggleSelect={(id) => {
               setSelectedBookmarks(prev => {
