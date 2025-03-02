@@ -8,7 +8,7 @@ import BookmarksPage from "./pages/BookmarksPage";
 import NotesPage from "./pages/NotesPage";
 import SettingsPage from "./pages/SettingsPage";
 import ChatPage from "./pages/ChatPage";
-import AuthWrapper from "@/components/AuthWrapper";
+import AuthWrapper from "./components/AuthWrapper";  // Corrected import path
 import SubscriptionPage from "./pages/SubscriptionPage";
 import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
 import TaskPage from "./pages/TaskPage"; // Corrected import
