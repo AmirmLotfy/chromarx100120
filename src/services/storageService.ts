@@ -8,6 +8,7 @@ export class StorageService {
   private static instance: StorageService;
   private cache = new Map<string, unknown>();
   private isExtension: boolean;
+  private ALWAYS_USE_DUMMY = true; // Force using dummy bookmarks for testing
 
   private constructor() {
     // Check if we're running in a Chrome extension context
@@ -15,6 +16,7 @@ export class StorageService {
     
     // Set up default cache for bookmarks
     this.cache.set('bookmarks', dummyBookmarks);
+    console.log('StorageService initialized with', dummyBookmarks.length, 'dummy bookmarks');
   }
 
   static getInstance(): StorageService {
@@ -26,13 +28,20 @@ export class StorageService {
 
   async get<T>(key: string): Promise<T | null> {
     try {
+      // For bookmarks, always return dummy bookmarks if ALWAYS_USE_DUMMY is true
+      if (key === 'bookmarks' && this.ALWAYS_USE_DUMMY) {
+        console.log('Returning dummy bookmarks due to ALWAYS_USE_DUMMY flag');
+        return dummyBookmarks as unknown as T;
+      }
+      
       // For bookmarks, we should always have a fallback to dummy bookmarks
       if (key === 'bookmarks' || key.includes('bookmark')) {
         if (this.cache.has(key)) {
+          console.log('Returning bookmarks from cache');
           return this.cache.get(key) as T;
         }
         
-        if (key === 'bookmarks' && (!this.cache.has(key) || (this.cache.get(key) as any[]).length === 0)) {
+        if (key === 'bookmarks') {
           console.log('No bookmarks in cache, returning dummy bookmarks');
           return dummyBookmarks as unknown as T;
         }
@@ -49,10 +58,17 @@ export class StorageService {
         
         // If retrieving bookmarks and got null or empty array, return dummy bookmarks
         if (key === 'bookmarks' && (!parsedValue || (Array.isArray(parsedValue) && parsedValue.length === 0))) {
+          console.log('No bookmarks in localStorage, returning dummy bookmarks');
           return dummyBookmarks as unknown as T;
         }
         
         return parsedValue;
+      }
+
+      // Chrome storage access - if we're retrieving bookmarks, just return dummy bookmarks instead
+      if (key === 'bookmarks' && this.isExtension) {
+        console.log('Bypassing Chrome bookmarks API, returning dummy bookmarks');
+        return dummyBookmarks as unknown as T;
       }
 
       const result = await chrome.storage.sync.get(key);
@@ -64,6 +80,7 @@ export class StorageService {
       
       // If retrieving bookmarks and got null or empty array, return dummy bookmarks
       if (key === 'bookmarks' && (!value || (Array.isArray(value) && value.length === 0))) {
+        console.log('No bookmarks in Chrome storage, returning dummy bookmarks');
         return dummyBookmarks as unknown as T;
       }
       
@@ -74,6 +91,7 @@ export class StorageService {
       
       // If error retrieving bookmarks, return dummy bookmarks
       if (key === 'bookmarks') {
+        console.log('Error accessing bookmarks, returning dummy bookmarks');
         return dummyBookmarks as unknown as T;
       }
       

@@ -4,167 +4,167 @@ import { ChromeBookmark } from "@/types/bookmark";
 export const dummyBookmarks: ChromeBookmark[] = [
   {
     id: "1",
-    title: "React Documentation",
-    url: "https://react.dev",
+    title: "Google",
+    url: "https://www.google.com",
     dateAdded: Date.now() - 86400000, // 1 day ago
-    category: "Development",
+    category: "Search Engine",
     preview: {
-      description: "The official React documentation",
-      favicon: "https://react.dev/favicon.ico"
+      description: "Google search engine",
+      favicon: "https://www.google.com/favicon.ico"
     }
   },
   {
     id: "2",
-    title: "TypeScript Handbook",
-    url: "https://www.typescriptlang.org/docs/",
+    title: "GitHub",
+    url: "https://github.com",
     dateAdded: Date.now() - 172800000, // 2 days ago
     category: "Development",
     preview: {
-      description: "Your guide to TypeScript",
-      favicon: "https://www.typescriptlang.org/favicon-32x32.png"
+      description: "Where developers build, ship, and maintain software",
+      favicon: "https://github.githubassets.com/favicons/favicon.svg"
     }
   },
   {
     id: "3",
-    title: "MDN Web Docs",
-    url: "https://developer.mozilla.org",
+    title: "Stack Overflow",
+    url: "https://stackoverflow.com",
     dateAdded: Date.now() - 259200000, // 3 days ago
     category: "Development",
     preview: {
-      description: "Resources for developers, by developers",
-      favicon: "https://developer.mozilla.org/favicon-48x48.png"
+      description: "Where developers learn and share knowledge",
+      favicon: "https://cdn.sstatic.net/Sites/stackoverflow/Img/favicon.ico"
     }
   },
   {
     id: "4",
-    title: "GitHub",
-    url: "https://github.com",
+    title: "YouTube",
+    url: "https://www.youtube.com",
     dateAdded: Date.now() - 345600000, // 4 days ago
-    category: "Development",
+    category: "Entertainment",
     preview: {
-      description: "Where the world builds software",
-      favicon: "https://github.com/favicon.ico"
+      description: "Video sharing platform",
+      favicon: "https://www.youtube.com/s/desktop/8219628d/img/favicon.ico"
     }
   },
   {
     id: "5",
-    title: "Stack Overflow",
-    url: "https://stackoverflow.com",
-    dateAdded: Date.now() - 432000000, // 5 days ago
-    category: "Development",
-    preview: {
-      description: "Where developers learn, share & build careers",
-      favicon: "https://stackoverflow.com/favicon.ico"
-    }
-  },
-  {
-    id: "6",
     title: "Netflix",
-    url: "https://netflix.com",
-    dateAdded: Date.now() - 518400000, // 6 days ago
+    url: "https://www.netflix.com",
+    dateAdded: Date.now() - 432000000, // 5 days ago
     category: "Entertainment",
     preview: {
-      description: "Watch TV shows and movies online",
+      description: "Streaming platform for movies and TV shows",
       favicon: "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.ico"
     }
   },
   {
-    id: "7",
-    title: "YouTube",
-    url: "https://youtube.com",
-    dateAdded: Date.now() - 604800000, // 7 days ago
-    category: "Entertainment",
-    preview: {
-      description: "Enjoy videos and music",
-      favicon: "https://www.youtube.com/s/desktop/3a84d4c0/img/favicon.ico"
-    }
-  },
-  {
-    id: "8",
+    id: "6",
     title: "Amazon",
-    url: "https://amazon.com",
-    dateAdded: Date.now() - 691200000, // 8 days ago
+    url: "https://www.amazon.com",
+    dateAdded: Date.now() - 518400000, // 6 days ago
     category: "Shopping",
     preview: {
-      description: "Online shopping from the earth's biggest selection",
+      description: "Online shopping platform",
       favicon: "https://www.amazon.com/favicon.ico"
     }
   },
   {
-    id: "9",
-    title: "CNN",
-    url: "https://cnn.com",
-    dateAdded: Date.now() - 777600000, // 9 days ago
-    category: "News",
+    id: "7",
+    title: "Twitter",
+    url: "https://twitter.com",
+    dateAdded: Date.now() - 604800000, // 7 days ago
+    category: "Social Media",
     preview: {
-      description: "Breaking news, latest news and videos",
-      favicon: "https://www.cnn.com/favicon.ico"
+      description: "Social networking platform",
+      favicon: "https://abs.twimg.com/responsive-web/client-web/icon-svg.168b89d5.svg"
+    }
+  },
+  {
+    id: "8",
+    title: "LinkedIn",
+    url: "https://www.linkedin.com",
+    dateAdded: Date.now() - 691200000, // 8 days ago
+    category: "Professional",
+    preview: {
+      description: "Professional networking platform",
+      favicon: "https://static.licdn.com/aero-v1/sc/h/al2o9zrvru7aqj8e1x2rzsrca"
+    }
+  },
+  {
+    id: "9",
+    title: "Reddit",
+    url: "https://www.reddit.com",
+    dateAdded: Date.now() - 777600000, // 9 days ago
+    category: "Social Media",
+    preview: {
+      description: "Social news aggregation platform",
+      favicon: "https://www.reddit.com/favicon.ico"
     }
   },
   {
     id: "10",
-    title: "BBC News",
-    url: "https://bbc.com/news",
+    title: "Microsoft",
+    url: "https://www.microsoft.com",
     dateAdded: Date.now() - 864000000, // 10 days ago
-    category: "News",
+    category: "Technology",
     preview: {
-      description: "BBC News provides trusted World and UK news",
-      favicon: "https://www.bbc.com/favicon.ico"
+      description: "Technology company",
+      favicon: "https://www.microsoft.com/favicon.ico"
     }
   },
   {
     id: "11",
-    title: "The New York Times",
-    url: "https://nytimes.com",
+    title: "Apple",
+    url: "https://www.apple.com",
     dateAdded: Date.now() - 950400000, // 11 days ago
-    category: "News",
+    category: "Technology",
     preview: {
-      description: "Breaking News, World News & Multimedia",
-      favicon: "https://www.nytimes.com/favicon.ico"
+      description: "Technology company specializing in consumer electronics",
+      favicon: "https://www.apple.com/favicon.ico"
     }
   },
   {
     id: "12",
-    title: "Twitter",
-    url: "https://twitter.com",
+    title: "Wikipedia",
+    url: "https://www.wikipedia.org",
     dateAdded: Date.now() - 1036800000, // 12 days ago
-    category: "Social",
+    category: "Reference",
     preview: {
-      description: "See what's happening in the world right now",
-      favicon: "https://abs.twimg.com/responsive-web/web/icon-default.604e2486a34a2f6e.png"
+      description: "Online encyclopedia",
+      favicon: "https://www.wikipedia.org/static/favicon/wikipedia.ico"
     }
   },
   {
     id: "13",
-    title: "LinkedIn",
-    url: "https://linkedin.com",
+    title: "Medium",
+    url: "https://medium.com",
     dateAdded: Date.now() - 1123200000, // 13 days ago
-    category: "Professional",
+    category: "Reading",
     preview: {
-      description: "Manage your professional identity and build your network",
-      favicon: "https://static.licdn.com/sc/h/al2o9zrvru7aqj8e1x2rzsrca"
+      description: "Online publishing platform",
+      favicon: "https://medium.com/favicon.ico"
     }
   },
   {
     id: "14",
     title: "Spotify",
-    url: "https://spotify.com",
+    url: "https://www.spotify.com",
     dateAdded: Date.now() - 1209600000, // 14 days ago
-    category: "Entertainment",
+    category: "Music",
     preview: {
-      description: "Music for everyone",
+      description: "Digital music streaming service",
       favicon: "https://www.scdn.co/i/_global/favicon.png"
     }
   },
   {
     id: "15",
-    title: "Google Maps",
-    url: "https://maps.google.com",
+    title: "Airbnb",
+    url: "https://www.airbnb.com",
     dateAdded: Date.now() - 1296000000, // 15 days ago
-    category: "Utilities",
+    category: "Travel",
     preview: {
-      description: "Find local businesses, view maps and get driving directions",
-      favicon: "https://maps.google.com/favicon.ico"
+      description: "Online marketplace for lodging and tourism",
+      favicon: "https://a0.muscache.com/airbnb/static/logotype_favicon-21cc8e6c6a2cca43f061d2dcabdf6e58.ico"
     }
   }
 ];
