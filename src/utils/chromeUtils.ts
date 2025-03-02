@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,11 +56,42 @@ export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
   }
 };
 
-// Additional utility functions for PayPal integration
-export const createPayPalOrder = async (planId: string, amount: number): Promise<any> => {
+// Verify and process payment using Supabase Edge Function
+export const verifyPayPalPayment = async (orderId: string, planId: string): Promise<boolean> => {
   try {
-    // Normally, you would make an API call to your backend to create the order
-    // But for demonstration, we're creating it directly
+    const { data, error } = await supabase.functions.invoke('process-payment', {
+      body: {
+        orderId,
+        planId
+      }
+    });
+
+    if (error) {
+      console.error('Error processing payment:', error);
+      toast.error('Payment verification failed');
+      return false;
+    }
+
+    if (!data.success) {
+      console.error('Payment processing failed:', data.error);
+      toast.error(data.error || 'Payment processing failed');
+      return false;
+    }
+
+    console.log('Payment processed successfully:', data);
+    return true;
+  } catch (error) {
+    console.error('Unexpected error verifying payment:', error);
+    toast.error('Payment verification failed');
+    return false;
+  }
+};
+
+// These functions are deprecated and will be removed in future versions
+// Use verifyPayPalPayment() instead
+export const createPayPalOrder = async (planId: string, amount: number): Promise<any> => {
+  console.warn('Direct order creation is deprecated. Use the PayPal SDK instead.');
+  try {
     return {
       id: `TEST-${Date.now()}`,
       status: "CREATED",
@@ -73,9 +105,8 @@ export const createPayPalOrder = async (planId: string, amount: number): Promise
 };
 
 export const capturePayPalOrder = async (orderId: string): Promise<any> => {
+  console.warn('Direct order capture is deprecated. Use verifyPayPalPayment() instead.');
   try {
-    // Normally, you would make an API call to your backend to capture the order
-    // But for demonstration, we're capturing it directly
     return {
       id: orderId,
       status: "COMPLETED",

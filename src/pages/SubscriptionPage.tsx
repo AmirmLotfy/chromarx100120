@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getPayPalClientId, getPayPalMode } from "@/utils/chromeUtils";
+import { getPayPalClientId, getPayPalMode, verifyPayPalPayment } from "@/utils/chromeUtils";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +21,7 @@ const filteredPlans = subscriptionPlans.filter(
 const SubscriptionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
   const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('live');
   const { currentPlan, setSubscriptionPlan } = useSubscription();
@@ -91,15 +92,31 @@ const SubscriptionPage = () => {
 
   const onApprove = async (data: any, actions: any) => {
     try {
+      setIsProcessing(true);
+      
+      // Capture the order first
       const details = await actions.order.capture();
-      console.log("Payment completed successfully:", details);
+      console.log("PayPal payment completed:", details);
       
       if (details.status === "COMPLETED" && selectedPlan) {
-        await handleSubscribe(selectedPlan);
+        // Verify the payment server-side
+        const paymentVerified = await verifyPayPalPayment(details.id, selectedPlan);
+        
+        if (paymentVerified) {
+          // Update local subscription status
+          await handleSubscribe(selectedPlan);
+          toast.success(`Payment successful! You are now subscribed to the ${selectedPlan} plan.`);
+        } else {
+          toast.error("Payment verification failed. Please contact support.");
+        }
+      } else {
+        toast.error("Payment was not completed successfully");
       }
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error("Payment processing error:", error);
       toast.error("Payment processing failed");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -183,27 +200,38 @@ const SubscriptionPage = () => {
                   
                   {selectedPlan === plan.id && plan.id !== "free" && clientId ? (
                     <div className="mt-4">
-                      <PayPalScriptProvider options={{ 
-                        clientId: clientId,
-                        components: "buttons",
-                        intent: "capture",
-                        currency: "USD"
-                      }}>
-                        <PayPalButtons
-                          style={{
-                            color: "blue",
-                            shape: "rect",
-                            label: "pay",
-                            height: 40
-                          }}
-                          createOrder={createOrder}
-                          onApprove={onApprove}
-                          onError={(err) => {
-                            console.error('PayPal error', err);
-                            toast.error("Payment processing error");
-                          }}
-                        />
-                      </PayPalScriptProvider>
+                      {isProcessing ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#9b87f5] border-t-transparent" />
+                          <span className="ml-2 text-sm">Processing payment...</span>
+                        </div>
+                      ) : (
+                        <PayPalScriptProvider options={{ 
+                          clientId: clientId,
+                          components: "buttons",
+                          intent: "capture",
+                          currency: "USD",
+                          "data-client-token": "abc123xyz==",
+                        }}>
+                          <PayPalButtons
+                            style={{
+                              color: "blue",
+                              shape: "rect",
+                              label: "pay",
+                              height: 40
+                            }}
+                            createOrder={createOrder}
+                            onApprove={onApprove}
+                            onError={(err) => {
+                              console.error('PayPal error', err);
+                              toast.error("Payment processing error");
+                            }}
+                            onCancel={() => {
+                              toast.info("Payment cancelled");
+                            }}
+                          />
+                        </PayPalScriptProvider>
+                      )}
                     </div>
                   ) : (
                     <Button

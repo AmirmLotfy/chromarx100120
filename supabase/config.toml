@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.analyze-productivity]
 verify_jwt = true
+
+[functions.process-payment]
+verify_jwt = false
