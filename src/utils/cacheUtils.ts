@@ -156,6 +156,12 @@ class CacheManager {
       throw error; // Re-throw to let caller handle the error
     }
   }
+
+  // Add a method to prime demo data
+  async primeDemoData<T>(key: string, demoData: T, ttlMinutes?: number): Promise<T> {
+    await this.set(key, demoData, ttlMinutes);
+    return demoData;
+  }
 }
 
 export const cache = new CacheManager();
