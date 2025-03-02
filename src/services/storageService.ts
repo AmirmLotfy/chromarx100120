@@ -1,3 +1,4 @@
+
 import { chromeDb } from '@/lib/chrome-storage';
 import { retryWithBackoff } from '@/utils/retryUtils';
 import { toast } from 'sonner';
@@ -16,6 +17,9 @@ export class StorageService {
     // Set up default cache for bookmarks
     this.cache.set('bookmarks', dummyBookmarks);
     console.log('StorageService initialized with', dummyBookmarks.length, 'dummy bookmarks');
+    
+    // Force logging of dummy bookmarks to help debug
+    console.log('DUMMY BOOKMARKS DATA:', JSON.stringify(dummyBookmarks));
   }
 
   static getInstance(): StorageService {
