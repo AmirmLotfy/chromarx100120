@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export interface ChromeUser {
@@ -18,6 +17,7 @@ export interface ChromeStorageData {
   installDate: number;
   hasRated: boolean;
   lastRatingPrompt: number;
+  paypal_config: Record<string, any>; // Added PayPal configuration
 }
 
 export const getSecret = async (key: string): Promise<string | null> => {
