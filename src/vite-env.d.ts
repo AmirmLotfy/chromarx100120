@@ -77,3 +77,26 @@ declare var SpeechRecognition: {
   prototype: SpeechRecognition;
   new(): SpeechRecognition;
 };
+
+interface SpeechGrammarList {
+  length: number;
+  item(index: number): SpeechGrammar;
+  [index: number]: SpeechGrammar;
+  addFromURI(src: string, weight?: number): void;
+  addFromString(string: string, weight?: number): void;
+}
+
+declare var SpeechGrammarList: {
+  prototype: SpeechGrammarList;
+  new(): SpeechGrammarList;
+};
+
+interface SpeechGrammar {
+  src: string;
+  weight: number;
+}
+
+declare var SpeechGrammar: {
+  prototype: SpeechGrammar;
+  new(): SpeechGrammar;
+};

@@ -138,7 +138,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             setIsListening(false);
           };
           
-          recognition.onerror = (event) => {
+          recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
             console.error('Speech recognition error', event);
             setIsListening(false);
           };
