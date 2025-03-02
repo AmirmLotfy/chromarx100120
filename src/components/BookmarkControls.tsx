@@ -1,7 +1,6 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export interface BookmarkControlsProps {
+interface BookmarkControlsProps {
   sortBy: "title" | "dateAdded" | "url";
   onSortChange: (value: "title" | "dateAdded" | "url") => void;
 }
