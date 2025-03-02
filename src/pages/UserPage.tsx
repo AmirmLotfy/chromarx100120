@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -281,7 +280,7 @@ const UserPage = () => {
         </div>
       </div>
       
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-center mb-4">
         <div>
           <Badge variant="outline" className="bg-background/80 backdrop-blur-sm shadow-sm">
             {plan?.name || 'Free'} Plan
@@ -290,6 +289,13 @@ const UserPage = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="text-background/80 hover:text-background hover:bg-primary/30">
           <Settings className="h-5 w-5" />
         </Button>
+      </div>
+      
+      <div className="text-center text-background/90">
+        <h1 className="text-xl font-semibold">{profileData.displayName || userName}</h1>
+        {profileData.location && (
+          <p className="text-sm mt-1 opacity-80">{profileData.location}</p>
+        )}
       </div>
     </motion.div>
   );
