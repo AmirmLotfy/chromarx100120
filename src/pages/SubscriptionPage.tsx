@@ -577,7 +577,7 @@ const SubscriptionPage = () => {
                         ) : (clientId && paypalConfigured) ? (
                           <div>
                             <PayPalScriptProvider options={{ 
-                              clientId: clientId,
+                              clientId: clientId || "",
                               components: "buttons",
                               intent: "capture",
                               currency: "USD"
@@ -635,9 +635,9 @@ const SubscriptionPage = () => {
                           plan.id === "basic" ? 
                             "bg-[#9b87f5] hover:bg-[#8a70f0] text-white" :
                             "bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-700",
-                          (!paypalConfigured && plan.id !== "free") && "opacity-50 cursor-not-allowed"
+                          (!paypalConfigured && plan.id !== "free") && "opacity-50 pointer-events-none"
                         )}
-                        disabled={isLoading || isCurrent || (!paypalConfigured && plan.id !== "free")}
+                        disabled={isLoading || isCurrent}
                         onClick={() => handlePlanSelect(plan.id)}
                       >
                         {isCurrent ? (
@@ -670,3 +670,4 @@ const SubscriptionPage = () => {
 };
 
 export default SubscriptionPage;
+
