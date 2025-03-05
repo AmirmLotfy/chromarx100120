@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/stores/settingsStore';
 import { cleanupData, exportUserData } from '@/utils/cleanupUtils';
+import { storage } from '@/services/storageService';
 
 const DataSecuritySettings = () => {
   const { user } = useAuth();

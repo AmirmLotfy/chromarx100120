@@ -71,6 +71,24 @@ const sanitizeLogData = (data: any): any => {
 };
 
 /**
+ * Creates a namespaced logger for a specific component or module
+ */
+const createNamespacedLogger = (namespace: string) => {
+  return {
+    debug: (message: string, data?: any, options: LogOptions = {}) => 
+      logger.debug(`[${namespace}] ${message}`, data, options),
+    info: (message: string, data?: any, options: LogOptions = {}) => 
+      logger.info(`[${namespace}] ${message}`, data, options),
+    warn: (message: string, data?: any, options: LogOptions = {}) => 
+      logger.warn(`[${namespace}] ${message}`, data, options),
+    error: (message: string, error?: any, options: LogOptions = {}) => 
+      logger.error(`[${namespace}] ${message}`, error, options),
+    handleExtensionError: (message: string, error: any, options: LogOptions = {}) => 
+      logger.handleExtensionError(`[${namespace}] ${message}`, error, options)
+  };
+};
+
+/**
  * Extension logger that handles various log levels and formats
  */
 export const logger = {
@@ -129,23 +147,13 @@ export const logger = {
       error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
     };
-  }
+  },
+  
+  /**
+   * Creates a namespaced logger for a specific component or module
+   */
+  createNamespacedLogger
 };
 
-/**
- * Creates a namespaced logger for a specific component or module
- */
-export const createNamespacedLogger = (namespace: string) => {
-  return {
-    debug: (message: string, data?: any, options: LogOptions = {}) => 
-      logger.debug(`[${namespace}] ${message}`, data, options),
-    info: (message: string, data?: any, options: LogOptions = {}) => 
-      logger.info(`[${namespace}] ${message}`, data, options),
-    warn: (message: string, data?: any, options: LogOptions = {}) => 
-      logger.warn(`[${namespace}] ${message}`, data, options),
-    error: (message: string, error?: any, options: LogOptions = {}) => 
-      logger.error(`[${namespace}] ${message}`, error, options),
-    handleExtensionError: (message: string, error: any, options: LogOptions = {}) => 
-      logger.handleExtensionError(`[${namespace}] ${message}`, error, options)
-  };
-};
+// Export the createNamespacedLogger function separately as well
+export { createNamespacedLogger };

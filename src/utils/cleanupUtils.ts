@@ -2,10 +2,10 @@
 /**
  * Utilities for proper cleanup when extension is disabled or uninstalled
  */
-import { logger } from './loggerUtils';
+import { logger, createNamespacedLogger } from './loggerUtils';
 import { storage } from '@/services/storageService';
 
-const cleanupLogger = logger.createNamespacedLogger('Cleanup');
+const cleanupLogger = createNamespacedLogger('Cleanup');
 
 /**
  * Data types that can be cleaned up on uninstall

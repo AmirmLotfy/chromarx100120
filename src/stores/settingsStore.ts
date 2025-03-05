@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { savePrivacySettings } from '@/services/preferencesService';
@@ -25,6 +24,9 @@ interface SettingsState {
   cloudBackupEnabled: boolean;
   syncInProgress: boolean;
   lastSynced: string | null;
+  historyRetention: boolean;
+  localStorageEncryption: boolean;
+  historyItems: number;
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setColorScheme: (scheme: 'default' | 'purple' | 'blue' | 'green') => void;
   setHighContrast: (enabled: boolean) => void;
@@ -34,6 +36,8 @@ interface SettingsState {
   setAffiliateBannersEnabled: (enabled: boolean) => void;
   setAutoDetectBookmarks: (enabled: boolean) => void;
   setCloudBackupEnabled: (enabled: boolean) => Promise<void>;
+  setHistoryRetention: (enabled: boolean) => void;
+  setLocalStorageEncryption: (enabled: boolean) => void;
   resetSettings: () => void;
   syncSettingsWithServer: (userId: string) => Promise<void>;
   fetchSettingsFromServer: (userId: string) => Promise<void>;
@@ -54,6 +58,8 @@ interface UserSettingsData {
   affiliateBannersEnabled?: boolean;
   autoDetectBookmarks?: boolean;
   cloudBackupEnabled?: boolean;
+  historyRetention?: boolean;
+  localStorageEncryption?: boolean;
 }
 
 const initialState = {
@@ -74,6 +80,9 @@ const initialState = {
   cloudBackupEnabled: false,
   syncInProgress: false,
   lastSynced: null,
+  historyRetention: true,
+  localStorageEncryption: false,
+  historyItems: 0,
 };
 
 // Helper to safely get current user id
@@ -197,6 +206,22 @@ export const useSettings = create<SettingsState>()(
           set({ cloudBackupEnabled: false });
         }
       },
+      setHistoryRetention: (historyRetention) => {
+        set({ historyRetention });
+        
+        const userId = getCurrentUserId();
+        if (userId && get().cloudBackupEnabled) {
+          get().syncSettingsWithServer(userId);
+        }
+      },
+      setLocalStorageEncryption: (localStorageEncryption) => {
+        set({ localStorageEncryption });
+        
+        const userId = getCurrentUserId();
+        if (userId && get().cloudBackupEnabled) {
+          get().syncSettingsWithServer(userId);
+        }
+      },
       resetSettings: () => {
         set(initialState);
         const root = document.documentElement;
@@ -223,7 +248,9 @@ export const useSettings = create<SettingsState>()(
                 experimentalFeatures: currentSettings.experimentalFeatures,
                 affiliateBannersEnabled: currentSettings.affiliateBannersEnabled,
                 autoDetectBookmarks: currentSettings.autoDetectBookmarks,
-                cloudBackupEnabled: currentSettings.cloudBackupEnabled
+                cloudBackupEnabled: currentSettings.cloudBackupEnabled,
+                historyRetention: currentSettings.historyRetention,
+                localStorageEncryption: currentSettings.localStorageEncryption
               }
             }, {
               onConflict: 'user_id'
@@ -275,6 +302,8 @@ export const useSettings = create<SettingsState>()(
               affiliateBannersEnabled: serverSettings.affiliateBannersEnabled !== undefined ? serverSettings.affiliateBannersEnabled : get().affiliateBannersEnabled,
               autoDetectBookmarks: serverSettings.autoDetectBookmarks !== undefined ? serverSettings.autoDetectBookmarks : get().autoDetectBookmarks,
               cloudBackupEnabled: serverSettings.cloudBackupEnabled !== undefined ? serverSettings.cloudBackupEnabled : get().cloudBackupEnabled,
+              historyRetention: serverSettings.historyRetention !== undefined ? serverSettings.historyRetention : get().historyRetention,
+              localStorageEncryption: serverSettings.localStorageEncryption !== undefined ? serverSettings.localStorageEncryption : get().localStorageEncryption,
               lastSynced: new Date().toISOString(),
             });
             
