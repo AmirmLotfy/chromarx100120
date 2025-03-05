@@ -1,579 +1,297 @@
-import { 
-  Check, 
-  X, 
-  Shield, 
-  Zap, 
-  Star, 
-  Calendar, 
-  CreditCard, 
-  FileClock, 
-  FileText, 
-  Receipt, 
-  ArrowRight 
-} from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+import { storage } from "@/services/storageService";
+import { toast } from "sonner";
+import { 
+  Card, CardContent, CardDescription, 
+  CardHeader, CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { CalendarDays } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { verifyPayPalPayment, checkSubscriptionStatus, checkAndShowUpgradeNotification, getPayPalClientId, getPayPalMode } from "@/utils/chromeUtils";
-import { createPayPalOrder, capturePayPalOrder } from "@/utils/chromeUtils";
-import { PayPalButtons } from "@paypal/react-paypal-js";
+import { Progress } from "@/components/ui/progress";
+import { 
+  Book, ListChecks, Sparkles, FileText 
+} from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
-// Define the structure for subscription plans
-const subscriptionPlans = [
-  {
-    id: "free",
-    name: "Free",
-    description: "Basic access to core features",
-    price: 0,
-    features: [
-      "Limited bookmarks",
-      "Standard analytics",
-      "Community support",
-    ],
-    limits: {
-      aiRequests: 10,
-      bookmarks: 50,
-      tasks: 20,
-      notes: 30,
-    },
-  },
-  {
-    id: "basic",
-    name: "Pro",
-    description: "Enhanced features for serious users",
-    price: 10,
-    features: [
-      "Unlimited bookmarks",
-      "Advanced analytics",
-      "Priority support",
-      "AI-powered suggestions",
-    ],
-    limits: {
-      aiRequests: 100,
-      bookmarks: 500,
-      tasks: 200,
-      notes: 300,
-    },
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    description: "Full access to all features and benefits",
-    price: 20,
-    features: [
-      "Everything in Pro",
-      "Exclusive content",
-      "Personalized support",
-      "Early access to new features",
-    ],
-    limits: {
-      aiRequests: 1000,
-      bookmarks: 5000,
-      tasks: 2000,
-      notes: 3000,
-    },
-  },
-];
-
-// Interface for subscription usage type
-interface UsageLimit {
-  limit: number;
+// Define interfaces for the usage data
+interface UsageMetric {
   used: number;
+  limit: number;
   percentage: number;
 }
 
-interface SubscriptionUsageLimits {
-  aiRequests: UsageLimit;
-  bookmarks: UsageLimit;
-  tasks: UsageLimit;
-  notes: UsageLimit;
-  [key: string]: UsageLimit;
-}
-
-interface SubscriptionStatusData {
-  subscription: {
-    plan_id: string;
-    status: string;
-    current_period_end?: string;
-    current_period_start?: string;
-    cancel_at_period_end?: boolean;
-  };
-  renewalNeeded: boolean;
-  usageLimits: SubscriptionUsageLimits;
-  needsUpgrade: boolean;
+interface UsageData {
+  [key: string]: UsageMetric;
 }
 
 const SubscriptionPage = () => {
-  const { user, loading: authLoading } = useAuth();
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRenewing, setIsRenewing] = useState(false);
-  const [autoRenew, setAutoRenew] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState("free");
-  const [paypalClientId, setPaypalClientId] = useState("");
-  const [paypalMode, setPaypalMode] = useState<"sandbox" | "live">("sandbox");
-  const [isPayPalLoading, setIsPayPalLoading] = useState(true);
+  const [subscription, setSubscription] = useState<{ planId: string; status: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const { user, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    const loadSubscriptionData = async () => {
-      if (!user?.id) return;
-
-      setIsLoading(true);
+    const loadSubscription = async () => {
       try {
-        const status = await checkSubscriptionStatus(user.id);
-        setSubscriptionStatus(status);
-        setAutoRenew(status?.subscription.cancel_at_period_end === false);
+        const sub = await storage.get<{ planId: string; status: string }>('user_subscription');
+        setSubscription(sub);
       } catch (error) {
-        console.error("Failed to load subscription status:", error);
-        toast({
-          variant: "destructive",
-          title: "Failed to load subscription status.",
-          description: "Please try again later.",
-        });
-      } finally {
-        setIsLoading(false);
+        console.error("Failed to load subscription:", error);
+        toast.error("Failed to load subscription");
       }
     };
 
-    const loadPayPalConfig = async () => {
-      setIsPayPalLoading(true);
+    const loadUsage = async () => {
       try {
-        const clientId = await getPayPalClientId();
-        const mode = await getPayPalMode();
-        setPaypalClientId(clientId);
-        setPaypalMode(mode);
+        const usage = await storage.get('usage');
+        setUsageData(usage);
       } catch (error) {
-        console.error("Failed to load PayPal configuration:", error);
-        toast({
-          variant: "destructive",
-          title: "Failed to load PayPal configuration.",
-          description: "Please check your PayPal settings.",
-        });
-      } finally {
-        setIsPayPalLoading(false);
+        console.error("Failed to load usage:", error);
+        toast.error("Failed to load usage data");
       }
     };
 
-    if (user?.id) {
-      loadSubscriptionData();
-      loadPayPalConfig();
-    }
-  }, [user?.id, toast]);
+    loadSubscription();
+    loadUsage();
+  }, []);
 
-  useEffect(() => {
-    if (user?.id) {
-      checkAndShowUpgradeNotification(user.id);
-    }
-  }, [user?.id]);
-
-  const handleAutoRenewChange = async (newAutoRenew: boolean) => {
-    setAutoRenew(newAutoRenew);
-    setIsRenewing(true);
-
+  const handleSubscribe = async (planId: string) => {
+    setLoading(true);
     try {
-      // Simulate updating the subscription status
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Simulate subscription process
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      setSubscriptionStatus((prevStatus) => ({
-        ...prevStatus,
-        subscription: {
-          ...prevStatus.subscription,
-          cancel_at_period_end: !newAutoRenew,
-        },
-      }));
-
-      toast({
-        title: "Auto-renewal settings updated.",
-        description: `Auto-renewal is now ${newAutoRenew ? "enabled" : "disabled"}.`,
+      // Update subscription status in storage
+      await storage.set('user_subscription', {
+        planId: planId,
+        status: 'active'
       });
+
+      setSubscription({ planId: planId, status: 'active' });
+      toast.success(`Subscribed to ${planId} plan!`);
+      navigate('/subscription/history');
     } catch (error) {
-      console.error("Failed to update auto-renewal settings:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to update auto-renewal settings.",
-        description: "Please try again later.",
-      });
-      setAutoRenew(!newAutoRenew);
+      console.error("Failed to subscribe:", error);
+      toast.error("Failed to subscribe. Please try again.");
     } finally {
-      setIsRenewing(false);
+      setLoading(false);
     }
   };
 
-  const handlePlanSelect = (planId: string) => {
-    setSelectedPlan(planId);
-  };
-
-  const handlePaymentSuccess = async (orderId: string) => {
-    setIsRenewing(true);
-    try {
-      const success = await verifyPayPalPayment(orderId, selectedPlan, autoRenew);
-      if (success) {
-        toast({
-          title: "Payment successful!",
-          description: "Your subscription has been successfully processed.",
-        });
-        // Reload subscription status
-        if (user?.id) {
-          const status = await checkSubscriptionStatus(user.id);
-          setSubscriptionStatus(status);
-        }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Payment verification failed.",
-          description: "Please contact support.",
-        });
-      }
-    } catch (error) {
-      console.error("Payment verification error:", error);
-      toast({
-        variant: "destructive",
-        title: "Payment verification error.",
-        description: "Please try again or contact support.",
-      });
-    } finally {
-      setIsRenewing(false);
-    }
-  };
-
-  const handleCreateOrder = async (data: any, actions: any) => {
-    try {
-      const order = await createPayPalOrder(
-        selectedPlan,
-        subscriptionPlans.find((plan) => plan.id === selectedPlan)?.price || 0
-      );
-      return order.id;
-    } catch (error) {
-      console.error("Failed to create order:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to create order.",
-        description: "Please try again later.",
-      });
-      return actions.reject();
-    }
-  };
-
-  const handleApproveOrder = async (data: any, actions: any) => {
-    try {
-      const details = await capturePayPalOrder(data.orderID);
-      if (details.status === "COMPLETED") {
-        handlePaymentSuccess(details.id);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Payment not completed.",
-          description: "Please try again.",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to capture order:", error);
-      toast({
-        variant: "destructive",
-        title: "Failed to capture order.",
-        description: "Please try again later.",
-      });
-    }
-  };
-
-  const getPlanLimits = (planId: string) => {
-    const plan = subscriptionPlans.find((p) => p.id === planId);
-    return plan ? plan.limits : subscriptionPlans[0].limits;
-  };
-
-  const getUsagePercentage = (used: number, limit: number) => {
-    return limit === 0 ? 0 : Math.min(100, Math.round((used / limit) * 100));
-  };
-
-  if (authLoading || isPayPalLoading) {
-    return (
-      <Layout>
-        <div className="container max-w-4xl mx-auto px-4 py-12">
-          <p>Loading subscription information...</p>
-        </div>
-      </Layout>
-    );
-  }
-
+  // Fix the button variant type
   return (
     <Layout>
-      <div className="container max-w-4xl mx-auto px-4 py-12">
-        <div className="mb-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-3">
-                Subscription
-              </h1>
-              <p className="text-muted-foreground max-w-2xl">
-                Manage your subscription plan and payment settings
-              </p>
-            </div>
-
-            <Button asChild variant="outline">
-              <Link
-                to="/subscription/history"
-                className="flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Payment History
-              </Link>
-            </Button>
-          </div>
+      <div className="container max-w-3xl mx-auto px-4 py-12">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold tracking-tight mb-3">
+            Subscription
+          </h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Manage your subscription plan and track your usage
+          </p>
         </div>
-
-        {isLoading ? (
-          <p>Loading subscription information...</p>
-        ) : (
-          <>
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">
-                  Current Plan
-                </CardTitle>
-                <CardDescription>
-                  {subscriptionStatus?.subscription
-                    ? subscriptionPlans.find(
-                        (plan) => plan.id === subscriptionStatus.subscription.plan_id
-                      )?.name
-                    : "Free"}
-                </CardDescription>
+        
+        <div className="space-y-6 mb-8">
+          <h2 className="text-2xl font-medium">Choose Your Plan</h2>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Free</CardTitle>
+              <CardDescription>
+                Ideal for getting started. Limited features.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc list-inside space-y-2">
+                <li>5 Bookmarks</li>
+                <li>2 Notes</li>
+                <li>10 AI Requests</li>
+                <li>Basic Support</li>
+              </ul>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Pro</CardTitle>
+              <CardDescription>
+                For professional users. Enhanced features and higher limits.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc list-inside space-y-2">
+                <li>Unlimited Bookmarks</li>
+                <li>Unlimited Notes</li>
+                <li>500 AI Requests</li>
+                <li>Priority Support</li>
+              </ul>
+            </CardContent>
+            <Button 
+              variant={subscription?.planId === 'basic' ? 'outline' : 'secondary'}
+              className="w-full mb-4"
+              onClick={() => handleSubscribe('basic')}
+              disabled={loading || subscription?.planId === 'basic'}
+            >
+              {loading 
+                ? 'Subscribing...' 
+                : subscription?.planId === 'basic' 
+                  ? 'Current Plan' 
+                  : 'Subscribe to Pro'}
+            </Button>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Premium</CardTitle>
+              <CardDescription>
+                For power users. Full access to all features and unlimited usage.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc list-inside space-y-2">
+                <li>Unlimited Bookmarks</li>
+                <li>Unlimited Notes</li>
+                <li>Unlimited AI Requests</li>
+                <li>24/7 Premium Support</li>
+              </ul>
+            </CardContent>
+            <Button 
+              variant={subscription?.planId === 'premium' ? 'outline' : 'secondary'}
+              className="w-full"
+              onClick={() => handleSubscribe('premium')}
+              disabled={loading || subscription?.planId === 'premium'}
+            >
+              {loading 
+                ? 'Subscribing...' 
+                : subscription?.planId === 'premium' 
+                  ? 'Current Plan' 
+                  : 'Subscribe to Premium'}
+            </Button>
+          </Card>
+        </div>
+              
+        {/* Fix the usage metrics type casting */}
+        <div className="space-y-6 mb-8">
+          <h3 className="text-lg font-medium">Your Usage</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Bookmarks</CardTitle>
               </CardHeader>
               <CardContent>
-                {subscriptionStatus?.subscription ? (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground">
-                          Status
-                        </div>
-                        <div className="text-lg font-semibold">
-                          {subscriptionStatus.subscription.status}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground">
-                          Next Billing Date
-                        </div>
-                        <div className="text-lg font-semibold">
-                          {new Date(
-                            subscriptionStatus.subscription.current_period_end
-                          ).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <Separator className="my-4" />
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-medium">Auto-Renewal</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically renew your subscription at the end of the
-                          current period.
-                        </p>
-                      </div>
-                      <Switch
-                        checked={autoRenew}
-                        onCheckedChange={handleAutoRenewChange}
-                        disabled={isRenewing}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <p>You are currently on the free plan.</p>
-                )}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{usageData?.bookmarks?.used} / {usageData?.bookmarks?.limit}</span>
+                    <span>{usageData?.bookmarks?.percentage}%</span>
+                  </div>
+                  <Progress 
+                    value={usageData?.bookmarks?.percentage} 
+                    className="h-2" 
+                  />
+                </div>
               </CardContent>
             </Card>
-
-            <h2 className="text-2xl font-bold tracking-tight mb-4">
-              Choose a Plan
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {subscriptionPlans.map((plan) => (
-                <Card
-                  key={plan.id}
-                  className={cn(
-                    "shadow-md hover:shadow-lg transition-shadow duration-300 ease-in-out",
-                    selectedPlan === plan.id && "border-2 border-primary"
-                  )}
-                >
-                  <CardHeader>
-                    <CardTitle className="text-xl font-semibold">
-                      {plan.name}
-                    </CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-2xl font-bold">
-                      ${plan.price}
-                      <span className="text-sm text-muted-foreground">/mo</span>
-                    </div>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                      {plan.features.map((feature, index) => (
-                        <li key={index}>{feature}</li>
-                      ))}
-                    </ul>
-                    <Button
-                      className="w-full"
-                      onClick={() => handlePlanSelect(plan.id)}
-                      variant={selectedPlan === plan.id ? "default" : "outline"}
-                    >
-                      {selectedPlan === plan.id ? "Selected" : "Choose Plan"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold tracking-tight mb-4">
-                Payment
-              </h2>
-              {selectedPlan !== "free" ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Selected Plan: {
-                        subscriptionPlans.find((plan) => plan.id === selectedPlan)?.name
-                      }</CardTitle>
-                    <CardDescription>
-                      Complete your purchase using PayPal
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {paypalClientId ? (
-                      <PayPalButtons
-                        createOrder={(data, actions) => handleCreateOrder(data, actions)}
-                        onApprove={(data, actions) => handleApproveOrder(data, actions)}
-                        disabled={isRenewing}
-                      />
-                    ) : (
-                      <p>Loading PayPal...</p>
-                    )}
-                    {isRenewing && <p>Processing your payment...</p>}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="text-center">
-                    <p>You are currently on the free plan.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {subscriptionStatus && (
-              <div className="mt-8">
-                <h2 className="text-2xl font-bold tracking-tight mb-4">
-                  Usage
-                </h2>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Plan Limits</CardTitle>
-                    <CardDescription>
-                      View your current usage and limits
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {Object.entries(
-                      subscriptionStatus.usageLimits
-                    ).map(([key, usage]) => (
-                      <div key={key} className="mb-4">
-                        <div className="flex justify-between items-center">
-                          <div className="font-medium capitalize">{key}</div>
-                          <div className="text-muted-foreground">
-                            {usage.used} / {usage.limit}
-                          </div>
-                        </div>
-                        <progress
-                          className="w-full h-2 rounded-full"
-                          value={usage.percentage}
-                          max="100"
-                        />
-                        <div className="text-right text-muted-foreground text-sm">
-                          {usage.percentage}%
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            <div className="mt-8 bg-muted/40 rounded-lg p-6">
-              <h3 className="font-medium mb-2">Need Help?</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                If you have any questions about your subscription or payments,
-                please contact our support team at support@chromarx.it.com.
-              </p>
-              <div className="flex gap-3">
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/subscription/terms">View Terms</Link>
-                </Button>
-                <Button size="sm" variant="secondary" asChild>
-                  <a href="mailto:support@chromarx.it.com">
-                    Contact Support
-                  </a>
-                </Button>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{usageData?.notes?.used} / {usageData?.notes?.limit}</span>
+                    <span>{usageData?.notes?.percentage}%</span>
+                  </div>
+                  <Progress 
+                    value={usageData?.notes?.percentage} 
+                    className="h-2" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">AI Requests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{usageData?.aiRequests?.used} / {usageData?.aiRequests?.limit}</span>
+                    <span>{usageData?.aiRequests?.percentage}%</span>
+                  </div>
+                  <Progress 
+                    value={usageData?.aiRequests?.percentage} 
+                    className="h-2" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{usageData?.tasks?.used} / {usageData?.tasks?.limit}</span>
+                    <span>{usageData?.tasks?.percentage}%</span>
+                  </div>
+                  <Progress 
+                    value={usageData?.tasks?.percentage} 
+                    className="h-2" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        
+        <div className="mt-8 bg-muted/40 rounded-lg p-6">
+          <h3 className="font-medium mb-2">Subscription Benefits</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Unlock additional features and higher usage limits by upgrading your subscription plan.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <Book className="h-5 w-5 text-blue-500" />
+              <div>
+                <h4 className="font-medium">Unlimited Bookmarks</h4>
+                <p className="text-sm text-muted-foreground">Save all your favorite resources.</p>
               </div>
             </div>
-          </>
-        )}
+            
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-green-500" />
+              <div>
+                <h4 className="font-medium">Unlimited Notes</h4>
+                <p className="text-sm text-muted-foreground">Keep track of your thoughts and ideas.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-orange-500" />
+              <div>
+                <h4 className="font-medium">Enhanced AI Features</h4>
+                <p className="text-sm text-muted-foreground">Get more from AI with higher request limits.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <ListChecks className="h-5 w-5 text-purple-500" />
+              <div>
+                <h4 className="font-medium">Priority Support</h4>
+                <p className="text-sm text-muted-foreground">Get faster assistance when you need it.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </Layout>
   );

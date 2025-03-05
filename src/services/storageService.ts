@@ -7,10 +7,12 @@ export class StorageService {
   private static instance: StorageService;
   private cache = new Map<string, unknown>();
   private isExtension: boolean;
+  private localStoragePrefix = 'chromarx_';
 
   private constructor() {
     // Check if we're running in a Chrome extension context
     this.isExtension = typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
+    console.log('StorageService initialized in', this.isExtension ? 'extension' : 'web', 'mode');
   }
 
   static getInstance(): StorageService {
@@ -27,9 +29,13 @@ export class StorageService {
       }
 
       if (!this.isExtension) {
-        // If not in extension, try localStorage as fallback
-        const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : null;
+        // If not in extension, use localStorage as fallback
+        const stored = localStorage.getItem(this.localStoragePrefix + key);
+        const value = stored ? JSON.parse(stored) : null;
+        if (value !== null) {
+          this.cache.set(key, value);
+        }
+        return value as T;
       }
 
       const result = await chrome.storage.sync.get(key);
@@ -50,7 +56,7 @@ export class StorageService {
     try {
       if (!this.isExtension) {
         // If not in extension, use localStorage as fallback
-        localStorage.setItem(key, JSON.stringify(value));
+        localStorage.setItem(this.localStoragePrefix + key, JSON.stringify(value));
         this.cache.set(key, value);
         return;
       }
@@ -66,7 +72,7 @@ export class StorageService {
 
   async update<T extends Record<string, any>>(key: string, value: Partial<T>): Promise<void> {
     try {
-      const current = await this.get<T>(key);
+      const current = await this.get<T>(key) || {} as T;
       const updated = { ...current, ...value };
       await this.set(key, updated);
     } catch (error) {
@@ -79,7 +85,7 @@ export class StorageService {
   async remove(key: string): Promise<void> {
     try {
       if (!this.isExtension) {
-        localStorage.removeItem(key);
+        localStorage.removeItem(this.localStoragePrefix + key);
         this.cache.delete(key);
         return;
       }
@@ -96,6 +102,100 @@ export class StorageService {
   clearCache(): void {
     this.cache.clear();
   }
+  
+  // Add a method to populate test data for the web preview
+  async populateTestData(): Promise<void> {
+    if (this.isExtension) {
+      console.log('Not populating test data in extension mode');
+      return;
+    }
+    
+    console.log('Populating test data for web preview');
+    
+    // Sample user data
+    await this.set('user', {
+      id: 'test-user-id',
+      uid: 'test-uid',
+      email: 'test@example.com',
+      displayName: 'Test User',
+      photoURL: null
+    });
+    
+    // Sample subscription data
+    await this.set('user_subscription', {
+      planId: 'basic',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+    });
+    
+    // Sample settings
+    await this.set('settings', {
+      dataCollection: true,
+      experimentalFeatures: false,
+      geminiApiKey: 'sample-api-key',
+      paypal: {
+        clientId: 'sample-client-id',
+        secretKey: 'sample-secret-key'
+      }
+    });
+    
+    // Sample usage metrics
+    await this.set('usage', {
+      bookmarks: 42,
+      notes: 15,
+      aiRequests: 78,
+      tasks: 23
+    });
+    
+    // Sample payment history for SubscriptionHistoryPage
+    await this.set('payment_history_test-user-id', {
+      payments: [
+        {
+          id: 'pay-123456',
+          created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+          order_id: 'order-123456789',
+          plan_id: 'basic',
+          amount: 9.99,
+          status: 'completed',
+          provider: 'paypal'
+        },
+        {
+          id: 'pay-789012',
+          created_at: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
+          order_id: 'order-987654321',
+          plan_id: 'basic',
+          amount: 9.99,
+          status: 'completed',
+          provider: 'credit_card'
+        }
+      ]
+    });
+    
+    // Sample webhook config for PayPalWebhookConfigPage
+    await this.set('paypal_webhook_config', {
+      webhook_id: 'WH-123456789',
+      event_types: [
+        'PAYMENT.SALE.COMPLETED',
+        'BILLING.SUBSCRIPTION.CREATED',
+        'BILLING.SUBSCRIPTION.CANCELLED',
+        'BILLING.SUBSCRIPTION.EXPIRED'
+      ],
+      url: 'https://hkpgkogqxnamvlptxhat.supabase.co/functions/v1/paypal-webhook',
+      active: true
+    });
+    
+    toast.success('Test data populated for web preview');
+  }
 }
 
 export const storage = StorageService.getInstance();
+
+// Auto-populate test data if we're not in extension context
+if (typeof window !== 'undefined' && 
+    (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync)) {
+  // Delay to ensure toast system is initialized
+  setTimeout(() => {
+    storage.populateTestData();
+  }, 1000);
+}
