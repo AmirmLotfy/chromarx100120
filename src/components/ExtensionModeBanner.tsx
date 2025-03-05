@@ -15,6 +15,13 @@ const ExtensionModeBanner = () => {
                        !!chrome.storage && 
                        !!chrome.storage.sync;
     setIsExtension(inExtension);
+    
+    // If not in extension mode, populate test data automatically on first load
+    if (!inExtension) {
+      storage.populateTestData().catch(err => {
+        console.error('Error populating test data:', err);
+      });
+    }
   }, []);
   
   const refreshTestData = async () => {
