@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,7 +18,8 @@ import {
   RefreshCw,
   Download,
   Loader2,
-  Clock
+  Clock,
+  Database
 } from "lucide-react";
 import {
   Dialog,
@@ -31,8 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import { supabaseBackup } from "@/services/supabaseBackupService";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
+import DataSecuritySettings from "./DataSecuritySettings";
 
-// Type-safe badge variants matching what's allowed in the Badge component
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "info" | "warning";
 
 interface SettingBadge {
@@ -71,7 +71,6 @@ const PrivacySettings = () => {
   };
 
   const handleExperimentalFeatures = async (enabled: boolean) => {
-    // Check if user has access to experimental features when enabling
     if (enabled && !(await checkAccess('experimental'))) {
       return;
     }
@@ -98,7 +97,6 @@ const PrivacySettings = () => {
       return;
     }
     
-    // Check if user has access to cloud backup when enabling
     if (enabled && !(await checkAccess('cloud_backup'))) {
       return;
     }
@@ -106,7 +104,6 @@ const PrivacySettings = () => {
     await settings.setCloudBackupEnabled(enabled);
     
     if (enabled && user) {
-      // Trigger a manual sync when enabling backup
       try {
         setSyncInProgress(true);
         await supabaseBackup.syncAll();
@@ -160,7 +157,6 @@ const PrivacySettings = () => {
     }
   };
 
-  // Animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -174,7 +170,6 @@ const PrivacySettings = () => {
     show: { opacity: 1, y: 0 }
   };
 
-  // Reusable Setting component with proper accessibility
   const Setting = ({ id, icon, title, description, isChecked, onChange, badge, disabled = false }: SettingProps) => (
     <div className="flex items-center justify-between py-4 border-b border-border/20 last:border-none">
       <div className="flex gap-3">
@@ -387,6 +382,20 @@ const PrivacySettings = () => {
             )}
           </CardContent>
         </Card>
+      </motion.div>
+
+      <motion.div variants={item} className="mb-3 mt-8" key="data-security-heading">
+        <h2 className="text-lg font-medium flex items-center gap-2">
+          <Database className="h-4 w-4 text-primary" />
+          Data Security
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Manage your data protection and privacy controls
+        </p>
+      </motion.div>
+
+      <motion.div variants={item} key="data-security-settings">
+        <DataSecuritySettings />
       </motion.div>
     </motion.div>
   );

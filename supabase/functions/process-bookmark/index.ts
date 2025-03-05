@@ -7,7 +7,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Sanitize URL to prevent security issues
+const sanitizeUrl = (url: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+    // Only allow http and https protocols
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error('Invalid URL protocol');
+    }
+    return parsedUrl.toString();
+  } catch (error) {
+    throw new Error('Invalid URL format');
+  }
+};
+
+// Sanitize input to prevent XSS
+const sanitizeInput = (input: string): string => {
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+};
+
 serve(async (req) => {
+  // Log request info without sensitive data
+  console.log(`Request to process-bookmark from ${req.headers.get('origin') || 'unknown origin'}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -33,12 +61,9 @@ serve(async (req) => {
       throw new Error("URL is required");
     }
     
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch (e) {
-      throw new Error("Invalid URL format");
-    }
+    // Sanitize and validate URL format
+    const sanitizedUrl = sanitizeUrl(url);
+    const sanitizedTitle = title ? sanitizeInput(title) : "Untitled";
 
     // Check environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -52,15 +77,23 @@ serve(async (req) => {
 
     // Process the bookmark with error handling
     try {
+      // Extract domain from URL
+      const domainMatch = sanitizedUrl.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+      const domain = domainMatch ? domainMatch[1] : "unknown-domain";
+      
       // Example processing - you can expand this based on your needs
       const processedData = {
-        url,
-        title: title || "Untitled",
+        url: sanitizedUrl,
+        title: sanitizedTitle,
         processed_at: new Date().toISOString(),
-        domain: new URL(url).hostname
+        domain
       }
 
-      console.log('Processing bookmark:', processedData);
+      console.log('Processing bookmark:', { 
+        url: sanitizedUrl,
+        domain,
+        processed_at: processedData.processed_at 
+      });
 
       return new Response(
         JSON.stringify({
@@ -84,7 +117,8 @@ serve(async (req) => {
       JSON.stringify({ 
         status: "error",
         message: error.message || "An unknown error occurred",
-        code: error.code || "UNKNOWN_ERROR"
+        code: error.code || "UNKNOWN_ERROR",
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

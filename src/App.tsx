@@ -1,10 +1,13 @@
+
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import Routes from "./Routes";
 import { Loader2 } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import RootErrorBoundary from "@/components/RootErrorBoundary";
+import { registerUninstallCleanup } from "@/utils/cleanupUtils";
+import { logger } from "@/utils/loggerUtils";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -26,6 +29,14 @@ function LoadingFallback() {
 }
 
 function App() {
+  // Register the uninstall cleanup handler when the app starts
+  useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      registerUninstallCleanup();
+      logger.info('ChroMarx extension initialized');
+    }
+  }, []);
+
   return (
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>

@@ -45,6 +45,10 @@ interface ErrorHandlingOptions {
   onError?: (error: Error) => void;
   /** Function to run regardless of success or failure */
   finally?: () => void;
+  /** Log error with extension logger */
+  log?: boolean;
+  /** Add metadata to error logs */
+  logMetadata?: Record<string, any>;
 }
 
 /**
@@ -63,6 +67,8 @@ export const withErrorHandling = async <T>(
     rethrow = true,
     onError,
     finally: finallyFn,
+    log = true,
+    logMetadata = {},
   } = options;
 
   try {
@@ -73,6 +79,17 @@ export const withErrorHandling = async <T>(
       : new Error(typeof error === 'string' ? error : JSON.stringify(error));
     
     console.error(errorMessage, normalizedError);
+    
+    // Use logger if available
+    if (log) {
+      try {
+        const { logger } = await import('@/utils/loggerUtils');
+        logger.error(errorMessage, normalizedError, { meta: logMetadata });
+      } catch (logError) {
+        // If logger import fails, fallback to console
+        console.error('Logger not available:', logError);
+      }
+    }
     
     if (showError) {
       // Import toast dynamically to avoid circular dependencies
@@ -96,3 +113,34 @@ export const withErrorHandling = async <T>(
     }
   }
 };
+
+/**
+ * An error class for extension-specific errors with additional context
+ */
+export class ExtensionError extends Error {
+  code: string;
+  context: Record<string, any>;
+  
+  constructor(message: string, code: string = 'EXTENSION_ERROR', context: Record<string, any> = {}) {
+    super(message);
+    this.name = 'ExtensionError';
+    this.code = code;
+    this.context = context;
+    
+    // Ensures proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ExtensionError.prototype);
+  }
+  
+  /**
+   * Creates a formatted error object for API responses
+   */
+  toJSON() {
+    return {
+      error: true,
+      message: this.message,
+      code: this.code,
+      context: this.context,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
