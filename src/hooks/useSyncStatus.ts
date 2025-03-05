@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react';
 import { syncService } from '@/services/syncService';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
+import { supabaseBackup } from '@/services/supabaseBackupService';
 
 export function useSyncStatus() {
   const { user } = useAuth();
   const [status, setStatus] = useState<'idle' | 'syncing' | 'error' | 'success'>('idle');
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [pendingChanges, setPendingChanges] = useState(0);
+  const [conflicts, setConflicts] = useState(0);
   const { isOffline } = useOfflineStatus();
 
   // Fetch initial sync status
@@ -29,19 +31,28 @@ export function useSyncStatus() {
 
     fetchSyncStatus();
 
-    // Also check the offline queue to get pending changes count
+    // Also check the offline queue to get pending changes count and conflicts
     const checkPendingChanges = async () => {
       const queue = await syncService.getOfflineQueueCount();
       setPendingChanges(queue);
+      
+      const conflictCount = await syncService.getConflictCount();
+      setConflicts(conflictCount);
     };
 
     checkPendingChanges();
     
     // Set up an interval to periodically check pending changes
-    const interval = setInterval(checkPendingChanges, 60000); // Check every minute
+    const interval = setInterval(() => {
+      checkPendingChanges();
+      // Trigger backup if we're online
+      if (!isOffline && user) {
+        supabaseBackup.syncAll().catch(console.error);
+      }
+    }, 60000); // Check every minute
     
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, isOffline]);
 
   // When coming back online, check pending changes and show notifications
   useEffect(() => {
@@ -57,6 +68,9 @@ export function useSyncStatus() {
     status,
     lastSynced,
     pendingChanges,
-    syncInProgress: status === 'syncing'
+    conflicts,
+    syncInProgress: status === 'syncing',
+    triggerBackup: supabaseBackup.syncAll.bind(supabaseBackup),
+    restoreFromBackup: supabaseBackup.restoreFromBackup.bind(supabaseBackup)
   };
 }
