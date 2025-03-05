@@ -1,9 +1,9 @@
-
 import Navigation from "./Navigation";
 import Header from "./Header";
 import { useEffect, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { HeaderHelp } from "./onboarding/HeaderHelp";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,40 +17,32 @@ const Layout = ({ children }: LayoutProps) => {
   const [currentWidth, setCurrentWidth] = useState<number>(0);
 
   useEffect(() => {
-    // Check if running in Chrome extension side panel or popup
     const checkEnvironment = async () => {
       try {
-        // Check if we're in the side panel
         if (chrome?.sidePanel) {
           setIsSidePanel(true);
           
-          // Configure side panel behavior
           await chrome.sidePanel.setPanelBehavior({ 
             openPanelOnActionClick: true 
           });
           
-          // Store initial width as default
           const initialWidth = window.innerWidth;
           defaultWidth.current = initialWidth;
           setCurrentWidth(initialWidth);
 
-          // Apply proper sizing for side panel
           document.body.style.width = '100%';
           document.body.style.height = '100vh';
           document.body.style.margin = '0';
           document.body.style.overflow = 'hidden';
           
-          // Add high-contrast support
           document.documentElement.setAttribute('data-high-contrast', 'true');
 
-          // Set up resize observer to enforce width constraints
           const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
               const newWidth = entry.contentRect.width;
-              const maxAllowedWidth = defaultWidth.current * 1.2; // 20% more than default
+              const maxAllowedWidth = defaultWidth.current * 1.2;
 
               if (newWidth > maxAllowedWidth) {
-                // Prevent exceeding max width
                 document.body.style.width = `${maxAllowedWidth}px`;
                 toast.info("Maximum side panel width reached");
               }
@@ -60,11 +52,9 @@ const Layout = ({ children }: LayoutProps) => {
 
           resizeObserver.observe(document.body);
 
-          // Cleanup observer on unmount
           return () => resizeObserver.disconnect();
         }
         
-        // Check if we're in a popup window
         if (window.innerWidth < 800 && window.innerHeight < 600) {
           setIsPopup(true);
         }
@@ -75,7 +65,6 @@ const Layout = ({ children }: LayoutProps) => {
     
     checkEnvironment();
 
-    // Handle window resize for responsive layout
     const handleResize = () => {
       if (isSidePanel) {
         const maxAllowedWidth = defaultWidth.current * 1.2;
@@ -86,7 +75,7 @@ const Layout = ({ children }: LayoutProps) => {
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize(); // Initial call
+    handleResize();
 
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidePanel]);
@@ -104,7 +93,12 @@ const Layout = ({ children }: LayoutProps) => {
       role="main"
       aria-label="Main content area"
     >
-      <Header />
+      <div className="flex items-center justify-between px-2">
+        <Header />
+        <div className="flex items-center">
+          <HeaderHelp />
+        </div>
+      </div>
       <main 
         className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-20"
         tabIndex={0}
@@ -115,7 +109,6 @@ const Layout = ({ children }: LayoutProps) => {
       </main>
       <Navigation />
 
-      {/* Skip link for keyboard navigation */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2 focus:bg-background focus:text-foreground"
