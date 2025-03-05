@@ -59,7 +59,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
             )}
           >
             {highlightTerm ? (
-              <HighlightedText text={message.content} searchTerm={highlightTerm} />
+              <HighlightedText text={message.content} highlight={highlightTerm} />
             ) : (
               <div className="whitespace-pre-wrap">{message.content}</div>
             )}
