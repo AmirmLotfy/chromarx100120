@@ -15,6 +15,11 @@ const Layout = ({ children }: LayoutProps) => {
   const { theme } = useTheme();
   const defaultWidth = useRef<number>(0);
   const [currentWidth, setCurrentWidth] = useState<number>(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
 
   useEffect(() => {
     // Check if running in Chrome extension side panel or popup
@@ -104,7 +109,7 @@ const Layout = ({ children }: LayoutProps) => {
       role="main"
       aria-label="Main content area"
     >
-      <Header />
+      <Header toggleSidebar={toggleSidebar} />
       <main 
         className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-20"
         tabIndex={0}
