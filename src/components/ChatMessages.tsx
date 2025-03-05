@@ -1,192 +1,95 @@
 
+import React, { useState } from "react";
 import { Message } from "@/types/chat";
+import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { ExternalLink, User, Bot, Bookmark, Globe } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useIsMobile } from "@/hooks/use-mobile";
-import React, { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Copy, Check } from "lucide-react";
+import HighlightedText from "./HighlightedText";
+import { motion } from "framer-motion";
 
-interface ChatMessagesProps {
+export interface ChatMessagesProps {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement>;
-  renderAdditionalContent?: (message: Message) => ReactNode;
+  highlightTerm?: string;
+  renderAdditionalContent?: (message: Message) => React.ReactNode;
 }
 
-const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: ChatMessagesProps) => {
-  const isMobile = useIsMobile();
-  
-  if (messages.length === 0) {
-    return (
-      <motion.div 
-        className="flex-1 flex flex-col items-center justify-center p-6 text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-inner"
-        >
-          <Bot className="h-8 w-8 text-primary/70" strokeWidth={1.5} />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <h3 className="text-xl font-medium mb-2">Start Chatting</h3>
-          <p className="text-sm text-muted-foreground">
-            Ask questions about your bookmarks or the web
-          </p>
-        </motion.div>
-      </motion.div>
-    );
-  }
+const ChatMessages: React.FC<ChatMessagesProps> = ({ 
+  messages, 
+  messagesEndRef,
+  highlightTerm,
+  renderAdditionalContent,
+}) => {
+  const [copiedMessageIds, setCopiedMessageIds] = useState<string[]>([]);
 
-  // Group messages by date
-  const groupedMessages: { date: string; messages: Message[] }[] = [];
-  let currentDate = '';
-  
-  messages.forEach((message) => {
-    const messageDate = new Date(message.timestamp || Date.now()).toLocaleDateString();
-    
-    if (messageDate !== currentDate) {
-      currentDate = messageDate;
-      groupedMessages.push({
-        date: messageDate,
-        messages: [message]
-      });
-    } else {
-      groupedMessages[groupedMessages.length - 1].messages.push(message);
-    }
-  });
+  const copyToClipboard = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageIds([...copiedMessageIds, messageId]);
+    setTimeout(() => {
+      setCopiedMessageIds(copiedMessageIds.filter(id => id !== messageId));
+    }, 2000);
+  };
 
   return (
-    <div className="w-full px-2 sm:px-3 py-2">
-      <div className="space-y-4 w-full max-w-3xl mx-auto">
-        {groupedMessages.map((group, groupIndex) => (
-          <div key={group.date} className="space-y-4 w-full">
-            {/* Date divider */}
-            <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-muted/30"></div>
-              <span className="flex-shrink mx-3 text-xs text-muted-foreground/70 px-2 py-0.5 bg-muted/20 rounded-full">
-                {group.date === new Date().toLocaleDateString() ? "Today" : group.date}
-              </span>
-              <div className="flex-grow border-t border-muted/30"></div>
-            </div>
+    <div className="flex flex-col space-y-4 p-2">
+      {messages.map((message, index) => (
+        <motion.div
+          key={message.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: index * 0.05 }}
+          className={cn(
+            "flex gap-3 group",
+            message.sender === "user" ? "justify-end" : "justify-start"
+          )}
+        >
+          {message.sender === "assistant" && (
+            <Avatar className="h-8 w-8 bg-primary/10 flex-shrink-0 mt-1">
+              <span className="text-xs text-primary/70">AI</span>
+            </Avatar>
+          )}
+          
+          <div 
+            className={cn(
+              "relative rounded-xl p-3 text-sm max-w-[85%] sm:max-w-[75%]",
+              message.sender === "user" 
+                ? "bg-primary text-primary-foreground" 
+                : "bg-muted border border-muted-foreground/10"
+            )}
+          >
+            {highlightTerm ? (
+              <HighlightedText text={message.content} searchTerm={highlightTerm} />
+            ) : (
+              <div className="whitespace-pre-wrap">{message.content}</div>
+            )}
             
-            {/* Message bubbles */}
-            <div className="space-y-3 w-full">
-              {group.messages.map((message, index) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className={cn(
-                    "flex",
-                    message.sender === "user" ? "justify-end" : "justify-start",
-                    "gap-2 items-end w-full"
-                  )}
-                >
-                  {message.sender === "assistant" && (
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                  
-                  <div
-                    className={cn(
-                      "max-w-[85%] relative",
-                      message.sender === "user"
-                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm"
-                        : "bg-muted/75 text-foreground rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm",
-                      !message.isRead && message.sender === "assistant" && "ring-1 ring-primary/10"
-                    )}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
-                    
-                    {/* Render additional content if provided */}
-                    {renderAdditionalContent && renderAdditionalContent(message)}
-                    
-                    {/* Bookmarks section */}
-                    {message.bookmarks && message.bookmarks.length > 0 && (
-                      <div className="pt-2 border-t border-primary/10 mt-2">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Bookmark className="h-3.5 w-3.5 text-primary/70" />
-                          <p className="text-xs font-medium text-primary/80">Bookmarks</p>
-                        </div>
-                        <div className="space-y-1.5 mt-1">
-                          {message.bookmarks.map((bookmark, index) => (
-                            <a
-                              key={index}
-                              href={bookmark.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 group"
-                            >
-                              <div className="flex-shrink-0 h-5 w-5 bg-primary/10 rounded flex items-center justify-center">
-                                <ExternalLink className="h-3 w-3" />
-                              </div>
-                              <span className="truncate group-hover:text-primary transition-colors">
-                                {bookmark.title}
-                              </span>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Web results */}
-                    {message.webResults && message.webResults.length > 0 && (
-                      <div className="pt-2 border-t border-primary/10 mt-2">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Globe className="h-3.5 w-3.5 text-primary/70" />
-                          <p className="text-xs font-medium text-primary/80">Web Results</p>
-                        </div>
-                        <div className="space-y-1.5 mt-1">
-                          {message.webResults.map((result, index) => (
-                            <a
-                              key={index}
-                              href={result.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-xs hover:underline opacity-90 hover:opacity-100 group"
-                            >
-                              <div className="flex-shrink-0 h-5 w-5 bg-primary/10 rounded flex items-center justify-center">
-                                <ExternalLink className="h-3 w-3" />
-                              </div>
-                              <span className="truncate group-hover:text-primary transition-colors">
-                                {result.title}
-                              </span>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Time indicator */}
-                    <div className="absolute bottom-0 right-0 transform translate-y-5 flex items-center text-[10px] text-muted-foreground opacity-70">
-                      {new Date(message.timestamp || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </div>
-                  </div>
-                  
-                  {message.sender === "user" && (
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
+            {message.sender === "assistant" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => copyToClipboard(message.content, message.id)}
+              >
+                {copiedMessageIds.includes(message.id) ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            )}
+            
+            {renderAdditionalContent && message.sender === "assistant" && renderAdditionalContent(message)}
           </div>
-        ))}
-        <div ref={messagesEndRef} className="h-24" /> {/* Extra space for scroll */}
-      </div>
+          
+          {message.sender === "user" && (
+            <Avatar className="h-8 w-8 bg-primary/20 flex-shrink-0 mt-1">
+              <span className="text-xs text-primary">You</span>
+            </Avatar>
+          )}
+        </motion.div>
+      ))}
+      <div ref={messagesEndRef} />
     </div>
   );
 };

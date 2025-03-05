@@ -4,7 +4,7 @@ import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
 import ChatOfflineNotice from "./ChatOfflineNotice";
 import { AIProgressIndicator } from "../ui/ai-progress-indicator";
-import { RefreshCw, X, Search, BookmarkPlus, Globe } from "lucide-react";
+import { RefreshCw, X, BookmarkPlus, Globe } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -55,7 +55,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
                   href={bookmark.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2.5 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
+                  className="block text-xs p-2.5 bg-background hover:bg-muted rounded-lg transition-colors border border-primary/10"
                 >
                   <span className="font-medium line-clamp-1">{bookmark.title}</span>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">{bookmark.url}</span>
@@ -78,7 +78,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
                   href={result.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2.5 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
+                  className="block text-xs p-2.5 bg-background hover:bg-muted rounded-lg transition-colors border border-primary/10"
                 >
                   <span className="font-medium line-clamp-1">{result.title}</span>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">{result.url}</span>
@@ -157,7 +157,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         </AnimatePresence>
       </div>
       
-      <div className="flex-1 overflow-y-auto px-1 pb-3 scroll-smooth">
+      <div className="flex-1 overflow-y-auto px-2 pb-3 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />

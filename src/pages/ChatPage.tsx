@@ -1,23 +1,14 @@
 
-import React from "react";
-import ChatInterface from "@/components/ChatInterface";
+import { useState } from "react";
 import Layout from "@/components/Layout";
-import { AuthProvider } from "@/hooks/useAuth";
-import { motion } from "framer-motion";
+import ChatInterface from "@/components/ChatInterface";
 
-const ChatPage: React.FC = () => {
+const ChatPage = () => {
   return (
     <Layout>
-      <motion.div 
-        className="h-[calc(100dvh-4rem)] w-full flex flex-col bg-background overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <AuthProvider>
-          <ChatInterface />
-        </AuthProvider>
-      </motion.div>
+      <div className="h-[calc(100vh-8rem)] w-full">
+        <ChatInterface />
+      </div>
     </Layout>
   );
 };

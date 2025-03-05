@@ -2,7 +2,6 @@
 import { BookmarkPlus, Search, Sparkles, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
-import { Switch } from "../ui/switch";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -27,23 +26,23 @@ const BookmarkSearchView = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-5 shadow-inner"
+        className="w-20 h-20 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center mb-5 shadow-inner border border-primary/20"
       >
-        <BookmarkPlus className="h-8 w-8 text-primary/70" strokeWidth={1.5} />
+        <BookmarkPlus className="h-10 w-10 text-primary" strokeWidth={1.5} />
       </motion.div>
       
-      <h3 className="text-lg font-medium">Search Your Bookmarks</h3>
+      <h3 className="text-xl font-medium mb-2">Search Your Bookmarks</h3>
       <p className="text-sm text-muted-foreground max-w-sm mb-6">
         Find and explore your bookmarked content using natural language
       </p>
       
       {/* Enhanced AI/Web search toggle */}
-      <div className="flex items-center justify-center gap-2 mb-7 bg-muted/30 p-1 rounded-full shadow-sm">
+      <div className="flex items-center justify-center gap-2 mb-7 bg-muted/30 p-1.5 rounded-full shadow-sm border border-muted/50 w-full max-w-sm">
         <button 
           className={cn(
-            "text-sm flex items-center gap-1.5 py-2 px-3 rounded-full transition-all",
+            "text-sm flex items-center gap-1.5 py-2.5 px-4 rounded-full transition-all w-1/2 justify-center",
             !webSearchEnabled 
-              ? "bg-background shadow-sm text-foreground" 
+              ? "bg-background border border-primary/20 shadow-sm text-foreground" 
               : "text-muted-foreground"
           )}
           onClick={() => setWebSearchEnabled(false)}
@@ -54,9 +53,9 @@ const BookmarkSearchView = () => {
         
         <button
           className={cn(
-            "text-sm flex items-center gap-1.5 py-2 px-3 rounded-full transition-all",
+            "text-sm flex items-center gap-1.5 py-2.5 px-4 rounded-full transition-all w-1/2 justify-center",
             webSearchEnabled 
-              ? "bg-background shadow-sm text-foreground" 
+              ? "bg-background border border-primary/20 shadow-sm text-foreground" 
               : "text-muted-foreground"
           )}
           onClick={() => setWebSearchEnabled(true)}
@@ -66,7 +65,7 @@ const BookmarkSearchView = () => {
         </button>
       </div>
       
-      <div className="w-full max-w-md space-y-4 mb-6 overflow-y-auto hide-scrollbar">
+      <div className="w-full max-w-md space-y-4 mb-6 overflow-y-auto hide-scrollbar px-2">
         <h4 className="text-sm font-medium text-muted-foreground">Try asking:</h4>
         <div className="grid grid-cols-1 gap-2">
           {searchExamples.map((example, index) => (
@@ -94,7 +93,7 @@ const BookmarkSearchView = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="w-full max-w-md mt-2"
+          className="w-full max-w-md mt-2 px-2"
         >
           <div className="text-sm py-3 px-4 bg-primary/5 rounded-lg border border-primary/10 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary/70" />

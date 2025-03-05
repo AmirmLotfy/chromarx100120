@@ -72,7 +72,7 @@ const ChatInterface = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-full relative bg-gradient-to-b from-background/95 to-background overflow-hidden">
+    <div className="flex flex-col h-full relative bg-background rounded-lg shadow-lg overflow-hidden border border-primary/10">
       <div className="flex flex-1 h-full relative">
         {/* Sidebar */}
         <AnimatePresence>
@@ -143,7 +143,7 @@ const ChatInterface = () => {
             markMessagesAsRead={markMessagesAsRead}
           />
           
-          <div className="sticky bottom-0 p-1 md:p-2 mt-auto bg-background/90 backdrop-blur-sm border-t border-muted/20">
+          <div className="sticky bottom-0 p-2 md:p-3 mt-auto bg-background/95 backdrop-blur-sm border-t border-primary/10">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
