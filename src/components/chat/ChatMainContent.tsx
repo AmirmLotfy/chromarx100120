@@ -2,12 +2,11 @@
 import React from "react";
 import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
-import ChatOfflineNotice from "./ChatOfflineNotice";
-import { AIProgressIndicator } from "../ui/ai-progress-indicator";
-import { RefreshCw, X, BookmarkPlus, Globe, ExternalLink } from "lucide-react";
+import { RefreshCw, X, AlertTriangle } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { motion, AnimatePresence } from "framer-motion";
+import { AIProgressIndicator } from "../ui/ai-progress-indicator";
 
 interface ChatMainContentProps {
   messages: Message[];
@@ -34,79 +33,6 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   isBookmarkSearchMode,
   markMessagesAsRead,
 }) => {
-  const renderSearchResults = (message: Message) => {
-    if (!message.bookmarks?.length && !message.webResults?.length) return null;
-    
-    return (
-      <div className="mt-5 space-y-4 bg-background/70 p-4 rounded-xl border border-primary/10 backdrop-blur-sm">
-        {message.bookmarks && message.bookmarks.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-xs font-medium text-primary flex items-center gap-2">
-              <BookmarkPlus className="h-4 w-4" />
-              Your Bookmarks
-            </h4>
-            <div className="grid grid-cols-1 gap-2.5">
-              {message.bookmarks.map((bookmark, i) => (
-                <a 
-                  key={i} 
-                  href={bookmark.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="group block text-xs p-3.5 hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20 bg-background"
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="font-medium line-clamp-1 flex-1">{bookmark.title}</span>
-                    <ExternalLink className="h-3 w-3 text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 ml-2 flex-shrink-0" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground line-clamp-1 mt-1">{bookmark.url}</span>
-                  {bookmark.relevanceScore && (
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <div className="h-1.5 bg-primary/20 rounded-full w-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                          style={{ width: `${Math.min(bookmark.relevanceScore * 100, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-                        {Math.round(bookmark.relevanceScore * 100)}% match
-                      </span>
-                    </div>
-                  )}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {message.webResults && message.webResults.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-xs font-medium text-primary flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              Web Results
-            </h4>
-            <div className="grid grid-cols-1 gap-2.5">
-              {message.webResults.map((result, i) => (
-                <a 
-                  key={i} 
-                  href={result.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="group block text-xs p-3.5 hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20 bg-background"
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="font-medium line-clamp-1 flex-1">{result.title}</span>
-                    <ExternalLink className="h-3 w-3 text-primary/70 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 ml-2 flex-shrink-0" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground line-clamp-1 mt-1">{result.url}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-  
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="sticky top-0 z-10 px-3 pt-2 space-y-2 bg-background/90 backdrop-blur-sm">
@@ -119,17 +45,33 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
               transition={{ duration: 0.3 }}
               className="scale-95 origin-top"
             >
-              <ChatOfflineNotice 
-                isOffline={isOffline} 
-                isAIUnavailable={!isAIAvailable && !isOffline} 
-                onRetryConnection={checkConnection}
-              />
+              <div className="rounded-lg p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 text-amber-800 dark:text-amber-300 text-sm flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">
+                    {isOffline ? "You are offline" : "AI service unavailable"}
+                  </p>
+                  <p className="text-xs mt-1">
+                    {isOffline 
+                      ? "Check your internet connection to continue chatting" 
+                      : "The AI service is currently unavailable. Please try again later."}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2 h-8 text-xs border-amber-200 dark:border-amber-800/50 bg-amber-100/50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                    onClick={checkConnection}
+                  >
+                    <RefreshCw size={12} className="mr-1.5" /> Check connection
+                  </Button>
+                </div>
+              </div>
             </motion.div>
           )}
           
           {error && (
             <motion.div 
-              className="mb-2 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-xl text-xs"
+              className="rounded-lg p-3 bg-destructive/10 border border-destructive/20 text-sm text-destructive"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -140,11 +82,11 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
                   <X size={12} className="text-destructive" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-destructive text-xs line-clamp-2">{error.message || "Error"}</p>
+                  <p className="font-medium text-sm line-clamp-2">{error.message || "Error"}</p>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="mt-2 h-8 text-xs"
+                    className="mt-2 h-8 text-xs border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive/10"
                     onClick={retryLastMessage}
                   >
                     <RefreshCw size={12} className="mr-1.5" /> Retry
@@ -178,12 +120,11 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />
           ) : (
-            <div className="py-2">
+            <div className="p-3">
               <ChatMessages 
                 key="messages"
                 messages={messages} 
                 messagesEndRef={messagesEndRef}
-                renderAdditionalContent={renderSearchResults}
               />
             </div>
           )}

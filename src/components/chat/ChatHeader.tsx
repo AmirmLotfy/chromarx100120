@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, ChevronLeft, Sparkles, X, Search, Bookmark, BookmarkPlus } from "lucide-react";
+import { ChevronLeft, X, MessageSquare, BookmarkPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -24,38 +24,34 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   toggleBookmarkSearchMode,
   clearChat,
 }) => {
-  const handleToggleSidebar = () => {
-    setIsHistoryOpen(!isHistoryOpen);
-  };
-
   return (
     <motion.div 
-      className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0"
+      className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <motion.button 
           whileTap={{ scale: 0.95 }}
-          onClick={handleToggleSidebar}
-          className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center"
-          aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center"
+          aria-label={isHistoryOpen ? "Close sidebar" : "Open sidebar"}
         >
-          {isHistoryOpen ? 
-            <ChevronLeft size={20} className="text-primary" /> : 
-            <Menu size={20} className="text-muted-foreground" />
-          }
+          <ChevronLeft size={18} className={cn(
+            "text-muted-foreground transition-transform",
+            isHistoryOpen ? "rotate-0" : "rotate-180"
+          )} />
         </motion.button>
         
-        <div className="flex flex-col">
-          <h1 className="text-sm font-medium flex items-center gap-2 truncate max-w-[160px] sm:max-w-[220px]">
+        <div>
+          <h1 className="text-sm font-medium flex items-center gap-2">
             {activeConversation?.name || "New Chat"}
             {activeConversation?.pinned && (
-              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+              <div className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
             )}
           </h1>
-          <p className="text-xs text-muted-foreground truncate max-w-[160px] sm:max-w-[220px]">
+          <p className="text-xs text-muted-foreground">
             {messagesCount === 0 
               ? "Start a conversation" 
               : `${messagesCount} messages${activeConversation?.category ? ` • ${activeConversation.category}` : ''}`}
@@ -64,46 +60,39 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        {!isBookmarkSearchMode && activeConversation && (
+        {!isBookmarkSearchMode && activeConversation && messagesCount > 1 && (
           <Button
             onClick={clearChat}
             size="sm"
             variant="ghost"
-            className="h-9 text-xs font-normal"
+            className="h-8 text-xs"
           >
-            <Sparkles size={15} className="mr-1.5" />
-            New Chat
+            <X size={14} className="mr-1.5" />
+            Clear
           </Button>
         )}
 
-        <motion.button
-          initial={false}
-          whileTap={{ scale: 0.95 }}
+        <Button
           onClick={toggleBookmarkSearchMode}
+          size="sm"
           className={cn(
-            "relative h-9 px-4 rounded-full text-xs font-medium flex items-center gap-2 transition-colors",
-            isBookmarkSearchMode 
-              ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive" 
-              : "bg-primary text-primary-foreground hover:opacity-90"
+            "h-8 gap-1.5 text-xs",
+            isBookmarkSearchMode ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""
           )}
+          variant={isBookmarkSearchMode ? "destructive" : "default"}
         >
-          <motion.div
-            initial={false}
-            animate={{ 
-              rotate: isBookmarkSearchMode ? 0 : 360,
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ duration: 0.4 }}
-            className="flex-shrink-0"
-          >
-            {isBookmarkSearchMode ? (
-              <X size={15} />
-            ) : (
-              <Search size={15} />
-            )}
-          </motion.div>
-          <span>{isBookmarkSearchMode ? "Exit Search" : "Search"}</span>
-        </motion.button>
+          {isBookmarkSearchMode ? (
+            <>
+              <X size={14} />
+              <span>Exit Search</span>
+            </>
+          ) : (
+            <>
+              <BookmarkPlus size={14} />
+              <span>Bookmarks</span>
+            </>
+          )}
+        </Button>
       </div>
     </motion.div>
   );

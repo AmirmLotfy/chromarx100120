@@ -4,7 +4,7 @@ import { Message } from "@/types/chat";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Bot, User } from "lucide-react";
+import { Copy, Check, Bot, User, Sparkles } from "lucide-react";
 import HighlightedText from "./HighlightedText";
 import { motion } from "framer-motion";
 
@@ -32,32 +32,30 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   };
 
   return (
-    <div className="flex flex-col space-y-8 p-4 sm:p-6">
+    <div className="flex flex-col space-y-6">
       {messages.map((message, index) => (
         <motion.div
           key={message.id}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: index * 0.1 }}
+          transition={{ duration: 0.3, delay: index * 0.05 }}
           className={cn(
-            "flex gap-4 group max-w-[90%]",
-            message.sender === "user" ? "self-end" : "self-start"
+            "flex items-start gap-3 group",
+            message.sender === "user" ? "justify-end" : "justify-start"
           )}
         >
           {message.sender === "assistant" && (
-            <div className="mt-1 flex-shrink-0">
-              <Avatar className="h-9 w-9 bg-primary/10 text-primary border border-primary/20 shadow-sm">
-                <Bot size={16} />
-              </Avatar>
-            </div>
+            <Avatar className="h-8 w-8 mt-1 flex-shrink-0 bg-primary/10 text-primary border border-primary/20">
+              <Bot size={14} />
+            </Avatar>
           )}
           
           <div 
             className={cn(
-              "relative rounded-2xl px-4 py-3.5 text-sm",
+              "relative rounded-2xl px-4 py-3 max-w-[85%] text-sm shadow-sm",
               message.sender === "user" 
-                ? "bg-primary text-primary-foreground shadow-md" 
-                : "bg-muted/40 backdrop-blur-sm border border-muted-foreground/10 shadow-sm"
+                ? "bg-primary text-primary-foreground rounded-tr-none" 
+                : "bg-muted/50 backdrop-blur-sm border border-muted-foreground/10 rounded-tl-none"
             )}
           >
             {highlightTerm ? (
@@ -70,13 +68,13 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
+                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
                 onClick={() => copyToClipboard(message.content, message.id)}
               >
                 {copiedMessageIds.includes(message.id) ? (
-                  <Check className="h-3.5 w-3.5" />
+                  <Check className="h-3 w-3" />
                 ) : (
-                  <Copy className="h-3.5 w-3.5" />
+                  <Copy className="h-3 w-3" />
                 )}
               </Button>
             )}
@@ -85,11 +83,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
           
           {message.sender === "user" && (
-            <div className="mt-1 flex-shrink-0">
-              <Avatar className="h-9 w-9 bg-primary text-primary-foreground border border-primary/20 shadow-sm">
-                <User size={16} />
-              </Avatar>
-            </div>
+            <Avatar className="h-8 w-8 mt-1 flex-shrink-0 bg-primary text-primary-foreground border border-primary/20">
+              <User size={14} />
+            </Avatar>
           )}
         </motion.div>
       ))}
