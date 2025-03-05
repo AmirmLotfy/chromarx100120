@@ -503,6 +503,111 @@ export class SyncService {
       toast.error('Failed to resolve conflict');
     }
   }
+
+  async getConflictCount(): Promise<number> {
+    try {
+      const bookmarks = await storage.get<ChromeBookmark[]>('bookmarks') || [];
+      return bookmarks.filter(b => 
+        b.metadata?.syncStatus === 'conflict' || 
+        (b.conflictVersion && !b.conflictVersion.resolved)
+      ).length;
+    } catch (error) {
+      console.error('Error counting conflicts:', error);
+      return 0;
+    }
+  }
+
+  async getConflicts(): Promise<ChromeBookmark[]> {
+    try {
+      const bookmarks = await storage.get<ChromeBookmark[]>('bookmarks') || [];
+      return bookmarks.filter(b => 
+        b.metadata?.syncStatus === 'conflict' || 
+        (b.conflictVersion && !b.conflictVersion.resolved)
+      );
+    } catch (error) {
+      console.error('Error getting conflicts:', error);
+      return [];
+    }
+  }
+
+  async resolveAllConflicts(userId: string, strategy: 'local' | 'remote'): Promise<void> {
+    try {
+      const conflicts = await this.getConflicts();
+      
+      if (conflicts.length === 0) {
+        toast.info('No conflicts to resolve');
+        return;
+      }
+      
+      const bookmarks = await storage.get<ChromeBookmark[]>('bookmarks') || [];
+      
+      for (const conflict of conflicts) {
+        const index = bookmarks.findIndex(b => b.id === conflict.id);
+        if (index === -1) continue;
+        
+        if (strategy === 'local') {
+          bookmarks[index] = {
+            ...bookmarks[index],
+            conflictVersion: undefined,
+            metadata: {
+              ...bookmarks[index].metadata,
+              syncStatus: 'pending'
+            },
+            offlineChanges: true
+          };
+          
+          await this.addToOfflineQueue({
+            type: 'update',
+            data: {
+              bookmark_id: bookmarks[index].id,
+              user_id: userId,
+              title: bookmarks[index].title,
+              url: bookmarks[index].url,
+              category: bookmarks[index].category,
+              content: bookmarks[index].content,
+              tags: bookmarks[index].metadata?.tags,
+              version: bookmarks[index].version
+            }
+          });
+        } else if (strategy === 'remote') {
+          const { data, error } = await supabase
+            .from('bookmark_metadata')
+            .select('*')
+            .eq('bookmark_id', bookmarks[index].id)
+            .eq('user_id', userId)
+            .single();
+            
+          if (error) throw error;
+          
+          if (data) {
+            bookmarks[index] = {
+              ...bookmarks[index],
+              title: data.title,
+              url: data.url || bookmarks[index].url,
+              category: data.category,
+              content: data.content,
+              tags: data.tags,
+              version: data.version || bookmarks[index].version || 1,
+              conflictVersion: undefined,
+              metadata: {
+                ...bookmarks[index].metadata,
+                syncStatus: 'synced',
+                lastSyncedAt: new Date().toISOString()
+              },
+              offlineChanges: false
+            };
+          }
+        }
+      }
+      
+      await storage.set('bookmarks', bookmarks);
+      toast.success(`Resolved ${conflicts.length} conflicts using ${strategy} versions`);
+    } catch (error) {
+      console.error('Error resolving all conflicts:', error);
+      toast.error('Failed to resolve conflicts');
+      throw error;
+    }
+  }
 }
 
 export const syncService = SyncService.getInstance();
