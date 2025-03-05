@@ -1,6 +1,9 @@
 
+import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PayPalConfigForm from "@/components/settings/PayPalConfigForm";
+import { Button } from "@/components/ui/button";
+import { Link2 } from "lucide-react";
 
 const PayPalConfigPage = () => {
   return (
@@ -13,6 +16,15 @@ const PayPalConfigPage = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Configure your PayPal integration for payment processing
           </p>
+          
+          <div className="mt-4">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/paypal-webhook" className="flex items-center gap-1.5">
+                <Link2 className="h-3.5 w-3.5" />
+                Configure Webhooks
+              </Link>
+            </Button>
+          </div>
         </div>
         
         <PayPalConfigForm />

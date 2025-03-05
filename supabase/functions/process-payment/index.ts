@@ -35,7 +35,7 @@ serve(async (req) => {
     const { data: configData, error: configError } = await supabaseAdmin
       .from('app_configuration')
       .select('value')
-      .eq('key', 'paypal_config')
+      .eq('key', 'paypal')
       .single();
 
     if (configError || !configData) {
@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const paypalConfig = configData.value;
     
-    if (!paypalConfig.clientId || !paypalConfig.secretKey) {
+    if (!paypalConfig.client_id || !paypalConfig.client_secret) {
       return new Response(
         JSON.stringify({ success: false, error: 'PayPal credentials are missing' }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -62,7 +62,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${btoa(`${paypalConfig.clientId}:${paypalConfig.secretKey}`)}`
+          'Authorization': `Basic ${btoa(`${paypalConfig.client_id}:${paypalConfig.client_secret}`)}`
         },
         body: 'grant_type=client_credentials'
       }
@@ -113,12 +113,12 @@ serve(async (req) => {
       basic: { 
         monthly: 4.99, 
         yearly: 49.99,
-        durationMonths: 1
+        durationMonths: planId === 'yearly' ? 12 : 1
       },
       premium: { 
         monthly: 9.99, 
         yearly: 99.99,
-        durationMonths: 1
+        durationMonths: planId === 'yearly' ? 12 : 1
       }
     };
     
@@ -130,7 +130,7 @@ serve(async (req) => {
       );
     }
 
-    // Calculate end date based on plan duration (default to monthly)
+    // Calculate end date based on plan duration
     const startDate = new Date();
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + plan.durationMonths);
@@ -147,10 +147,126 @@ serve(async (req) => {
         userId = user.id;
       }
     }
+    
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'User authentication required' }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
 
-    // For demo purposes, instead of looking at the real price in the order, 
-    // we're just checking if the payment was completed
-    // In a production environment, you should verify the amount paid matches the plan price
+    // For autoRenew, create a subscription
+    let paypalSubscriptionId = null;
+    if (autoRenew && planId !== 'free') {
+      try {
+        // Check which plan billing frequency to use
+        const billingFrequency = plan.durationMonths === 12 ? 'YEARLY' : 'MONTHLY';
+        const planPrice = plan.durationMonths === 12 ? plan.yearly : plan.monthly;
+        
+        // Create a subscription plan in PayPal if needed
+        const paypalPlanResponse = await fetch(
+          `https://${paypalConfig.mode === 'sandbox' ? 'api-m.sandbox' : 'api-m'}.paypal.com/v1/billing/plans`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokenData.access_token}`
+            },
+            body: JSON.stringify({
+              product_id: `CHROMARX_${planId.toUpperCase()}`,
+              name: `ChroMarx ${planId === 'basic' ? 'Pro' : 'Premium'} Plan (${billingFrequency.toLowerCase()})`,
+              description: `ChroMarx ${planId === 'basic' ? 'Pro' : 'Premium'} Plan with ${billingFrequency.toLowerCase()} billing`,
+              billing_cycles: [
+                {
+                  frequency: {
+                    interval_unit: billingFrequency === 'YEARLY' ? 'YEAR' : 'MONTH',
+                    interval_count: 1
+                  },
+                  tenure_type: 'REGULAR',
+                  sequence: 1,
+                  total_cycles: 0, // Unlimited
+                  pricing_scheme: {
+                    fixed_price: {
+                      value: planPrice.toString(),
+                      currency_code: 'USD'
+                    }
+                  }
+                }
+              ],
+              payment_preferences: {
+                auto_bill_outstanding: true,
+                setup_fee: {
+                  value: '0',
+                  currency_code: 'USD'
+                },
+                setup_fee_failure_action: 'CONTINUE',
+                payment_failure_threshold: 3
+              }
+            })
+          }
+        );
+        
+        const paypalPlanData = await paypalPlanResponse.json();
+        
+        if (!paypalPlanResponse.ok) {
+          console.error('Error creating PayPal plan:', paypalPlanData);
+          // Continue without auto-renewal
+        } else {
+          // Create subscription with the plan
+          const subscriptionResponse = await fetch(
+            `https://${paypalConfig.mode === 'sandbox' ? 'api-m.sandbox' : 'api-m'}.paypal.com/v1/billing/subscriptions`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${tokenData.access_token}`
+              },
+              body: JSON.stringify({
+                plan_id: paypalPlanData.id,
+                start_time: new Date(endDate.getTime() - (24 * 60 * 60 * 1000)).toISOString(), // Start 1 day before expiration
+                quantity: 1,
+                shipping_amount: {
+                  currency_code: 'USD',
+                  value: '0'
+                },
+                subscriber: {
+                  name: {
+                    given_name: 'ChroMarx',
+                    surname: 'User'
+                  },
+                  email_address: 'user@example.com' // This should be replaced with actual user email
+                },
+                application_context: {
+                  brand_name: 'ChroMarx',
+                  shipping_preference: 'NO_SHIPPING',
+                  user_action: 'SUBSCRIBE_NOW',
+                  payment_method: {
+                    payer_selected: 'PAYPAL',
+                    payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
+                  },
+                  return_url: 'https://example.com/success',
+                  cancel_url: 'https://example.com/cancel'
+                },
+                custom_id: userId // Store user ID for webhook processing
+              })
+            }
+          );
+          
+          const subscriptionData = await subscriptionResponse.json();
+          
+          if (subscriptionResponse.ok) {
+            paypalSubscriptionId = subscriptionData.id;
+            console.log('Created PayPal subscription:', paypalSubscriptionId);
+          } else {
+            console.error('Error creating PayPal subscription:', subscriptionData);
+            // Continue without auto-renewal
+          }
+        }
+      } catch (subscriptionError) {
+        console.error('Error setting up subscription:', subscriptionError);
+        // Continue without auto-renewal
+      }
+    }
     
     // Update the subscription record in Supabase
     const subscriptionData = {
@@ -160,6 +276,7 @@ serve(async (req) => {
       current_period_end: endDate.toISOString(),
       cancel_at_period_end: !autoRenew,
       user_id: userId,
+      paypal_subscription_id: paypalSubscriptionId
     };
 
     // Check if subscription already exists for this user
@@ -210,10 +327,11 @@ serve(async (req) => {
         user_id: userId,
         order_id: orderId,
         plan_id: planId,
-        amount: plan.monthly, // Assuming monthly plan for simplicity; in production, check actual amount paid
+        amount: plan.durationMonths === 12 ? plan.yearly : plan.monthly,
         status: 'completed',
         provider: 'paypal',
-        auto_renew: autoRenew
+        auto_renew: autoRenew,
+        paypal_subscription_id: paypalSubscriptionId
       });
 
     // Create or update usage statistics
@@ -250,6 +368,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         subscription: subscriptionResult.data,
+        paypal_subscription_id: paypalSubscriptionId,
         message: 'Payment processed successfully'
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }

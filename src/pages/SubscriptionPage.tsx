@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -24,8 +23,8 @@ import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
-// Filter plans to only show free and basic plans
 const availablePlans = subscriptionPlans.filter(
   plan => plan.id === "free" || plan.id === "basic"
 );
@@ -40,7 +39,6 @@ const SubscriptionPage = () => {
   const [expandedFeatures, setExpandedFeatures] = useState<string | null>(null);
   const [expandedUsage, setExpandedUsage] = useState(false);
   
-  // PayPal configuration states
   const [paypalConfigured, setPaypalConfigured] = useState(false);
   const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
   const [clientId, setClientId] = useState<string | null>(null);
@@ -55,14 +53,12 @@ const SubscriptionPage = () => {
     const loadConfig = async () => {
       setIsCheckingConfig(true);
       try {
-        // Check PayPal configuration
         const config = await checkPayPalConfiguration();
         console.log("PayPal config:", config);
         setPaypalConfigured(config.configured);
         setPaypalMode(config.mode);
         setClientId(config.clientId);
         
-        // Check current subscription status
         if (user?.id) {
           const status = await checkSubscriptionStatus(user.id);
           if (status) {
@@ -81,7 +77,6 @@ const SubscriptionPage = () => {
     loadConfig();
   }, [user?.id]);
 
-  // Toggle feature expansion
   const toggleFeatures = (planId: string) => {
     if (expandedFeatures === planId) {
       setExpandedFeatures(null);
@@ -90,7 +85,6 @@ const SubscriptionPage = () => {
     }
   };
 
-  // Handle plan selection
   const handlePlanSelect = (planId: string) => {
     if (planId === currentPlan) {
       toast.info("You are already subscribed to this plan");
@@ -110,7 +104,6 @@ const SubscriptionPage = () => {
     setSelectedPlan(planId);
   };
 
-  // Handle subscription update
   const handleSubscribe = async (planId: string) => {
     try {
       setIsLoading(true);
@@ -135,12 +128,10 @@ const SubscriptionPage = () => {
     }
   };
 
-  // Navigate to PayPal configuration page
   const goToPayPalConfig = () => {
     navigate('/paypal-config');
   };
 
-  // Handle auto-renew toggle
   const handleAutoRenewToggle = async () => {
     if (!user?.id || !subscriptionStatus) return;
     
@@ -178,7 +169,6 @@ const SubscriptionPage = () => {
     }
   };
 
-  // PayPal order creation
   const createOrder = async (data: any, actions: any) => {
     const plan = subscriptionPlans.find(p => p.id === selectedPlan);
     if (!plan) return "";
@@ -204,7 +194,6 @@ const SubscriptionPage = () => {
     });
   };
 
-  // PayPal payment approval handler
   const onApprove = async (data: any, actions: any) => {
     try {
       setIsProcessing(true);
@@ -213,7 +202,6 @@ const SubscriptionPage = () => {
       console.log("PayPal payment completed:", details);
       
       if (details.status === "COMPLETED" && selectedPlan) {
-        // Verify payment with backend
         const paymentVerified = await verifyPayPalPayment(details.id, selectedPlan, autoRenew);
         
         if (paymentVerified) {
@@ -230,11 +218,10 @@ const SubscriptionPage = () => {
       toast.error("Payment processing failed");
     } finally {
       setIsProcessing(false);
-      setSelectedPlan(null); // Reset selection after process completes
+      setSelectedPlan(null);
     }
   };
 
-  // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -245,7 +232,6 @@ const SubscriptionPage = () => {
     });
   };
 
-  // Calculate savings percentage
   const calculateSavings = (plan: typeof availablePlans[0]) => {
     if (billingPeriod === 'monthly' || !plan.pricing.yearly) return 0;
     const monthlyCost = plan.pricing.monthly * 12;
@@ -254,7 +240,6 @@ const SubscriptionPage = () => {
     return Math.round((savings / monthlyCost) * 100);
   };
 
-  // Render subscription card for current active plan
   const renderCurrentSubscription = () => {
     if (!subscriptionStatus || subscriptionStatus.subscription.plan_id === 'free') {
       return null;
@@ -310,7 +295,6 @@ const SubscriptionPage = () => {
     );
   };
 
-  // Render usage limits card
   const renderUsageLimits = () => {
     if (!subscriptionStatus) return null;
 
@@ -380,7 +364,6 @@ const SubscriptionPage = () => {
     );
   };
 
-  // Render PayPal error card when not configured
   const renderPayPalError = () => {
     if (isCheckingConfig || paypalConfigured) return null;
 
@@ -421,18 +404,28 @@ const SubscriptionPage = () => {
             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
               Select the plan that fits your productivity needs
             </p>
+            <div className="flex justify-center gap-3 mt-4">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/subscription/terms" className="flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  Terms
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/subscription/history" className="flex items-center gap-1.5">
+                  <Receipt className="h-3.5 w-3.5" />
+                  Payment History
+                </Link>
+              </Button>
+            </div>
           </div>
 
-          {/* Current Subscription Card */}
           {renderCurrentSubscription()}
 
-          {/* Usage Limits Card */}
           {renderUsageLimits()}
 
-          {/* PayPal Configuration Error */}
           {renderPayPalError()}
 
-          {/* Billing Period Toggle */}
           <div className="relative z-0 mx-auto rounded-full bg-muted/40 backdrop-blur-sm p-1 mb-6 max-w-[260px] flex items-center justify-between">
             <button
               onClick={() => setBillingPeriod('monthly')}
@@ -457,7 +450,6 @@ const SubscriptionPage = () => {
             </button>
           </div>
 
-          {/* Subscription Plans */}
           <div className="space-y-5">
             {availablePlans.map((plan) => {
               const isCurrent = currentPlan === plan.id;
@@ -514,7 +506,6 @@ const SubscriptionPage = () => {
                       )}
                     </div>
                     
-                    {/* Feature list */}
                     <div className="w-full">
                       <button 
                         onClick={() => toggleFeatures(plan.id)}
@@ -551,7 +542,6 @@ const SubscriptionPage = () => {
                       )}
                     </div>
                     
-                    {/* Subscription Actions */}
                     {isSelected && plan.id !== "free" ? (
                       <div className="mt-1">
                         <div className="flex items-center mb-3">
@@ -663,6 +653,15 @@ const SubscriptionPage = () => {
             <Shield className="h-3 w-3" />
             <span>Secure payment processing via PayPal</span>
           </div>
+          
+          <div className="text-center text-xs text-muted-foreground">
+            <p>
+              By subscribing, you agree to our {" "}
+              <Link to="/subscription/terms" className="underline hover:text-foreground">
+                Subscription Terms
+              </Link>.
+            </p>
+          </div>
         </div>
       </div>
     </Layout>
@@ -670,4 +669,3 @@ const SubscriptionPage = () => {
 };
 
 export default SubscriptionPage;
-
