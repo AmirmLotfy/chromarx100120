@@ -1,5 +1,4 @@
-<lov-codelov-code>
-// Import the missing icons
+
 import { 
   Check, 
   X, 
@@ -66,7 +65,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarDays } from "lucide-react";
@@ -272,7 +271,7 @@ const SubscriptionPage = () => {
     try {
       const order = await createPayPalOrder(
         selectedPlan,
-        subscriptionPlans.find((plan) => plan.id === selectedPlan).price
+        subscriptionPlans.find((plan) => plan.id === selectedPlan)?.price || 0
       );
       return order.id;
     } catch (error) {
@@ -554,4 +553,3 @@ const SubscriptionPage = () => {
 };
 
 export default SubscriptionPage;
-</lov-code>

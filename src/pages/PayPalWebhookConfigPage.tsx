@@ -13,13 +13,12 @@ import { checkPayPalConfiguration } from "@/utils/chromeUtils";
 
 // Define interface for webhook data
 interface WebhookConfig {
-  id: string;
   webhook_id: string;
   event_types: string[];
   url: string;
-  created_at: string;
-  updated_at: string;
-  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+  active?: boolean;
 }
 
 const PayPalWebhookConfigPage = () => {
@@ -45,7 +44,7 @@ const PayPalWebhookConfigPage = () => {
           .maybeSingle();
           
         if (data && data.value) {
-          const webhookConfig = data.value as { webhook_id: string };
+          const webhookConfig = data.value as WebhookConfig;
           setWebhookId(webhookConfig.webhook_id || '');
           setIsConfigured(!!webhookConfig.webhook_id);
         }
@@ -85,7 +84,17 @@ const PayPalWebhookConfigPage = () => {
         const { error } = await supabase
           .from('app_configuration')
           .update({
-            value: { webhook_id: webhookId, updated_at: new Date().toISOString() }
+            value: { 
+              webhook_id: webhookId, 
+              updated_at: new Date().toISOString(),
+              url: webhookUrl,
+              event_types: [
+                'PAYMENT.SALE.COMPLETED',
+                'BILLING.SUBSCRIPTION.CREATED',
+                'BILLING.SUBSCRIPTION.CANCELLED',
+                'BILLING.SUBSCRIPTION.EXPIRED'
+              ]
+            }
           })
           .eq('id', existingData.id);
           
@@ -121,7 +130,7 @@ const PayPalWebhookConfigPage = () => {
       
       if (secretError) {
         console.error('Error updating secret:', secretError);
-        toast.warning("Webhook ID saved, but couldn't update the secret. Please set it manually.");
+        toast.error("Webhook ID saved, but couldn't update the secret. Please set it manually.");
       }
       
       toast.success("PayPal webhook configuration saved successfully");
