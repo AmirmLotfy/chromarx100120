@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";

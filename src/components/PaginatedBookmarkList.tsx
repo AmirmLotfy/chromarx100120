@@ -42,6 +42,11 @@ export const PaginatedBookmarkList = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Reset to first page when bookmarks change significantly
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [bookmarks.length]);
+
   return (
     <div className="space-y-4">
       <VirtualizedBookmarkList

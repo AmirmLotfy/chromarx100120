@@ -6,9 +6,7 @@ import {
   Plus,
   Tag,
   FolderPlus,
-  Search,
   X,
-  Menu,
 } from "lucide-react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import SearchBar, { SearchFilter } from "./SearchBar";
 import { motion } from "framer-motion";
+import FolderCreationDialog from "./FolderCreationDialog";
+import { chromeBookmarkService } from "@/services/chromeBookmarkService";
 
 interface BookmarkHeaderProps {
   selectedBookmarksCount: number;
@@ -28,7 +28,7 @@ interface BookmarkHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onImport: (bookmarks: ChromeBookmark[]) => void;
-  onCreateFolder: () => void;
+  onCreateFolder?: (folder: ChromeBookmark) => void;
   suggestions: string[];
   onSelectSuggestion: (suggestion: string) => void;
   importComponent?: React.ReactNode;
@@ -55,8 +55,9 @@ const BookmarkHeader = ({
   categories = [],
   domains = [],
 }: BookmarkHeaderProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
 
   const handleCategorySubmit = () => {
     if (!newCategory.trim()) {
@@ -75,13 +76,21 @@ const BookmarkHeader = ({
     }));
 
     onUpdateCategories(updatedBookmarks);
-    setIsDialogOpen(false);
+    setIsCategoryDialogOpen(false);
     setNewCategory("");
     toast.success(
       `Updated category to "${newCategory}" for ${selectedBookmarksCount} bookmark${
         selectedBookmarksCount === 1 ? "" : "s"
       }`
     );
+  };
+
+  const handleCreateFolder = async (name: string) => {
+    const folder = await chromeBookmarkService.createFolder(name);
+    
+    if (folder && onCreateFolder) {
+      onCreateFolder(folder);
+    }
   };
 
   return (
@@ -118,7 +127,7 @@ const BookmarkHeader = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={onCreateFolder}
+                  onClick={() => setIsFolderDialogOpen(true)}
                   className="flex items-center gap-1 h-8 px-3 rounded-full"
                 >
                   <FolderPlus className="h-3.5 w-3.5" />
@@ -154,7 +163,7 @@ const BookmarkHeader = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsDialogOpen(true)}
+                onClick={() => setIsCategoryDialogOpen(true)}
                 className="h-7 text-xs rounded-full hover:bg-primary/10 px-2.5"
               >
                 <Tag className="h-3.5 w-3.5 mr-1.5" />
@@ -165,7 +174,8 @@ const BookmarkHeader = ({
         ) : null}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Category Dialog */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="rounded-xl max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Category</DialogTitle>
@@ -185,7 +195,7 @@ const BookmarkHeader = ({
             <div className="flex justify-end space-x-2 pt-2">
               <Button
                 variant="outline"
-                onClick={() => setIsDialogOpen(false)}
+                onClick={() => setIsCategoryDialogOpen(false)}
                 className="rounded-lg"
               >
                 Cancel
@@ -195,6 +205,13 @@ const BookmarkHeader = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Folder Creation Dialog */}
+      <FolderCreationDialog 
+        isOpen={isFolderDialogOpen}
+        onClose={() => setIsFolderDialogOpen(false)}
+        onCreateFolder={handleCreateFolder}
+      />
     </div>
   );
 };
