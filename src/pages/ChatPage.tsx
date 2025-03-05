@@ -9,7 +9,7 @@ const ChatPage: React.FC = () => {
   return (
     <Layout>
       <motion.div 
-        className="h-[calc(100vh-4rem)] w-full overflow-hidden flex flex-col bg-background"
+        className="h-full w-full flex flex-col bg-background"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}

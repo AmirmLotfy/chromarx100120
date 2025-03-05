@@ -49,9 +49,9 @@ const ChatInterface = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gradient-to-b from-background to-background/95">
+    <div className="flex flex-col h-full relative">
       {/* Main content area with sidebar */}
-      <div className="flex flex-1 h-full overflow-hidden relative">
+      <div className="flex flex-1 h-full relative">
         {/* Chat history sidebar with animations */}
         <AnimatePresence>
           {isHistoryOpen && (
@@ -90,7 +90,7 @@ const ChatInterface = () => {
         </AnimatePresence>
         
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col h-full">
           {/* Header - fixed position to ensure it's always visible */}
           <div className="sticky top-0 z-10 w-full">
             <ChatHeader 
@@ -118,7 +118,7 @@ const ChatInterface = () => {
           />
           
           {/* Chat input section */}
-          <div className="p-3 pb-4 mt-auto">
+          <div className="sticky bottom-0 p-3 pb-4 mt-auto bg-background/95 backdrop-blur-sm">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
