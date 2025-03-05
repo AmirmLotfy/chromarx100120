@@ -9,7 +9,6 @@ import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion, AnimatePresence } from "framer-motion";
-import { ScrollArea } from "../ui/scroll-area";
 
 interface ChatMainContentProps {
   messages: Message[];

@@ -48,6 +48,23 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
+  // Check Gemini API availability on component mount
+  useEffect(() => {
+    const checkGeminiAvailability = async () => {
+      try {
+        const { checkGeminiAvailability } = await import('@/utils/geminiUtils');
+        const isAvailable = await checkGeminiAvailability();
+        if (!isAvailable) {
+          console.warn('Gemini API is not available');
+        }
+      } catch (error) {
+        console.error('Error checking Gemini availability:', error);
+      }
+    };
+    
+    checkGeminiAvailability();
+  }, []);
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Main content area with sidebar */}
@@ -118,7 +135,7 @@ const ChatInterface = () => {
           />
           
           {/* Chat input section */}
-          <div className="sticky bottom-0 p-3 pb-4 mt-auto bg-background/95 backdrop-blur-sm">
+          <div className="sticky bottom-0 p-2 mt-auto bg-background/95 backdrop-blur-sm">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}

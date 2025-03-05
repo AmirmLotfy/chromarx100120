@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, SendHorizontal, Search, X, MicOff } from "lucide-react";
+import { Mic, SendHorizontal, Search, X, MicOff, Paperclip, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -148,11 +149,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
           setIsListening(true);
         } catch (error) {
           console.error('Error initializing speech recognition:', error);
-          alert("There was an error starting speech recognition. Please check your browser permissions.");
+          toast.error("There was an error starting speech recognition. Please check your browser permissions.");
         }
       }
     } else {
-      alert("Speech recognition is not supported in your browser.");
+      toast.error("Speech recognition is not supported in your browser.");
     }
   };
 
@@ -170,16 +171,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-3 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg overflow-hidden z-10"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg overflow-hidden z-10"
             ref={suggestionsRef}
           >
-            <div className="p-3">
+            <div className="p-2">
               <h3 className="text-xs font-medium text-muted-foreground px-2 py-1">Recent</h3>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
+              <div className="space-y-0.5 max-h-36 overflow-y-auto">
                 {recentQueries.map((query, index) => (
                   <button
                     key={index}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted text-sm truncate"
+                    className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-muted text-xs truncate"
                     onClick={() => handleRecentQueryClick(query)}
                   >
                     {query}
@@ -191,75 +192,96 @@ const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="flex items-end gap-2">
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={toggleSpeechRecognition}
-          disabled={isProcessing || disabled}
-          className={cn(
-            "h-12 w-12 rounded-full p-0 flex-shrink-0 transition-all flex items-center justify-center",
-            isListening
-              ? "bg-destructive text-destructive-foreground animate-pulse"
-              : "bg-muted hover:bg-muted/80 text-muted-foreground"
-          )}
-          aria-label={isListening ? "Stop recording" : "Start voice input"}
-        >
-          {isListening ? (
-            <MicOff className="h-5 w-5" />
-          ) : (
-            <Mic className="h-5 w-5" />
-          )}
-        </motion.button>
-        
-        <div className="relative flex-1 overflow-hidden rounded-2xl border bg-background shadow-sm">
-          <textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onFocus={handleInputFocus}
-            placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Message..."}
-            className="w-full resize-none bg-transparent pl-4 pr-12 py-3.5 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ minHeight: "48px", maxHeight: "120px" }}
-            disabled={isProcessing || disabled}
-            rows={1}
-          />
-          
-          <AnimatePresence>
-            {inputValue.trim() && (
+      <div className="flex items-end gap-1.5">
+        <div className="relative flex-1 overflow-hidden rounded-xl border bg-background shadow-sm">
+          <div className="flex items-end">
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={handleInputFocus}
+              placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Message..."}
+              className="w-full resize-none bg-transparent pl-3 pr-14 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ minHeight: "40px", maxHeight: "120px" }}
+              disabled={isProcessing || disabled}
+              rows={1}
+            />
+            
+            <div className="flex items-center pr-2 py-1 space-x-1">
               <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-                type="button"
-                onClick={handleClearInput}
-                className="absolute right-12 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted/80 flex items-center justify-center"
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleSpeechRecognition}
+                disabled={isProcessing || disabled}
+                className={cn(
+                  "h-8 w-8 rounded-full flex-shrink-0 transition-all flex items-center justify-center",
+                  isListening
+                    ? "text-destructive animate-pulse"
+                    : "text-muted-foreground hover:bg-muted/50"
+                )}
+                aria-label={isListening ? "Stop recording" : "Start voice input"}
               >
-                <X className="h-4 w-4 text-muted-foreground" />
-                <span className="sr-only">Clear input</span>
+                {isListening ? (
+                  <MicOff className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
               </motion.button>
+              
+              <AnimatePresence>
+                {inputValue.trim() && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.15 }}
+                    type="button"
+                    onClick={handleClearInput}
+                    className="h-8 w-8 rounded-full hover:bg-muted/50 flex items-center justify-center"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                    <span className="sr-only">Clear input</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+              
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isProcessing || disabled}
+                className={cn(
+                  "h-8 w-8 rounded-full p-0 flex items-center justify-center transition-all",
+                  (!inputValue.trim() || isProcessing || disabled) 
+                    ? "text-muted-foreground"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                {isBookmarkSearchMode ? (
+                  <Search className="h-4 w-4" />
+                ) : (
+                  <SendHorizontal className="h-4 w-4" />
+                )}
+                <span className="sr-only">Send</span>
+              </motion.button>
+            </div>
+          </div>
+          
+          {/* Small info pill showing whether we're using Gemini AI or not */}
+          <AnimatePresence>
+            {!isProcessing && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute left-2 bottom-0.5 transform translate-y-full"
+              >
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground py-0.5 px-1.5 rounded-full">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  <span>Gemini</span>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
-          
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isProcessing || disabled}
-            className={cn(
-              "absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full p-0 flex items-center justify-center transition-all",
-              (!inputValue.trim() || isProcessing || disabled) 
-                ? "bg-muted text-muted-foreground"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-            )}
-          >
-            {isBookmarkSearchMode ? (
-              <Search className="h-5 w-5" />
-            ) : (
-              <SendHorizontal className="h-5 w-5" />
-            )}
-            <span className="sr-only">Send</span>
-          </motion.button>
         </div>
       </div>
     </motion.div>
