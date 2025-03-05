@@ -14,6 +14,7 @@ interface ChatInputProps {
   placeholder?: string;
   modeIcon?: React.ReactNode;
   modeName?: string;
+  isBookmarkSearchMode?: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
