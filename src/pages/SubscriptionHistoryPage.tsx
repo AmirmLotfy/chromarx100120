@@ -24,6 +24,10 @@ interface PaymentRecord {
   provider: string;
 }
 
+interface PaymentHistoryData {
+  payments: PaymentRecord[];
+}
+
 const SubscriptionHistoryPage = () => {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,8 +54,14 @@ const SubscriptionHistoryPage = () => {
         }
         
         // If we have payment history data, set it
-        if (data && data.value && Array.isArray(data.value.payments)) {
-          setPayments(data.value.payments as PaymentRecord[]);
+        if (data && data.value) {
+          // Fixed type casting
+          const paymentData = data.value as unknown as PaymentHistoryData;
+          if (paymentData.payments && Array.isArray(paymentData.payments)) {
+            setPayments(paymentData.payments);
+          } else {
+            setPayments([]);
+          }
         } else {
           setPayments([]);
         }

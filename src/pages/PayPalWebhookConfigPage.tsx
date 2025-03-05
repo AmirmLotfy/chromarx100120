@@ -44,7 +44,8 @@ const PayPalWebhookConfigPage = () => {
           .maybeSingle();
           
         if (data && data.value) {
-          const webhookConfig = data.value as WebhookConfig;
+          // Fix the type conversion with type assertion
+          const webhookConfig = data.value as unknown as WebhookConfig;
           setWebhookId(webhookConfig.webhook_id || '');
           setIsConfigured(!!webhookConfig.webhook_id);
         }

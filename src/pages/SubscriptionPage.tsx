@@ -1,4 +1,3 @@
-
 import { 
   Check, 
   X, 
@@ -131,9 +130,37 @@ const subscriptionPlans = [
   },
 ];
 
+// Interface for subscription usage type
+interface UsageLimit {
+  limit: number;
+  used: number;
+  percentage: number;
+}
+
+interface SubscriptionUsageLimits {
+  aiRequests: UsageLimit;
+  bookmarks: UsageLimit;
+  tasks: UsageLimit;
+  notes: UsageLimit;
+  [key: string]: UsageLimit;
+}
+
+interface SubscriptionStatusData {
+  subscription: {
+    plan_id: string;
+    status: string;
+    current_period_end?: string;
+    current_period_start?: string;
+    cancel_at_period_end?: boolean;
+  };
+  renewalNeeded: boolean;
+  usageLimits: SubscriptionUsageLimits;
+  needsUpgrade: boolean;
+}
+
 const SubscriptionPage = () => {
-  const { user, isLoading: authLoading } = useAuth();
-  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const { user, loading: authLoading } = useAuth();
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatusData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRenewing, setIsRenewing] = useState(false);
   const [autoRenew, setAutoRenew] = useState(true);
@@ -445,7 +472,7 @@ const SubscriptionPage = () => {
                     <Button
                       className="w-full"
                       onClick={() => handlePlanSelect(plan.id)}
-                      variant={selectedPlan === plan.id ? "primary" : "outline"}
+                      variant={selectedPlan === plan.id ? "default" : "outline"}
                     >
                       {selectedPlan === plan.id ? "Selected" : "Choose Plan"}
                     </Button>
