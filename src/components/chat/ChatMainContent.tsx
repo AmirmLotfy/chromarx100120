@@ -1,9 +1,10 @@
+
 import React from "react";
 import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
 import ChatOfflineNotice from "./ChatOfflineNotice";
 import { AIProgressIndicator } from "../ui/ai-progress-indicator";
-import { RefreshCw, X, Search, BookmarkPlus } from "lucide-react";
+import { RefreshCw, X, Search, BookmarkPlus, Globe } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -40,21 +41,21 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     if (!message.bookmarks?.length && !message.webResults?.length) return null;
     
     return (
-      <div className="mt-2 space-y-2">
+      <div className="mt-3 space-y-2 bg-muted/30 p-2 rounded-lg">
         {message.bookmarks && message.bookmarks.length > 0 && (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1">
-              <BookmarkPlus className="h-3 w-3" />
+              <BookmarkPlus className="h-3.5 w-3.5" />
               Your Bookmarks
             </h4>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {message.bookmarks.map((bookmark, i) => (
                 <a 
                   key={i} 
                   href={bookmark.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2 bg-muted/50 hover:bg-muted rounded-lg"
+                  className="block text-xs p-2.5 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
                 >
                   <span className="font-medium line-clamp-1">{bookmark.title}</span>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">{bookmark.url}</span>
@@ -65,19 +66,19 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         )}
         
         {message.webResults && message.webResults.length > 0 && (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1">
-              <Search className="h-3 w-3" />
+              <Globe className="h-3.5 w-3.5" />
               Web Results
             </h4>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {message.webResults.map((result, i) => (
                 <a 
                   key={i} 
                   href={result.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2 bg-muted/50 hover:bg-muted rounded-lg"
+                  className="block text-xs p-2.5 bg-muted/50 hover:bg-muted rounded-lg transition-colors"
                 >
                   <span className="font-medium line-clamp-1">{result.title}</span>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">{result.url}</span>
@@ -91,8 +92,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   };
   
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <div className="sticky top-0 z-10 px-1.5 pt-1 space-y-1 bg-background/95 backdrop-blur-sm">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-background to-background/95">
+      <div className="sticky top-0 z-10 px-2 pt-1.5 space-y-1.5 bg-background/95 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -112,7 +113,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           
           {error && (
             <motion.div 
-              className="mb-1 px-2 py-1 bg-destructive/10 border border-destructive/20 rounded-xl text-xs"
+              className="mb-1.5 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-xl text-xs"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -120,17 +121,17 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
             >
               <div className="flex gap-2 items-start">
                 <div className="h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5 flex-shrink-0">
-                  <X size={10} className="text-destructive" />
+                  <X size={12} className="text-destructive" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-destructive text-xs line-clamp-2">{error.message || "Error"}</p>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="mt-1 h-6 text-xs"
+                    className="mt-1.5 h-7 text-xs"
                     onClick={retryLastMessage}
                   >
-                    <RefreshCw size={10} className="mr-1" /> Retry
+                    <RefreshCw size={12} className="mr-1.5" /> Retry
                   </Button>
                 </div>
               </div>
@@ -139,7 +140,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           
           {isProcessing && (
             <motion.div 
-              className="mb-1"
+              className="mb-1.5"
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
@@ -156,12 +157,12 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         </AnimatePresence>
       </div>
       
-      <div className="flex-1 overflow-y-auto px-1 pb-2 scroll-smooth">
+      <div className="flex-1 overflow-y-auto px-2 pb-3 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />
           ) : (
-            <div>
+            <div className="py-2">
               <ChatMessages 
                 key="messages"
                 messages={messages} 

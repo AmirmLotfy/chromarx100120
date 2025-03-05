@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Mic, SendHorizontal, Search, X, MicOff, Paperclip, Sparkles } from "lucide-react";
+import { Mic, SendHorizontal, Search, X, MicOff, Globe, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -192,23 +192,23 @@ const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="flex items-end gap-1.5">
-        <div className="relative flex-1 overflow-hidden rounded-xl border bg-background shadow-sm">
-          <div className="flex items-end">
+      <div className="relative">
+        <div className="flex items-end gap-1.5">
+          <div className="relative flex-1 overflow-hidden rounded-xl border shadow-sm bg-background">
             <textarea
               ref={textareaRef}
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={handleInputFocus}
-              placeholder={isBookmarkSearchMode ? "Search your bookmarks..." : "Message..."}
+              placeholder={isBookmarkSearchMode ? "Search your bookmarks and the web..." : "Message..."}
               className="w-full resize-none bg-transparent pl-3 pr-14 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               style={{ minHeight: "40px", maxHeight: "120px" }}
               disabled={isProcessing || disabled}
               rows={1}
             />
             
-            <div className="flex items-center pr-2 py-1 space-x-1">
+            <div className="flex items-center pr-2 py-1.5 space-x-1">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleSpeechRecognition}
@@ -250,7 +250,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isProcessing || disabled}
                 className={cn(
-                  "h-8 w-8 rounded-full p-0 flex items-center justify-center transition-all",
+                  "h-9 w-9 rounded-full p-0 flex items-center justify-center transition-all",
                   (!inputValue.trim() || isProcessing || disabled) 
                     ? "text-muted-foreground"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -265,24 +265,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
               </motion.button>
             </div>
           </div>
-          
-          {/* Small info pill showing whether we're using Gemini AI or not */}
-          <AnimatePresence>
-            {!isProcessing && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute left-2 bottom-0.5 transform translate-y-full"
-              >
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground py-0.5 px-1.5 rounded-full">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  <span>Gemini</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+        
+        {/* Model indicator pill */}
+        <AnimatePresence>
+          {!isProcessing && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute left-2 bottom-0.5 transform translate-y-full"
+            >
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground py-0.5 px-1.5 rounded-full">
+                {isBookmarkSearchMode ? 
+                  <>
+                    <Globe className="h-2.5 w-2.5" />
+                    <span>Search</span>
+                  </> : 
+                  <>
+                    <Sparkles className="h-2.5 w-2.5" />
+                    <span>Gemini</span>
+                  </>
+                }
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
