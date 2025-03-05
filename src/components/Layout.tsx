@@ -1,3 +1,4 @@
+
 import Navigation from "./Navigation";
 import Header from "./Header";
 import { useEffect, useState, useRef } from "react";
@@ -131,7 +132,8 @@ const Layout = ({
 
   return <div className={`min-h-screen bg-background text-foreground flex flex-col ${isSidePanel ? `w-full h-screen max-w-[${currentWidth}px] min-w-[300px]` : isPopup ? 'w-[350px] h-[500px]' : 'w-full'}`} style={{
     maxWidth: isSidePanel ? `${currentWidth}px` : undefined,
-    transition: 'max-width 0.2s ease-out'
+    transition: 'max-width 0.2s ease-out',
+    overflow: !isSidePanel && !isPopup ? 'auto' : undefined
   }} role="main" aria-label="Main content area">
       <Header toggleSidebar={toggleSidebar} />
       
@@ -147,7 +149,7 @@ const Layout = ({
         </div>}
       
       <main tabIndex={0} className="flex-1 w-full mx-auto flex flex-col overflow-y-auto">
-        <div className="w-full mx-auto">
+        <div className="w-full mx-auto" style={{ paddingBottom: "70px" }}>
           {children}
         </div>
       </main>
