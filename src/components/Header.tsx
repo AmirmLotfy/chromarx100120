@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import SyncStatusIndicator from '@/components/ui/sync-status-indicator';
 
 interface Notification {
   id: string;
@@ -26,7 +27,7 @@ interface Notification {
   read: boolean;
 }
 
-const Header = () => {
+const Header = ({ toggleSidebar }: HeaderProps) => {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
@@ -124,21 +125,31 @@ const Header = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <>
-      <header 
-        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/40 py-2.5 px-4"
-        role="banner"
-        aria-label="Application header"
-      >
-        <div className="container h-full max-w-screen-xl mx-auto px-3 sm:px-4">
-          <div className="flex items-center justify-between h-full gap-2">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img 
-                src="/lovable-uploads/c57439a4-ac35-4ae6-ac00-dd8f5ef8a360.png" 
-                alt="ChroMarx Logo" 
-                className="h-8 w-auto object-contain"
-              />
-            </div>
+    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 flex md:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2"
+            onClick={toggleSidebar}
+          >
+            <Menu className="h-4 w-4" />
+            <span className="sr-only">Toggle Menu</span>
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="font-bold hidden md:inline-block">ChroMarx</span>
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-end space-x-2">
+          <nav className="flex items-center gap-2">
+            {user && (
+              <div className="hidden sm:flex">
+                <SyncStatusIndicator showLabel={false} interactive={true} />
+              </div>
+            )}
             
             {isMobile ? (
               <div className="flex items-center gap-3">
@@ -411,71 +422,71 @@ const Header = () => {
                 </div>
               </div>
             )}
-          </div>
+          </nav>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <AnimatePresence>
-        {menuOpen && isMobile && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-[3.5rem] left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/40 shadow-lg"
-          >
-            <div className="container py-3 px-4 space-y-3">
-              {user ? (
-                <>
-                  <Link to="/user" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{user.email?.split('@')[0] || 'Account'}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  </Link>
-                  
-                  <div className="h-px bg-border/50 my-2" />
-                  
-                  <button 
-                    className="flex w-full items-center gap-3 p-2 rounded-lg hover:bg-accent/10"
-                    onClick={() => {
-                      signOut();
-                      setMenuOpen(false);
-                    }}
-                  >
-                    <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                      <LogOut className="h-4 w-4 text-destructive" />
-                    </div>
-                    <span className="text-sm">Sign Out</span>
-                  </button>
-                </>
-              ) : (
-                <Link to="/auth" onClick={() => setMenuOpen(false)}>
+    <AnimatePresence>
+      {menuOpen && isMobile && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.2 }}
+          className="fixed top-[3.5rem] left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/40 shadow-lg"
+        >
+          <div className="container py-3 px-4 space-y-3">
+            {user ? (
+              <>
+                <Link to="/user" onClick={() => setMenuOpen(false)}>
                   <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-sm font-medium">Sign In</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{user.email?.split('@')[0] || 'Account'}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
                   </div>
                 </Link>
-              )}
-              
-              <div className="h-px bg-border/50 my-2" />
-              
-              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/10">
-                <span className="text-sm">Language</span>
-                <LanguageSelector />
-              </div>
+                
+                <div className="h-px bg-border/50 my-2" />
+                
+                <button 
+                  className="flex w-full items-center gap-3 p-2 rounded-lg hover:bg-accent/10"
+                  onClick={() => {
+                    signOut();
+                    setMenuOpen(false);
+                  }}
+                >
+                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                    <LogOut className="h-4 w-4 text-destructive" />
+                  </div>
+                  <span className="text-sm">Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <Link to="/auth" onClick={() => setMenuOpen(false)}>
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium">Sign In</span>
+                </div>
+              </Link>
+            )}
+            
+            <div className="h-px bg-border/50 my-2" />
+            
+            <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/10">
+              <span className="text-sm">Language</span>
+              <LanguageSelector />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

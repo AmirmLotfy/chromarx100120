@@ -4,19 +4,21 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 
 interface ChatOfflineNoticeProps {
-  isOffline: boolean;
   isAIUnavailable?: boolean;
   onRetryConnection?: () => void;
 }
 
 const ChatOfflineNotice = ({ 
-  isOffline, 
   isAIUnavailable, 
   onRetryConnection 
 }: ChatOfflineNoticeProps) => {
   const isMobile = useIsMobile();
+  const { isOffline } = useOfflineStatus({
+    showToasts: false
+  });
   
   if (!isOffline && !isAIUnavailable) return null;
   

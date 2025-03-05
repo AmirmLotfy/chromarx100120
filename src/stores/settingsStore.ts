@@ -32,6 +32,11 @@ export interface SettingsState {
   lastSynced: string | null;
   syncInProgress: boolean;
   
+  // Offline settings
+  offlineMode: 'auto' | 'always' | 'never';
+  offlineDataLimit: number; // in MB
+  offlinePriority: 'performance' | 'storage' | 'balanced';
+  
   // Action setters
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setLanguage: (language: string) => void;
@@ -53,6 +58,11 @@ export interface SettingsState {
   setAutoDetectBookmarks: (enabled: boolean) => void;
   setCloudBackupEnabled: (enabled: boolean) => Promise<void>;
   
+  // Offline setters
+  setOfflineMode: (mode: 'auto' | 'always' | 'never') => void;
+  setOfflineDataLimit: (limit: number) => void;
+  setOfflinePriority: (priority: 'performance' | 'storage' | 'balanced') => void;
+  
   // Server sync functions
   syncSettingsWithServer: (userId: string) => Promise<void>;
   fetchSettingsFromServer: (userId: string) => Promise<void>;
@@ -69,7 +79,7 @@ const defaultSettings: Omit<SettingsState,
   | 'setHistoryItems' | 'setColorScheme' | 'setHighContrast' | 'setDataCollection'
   | 'setExperimentalFeatures' | 'setAffiliateBannersEnabled' | 'setAutoDetectBookmarks'
   | 'setCloudBackupEnabled' | 'syncSettingsWithServer' | 'fetchSettingsFromServer'
-  | 'reset' | 'resetSettings'> = {
+  | 'reset' | 'resetSettings' | 'setOfflineMode' | 'setOfflineDataLimit' | 'setOfflinePriority'> = {
   theme: 'system',
   language: 'en',
   notifications: {
@@ -92,7 +102,11 @@ const defaultSettings: Omit<SettingsState,
   autoDetectBookmarks: true,
   cloudBackupEnabled: false,
   lastSynced: null,
-  syncInProgress: false
+  syncInProgress: false,
+  // New offline defaults
+  offlineMode: 'auto',
+  offlineDataLimit: 100, // 100MB default
+  offlinePriority: 'balanced'
 };
 
 export const useSettings = create<SettingsState>()(
@@ -132,6 +146,11 @@ export const useSettings = create<SettingsState>()(
           set({ lastSynced: new Date().toISOString() });
         }
       },
+      
+      // Offline setting setters
+      setOfflineMode: (offlineMode) => set({ offlineMode }),
+      setOfflineDataLimit: (offlineDataLimit) => set({ offlineDataLimit }),
+      setOfflinePriority: (offlinePriority) => set({ offlinePriority }),
       
       // Server sync functions
       syncSettingsWithServer: async (userId) => {

@@ -200,7 +200,11 @@ export class SyncService {
     });
   }
 
-  private async processOfflineQueue() {
+  async getOfflineQueueCount(): Promise<number> {
+    return this.offlineQueue.length;
+  }
+
+  async processOfflineQueue(): Promise<void> {
     if (this.syncInProgress || !navigator.onLine || this.offlineQueue.length === 0) {
       return;
     }
