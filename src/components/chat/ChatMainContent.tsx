@@ -4,7 +4,7 @@ import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
 import ChatOfflineNotice from "./ChatOfflineNotice";
 import { AIProgressIndicator } from "../ui/ai-progress-indicator";
-import { RefreshCw, X } from "lucide-react";
+import { RefreshCw, X, Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,10 +37,65 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
+  // Function to render bookmark and web results from message data
+  const renderSearchResults = (message: Message) => {
+    if (!message.bookmarks?.length && !message.webResults?.length) return null;
+    
+    return (
+      <div className="mt-2 space-y-2">
+        {message.bookmarks && message.bookmarks.length > 0 && (
+          <div className="space-y-1">
+            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1">
+              <BookmarkPlus className="h-3 w-3" />
+              Your Bookmarks
+            </h4>
+            <div className="space-y-1">
+              {message.bookmarks.map((bookmark, i) => (
+                <a 
+                  key={i} 
+                  href={bookmark.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block text-xs p-2 bg-muted/50 hover:bg-muted rounded-lg"
+                >
+                  <span className="font-medium line-clamp-1">{bookmark.title}</span>
+                  <span className="text-[10px] text-muted-foreground line-clamp-1">{bookmark.url}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {message.webResults && message.webResults.length > 0 && (
+          <div className="space-y-1">
+            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1">
+              <Search className="h-3 w-3" />
+              Web Results
+            </h4>
+            <div className="space-y-1">
+              {message.webResults.map((result, i) => (
+                <a 
+                  key={i} 
+                  href={result.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block text-xs p-2 bg-muted/50 hover:bg-muted rounded-lg"
+                >
+                  <span className="font-medium line-clamp-1">{result.title}</span>
+                  <span className="text-[10px] text-muted-foreground line-clamp-1">{result.url}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  
   return (
-    <div className="flex-1 flex flex-col max-h-[calc(100%-1rem)] overflow-hidden">
-      {/* Notifications section - made more compact */}
-      <div className="sticky top-0 z-10 px-2 pt-1 space-y-1 bg-background/95 backdrop-blur-sm">
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Notifications section - ultra compact for mobile */}
+      <div className="sticky top-0 z-10 px-1.5 pt-1 space-y-1 bg-background/95 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -67,11 +122,11 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
               transition={{ duration: 0.3 }}
             >
               <div className="flex gap-2 items-start">
-                <div className="h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
+                <div className="h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5 flex-shrink-0">
                   <X size={10} className="text-destructive" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium text-destructive text-xs">{error.message || "Error"}</p>
+                  <p className="font-medium text-destructive text-xs line-clamp-2">{error.message || "Error"}</p>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -105,16 +160,17 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       </div>
       
       {/* Chat messages section with improved scrolling */}
-      <div className="flex-1 overflow-y-auto px-1 pb-3 scroll-smooth">
+      <div className="flex-1 overflow-y-auto px-1 pb-2 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />
           ) : (
-            <div className="pb-2">
+            <div>
               <ChatMessages 
                 key="messages"
                 messages={messages} 
                 messagesEndRef={messagesEndRef}
+                renderAdditionalContent={renderSearchResults}
               />
             </div>
           )}

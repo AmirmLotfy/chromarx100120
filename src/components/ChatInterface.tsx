@@ -8,6 +8,15 @@ import ChatHeader from "./chat/ChatHeader";
 import ChatSidebar from "./chat/ChatSidebar";
 import ChatMainContent from "./chat/ChatMainContent";
 
+// Add this type to inform additional props needed by ChatMessages component
+declare module "@/components/ChatMessages" {
+  export interface ChatMessagesProps {
+    messages: import("@/types/chat").Message[];
+    messagesEndRef: React.RefObject<HTMLDivElement>;
+    renderAdditionalContent?: (message: import("@/types/chat").Message) => React.ReactNode;
+  }
+}
+
 const ChatInterface = () => {
   const {
     messages,
@@ -140,8 +149,8 @@ const ChatInterface = () => {
             markMessagesAsRead={markMessagesAsRead}
           />
           
-          {/* More compact chat input */}
-          <div className="sticky bottom-0 p-1.5 mt-auto bg-background/95 backdrop-blur-sm">
+          {/* Ultra compact chat input for mobile */}
+          <div className="sticky bottom-0 p-1 mt-auto bg-background/95 backdrop-blur-sm">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
