@@ -92,8 +92,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   };
   
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-background to-background/95">
-      <div className="sticky top-0 z-10 px-2 pt-1.5 space-y-1.5 bg-background/95 backdrop-blur-sm">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-background/60 via-background/90 to-background">
+      <div className="sticky top-0 z-10 px-2 pt-1.5 space-y-1.5 bg-background/90 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -157,7 +157,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         </AnimatePresence>
       </div>
       
-      <div className="flex-1 overflow-y-auto px-2 pb-3 scroll-smooth">
+      <div className="flex-1 overflow-y-auto px-1 pb-3 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />

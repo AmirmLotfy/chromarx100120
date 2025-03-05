@@ -1,7 +1,7 @@
 
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { ExternalLink, User, Bot } from "lucide-react";
+import { ExternalLink, User, Bot, Bookmark, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import React, { ReactNode } from "react";
@@ -38,7 +38,7 @@ const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: Cha
         >
           <h3 className="text-xl font-medium mb-2">Start Chatting</h3>
           <p className="text-sm text-muted-foreground">
-            Ask questions about your bookmarks
+            Ask questions about your bookmarks or the web
           </p>
         </motion.div>
       </motion.div>
@@ -64,21 +64,21 @@ const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: Cha
   });
 
   return (
-    <div className="w-full px-3 py-2">
-      <div className="space-y-6 w-full">
+    <div className="w-full px-2 sm:px-3 py-2">
+      <div className="space-y-4 w-full max-w-3xl mx-auto">
         {groupedMessages.map((group, groupIndex) => (
-          <div key={group.date} className="space-y-5 w-full">
+          <div key={group.date} className="space-y-4 w-full">
             {/* Date divider */}
             <div className="relative flex items-center py-1">
-              <div className="flex-grow border-t border-muted"></div>
-              <span className="flex-shrink mx-4 text-xs text-muted-foreground/70 px-2 py-0.5 bg-muted/20 rounded-full">
+              <div className="flex-grow border-t border-muted/30"></div>
+              <span className="flex-shrink mx-3 text-xs text-muted-foreground/70 px-2 py-0.5 bg-muted/20 rounded-full">
                 {group.date === new Date().toLocaleDateString() ? "Today" : group.date}
               </span>
-              <div className="flex-grow border-t border-muted"></div>
+              <div className="flex-grow border-t border-muted/30"></div>
             </div>
             
             {/* Message bubbles */}
-            <div className="space-y-4 w-full">
+            <div className="space-y-3 w-full">
               {group.messages.map((message, index) => (
                 <motion.div
                   key={message.id}
@@ -102,7 +102,7 @@ const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: Cha
                       "max-w-[85%] relative",
                       message.sender === "user"
                         ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm"
-                        : "bg-muted/80 text-foreground rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm",
+                        : "bg-muted/75 text-foreground rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm",
                       !message.isRead && message.sender === "assistant" && "ring-1 ring-primary/10"
                     )}
                   >
@@ -113,10 +113,14 @@ const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: Cha
                     {/* Render additional content if provided */}
                     {renderAdditionalContent && renderAdditionalContent(message)}
                     
+                    {/* Bookmarks section */}
                     {message.bookmarks && message.bookmarks.length > 0 && (
                       <div className="pt-2 border-t border-primary/10 mt-2">
-                        <p className="text-xs font-medium opacity-80">From bookmarks:</p>
-                        <div className="space-y-1.5 mt-1.5">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Bookmark className="h-3.5 w-3.5 text-primary/70" />
+                          <p className="text-xs font-medium text-primary/80">Bookmarks</p>
+                        </div>
+                        <div className="space-y-1.5 mt-1">
                           {message.bookmarks.map((bookmark, index) => (
                             <a
                               key={index}
@@ -140,8 +144,11 @@ const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: Cha
                     {/* Web results */}
                     {message.webResults && message.webResults.length > 0 && (
                       <div className="pt-2 border-t border-primary/10 mt-2">
-                        <p className="text-xs font-medium opacity-80">Related:</p>
-                        <div className="space-y-1.5 mt-1.5">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Globe className="h-3.5 w-3.5 text-primary/70" />
+                          <p className="text-xs font-medium text-primary/80">Web Results</p>
+                        </div>
+                        <div className="space-y-1.5 mt-1">
                           {message.webResults.map((result, index) => (
                             <a
                               key={index}
@@ -178,7 +185,7 @@ const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: Cha
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} className="h-20" /> {/* Extra space for scroll */}
+        <div ref={messagesEndRef} className="h-24" /> {/* Extra space for scroll */}
       </div>
     </div>
   );

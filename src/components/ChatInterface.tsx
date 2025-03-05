@@ -72,34 +72,43 @@ const ChatInterface = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-full relative overflow-hidden">
+    <div className="flex flex-col h-full relative bg-gradient-to-b from-background/95 to-background overflow-hidden">
       <div className="flex flex-1 h-full relative">
+        {/* Sidebar */}
         <AnimatePresence>
           {isHistoryOpen && (
-            <ChatSidebar 
-              isHistoryOpen={isHistoryOpen}
-              setIsHistoryOpen={setIsHistoryOpen}
-              chatHistory={chatHistory}
-              loadChatSession={loadChatSession}
-              clearChat={clearChat}
-              activeConversation={activeConversation}
-              isMobile={isMobile}
-              archivedConversations={archivedConversations}
-              showArchived={showArchived}
-              setShowArchived={setShowArchived}
-              archiveConversation={archiveConversation}
-              restoreConversation={restoreConversation}
-              deleteConversation={deleteConversation}
-              updateConversationCategory={updateConversationCategory}
-              togglePinned={togglePinned}
-            />
+            <motion.div 
+              initial={{ x: -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute inset-y-0 left-0 z-30 h-full w-full sm:w-80 md:w-96 md:relative"
+            >
+              <ChatSidebar 
+                isHistoryOpen={isHistoryOpen}
+                setIsHistoryOpen={setIsHistoryOpen}
+                chatHistory={chatHistory}
+                loadChatSession={loadChatSession}
+                clearChat={clearChat}
+                activeConversation={activeConversation}
+                isMobile={isMobile}
+                archivedConversations={archivedConversations}
+                showArchived={showArchived}
+                setShowArchived={setShowArchived}
+                archiveConversation={archiveConversation}
+                restoreConversation={restoreConversation}
+                deleteConversation={deleteConversation}
+                updateConversationCategory={updateConversationCategory}
+                togglePinned={togglePinned}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
         
         <AnimatePresence>
           {isHistoryOpen && isMobile && (
             <motion.div 
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -109,7 +118,8 @@ const ChatInterface = () => {
           )}
         </AnimatePresence>
         
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden relative max-w-full">
           <ChatHeader 
             isHistoryOpen={isHistoryOpen}
             setIsHistoryOpen={setIsHistoryOpen}
@@ -133,7 +143,7 @@ const ChatInterface = () => {
             markMessagesAsRead={markMessagesAsRead}
           />
           
-          <div className="sticky bottom-0 p-1 mt-auto bg-background/95 backdrop-blur-sm">
+          <div className="sticky bottom-0 p-1 md:p-2 mt-auto bg-background/90 backdrop-blur-sm border-t border-muted/20">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
