@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { storage } from "@/services/storageService";
 import { ChromeBookmark } from "@/types/bookmark";
@@ -43,17 +44,21 @@ export class SyncService {
   }
 
   private async initializeOfflineSupport() {
-    const queue = await storage.get<any[]>('offlineQueue');
-    if (queue) {
-      this.offlineQueue = queue;
-      this.processOfflineQueue();
-    }
+    try {
+      const queue = await storage.get<any[]>('offlineQueue');
+      if (queue) {
+        this.offlineQueue = queue;
+        this.processOfflineQueue();
+      }
 
-    window.addEventListener('online', () => this.handleOnline());
-    window.addEventListener('offline', () => this.handleOffline());
-    
-    if (!navigator.onLine) {
-      this.handleOffline();
+      window.addEventListener('online', () => this.handleOnline());
+      window.addEventListener('offline', () => this.handleOffline());
+      
+      if (!navigator.onLine) {
+        this.handleOffline();
+      }
+    } catch (error) {
+      console.error('Error initializing offline support:', error);
     }
   }
 
@@ -456,7 +461,7 @@ export class SyncService {
           
         if (error) throw error;
         
-        const dbVersion = 1; // Default version
+        const remoteVersion = 1; // Default version since it's not in the database record
         
         bookmarks[index] = {
           ...bookmark,
@@ -465,7 +470,7 @@ export class SyncService {
           category: data.category,
           content: data.content,
           tags: data.tags,
-          version: bookmark.version || dbVersion,
+          version: remoteVersion,
           conflictVersion: undefined,
           metadata: {
             ...bookmark.metadata,
@@ -507,6 +512,10 @@ export class SyncService {
   async getConflictCount(): Promise<number> {
     try {
       const bookmarks = await storage.get<ChromeBookmark[]>('bookmarks') || [];
+      if (!Array.isArray(bookmarks)) {
+        console.error('Bookmarks is not an array:', bookmarks);
+        return 0;
+      }
       return bookmarks.filter(b => 
         b.metadata?.syncStatus === 'conflict' || 
         (b.conflictVersion && !b.conflictVersion.resolved)
@@ -520,6 +529,10 @@ export class SyncService {
   async getConflicts(): Promise<ChromeBookmark[]> {
     try {
       const bookmarks = await storage.get<ChromeBookmark[]>('bookmarks') || [];
+      if (!Array.isArray(bookmarks)) {
+        console.error('Bookmarks is not an array:', bookmarks);
+        return [];
+      }
       return bookmarks.filter(b => 
         b.metadata?.syncStatus === 'conflict' || 
         (b.conflictVersion && !b.conflictVersion.resolved)
@@ -540,6 +553,10 @@ export class SyncService {
       }
       
       const bookmarks = await storage.get<ChromeBookmark[]>('bookmarks') || [];
+      if (!Array.isArray(bookmarks)) {
+        console.error('Bookmarks is not an array:', bookmarks);
+        return;
+      }
       
       for (const conflict of conflicts) {
         const index = bookmarks.findIndex(b => b.id === conflict.id);

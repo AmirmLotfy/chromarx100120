@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're Offline - Bookmark Manager</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f7f7f7;
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #3366cc;
+      margin-bottom: 1rem;
+    }
+    p {
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #ff9800;
+    }
+    .button {
+      display: inline-block;
+      background-color: #3366cc;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    .button:hover {
+      background-color: #254e9c;
+    }
+    .tips {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+      }
+      .container {
+        background-color: #2a2a2a;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+      h1 {
+        color: #66a3ff;
+      }
+      .button {
+        background-color: #4d79cc;
+      }
+      .button:hover {
+        background-color: #3a66b3;
+      }
+      .tips {
+        color: #b0b0b0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📶</div>
+    <h1>You're Offline</h1>
+    <p>It looks like you've lost your internet connection. Don't worry - your data is safely stored and will sync once you're back online.</p>
+    <p>You can still access previously cached content and make changes that will sync later.</p>
+    <a href="/" class="button" id="retry-button">Try Again</a>
+    
+    <div class="tips">
+      <h3>While you're offline, you can still:</h3>
+      <ul style="text-align: left;">
+        <li>View previously loaded bookmarks</li>
+        <li>Add new bookmarks (they'll sync when you're back online)</li>
+        <li>Edit existing bookmarks</li>
+        <li>Organize your collections</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Check connection and redirect if online
+    function checkConnection() {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      }
+    }
+    
+    // Set up event listeners
+    window.addEventListener('online', checkConnection);
+    document.getElementById('retry-button').addEventListener('click', function(e) {
+      e.preventDefault();
+      checkConnection();
+      return false;
+    });
+    
+    // Check connection every 5 seconds
+    setInterval(checkConnection, 5000);
+  </script>
+</body>
+</html>

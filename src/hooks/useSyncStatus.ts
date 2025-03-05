@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { syncService } from '@/services/syncService';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
@@ -12,6 +12,19 @@ export function useSyncStatus() {
   const [pendingChanges, setPendingChanges] = useState(0);
   const [conflicts, setConflicts] = useState(0);
   const { isOffline } = useOfflineStatus();
+
+  // Function to check pending changes and conflicts
+  const checkPendingChanges = useCallback(async () => {
+    try {
+      const queue = await syncService.getOfflineQueueCount();
+      setPendingChanges(queue);
+      
+      const conflictCount = await syncService.getConflictCount();
+      setConflicts(conflictCount);
+    } catch (error) {
+      console.error('Error checking pending changes:', error);
+    }
+  }, []);
 
   // Fetch initial sync status
   useEffect(() => {
@@ -30,16 +43,6 @@ export function useSyncStatus() {
     };
 
     fetchSyncStatus();
-
-    // Also check the offline queue to get pending changes count and conflicts
-    const checkPendingChanges = async () => {
-      const queue = await syncService.getOfflineQueueCount();
-      setPendingChanges(queue);
-      
-      const conflictCount = await syncService.getConflictCount();
-      setConflicts(conflictCount);
-    };
-
     checkPendingChanges();
     
     // Set up an interval to periodically check pending changes
@@ -52,16 +55,16 @@ export function useSyncStatus() {
     }, 60000); // Check every minute
     
     return () => clearInterval(interval);
-  }, [user, isOffline]);
+  }, [user, isOffline, checkPendingChanges]);
 
   // When coming back online, check pending changes and show notifications
   useEffect(() => {
     if (!isOffline && user && pendingChanges > 0) {
       syncService.processOfflineQueue()
-        .then(() => setPendingChanges(0))
+        .then(() => checkPendingChanges())
         .catch(console.error);
     }
-  }, [isOffline, user, pendingChanges]);
+  }, [isOffline, user, pendingChanges, checkPendingChanges]);
 
   return {
     isOnline: !isOffline,
