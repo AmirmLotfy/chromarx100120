@@ -1,7 +1,8 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search, BookmarkPlus } from "lucide-react";
+import { Menu, MessageCircle, BookmarkPlus, ChevronLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "../ui/button";
 
 interface ChatHeaderProps {
   isHistoryOpen: boolean;
@@ -40,7 +41,10 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           className="h-9 w-9 rounded-full hover:bg-accent flex items-center justify-center"
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
-          <Menu size={18} />
+          {isHistoryOpen ? 
+            <ChevronLeft size={18} className="text-primary" /> : 
+            <Menu size={18} />
+          }
         </motion.button>
         
         <div className="flex flex-col">
@@ -58,32 +62,45 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
 
-      <motion.button
-        initial={false}
-        whileTap={{ scale: 0.95 }}
-        onClick={toggleBookmarkSearchMode}
-        className={`relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
-          isBookmarkSearchMode 
-            ? "bg-primary/90 text-primary-foreground hover:bg-primary" 
-            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-        }`}
-      >
-        <motion.div
+      <div className="flex items-center gap-2">
+        {!isBookmarkSearchMode && activeConversation && (
+          <Button
+            onClick={clearChat}
+            size="sm"
+            variant="ghost"
+            className="h-8 text-xs"
+          >
+            New Chat
+          </Button>
+        )}
+
+        <motion.button
           initial={false}
-          animate={{ 
-            rotate: isBookmarkSearchMode ? 0 : 360,
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 0.4 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleBookmarkSearchMode}
+          className={`relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
+            isBookmarkSearchMode 
+              ? "bg-primary/90 text-primary-foreground hover:bg-primary" 
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          }`}
         >
-          {isBookmarkSearchMode ? (
-            <MessageCircle size={14} />
-          ) : (
-            <BookmarkPlus size={14} />
-          )}
-        </motion.div>
-        <span>{isBookmarkSearchMode ? "Exit Search" : "Search Bookmarks"}</span>
-      </motion.button>
+          <motion.div
+            initial={false}
+            animate={{ 
+              rotate: isBookmarkSearchMode ? 0 : 360,
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ duration: 0.4 }}
+          >
+            {isBookmarkSearchMode ? (
+              <MessageCircle size={14} />
+            ) : (
+              <BookmarkPlus size={14} />
+            )}
+          </motion.div>
+          <span>{isBookmarkSearchMode ? "Exit Search" : "Search Bookmarks"}</span>
+        </motion.button>
+      </div>
     </motion.div>
   );
 };

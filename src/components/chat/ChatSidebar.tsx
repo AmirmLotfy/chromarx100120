@@ -84,7 +84,7 @@ const ChatSidebar = ({
       exit={{ x: -300, opacity: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "bg-background border-r w-80 h-full flex flex-col",
+        "bg-background border-r w-80 h-full flex flex-col max-h-[100dvh]",
         isMobile ? "absolute inset-y-0 left-0 z-30" : "relative"
       )}
     >
@@ -98,6 +98,7 @@ const ChatSidebar = ({
             }}
             size="sm"
             variant="ghost"
+            className="hover:bg-primary/10 transition-colors"
           >
             <Plus className="h-4 w-4 mr-1" />
             New Chat
@@ -105,19 +106,19 @@ const ChatSidebar = ({
         </div>
       </div>
 
-      <div className="p-2">
+      <div className="p-2 border-b">
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
-            className="pl-8"
+            className="pl-8 h-9 bg-muted/50 focus-visible:ring-primary/30"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      <Tabs defaultValue="conversations" className="flex-1 flex flex-col">
+      <Tabs defaultValue="conversations" className="flex-1 flex flex-col overflow-hidden">
         <div className="border-b px-2">
           <TabsList className="w-full">
             <TabsTrigger 
@@ -137,11 +138,11 @@ const ChatSidebar = ({
           </TabsList>
         </div>
 
-        <TabsContent value="conversations" className="flex-1">
+        <TabsContent value="conversations" className="flex-1 overflow-hidden flex flex-col">
           <div className="flex gap-1 p-2 overflow-x-auto border-b">
             <Badge
               variant={selectedCategory === "all" ? "default" : "outline"}
-              className="cursor-pointer"
+              className="cursor-pointer whitespace-nowrap"
               onClick={() => setSelectedCategory("all")}
             >
               All
@@ -150,7 +151,7 @@ const ChatSidebar = ({
               <Badge
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
-                className="cursor-pointer"
+                className="cursor-pointer whitespace-nowrap"
                 onClick={() => setSelectedCategory(category)}
               >
                 {category}
@@ -158,7 +159,7 @@ const ChatSidebar = ({
             ))}
           </div>
           
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 h-full">
             <div className="p-2 space-y-2">
               {sortedConversations.length > 0 ? (
                 sortedConversations.map((conversation) => (
@@ -188,8 +189,8 @@ const ChatSidebar = ({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="archived" className="flex-1">
-          <ScrollArea className="flex-1">
+        <TabsContent value="archived" className="flex-1 overflow-hidden flex flex-col">
+          <ScrollArea className="flex-1 h-full">
             <div className="p-2 space-y-2">
               {sortedConversations.length > 0 ? (
                 sortedConversations.map((conversation) => (

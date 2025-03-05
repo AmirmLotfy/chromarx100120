@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
 import ChatOfflineNotice from "./ChatOfflineNotice";
@@ -37,12 +37,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
-  // Mark messages as read when they are viewed
-  useEffect(() => {
-    if (messages.length > 0 && markMessagesAsRead) {
-      markMessagesAsRead();
-    }
-  }, [messages, markMessagesAsRead]);
+  // Remove the useEffect that was causing the infinite loop
+  // The markMessagesAsRead will be called from ChatInterface instead
 
   return (
     <div className="flex-1 flex flex-col">
@@ -110,8 +106,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         </AnimatePresence>
       </div>
       
-      {/* Chat messages section with improved scrolling - Use a regular div instead of ScrollArea for better mobile scrolling */}
-      <div className="flex-1 overflow-y-auto px-1 pb-4">
+      {/* Chat messages section with improved scrolling */}
+      <div className="flex-1 overflow-y-auto px-1 pb-4 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />

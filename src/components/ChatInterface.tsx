@@ -48,6 +48,13 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
+  // Mark messages as read when viewed
+  useEffect(() => {
+    if (messages.length > 0 && markMessagesAsRead && activeConversation) {
+      markMessagesAsRead();
+    }
+  }, [activeConversation, markMessagesAsRead]);
+
   // Check Gemini API availability on component mount
   useEffect(() => {
     const checkGeminiAvailability = async () => {
@@ -63,10 +70,11 @@ const ChatInterface = () => {
     };
     
     checkGeminiAvailability();
+    checkConnection();
   }, []);
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative overflow-hidden">
       {/* Main content area with sidebar */}
       <div className="flex flex-1 h-full relative">
         {/* Chat history sidebar with animations */}
@@ -107,19 +115,17 @@ const ChatInterface = () => {
         </AnimatePresence>
         
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col h-full">
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Header - fixed position to ensure it's always visible */}
-          <div className="sticky top-0 z-10 w-full">
-            <ChatHeader 
-              isHistoryOpen={isHistoryOpen}
-              setIsHistoryOpen={setIsHistoryOpen}
-              activeConversation={activeConversation}
-              messagesCount={messages.length}
-              clearChat={clearChat}
-              isBookmarkSearchMode={isBookmarkSearchMode}
-              toggleBookmarkSearchMode={toggleBookmarkSearchMode}
-            />
-          </div>
+          <ChatHeader 
+            isHistoryOpen={isHistoryOpen}
+            setIsHistoryOpen={setIsHistoryOpen}
+            activeConversation={activeConversation}
+            messagesCount={messages.length}
+            clearChat={clearChat}
+            isBookmarkSearchMode={isBookmarkSearchMode}
+            toggleBookmarkSearchMode={toggleBookmarkSearchMode}
+          />
           
           <ChatMainContent 
             messages={messages}
