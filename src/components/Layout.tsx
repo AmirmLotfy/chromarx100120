@@ -4,6 +4,7 @@ import Header from "./Header";
 import { useEffect, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,10 +17,52 @@ const Layout = ({ children }: LayoutProps) => {
   const defaultWidth = useRef<number>(0);
   const [currentWidth, setCurrentWidth] = useState<number>(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isOffline } = useOfflineStatus({ showToasts: true });
+  const [serviceWorkerUpdated, setServiceWorkerUpdated] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => !prev);
   };
+
+  // Register and handle service worker updates
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registered with scope:', registration.scope);
+          
+          // Check for updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  setServiceWorkerUpdated(true);
+                  toast.info('Update available! Refresh to update.', {
+                    duration: 10000,
+                    action: {
+                      label: 'Update Now',
+                      onClick: () => {
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+            }
+          });
+        })
+        .catch(error => {
+          console.error('Error during service worker registration:', error);
+        });
+
+      // Handle controller change (when skipWaiting() is called)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('New service worker activated');
+      });
+    }
+  }, []);
 
   useEffect(() => {
     // Check if running in Chrome extension side panel or popup
@@ -110,6 +153,25 @@ const Layout = ({ children }: LayoutProps) => {
       aria-label="Main content area"
     >
       <Header toggleSidebar={toggleSidebar} />
+      
+      {isOffline && (
+        <div className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-4 py-2 text-sm flex items-center justify-center">
+          <span>You are offline. Some features may be limited.</span>
+        </div>
+      )}
+      
+      {serviceWorkerUpdated && (
+        <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-2 text-sm flex items-center justify-center">
+          <span>Update available! Refresh to update.</span>
+          <button 
+            className="ml-2 underline" 
+            onClick={() => window.location.reload()}
+          >
+            Update Now
+          </button>
+        </div>
+      )}
+      
       <main 
         className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-20"
         tabIndex={0}
