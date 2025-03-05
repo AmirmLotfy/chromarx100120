@@ -1,10 +1,9 @@
-
 import React from "react";
 import ChatMessages from "../ChatMessages";
 import BookmarkSearchView from "./BookmarkSearchView";
 import ChatOfflineNotice from "./ChatOfflineNotice";
 import { AIProgressIndicator } from "../ui/ai-progress-indicator";
-import { RefreshCw, X, Search } from "lucide-react";
+import { RefreshCw, X, Search, BookmarkPlus } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -37,7 +36,6 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
-  // Function to render bookmark and web results from message data
   const renderSearchResults = (message: Message) => {
     if (!message.bookmarks?.length && !message.webResults?.length) return null;
     
@@ -94,7 +92,6 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      {/* Notifications section - ultra compact for mobile */}
       <div className="sticky top-0 z-10 px-1.5 pt-1 space-y-1 bg-background/95 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
@@ -159,7 +156,6 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         </AnimatePresence>
       </div>
       
-      {/* Chat messages section with improved scrolling */}
       <div className="flex-1 overflow-y-auto px-1 pb-2 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (

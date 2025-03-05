@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useChatState } from "./chat/useChatState";
 import ChatInput from "./ChatInput";
@@ -7,8 +6,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import ChatHeader from "./chat/ChatHeader";
 import ChatSidebar from "./chat/ChatSidebar";
 import ChatMainContent from "./chat/ChatMainContent";
+import { Message } from "@/types/chat";
 
-// Add this type to inform additional props needed by ChatMessages component
 declare module "@/components/ChatMessages" {
   export interface ChatMessagesProps {
     messages: import("@/types/chat").Message[];
@@ -50,21 +49,18 @@ const ChatInterface = () => {
   
   const isMobile = useIsMobile();
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Mark messages as read when viewed
   useEffect(() => {
     if (messages.length > 0 && markMessagesAsRead && activeConversation) {
       markMessagesAsRead();
     }
   }, [activeConversation, markMessagesAsRead]);
 
-  // Check Gemini API availability on component mount
   useEffect(() => {
     const checkGeminiAvailability = async () => {
       try {
@@ -84,9 +80,7 @@ const ChatInterface = () => {
 
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
-      {/* Main content area with sidebar */}
       <div className="flex flex-1 h-full relative">
-        {/* Chat history sidebar with animations */}
         <AnimatePresence>
           {isHistoryOpen && (
             <ChatSidebar 
@@ -109,7 +103,6 @@ const ChatInterface = () => {
           )}
         </AnimatePresence>
         
-        {/* Overlay to close sidebar on mobile */}
         <AnimatePresence>
           {isHistoryOpen && isMobile && (
             <motion.div 
@@ -123,9 +116,7 @@ const ChatInterface = () => {
           )}
         </AnimatePresence>
         
-        {/* Main chat area */}
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          {/* Header - more compact */}
           <ChatHeader 
             isHistoryOpen={isHistoryOpen}
             setIsHistoryOpen={setIsHistoryOpen}
@@ -149,7 +140,6 @@ const ChatInterface = () => {
             markMessagesAsRead={markMessagesAsRead}
           />
           
-          {/* Ultra compact chat input for mobile */}
           <div className="sticky bottom-0 p-1 mt-auto bg-background/95 backdrop-blur-sm">
             <ChatInput
               onSendMessage={handleSendMessage}
