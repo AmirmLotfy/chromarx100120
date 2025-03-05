@@ -580,6 +580,8 @@ export class SyncService {
           if (error) throw error;
           
           if (data) {
+            const remoteVersion = 1; // Default version since it's not in the database record
+            
             bookmarks[index] = {
               ...bookmarks[index],
               title: data.title,
@@ -587,7 +589,7 @@ export class SyncService {
               category: data.category,
               content: data.content,
               tags: data.tags,
-              version: data.version || bookmarks[index].version || 1,
+              version: remoteVersion,
               conflictVersion: undefined,
               metadata: {
                 ...bookmarks[index].metadata,
