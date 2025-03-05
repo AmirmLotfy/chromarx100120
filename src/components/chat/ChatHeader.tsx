@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search } from "lucide-react";
+import { Menu, MessageCircle, Search, BookmarkPlus } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ChatHeaderProps {
@@ -10,7 +10,7 @@ interface ChatHeaderProps {
   messagesCount: number;
   isBookmarkSearchMode: boolean;
   toggleBookmarkSearchMode: () => void;
-  clearChat: () => void; // Added clearChat prop
+  clearChat: () => void;
 }
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -64,18 +64,25 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         onClick={toggleBookmarkSearchMode}
         className={`relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
           isBookmarkSearchMode 
-            ? "bg-primary text-primary-foreground" 
-            : "bg-accent text-foreground hover:bg-accent/80"
+            ? "bg-primary/90 text-primary-foreground hover:bg-primary" 
+            : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
         }`}
       >
         <motion.div
           initial={false}
-          animate={{ rotate: isBookmarkSearchMode ? 0 : 360 }}
-          transition={{ duration: 0.3 }}
+          animate={{ 
+            rotate: isBookmarkSearchMode ? 0 : 360,
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 0.4 }}
         >
-          {isBookmarkSearchMode ? <MessageCircle size={14} /> : <Search size={14} />}
+          {isBookmarkSearchMode ? (
+            <MessageCircle size={14} />
+          ) : (
+            <BookmarkPlus size={14} />
+          )}
         </motion.div>
-        <span>{isBookmarkSearchMode ? "Chat" : "Search"}</span>
+        <span>{isBookmarkSearchMode ? "Exit Search" : "Search Bookmarks"}</span>
       </motion.button>
     </motion.div>
   );
