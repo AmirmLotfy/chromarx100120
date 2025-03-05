@@ -1,84 +1,32 @@
 
-import { toast } from "sonner";
-
-interface ErrorWithMessage {
-  message: string;
-}
-
-function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as Record<string, unknown>).message === 'string'
-  );
-}
-
-function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
-  if (isErrorWithMessage(maybeError)) return maybeError;
-
+/**
+ * A utility function for handling async operations with proper error handling
+ * @param promise The promise to handle
+ * @returns A tuple with the result and error
+ */
+export const handleAsync = async <T>(
+  promise: Promise<T>
+): Promise<[T | null, Error | null]> => {
   try {
-    return new Error(JSON.stringify(maybeError));
-  } catch {
-    return new Error(String(maybeError));
-  }
-}
-
-export function getErrorMessage(error: unknown): string {
-  return toErrorWithMessage(error).message;
-}
-
-export async function withErrorHandling<T>(
-  operation: () => Promise<T>,
-  {
-    errorMessage = "An error occurred",
-    showError = true,
-    rethrow = false,
-  }: {
-    errorMessage?: string;
-    showError?: boolean;
-    rethrow?: boolean;
-  } = {}
-): Promise<T | undefined> {
-  try {
-    return await operation();
+    const data = await promise;
+    return [data, null];
   } catch (error) {
-    console.error(`${errorMessage}:`, error);
-    
-    if (showError) {
-      toast.error(errorMessage, {
-        description: getErrorMessage(error)
-      });
-    }
-    
-    if (rethrow) throw error;
+    return [null, error instanceof Error ? error : new Error(String(error))];
   }
-}
+};
 
-export function createErrorBoundary<T extends (...args: any[]) => any>(
-  fn: T,
-  errorHandler: (error: unknown) => void
-): (...args: Parameters<T>) => Promise<ReturnType<T> | undefined> {
-  return async (...args: Parameters<T>) => {
-    try {
-      return await fn(...args);
-    } catch (error) {
-      errorHandler(error);
-    }
-  };
-}
-
-export const retryWithBackoff = async <T>(
-  operation: () => Promise<T>,
-  retries = 3,
-  delay = 1000
-): Promise<T> => {
-  try {
-    return await operation();
-  } catch (error) {
-    if (retries === 0) throw error;
-    
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return retryWithBackoff(operation, retries - 1, delay * 2);
-  }
+/**
+ * Creates a rejection handler for promises that formats errors nicely
+ * @param operation Name of the operation that failed
+ * @returns A function that handles the rejection
+ */
+export const createRejectionHandler = (operation: string) => (error: any) => {
+  console.error(`${operation} failed:`, error);
+  
+  // Normalize error object
+  const normalizedError = error instanceof Error 
+    ? error 
+    : new Error(typeof error === 'string' ? error : JSON.stringify(error));
+  
+  throw normalizedError;
 };
