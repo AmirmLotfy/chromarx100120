@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -23,7 +24,11 @@ interface UsageMetric {
 }
 
 interface UsageData {
-  [key: string]: UsageMetric;
+  bookmarks?: UsageMetric;
+  notes?: UsageMetric;
+  aiRequests?: UsageMetric;
+  tasks?: UsageMetric;
+  [key: string]: UsageMetric | undefined;
 }
 
 const SubscriptionPage = () => {
@@ -32,7 +37,7 @@ const SubscriptionPage = () => {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const navigate = useNavigate();
   
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const loadSubscription = async () => {
@@ -48,7 +53,8 @@ const SubscriptionPage = () => {
     const loadUsage = async () => {
       try {
         const usage = await storage.get('usage');
-        setUsageData(usage);
+        // Cast the unknown data to our UsageData interface
+        setUsageData(usage as UsageData);
       } catch (error) {
         console.error("Failed to load usage:", error);
         toast.error("Failed to load usage data");
@@ -82,7 +88,6 @@ const SubscriptionPage = () => {
     }
   };
 
-  // Fix the button variant type
   return (
     <Layout>
       <div className="container max-w-3xl mx-auto px-4 py-12">
@@ -174,7 +179,7 @@ const SubscriptionPage = () => {
           </Card>
         </div>
               
-        {/* Fix the usage metrics type casting */}
+        {/* Update the usage metrics display to use optional chaining */}
         <div className="space-y-6 mb-8">
           <h3 className="text-lg font-medium">Your Usage</h3>
           
@@ -186,11 +191,11 @@ const SubscriptionPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span>{usageData?.bookmarks?.used} / {usageData?.bookmarks?.limit}</span>
-                    <span>{usageData?.bookmarks?.percentage}%</span>
+                    <span>{usageData?.bookmarks?.used || 0} / {usageData?.bookmarks?.limit || 0}</span>
+                    <span>{usageData?.bookmarks?.percentage || 0}%</span>
                   </div>
                   <Progress 
-                    value={usageData?.bookmarks?.percentage} 
+                    value={usageData?.bookmarks?.percentage || 0} 
                     className="h-2" 
                   />
                 </div>
@@ -204,11 +209,11 @@ const SubscriptionPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span>{usageData?.notes?.used} / {usageData?.notes?.limit}</span>
-                    <span>{usageData?.notes?.percentage}%</span>
+                    <span>{usageData?.notes?.used || 0} / {usageData?.notes?.limit || 0}</span>
+                    <span>{usageData?.notes?.percentage || 0}%</span>
                   </div>
                   <Progress 
-                    value={usageData?.notes?.percentage} 
+                    value={usageData?.notes?.percentage || 0} 
                     className="h-2" 
                   />
                 </div>
@@ -222,11 +227,11 @@ const SubscriptionPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span>{usageData?.aiRequests?.used} / {usageData?.aiRequests?.limit}</span>
-                    <span>{usageData?.aiRequests?.percentage}%</span>
+                    <span>{usageData?.aiRequests?.used || 0} / {usageData?.aiRequests?.limit || 0}</span>
+                    <span>{usageData?.aiRequests?.percentage || 0}%</span>
                   </div>
                   <Progress 
-                    value={usageData?.aiRequests?.percentage} 
+                    value={usageData?.aiRequests?.percentage || 0} 
                     className="h-2" 
                   />
                 </div>
@@ -240,11 +245,11 @@ const SubscriptionPage = () => {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span>{usageData?.tasks?.used} / {usageData?.tasks?.limit}</span>
-                    <span>{usageData?.tasks?.percentage}%</span>
+                    <span>{usageData?.tasks?.used || 0} / {usageData?.tasks?.limit || 0}</span>
+                    <span>{usageData?.tasks?.percentage || 0}%</span>
                   </div>
                   <Progress 
-                    value={usageData?.tasks?.percentage} 
+                    value={usageData?.tasks?.percentage || 0} 
                     className="h-2" 
                   />
                 </div>

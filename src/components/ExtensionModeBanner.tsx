@@ -33,7 +33,7 @@ const ExtensionModeBanner = () => {
   }
   
   return (
-    <Alert variant="warning" className="mb-4">
+    <Alert variant="destructive" className="mb-4">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Web Preview Mode</AlertTitle>
       <AlertDescription className="flex flex-col gap-2">
