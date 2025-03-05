@@ -1,19 +1,7 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { cn } from "@/lib/utils";
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  verticalListSortingStrategy,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
+import { DndContext, DragEndEvent, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy, rectSortingStrategy } from "@dnd-kit/sortable";
 import SortableBookmark from "./SortableBookmark";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { extractDomain } from "@/utils/domainUtils";
@@ -23,25 +11,13 @@ import { toast } from "sonner";
 import { summarizeContent, suggestBookmarkCategory, summarizeBookmark } from "@/utils/geminiUtils";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { findDuplicateBookmarks, findBrokenBookmarks } from "@/utils/bookmarkCleanup";
 import { useLanguage } from "@/stores/languageStore";
 import { fetchPageContent } from "@/utils/contentExtractor";
 import { useVirtualizer } from '@tanstack/react-virtual';
-
 interface BookmarkListProps {
   bookmarks: ChromeBookmark[];
   selectedBookmarks: Set<string>;
@@ -52,9 +28,7 @@ interface BookmarkListProps {
   onReorder?: (bookmarks: ChromeBookmark[]) => void;
   onUpdateCategories: (bookmarks: ChromeBookmark[]) => void;
 }
-
 const BATCH_SIZE = 20;
-
 const BookmarkList = ({
   bookmarks,
   selectedBookmarks,
@@ -63,7 +37,7 @@ const BookmarkList = ({
   formatDate,
   view,
   onReorder,
-  onUpdateCategories,
+  onUpdateCategories
 }: BookmarkListProps) => {
   const [items, setItems] = useState(bookmarks);
   const [displayCount, setDisplayCount] = useState(BATCH_SIZE);
@@ -78,28 +52,34 @@ const BookmarkList = ({
   const [newTags, setNewTags] = useState("");
   const navigate = useNavigate();
   const parentRef = useRef<HTMLDivElement>(null);
-
   const domainGroups = Object.entries(groupedByDomain).map(([domain, bookmarks]) => ({
     type: 'header' as const,
     domain,
-    count: bookmarks.length,
-  })).reduce<Array<{ type: 'header' | 'bookmark', data: any }>>((acc, group) => {
-    acc.push({ type: 'header', data: group });
+    count: bookmarks.length
+  })).reduce<Array<{
+    type: 'header' | 'bookmark';
+    data: any;
+  }>>((acc, group) => {
+    acc.push({
+      type: 'header',
+      data: group
+    });
     groupedByDomain[group.domain].forEach(bookmark => {
-      acc.push({ type: 'bookmark', data: bookmark });
+      acc.push({
+        type: 'bookmark',
+        data: bookmark
+      });
     });
     return acc;
   }, []);
-
   const rowVirtualizer = useVirtualizer({
     count: domainGroups.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: useCallback((index) => {
+    estimateSize: useCallback(index => {
       return domainGroups[index].type === 'header' ? 48 : view === 'grid' ? 200 : 80;
     }, [view]),
-    overscan: 5,
+    overscan: 5
   });
-
   useEffect(() => {
     setItems(bookmarks);
     const grouped = bookmarks.reduce((acc, bookmark) => {
@@ -114,19 +94,17 @@ const BookmarkList = ({
     }, {} as Record<string, ChromeBookmark[]>);
     setGroupedByDomain(grouped);
   }, [bookmarks]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (focusedIndex === -1) return;
-
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setFocusedIndex((prev) => Math.min(prev + 1, bookmarks.length - 1));
+          setFocusedIndex(prev => Math.min(prev + 1, bookmarks.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
-          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+          setFocusedIndex(prev => Math.max(prev - 1, 0));
           break;
         case ' ':
           e.preventDefault();
@@ -136,40 +114,34 @@ const BookmarkList = ({
           break;
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [focusedIndex, bookmarks, onToggleSelect]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 8,
-      },
-    })
-  );
-
+  const sensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: 8
+    }
+  }), useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 8
+    }
+  }));
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
+    const {
+      active,
+      over
+    } = event;
     if (over && active.id !== over.id) {
-      setItems((prevItems) => {
-        const oldIndex = prevItems.findIndex((item) => item.id === active.id);
-        const newIndex = prevItems.findIndex((item) => item.id === over.id);
-        
+      setItems(prevItems => {
+        const oldIndex = prevItems.findIndex(item => item.id === active.id);
+        const newIndex = prevItems.findIndex(item => item.id === over.id);
         const newItems = arrayMove(prevItems, oldIndex, newIndex);
         onReorder?.(newItems);
         return newItems;
       });
     }
   };
-
   const handleSelectAll = () => {
     const allSelected = bookmarks.length === selectedBookmarks.size;
     if (allSelected) {
@@ -186,27 +158,20 @@ const BookmarkList = ({
       });
     }
   };
-
   const handleCleanup = async () => {
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to clean up");
       return;
     }
-
     setIsProcessing(true);
     try {
-      const selectedBookmarksArray = Array.from(selectedBookmarks)
-        .map(id => bookmarks.find(b => b.id === id))
-        .filter((b): b is ChromeBookmark => b !== undefined);
-
+      const selectedBookmarksArray = Array.from(selectedBookmarks).map(id => bookmarks.find(b => b.id === id)).filter((b): b is ChromeBookmark => b !== undefined);
       const duplicates = findDuplicateBookmarks(selectedBookmarksArray);
       const brokenBookmarks = await findBrokenBookmarks(selectedBookmarksArray);
-      
       if (duplicates.byUrl.length === 0 && duplicates.byTitle.length === 0 && brokenBookmarks.length === 0) {
         toast.info("No issues found in selected bookmarks");
         return;
       }
-
       await onDelete(Array.from(selectedBookmarks)[0]);
       toast.success("Cleanup completed successfully");
     } catch (error) {
@@ -215,42 +180,29 @@ const BookmarkList = ({
       setIsProcessing(false);
     }
   };
-
   const handleGenerateSummaries = async () => {
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to summarize");
       return;
     }
-
     setIsProcessing(true);
-    const { currentLanguage } = useLanguage();
-    
+    const {
+      currentLanguage
+    } = useLanguage();
     try {
-      const selectedBookmarksArray = Array.from(selectedBookmarks)
-        .map(id => bookmarks.find(b => b.id === id))
-        .filter((b): b is ChromeBookmark => b !== undefined);
-
-      const summaries = await Promise.all(
-        selectedBookmarksArray.map(async (bookmark) => {
-          const summary = await summarizeBookmark(bookmark, currentLanguage.code);
-          return {
-            id: bookmark.id,
-            title: bookmark.title,
-            content: summary,
-            url: bookmark.url || "",
-            date: new Date().toLocaleDateString(),
-          };
-        })
-      );
-
-      const existingSummaries = JSON.parse(
-        localStorage.getItem("bookmarkSummaries") || "[]"
-      );
-      localStorage.setItem(
-        "bookmarkSummaries",
-        JSON.stringify([...summaries, ...existingSummaries])
-      );
-
+      const selectedBookmarksArray = Array.from(selectedBookmarks).map(id => bookmarks.find(b => b.id === id)).filter((b): b is ChromeBookmark => b !== undefined);
+      const summaries = await Promise.all(selectedBookmarksArray.map(async bookmark => {
+        const summary = await summarizeBookmark(bookmark, currentLanguage.code);
+        return {
+          id: bookmark.id,
+          title: bookmark.title,
+          content: summary,
+          url: bookmark.url || "",
+          date: new Date().toLocaleDateString()
+        };
+      }));
+      const existingSummaries = JSON.parse(localStorage.getItem("bookmarkSummaries") || "[]");
+      localStorage.setItem("bookmarkSummaries", JSON.stringify([...summaries, ...existingSummaries]));
       toast.success("Summaries generated successfully!");
       navigate("/summaries");
     } catch (error) {
@@ -259,35 +211,24 @@ const BookmarkList = ({
       setIsProcessing(false);
     }
   };
-
   const handleSuggestCategories = async () => {
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to categorize");
       return;
     }
-
     setIsProcessing(true);
-    const { currentLanguage } = useLanguage();
+    const {
+      currentLanguage
+    } = useLanguage();
     try {
-      const selectedBookmarksArray = Array.from(selectedBookmarks)
-        .map(id => bookmarks.find(b => b.id === id))
-        .filter((b): b is ChromeBookmark => b !== undefined);
-
-      const updatedBookmarks = await Promise.all(
-        selectedBookmarksArray.map(async (bookmark) => {
-          const content = await fetchPageContent(bookmark.url || "");
-          return {
-            ...bookmark,
-            category: await suggestBookmarkCategory(
-              bookmark.title,
-              bookmark.url || "",
-              content,
-              currentLanguage.code
-            ),
-          };
-        })
-      );
-
+      const selectedBookmarksArray = Array.from(selectedBookmarks).map(id => bookmarks.find(b => b.id === id)).filter((b): b is ChromeBookmark => b !== undefined);
+      const updatedBookmarks = await Promise.all(selectedBookmarksArray.map(async bookmark => {
+        const content = await fetchPageContent(bookmark.url || "");
+        return {
+          ...bookmark,
+          category: await suggestBookmarkCategory(bookmark.title, bookmark.url || "", content, currentLanguage.code)
+        };
+      }));
       onUpdateCategories(updatedBookmarks);
       toast.success("Categories suggested successfully!");
     } catch (error) {
@@ -296,24 +237,23 @@ const BookmarkList = ({
       setIsProcessing(false);
     }
   };
-
   const handleBulkMove = async () => {
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to move");
       return;
     }
-
     try {
       if (!newFolderName.trim()) {
         toast.error("Please enter a folder name");
         return;
       }
-
       if (chrome.bookmarks) {
-        const folder = await chrome.bookmarks.create({ title: newFolderName });
-        const moves = Array.from(selectedBookmarks).map(id => 
-          chrome.bookmarks.move(id, { parentId: folder.id })
-        );
+        const folder = await chrome.bookmarks.create({
+          title: newFolderName
+        });
+        const moves = Array.from(selectedBookmarks).map(id => chrome.bookmarks.move(id, {
+          parentId: folder.id
+        }));
         await Promise.all(moves);
         toast.success(`Moved ${selectedBookmarks.size} bookmarks to "${newFolderName}"`);
         setIsMoveDialogOpen(false);
@@ -324,23 +264,17 @@ const BookmarkList = ({
       toast.error("Failed to move bookmarks");
     }
   };
-
   const handleBulkCategorize = async () => {
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to categorize");
       return;
     }
-
     try {
-      const selectedBookmarksArray = Array.from(selectedBookmarks)
-        .map(id => bookmarks.find(b => b.id === id))
-        .filter((b): b is ChromeBookmark => b !== undefined);
-
+      const selectedBookmarksArray = Array.from(selectedBookmarks).map(id => bookmarks.find(b => b.id === id)).filter((b): b is ChromeBookmark => b !== undefined);
       const updatedBookmarks = selectedBookmarksArray.map(bookmark => ({
         ...bookmark,
         category: newCategory
       }));
-
       onUpdateCategories(updatedBookmarks);
       setIsCategorizeDialogOpen(false);
       setNewCategory("");
@@ -350,19 +284,14 @@ const BookmarkList = ({
       toast.error("Failed to categorize bookmarks");
     }
   };
-
   const handleBulkTag = async () => {
     if (selectedBookmarks.size === 0) {
       toast.error("Please select bookmarks to tag");
       return;
     }
-
     try {
       const tags = newTags.split(',').map(tag => tag.trim()).filter(Boolean);
-      const selectedBookmarksArray = Array.from(selectedBookmarks)
-        .map(id => bookmarks.find(b => b.id === id))
-        .filter((b): b is ChromeBookmark => b !== undefined);
-
+      const selectedBookmarksArray = Array.from(selectedBookmarks).map(id => bookmarks.find(b => b.id === id)).filter((b): b is ChromeBookmark => b !== undefined);
       const updatedBookmarks = selectedBookmarksArray.map(bookmark => ({
         ...bookmark,
         metadata: {
@@ -370,7 +299,6 @@ const BookmarkList = ({
           tags: [...(bookmark.metadata?.tags || []), ...tags]
         }
       }));
-
       onUpdateCategories(updatedBookmarks);
       setIsTagDialogOpen(false);
       setNewTags("");
@@ -380,126 +308,64 @@ const BookmarkList = ({
       toast.error("Failed to tag bookmarks");
     }
   };
-
-  const renderVirtualizedBookmarks = () => (
-    <div
-      ref={parentRef}
-      className="h-[600px] overflow-auto"
-      style={{
-        contain: 'strict',
-      }}
-    >
-      <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize()}px`,
+  const renderVirtualizedBookmarks = () => <div ref={parentRef} className="h-[600px] overflow-auto" style={{
+    contain: 'strict'
+  }}>
+      <div style={{
+      height: `${rowVirtualizer.getTotalSize()}px`,
+      width: '100%',
+      position: 'relative'
+    }}>
+        {rowVirtualizer.getVirtualItems().map(virtualRow => {
+        const item = domainGroups[virtualRow.index];
+        return <div key={virtualRow.index} style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
           width: '100%',
-          position: 'relative',
-        }}
-      >
-        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const item = domainGroups[virtualRow.index];
-          
-          return (
-            <div
-              key={virtualRow.index}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              {item.type === 'header' ? (
-                <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 backdrop-blur-sm rounded-lg sticky top-0 z-10">
+          height: `${virtualRow.size}px`,
+          transform: `translateY(${virtualRow.start}px)`
+        }}>
+              {item.type === 'header' ? <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 backdrop-blur-sm rounded-lg sticky top-0 z-10">
                   <Globe className="h-4 w-4 text-muted-foreground" />
                   <h3 className="text-sm font-medium">{item.data.domain}</h3>
                   <span className="text-xs text-muted-foreground">
                     ({item.data.count})
                   </span>
-                </div>
-              ) : (
-                <SortableBookmark
-                  bookmark={item.data}
-                  selected={selectedBookmarks.has(item.data.id)}
-                  onToggleSelect={onToggleSelect}
-                  onDelete={onDelete}
-                  formatDate={formatDate}
-                  view={view}
-                  tabIndex={focusedIndex === bookmarks.indexOf(item.data) ? 0 : -1}
-                  onFocus={() => setFocusedIndex(bookmarks.indexOf(item.data))}
-                />
-              )}
-            </div>
-          );
-        })}
+                </div> : <SortableBookmark bookmark={item.data} selected={selectedBookmarks.has(item.data.id)} onToggleSelect={onToggleSelect} onDelete={onDelete} formatDate={formatDate} view={view} tabIndex={focusedIndex === bookmarks.indexOf(item.data) ? 0 : -1} onFocus={() => setFocusedIndex(bookmarks.indexOf(item.data))} />}
+            </div>;
+      })}
       </div>
-    </div>
-  );
-
-  return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <SortableContext
-        items={items.map((item) => item.id)}
-        strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}
-      >
+    </div>;
+  return <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <SortableContext items={items.map(item => item.id)} strategy={view === "grid" ? rectSortingStrategy : verticalListSortingStrategy}>
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2 items-center">
             <TooltipProvider>
               <div className="flex flex-wrap gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectAll}
-                  className="h-9 rounded-full px-3 font-medium text-xs shadow-sm bg-background border-muted-foreground/20"
-                >
+                <Button variant="outline" size="sm" onClick={handleSelectAll} className="h-9 rounded-full px-3 font-medium text-xs shadow-sm bg-background border-muted-foreground/20">
                   <CheckSquare className="h-3.5 w-3.5 mr-1.5" />
                   {selectedBookmarks.size === bookmarks.length ? "Deselect All" : "Select All"}
                 </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMoveDialogOpen(true)}
-                  disabled={isProcessing || selectedBookmarks.size === 0}
-                  className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
-                >
+                <Button variant="outline" size="sm" onClick={() => setIsMoveDialogOpen(true)} disabled={isProcessing || selectedBookmarks.size === 0} className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20">
                   <FolderPlus className="h-3.5 w-3.5 mr-1.5" />
                   <span>Move</span>
                 </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCategorizeDialogOpen(true)}
-                  disabled={isProcessing || selectedBookmarks.size === 0}
-                  className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
-                >
+                <Button variant="outline" size="sm" onClick={() => setIsCategorizeDialogOpen(true)} disabled={isProcessing || selectedBookmarks.size === 0} className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20">
                   <Globe className="h-3.5 w-3.5 mr-1.5" />
                   <span>Category</span>
                 </Button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsTagDialogOpen(true)}
-                  disabled={isProcessing || selectedBookmarks.size === 0}
-                  className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
-                >
+                <Button variant="outline" size="sm" onClick={() => setIsTagDialogOpen(true)} disabled={isProcessing || selectedBookmarks.size === 0} className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20">
                   <Tag className="h-3.5 w-3.5 mr-1.5" />
                   <span>Tag</span>
                 </Button>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCleanup}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
-                    >
+                    <Button variant="outline" size="sm" onClick={handleCleanup} disabled={isProcessing || selectedBookmarks.size === 0} className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20">
                       <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                       <span>Delete</span>
                     </Button>
@@ -511,15 +377,9 @@ const BookmarkList = ({
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateSummaries}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
-                    >
+                    <Button variant="outline" size="sm" onClick={handleGenerateSummaries} disabled={isProcessing || selectedBookmarks.size === 0} className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20">
                       <FileText className="h-3.5 w-3.5 mr-1.5" />
-                      <span>Summary</span>
+                      <span>Summarize</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
@@ -529,13 +389,7 @@ const BookmarkList = ({
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSuggestCategories}
-                      disabled={isProcessing || selectedBookmarks.size === 0}
-                      className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20"
-                    >
+                    <Button variant="outline" size="sm" onClick={handleSuggestCategories} disabled={isProcessing || selectedBookmarks.size === 0} className="h-9 rounded-full px-2.5 text-xs shadow-sm bg-background border-muted-foreground/20">
                       <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                       <span>AI Sort</span>
                     </Button>
@@ -558,12 +412,7 @@ const BookmarkList = ({
                   <label htmlFor="folderName" className="text-sm font-medium">
                     New Folder Name
                   </label>
-                  <Input
-                    id="folderName"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="Enter folder name"
-                  />
+                  <Input id="folderName" value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Enter folder name" />
                 </div>
                 <Button onClick={handleBulkMove} className="w-full">
                   Move Bookmarks
@@ -582,12 +431,7 @@ const BookmarkList = ({
                   <label htmlFor="category" className="text-sm font-medium">
                     Category
                   </label>
-                  <Input
-                    id="category"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    placeholder="Enter category name"
-                  />
+                  <Input id="category" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Enter category name" />
                 </div>
                 <Button onClick={handleBulkCategorize} className="w-full">
                   Set Category
@@ -606,12 +450,7 @@ const BookmarkList = ({
                   <label htmlFor="tags" className="text-sm font-medium">
                     Tags (comma-separated)
                   </label>
-                  <Input
-                    id="tags"
-                    value={newTags}
-                    onChange={(e) => setNewTags(e.target.value)}
-                    placeholder="tag1, tag2, tag3"
-                  />
+                  <Input id="tags" value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="tag1, tag2, tag3" />
                 </div>
                 <Button onClick={handleBulkTag} className="w-full">
                   Add Tags
@@ -623,8 +462,6 @@ const BookmarkList = ({
           {renderVirtualizedBookmarks()}
         </div>
       </SortableContext>
-    </DndContext>
-  );
+    </DndContext>;
 };
-
 export default BookmarkList;
