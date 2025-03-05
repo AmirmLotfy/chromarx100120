@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useChatState } from "./chat/useChatState";
 import ChatInput from "./ChatInput";
@@ -7,14 +8,6 @@ import ChatHeader from "./chat/ChatHeader";
 import ChatSidebar from "./chat/ChatSidebar";
 import ChatMainContent from "./chat/ChatMainContent";
 import { Message } from "@/types/chat";
-
-declare module "@/components/ChatMessages" {
-  export interface ChatMessagesProps {
-    messages: import("@/types/chat").Message[];
-    messagesEndRef: React.RefObject<HTMLDivElement>;
-    renderAdditionalContent?: (message: import("@/types/chat").Message) => React.ReactNode;
-  }
-}
 
 const ChatInterface = () => {
   const {

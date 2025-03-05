@@ -4,13 +4,15 @@ import { cn } from "@/lib/utils";
 import { ExternalLink, User, Bot } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import React, { ReactNode } from "react";
 
 interface ChatMessagesProps {
   messages: Message[];
   messagesEndRef: React.RefObject<HTMLDivElement>;
+  renderAdditionalContent?: (message: Message) => ReactNode;
 }
 
-const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
+const ChatMessages = ({ messages, messagesEndRef, renderAdditionalContent }: ChatMessagesProps) => {
   const isMobile = useIsMobile();
   
   if (messages.length === 0) {
@@ -107,6 +109,9 @@ const ChatMessages = ({ messages, messagesEndRef }: ChatMessagesProps) => {
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {message.content}
                     </p>
+                    
+                    {/* Render additional content if provided */}
+                    {renderAdditionalContent && renderAdditionalContent(message)}
                     
                     {message.bookmarks && message.bookmarks.length > 0 && (
                       <div className="pt-2 border-t border-primary/10 mt-2">
