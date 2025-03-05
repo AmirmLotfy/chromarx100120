@@ -1,5 +1,5 @@
 
-import { BookmarkPlus, Search, Sparkles, Globe, ArrowRight, MagnifyingGlass } from "lucide-react";
+import { BookmarkPlus, Search, Sparkles, Globe, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { useState } from "react";
