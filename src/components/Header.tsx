@@ -13,11 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import SyncStatusIndicator from '@/components/ui/sync-status-indicator';
-
 interface HeaderProps {
   toggleSidebar?: () => void;
 }
-
 interface Notification {
   id: string;
   title: string;
@@ -26,7 +24,6 @@ interface Notification {
   timestamp: string;
   read: boolean;
 }
-
 const Header = ({
   toggleSidebar
 }: HeaderProps) => {
@@ -42,7 +39,6 @@ const Header = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotificationDot, setShowNotificationDot] = useState(false);
-
   useEffect(() => {
     const demoNotifications: Notification[] = [{
       id: "1",
@@ -69,7 +65,6 @@ const Header = ({
     setNotifications(demoNotifications);
     setShowNotificationDot(demoNotifications.some(n => !n.read));
   }, []);
-
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
@@ -78,9 +73,7 @@ const Header = ({
       className: "theme-toggle-toast"
     });
   };
-
   const toggleMenu = () => setMenuOpen(!menuOpen);
-
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(notif => notif.id === id ? {
       ...notif,
@@ -89,7 +82,6 @@ const Header = ({
     const hasUnread = notifications.some(n => !n.read && n.id !== id);
     setShowNotificationDot(hasUnread);
   };
-
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(notif => ({
       ...notif,
@@ -98,7 +90,6 @@ const Header = ({
     setShowNotificationDot(false);
     toast.success("All notifications marked as read");
   };
-
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -108,7 +99,6 @@ const Header = ({
     if (diff < 24 * 60) return `${Math.floor(diff / 60)}h ago`;
     return date.toLocaleDateString();
   };
-
   const getTypeColor = (type: string) => {
     switch (type) {
       case "bookmarks":
@@ -121,7 +111,6 @@ const Header = ({
         return "bg-gray-500";
     }
   };
-
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "bookmarks":
@@ -134,15 +123,13 @@ const Header = ({
         return "📌";
     }
   };
-
   const unreadCount = notifications.filter(n => !n.read).length;
-
   return <>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center">
           <div className="flex items-center gap-2">
             <Link to="/" className="flex items-center gap-2">
-              <img src="/logo.png" alt="ChroMarx Logo" className="h-7 w-auto" />
+              <img alt="ChroMarx Logo" className="h-7 w-auto" src="/lovable-uploads/69941785-8105-45c5-950c-818f41e9c5d3.png" />
               <span className="font-bold hidden md:inline-block">ChroMarx</span>
             </Link>
           </div>
@@ -382,5 +369,4 @@ const Header = ({
       </AnimatePresence>
     </>;
 };
-
 export default Header;
