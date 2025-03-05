@@ -1,3 +1,4 @@
+
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, User, LogOut, Menu, Bell, Check } from "lucide-react";
@@ -17,6 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import SyncStatusIndicator from '@/components/ui/sync-status-indicator';
+
+interface HeaderProps {
+  toggleSidebar: () => void;
+}
 
 interface Notification {
   id: string;

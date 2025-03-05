@@ -7,20 +7,25 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 
 interface ChatOfflineNoticeProps {
+  isOffline?: boolean;
   isAIUnavailable?: boolean;
   onRetryConnection?: () => void;
 }
 
 const ChatOfflineNotice = ({ 
+  isOffline, 
   isAIUnavailable, 
   onRetryConnection 
 }: ChatOfflineNoticeProps) => {
   const isMobile = useIsMobile();
-  const { isOffline } = useOfflineStatus({
+  const offlineStatus = useOfflineStatus({
     showToasts: false
   });
   
-  if (!isOffline && !isAIUnavailable) return null;
+  // Use the passed isOffline prop if provided, otherwise use the hook's value
+  const isActuallyOffline = isOffline !== undefined ? isOffline : offlineStatus.isOffline;
+  
+  if (!isActuallyOffline && !isAIUnavailable) return null;
   
   return (
     <motion.div
@@ -33,7 +38,7 @@ const ChatOfflineNotice = ({
         variant="default"
         className={`mb-3 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-500/30 rounded-lg overflow-hidden ${isMobile ? 'p-3' : ''}`}
       >
-        {isOffline ? (
+        {isActuallyOffline ? (
           <div className="flex gap-2">
             <div className="flex-shrink-0 h-7 w-7 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
               <WifiOff className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-amber-600 dark:text-amber-400`} />
