@@ -131,11 +131,17 @@ export function useOfflineStatus(options?: OfflineStatusOptions) {
     isServiceWorkerActive,
     checkConnection: async () => {
       try {
+        // Fix: Replace the invalid 'timeout' property with AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
         const response = await fetch('/favicon.ico', {
           method: 'HEAD',
           cache: 'no-store',
-          timeout: 5000
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           if (isOffline) {
