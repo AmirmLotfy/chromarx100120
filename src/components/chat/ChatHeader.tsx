@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search, ChevronLeft, Sparkles, X } from "lucide-react";
+import { Menu, ChevronLeft, Sparkles, X, Search, Bookmark, BookmarkPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -30,32 +30,32 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <motion.div 
-      className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0"
+      className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <motion.button 
           whileTap={{ scale: 0.95 }}
           onClick={handleToggleSidebar}
-          className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center"
+          className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center"
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
           {isHistoryOpen ? 
-            <ChevronLeft size={18} className="text-primary" /> : 
-            <Menu size={18} className="text-muted-foreground" />
+            <ChevronLeft size={20} className="text-primary" /> : 
+            <Menu size={20} className="text-muted-foreground" />
           }
         </motion.button>
         
         <div className="flex flex-col">
-          <h1 className="text-sm font-medium flex items-center gap-1.5 truncate max-w-[160px] sm:max-w-[220px]">
+          <h1 className="text-sm font-medium flex items-center gap-2 truncate max-w-[160px] sm:max-w-[220px]">
             {activeConversation?.name || "New Chat"}
             {activeConversation?.pinned && (
-              <div className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+              <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
             )}
           </h1>
-          <p className="text-[10px] text-muted-foreground truncate max-w-[160px] sm:max-w-[220px]">
+          <p className="text-xs text-muted-foreground truncate max-w-[160px] sm:max-w-[220px]">
             {messagesCount === 0 
               ? "Start a conversation" 
               : `${messagesCount} messages${activeConversation?.category ? ` • ${activeConversation.category}` : ''}`}
@@ -69,9 +69,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             onClick={clearChat}
             size="sm"
             variant="ghost"
-            className="h-8 text-xs"
+            className="h-9 text-xs font-normal"
           >
-            <Sparkles size={14} className="mr-1.5" />
+            <Sparkles size={15} className="mr-1.5" />
             New Chat
           </Button>
         )}
@@ -81,7 +81,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           whileTap={{ scale: 0.95 }}
           onClick={toggleBookmarkSearchMode}
           className={cn(
-            "relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors",
+            "relative h-9 px-4 rounded-full text-xs font-medium flex items-center gap-2 transition-colors",
             isBookmarkSearchMode 
               ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive" 
               : "bg-primary text-primary-foreground hover:opacity-90"
@@ -97,12 +97,12 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="flex-shrink-0"
           >
             {isBookmarkSearchMode ? (
-              <X size={14} />
+              <X size={15} />
             ) : (
-              <Search size={14} />
+              <Search size={15} />
             )}
           </motion.div>
-          <span className="truncate">{isBookmarkSearchMode ? "Exit Search" : "Search"}</span>
+          <span>{isBookmarkSearchMode ? "Exit Search" : "Search"}</span>
         </motion.button>
       </div>
     </motion.div>
