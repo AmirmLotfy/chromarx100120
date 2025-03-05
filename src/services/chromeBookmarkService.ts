@@ -194,7 +194,7 @@ export const chromeBookmarkService = {
   /**
    * Convert Chrome bookmark tree to flat array of ChromeBookmark objects
    */
-  private flattenBookmarkTree(nodes: chrome.bookmarks.BookmarkTreeNode[], category = "Chrome"): ChromeBookmark[] {
+  flattenBookmarkTree(nodes: chrome.bookmarks.BookmarkTreeNode[], category = "Chrome"): ChromeBookmark[] {
     let bookmarks: ChromeBookmark[] = [];
     
     for (const node of nodes) {

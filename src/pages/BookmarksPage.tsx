@@ -13,6 +13,8 @@ import { motion } from "framer-motion";
 import { dummyBookmarks } from "@/utils/dummyBookmarks";
 import { useBatchProcessing } from "@/hooks/useBatchProcessing";
 import OptimizedBookmarkContent from "@/components/OptimizedBookmarkContent";
+import FolderCreationDialog from "@/components/FolderCreationDialog";
+import { chromeBookmarkService } from "@/services/chromeBookmarkService";
 
 const BookmarksPage = () => {
   const {
@@ -43,6 +45,7 @@ const BookmarksPage = () => {
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
+  const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -142,6 +145,20 @@ const BookmarksPage = () => {
     count: bookmarks.filter((b) => b.url && extractDomain(b.url) === domain)
       .length,
   }));
+
+  const handleCreateFolder = async (name: string, parentId?: string) => {
+    try {
+      const newFolder = await chromeBookmarkService.createFolder(name, parentId);
+      if (newFolder) {
+        setBookmarks(prev => [...prev, newFolder]);
+        return Promise.resolve();
+      }
+      return Promise.reject("Failed to create folder");
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      return Promise.reject(error);
+    }
+  };
 
   const filteredBookmarks = bookmarks
     .filter((bookmark) => {
@@ -247,10 +264,7 @@ const BookmarksPage = () => {
           onImport={(bookmarks) => {
             /* This will be replaced by the new import functionality */
           }}
-          onCreateFolder={() => {
-            /* To be implemented later */
-            toast.info("Create folder functionality coming soon!");
-          }}
+          onCreateFolder={() => setIsFolderDialogOpen(true)}
           suggestions={suggestions}
           onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
           importComponent={<BookmarkImport onImportComplete={handleImport} />}
@@ -259,13 +273,7 @@ const BookmarksPage = () => {
         />
 
         <OptimizedBookmarkContent
-          categories={categories}
-          domains={domains}
-          selectedCategory={selectedCategory}
-          selectedDomain={selectedDomain}
-          onSelectCategory={setSelectedCategory}
-          onSelectDomain={setSelectedDomain}
-          bookmarks={bookmarks}
+          filteredBookmarks={filteredBookmarks}
           selectedBookmarks={selectedBookmarks}
           onToggleSelect={(id) => {
             setSelectedBookmarks(prev => {
@@ -280,16 +288,28 @@ const BookmarksPage = () => {
           }}
           onDelete={handleDelete}
           formatDate={formatDate}
-          view={view}
-          onReorder={loadBookmarks}
-          onBulkDelete={handleDeleteSelected}
           onRefresh={loadBookmarks}
-          loading={false}
-          filteredBookmarks={filteredBookmarks}
+          onClearFilters={() => {
+            setSelectedCategory(null);
+            setSelectedDomain(null);
+            handleSearch("");
+          }}
+          loading={loading}
+          categories={categories}
+          domains={domains}
+          selectedCategory={selectedCategory}
+          selectedDomain={selectedDomain}
+          onSelectCategory={setSelectedCategory}
+          onSelectDomain={setSelectedDomain}
           onUpdateCategories={handleUpdateCategories}
-          isOffline={isOfflineMode}
-          onClearFilters={() => handleSearch("")}
           searchQuery={searchQuery}
+          isOffline={isOfflineMode}
+        />
+      
+        <FolderCreationDialog
+          isOpen={isFolderDialogOpen}
+          onClose={() => setIsFolderDialogOpen(false)}
+          onCreateFolder={handleCreateFolder}
         />
       </div>
     </Layout>
