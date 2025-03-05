@@ -35,11 +35,13 @@ const SubscriptionHistoryPage = () => {
         if (!user?.id) return;
         
         setIsLoading(true);
+        
+        // Temporarily use app_configuration to store/retrieve payment data
         const { data, error } = await supabase
-          .from('payment_history')
+          .from('app_configuration')
           .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+          .eq('key', `payment_history_${user.id}`)
+          .maybeSingle();
           
         if (error) {
           console.error('Error fetching payment history:', error);
@@ -47,7 +49,12 @@ const SubscriptionHistoryPage = () => {
           return;
         }
         
-        setPayments(data || []);
+        // If we have payment history data, set it
+        if (data && data.value && Array.isArray(data.value.payments)) {
+          setPayments(data.value.payments as PaymentRecord[]);
+        } else {
+          setPayments([]);
+        }
       } catch (error) {
         console.error('Error in payment history fetch:', error);
         toast.error('Failed to load payment history');

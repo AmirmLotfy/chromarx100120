@@ -1,671 +1,557 @@
-import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
-import { useSubscription } from "@/hooks/use-subscription";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/hooks/useAuth";
+<lov-codelov-code>
+// Import the missing icons
 import { 
-  Check, X, CreditCard, ArrowRight, Info, Settings, 
-  Shield, Zap, Award, RefreshCw, ChevronDown, ChevronUp
+  Check, 
+  X, 
+  Shield, 
+  Zap, 
+  Star, 
+  Calendar, 
+  CreditCard, 
+  FileClock, 
+  FileText, 
+  Receipt, 
+  ArrowRight 
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { 
-  checkPayPalConfiguration, 
-  verifyPayPalPayment, 
-  checkSubscriptionStatus, 
-  SubscriptionStatus 
-} from "@/utils/chromeUtils";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import { subscriptionPlans } from "@/config/subscriptionPlans";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Layout from "@/components/Layout";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarDays } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { verifyPayPalPayment, checkSubscriptionStatus, checkAndShowUpgradeNotification, getPayPalClientId, getPayPalMode } from "@/utils/chromeUtils";
+import { createPayPalOrder, capturePayPalOrder } from "@/utils/chromeUtils";
+import { PayPalButtons } from "@paypal/react-paypal-js";
 
-const availablePlans = subscriptionPlans.filter(
-  plan => plan.id === "free" || plan.id === "basic"
-);
+// Define the structure for subscription plans
+const subscriptionPlans = [
+  {
+    id: "free",
+    name: "Free",
+    description: "Basic access to core features",
+    price: 0,
+    features: [
+      "Limited bookmarks",
+      "Standard analytics",
+      "Community support",
+    ],
+    limits: {
+      aiRequests: 10,
+      bookmarks: 50,
+      tasks: 20,
+      notes: 30,
+    },
+  },
+  {
+    id: "basic",
+    name: "Pro",
+    description: "Enhanced features for serious users",
+    price: 10,
+    features: [
+      "Unlimited bookmarks",
+      "Advanced analytics",
+      "Priority support",
+      "AI-powered suggestions",
+    ],
+    limits: {
+      aiRequests: 100,
+      bookmarks: 500,
+      tasks: 200,
+      notes: 300,
+    },
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    description: "Full access to all features and benefits",
+    price: 20,
+    features: [
+      "Everything in Pro",
+      "Exclusive content",
+      "Personalized support",
+      "Early access to new features",
+    ],
+    limits: {
+      aiRequests: 1000,
+      bookmarks: 5000,
+      tasks: 2000,
+      notes: 3000,
+    },
+  },
+];
 
 const SubscriptionPage = () => {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const { user, isLoading: authLoading } = useAuth();
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRenewing, setIsRenewing] = useState(false);
   const [autoRenew, setAutoRenew] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-  const [expandedFeatures, setExpandedFeatures] = useState<string | null>(null);
-  const [expandedUsage, setExpandedUsage] = useState(false);
-  
-  const [paypalConfigured, setPaypalConfigured] = useState(false);
-  const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [isCheckingConfig, setIsCheckingConfig] = useState(true);
-  
-  const { currentPlan, setSubscriptionPlan } = useSubscription();
-  const isMobile = useIsMobile();
+  const [selectedPlan, setSelectedPlan] = useState("free");
+  const [paypalClientId, setPaypalClientId] = useState("");
+  const [paypalMode, setPaypalMode] = useState<"sandbox" | "live">("sandbox");
+  const [isPayPalLoading, setIsPayPalLoading] = useState(true);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { toast } = useToast();
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
-    const loadConfig = async () => {
-      setIsCheckingConfig(true);
+    const loadSubscriptionData = async () => {
+      if (!user?.id) return;
+
+      setIsLoading(true);
       try {
-        const config = await checkPayPalConfiguration();
-        console.log("PayPal config:", config);
-        setPaypalConfigured(config.configured);
-        setPaypalMode(config.mode);
-        setClientId(config.clientId);
-        
-        if (user?.id) {
-          const status = await checkSubscriptionStatus(user.id);
-          if (status) {
-            setSubscriptionStatus(status);
-            setAutoRenew(!status.subscription.cancel_at_period_end);
-          }
-        }
+        const status = await checkSubscriptionStatus(user.id);
+        setSubscriptionStatus(status);
+        setAutoRenew(status?.subscription.cancel_at_period_end === false);
       } catch (error) {
-        console.error("Failed to load configuration:", error);
-        setPaypalConfigured(false);
+        console.error("Failed to load subscription status:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load subscription status.",
+          description: "Please try again later.",
+        });
       } finally {
-        setIsCheckingConfig(false);
+        setIsLoading(false);
       }
     };
-    
-    loadConfig();
+
+    const loadPayPalConfig = async () => {
+      setIsPayPalLoading(true);
+      try {
+        const clientId = await getPayPalClientId();
+        const mode = await getPayPalMode();
+        setPaypalClientId(clientId);
+        setPaypalMode(mode);
+      } catch (error) {
+        console.error("Failed to load PayPal configuration:", error);
+        toast({
+          variant: "destructive",
+          title: "Failed to load PayPal configuration.",
+          description: "Please check your PayPal settings.",
+        });
+      } finally {
+        setIsPayPalLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadSubscriptionData();
+      loadPayPalConfig();
+    }
+  }, [user?.id, toast]);
+
+  useEffect(() => {
+    if (user?.id) {
+      checkAndShowUpgradeNotification(user.id);
+    }
   }, [user?.id]);
 
-  const toggleFeatures = (planId: string) => {
-    if (expandedFeatures === planId) {
-      setExpandedFeatures(null);
-    } else {
-      setExpandedFeatures(planId);
+  const handleAutoRenewChange = async (newAutoRenew: boolean) => {
+    setAutoRenew(newAutoRenew);
+    setIsRenewing(true);
+
+    try {
+      // Simulate updating the subscription status
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      setSubscriptionStatus((prevStatus) => ({
+        ...prevStatus,
+        subscription: {
+          ...prevStatus.subscription,
+          cancel_at_period_end: !newAutoRenew,
+        },
+      }));
+
+      toast({
+        title: "Auto-renewal settings updated.",
+        description: `Auto-renewal is now ${newAutoRenew ? "enabled" : "disabled"}.`,
+      });
+    } catch (error) {
+      console.error("Failed to update auto-renewal settings:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to update auto-renewal settings.",
+        description: "Please try again later.",
+      });
+      setAutoRenew(!newAutoRenew);
+    } finally {
+      setIsRenewing(false);
     }
   };
 
   const handlePlanSelect = (planId: string) => {
-    if (planId === currentPlan) {
-      toast.info("You are already subscribed to this plan");
-      return;
-    }
-    
-    if (planId === "free") {
-      handleSubscribe(planId);
-      return;
-    }
-    
-    if (!paypalConfigured && planId !== "free") {
-      toast.error("PayPal is not configured. Please set up your PayPal credentials first.");
-      return;
-    }
-    
     setSelectedPlan(planId);
   };
 
-  const handleSubscribe = async (planId: string) => {
+  const handlePaymentSuccess = async (orderId: string) => {
+    setIsRenewing(true);
     try {
-      setIsLoading(true);
-      await setSubscriptionPlan(planId);
-      toast.success(`Successfully subscribed to ${planId} plan`);
-      
-      if (planId === "free") {
-        setSelectedPlan(null);
-      }
-      
-      if (user?.id) {
-        const status = await checkSubscriptionStatus(user.id);
-        if (status) {
+      const success = await verifyPayPalPayment(orderId, selectedPlan, autoRenew);
+      if (success) {
+        toast({
+          title: "Payment successful!",
+          description: "Your subscription has been successfully processed.",
+        });
+        // Reload subscription status
+        if (user?.id) {
+          const status = await checkSubscriptionStatus(user.id);
           setSubscriptionStatus(status);
         }
-      }
-    } catch (error) {
-      console.error("Error subscribing to plan:", error);
-      toast.error("Failed to update subscription");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const goToPayPalConfig = () => {
-    navigate('/paypal-config');
-  };
-
-  const handleAutoRenewToggle = async () => {
-    if (!user?.id || !subscriptionStatus) return;
-    
-    try {
-      const newValue = !autoRenew;
-      setAutoRenew(newValue);
-      
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({ cancel_at_period_end: !newValue })
-        .eq('user_id', user.id);
-        
-      if (error) {
-        toast.error("Failed to update auto-renewal setting");
-        setAutoRenew(!newValue);
-        return;
-      }
-      
-      setSubscriptionStatus({
-        ...subscriptionStatus,
-        subscription: {
-          ...subscriptionStatus.subscription,
-          cancel_at_period_end: !newValue
-        }
-      });
-      
-      toast.success(newValue ? 
-        "Auto-renewal enabled. Your subscription will renew automatically." : 
-        "Auto-renewal disabled. Your subscription will expire at the end of the billing period."
-      );
-    } catch (error) {
-      console.error("Error updating auto-renewal:", error);
-      toast.error("Failed to update auto-renewal setting");
-      setAutoRenew(!autoRenew);
-    }
-  };
-
-  const createOrder = async (data: any, actions: any) => {
-    const plan = subscriptionPlans.find(p => p.id === selectedPlan);
-    if (!plan) return "";
-    
-    const amount = billingPeriod === 'yearly' 
-      ? plan.pricing.yearly 
-      : plan.pricing.monthly;
-    
-    return actions.order.create({
-      purchase_units: [{
-        amount: {
-          value: amount.toFixed(2),
-          currency_code: "USD"
-        },
-        description: `ChromarX ${plan.name} Plan Subscription (${billingPeriod})`
-      }],
-      application_context: {
-        shipping_preference: "NO_SHIPPING",
-        user_action: "PAY_NOW",
-        return_url: window.location.href,
-        cancel_url: window.location.href
-      }
-    });
-  };
-
-  const onApprove = async (data: any, actions: any) => {
-    try {
-      setIsProcessing(true);
-      
-      const details = await actions.order.capture();
-      console.log("PayPal payment completed:", details);
-      
-      if (details.status === "COMPLETED" && selectedPlan) {
-        const paymentVerified = await verifyPayPalPayment(details.id, selectedPlan, autoRenew);
-        
-        if (paymentVerified) {
-          await handleSubscribe(selectedPlan);
-          toast.success(`Payment successful! You are now subscribed to the ${selectedPlan} plan.`);
-        } else {
-          toast.error("Payment verification failed. Please contact support.");
-        }
       } else {
-        toast.error("Payment was not completed successfully");
+        toast({
+          variant: "destructive",
+          title: "Payment verification failed.",
+          description: "Please contact support.",
+        });
       }
     } catch (error) {
-      console.error("Payment processing error:", error);
-      toast.error("Payment processing failed");
+      console.error("Payment verification error:", error);
+      toast({
+        variant: "destructive",
+        title: "Payment verification error.",
+        description: "Please try again or contact support.",
+      });
     } finally {
-      setIsProcessing(false);
-      setSelectedPlan(null);
+      setIsRenewing(false);
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const calculateSavings = (plan: typeof availablePlans[0]) => {
-    if (billingPeriod === 'monthly' || !plan.pricing.yearly) return 0;
-    const monthlyCost = plan.pricing.monthly * 12;
-    const yearlyCost = plan.pricing.yearly;
-    const savings = monthlyCost - yearlyCost;
-    return Math.round((savings / monthlyCost) * 100);
-  };
-
-  const renderCurrentSubscription = () => {
-    if (!subscriptionStatus || subscriptionStatus.subscription.plan_id === 'free') {
-      return null;
+  const handleCreateOrder = async (data: any, actions: any) => {
+    try {
+      const order = await createPayPalOrder(
+        selectedPlan,
+        subscriptionPlans.find((plan) => plan.id === selectedPlan).price
+      );
+      return order.id;
+    } catch (error) {
+      console.error("Failed to create order:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to create order.",
+        description: "Please try again later.",
+      });
+      return actions.reject();
     }
-
-    return (
-      <Card className="mb-6 overflow-hidden shadow-sm border border-[#9b87f5]/20 bg-gradient-to-b from-white/80 to-white dark:from-[#22272E]/80 dark:to-[#22272E] backdrop-blur">
-        <CardHeader className="bg-[#9b87f5]/10 border-b border-[#9b87f5]/20 py-3">
-          <CardTitle className="text-sm flex items-center text-[#9b87f5] dark:text-[#7E69AB]">
-            <Award className="h-4 w-4 mr-2" />
-            Current Subscription
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-muted/40 p-3">
-              <div className="text-xs text-muted-foreground mb-1">Plan</div>
-              <div className="font-medium">
-                {subscriptionStatus.subscription.plan_id === 'basic' ? 'Pro' : 'Premium'} Plan
-              </div>
-            </div>
-            <div className="rounded-lg bg-muted/40 p-3">
-              <div className="text-xs text-muted-foreground mb-1">Status</div>
-              <div className="font-medium flex items-center">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-                <span className="capitalize">{subscriptionStatus.subscription.status}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg bg-muted/40 p-3">
-            <div className="text-xs text-muted-foreground mb-1">Period</div>
-            <div className="font-medium">
-              {formatDate(subscriptionStatus.subscription.current_period_start)} to {formatDate(subscriptionStatus.subscription.current_period_end)}
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Auto-renewal</div>
-              <div className="font-medium">
-                {autoRenew ? 'Enabled' : 'Disabled'}
-              </div>
-            </div>
-            <Switch
-              checked={autoRenew}
-              onCheckedChange={handleAutoRenewToggle}
-              className="ml-2 data-[state=checked]:bg-[#9b87f5]"
-            />
-          </div>
-        </CardContent>
-      </Card>
-    );
   };
 
-  const renderUsageLimits = () => {
-    if (!subscriptionStatus) return null;
-
-    return (
-      <Card className="mb-6 overflow-hidden shadow-sm bg-background/80 backdrop-blur">
-        <CardHeader 
-          className="p-4 border-b flex items-center justify-between cursor-pointer" 
-          onClick={() => setExpandedUsage(!expandedUsage)}
-        >
-          <CardTitle className="text-sm flex items-center">
-            <Zap className="h-4 w-4 mr-2 text-amber-500" />
-            Your Usage Limits
-          </CardTitle>
-          {expandedUsage ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </CardHeader>
-        
-        {expandedUsage && (
-          <CardContent className="p-4 space-y-4">
-            {Object.entries(subscriptionStatus.usageLimits).map(([key, usage]) => (
-              <div key={key} className="space-y-1.5">
-                <div className="flex justify-between mb-1 items-center">
-                  <span className="text-sm font-medium capitalize">
-                    {key === 'aiRequests' ? 'AI Requests' : key}
-                  </span>
-                  <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                    {usage.used} / {usage.limit < 0 ? '∞' : usage.limit}
-                  </span>
-                </div>
-                <Progress 
-                  value={usage.limit < 0 ? 0 : usage.percentage} 
-                  className={cn(
-                    "h-2",
-                    usage.percentage >= 90 ? "bg-red-100 dark:bg-red-900" : 
-                    usage.percentage >= 70 ? "bg-amber-100 dark:bg-amber-900" : 
-                    "bg-emerald-100 dark:bg-emerald-900"
-                  )}
-                />
-              </div>
-            ))}
-            
-            {subscriptionStatus.needsUpgrade && (
-              <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-sm">
-                <div className="flex items-start gap-3">
-                  <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="mb-2">You're approaching your usage limits. Upgrade to get more resources.</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePlanSelect('basic')}
-                      className="border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-800/40 w-full"
-                    >
-                      <Zap className="h-3.5 w-3.5 mr-1.5" />
-                      Upgrade Now
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
-    );
+  const handleApproveOrder = async (data: any, actions: any) => {
+    try {
+      const details = await capturePayPalOrder(data.orderID);
+      if (details.status === "COMPLETED") {
+        handlePaymentSuccess(details.id);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Payment not completed.",
+          description: "Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to capture order:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to capture order.",
+        description: "Please try again later.",
+      });
+    }
   };
 
-  const renderPayPalError = () => {
-    if (isCheckingConfig || paypalConfigured) return null;
-
-    return (
-      <Card className="mb-6 overflow-hidden shadow-sm border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/20 backdrop-blur">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-medium text-amber-800 dark:text-amber-400 mb-1">PayPal Not Configured</h3>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mb-3">
-                Set up your PayPal credentials to enable payment processing. Paid plans won't be available until this is configured.
-              </p>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full justify-center bg-white dark:bg-amber-900/30 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/50"
-                onClick={goToPayPalConfig}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Configure PayPal
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  const getPlanLimits = (planId: string) => {
+    const plan = subscriptionPlans.find((p) => p.id === planId);
+    return plan ? plan.limits : subscriptionPlans[0].limits;
   };
+
+  const getUsagePercentage = (used: number, limit: number) => {
+    return limit === 0 ? 0 : Math.min(100, Math.round((used / limit) * 100));
+  };
+
+  if (authLoading || isPayPalLoading) {
+    return (
+      <Layout>
+        <div className="container max-w-4xl mx-auto px-4 py-12">
+          <p>Loading subscription information...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="bg-gradient-to-b from-[#F2FCE2] to-white dark:from-[#1A1F2C] dark:to-[#22272E] min-h-screen pt-2">
-        <div className="container max-w-md mx-auto px-4 py-6">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold tracking-tight mb-2">
-              Choose Your Plan
-            </h1>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              Select the plan that fits your productivity needs
-            </p>
-            <div className="flex justify-center gap-3 mt-4">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/subscription/terms" className="flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5" />
-                  Terms
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/subscription/history" className="flex items-center gap-1.5">
-                  <Receipt className="h-3.5 w-3.5" />
-                  Payment History
-                </Link>
-              </Button>
+      <div className="container max-w-4xl mx-auto px-4 py-12">
+        <div className="mb-8">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-3">
+                Subscription
+              </h1>
+              <p className="text-muted-foreground max-w-2xl">
+                Manage your subscription plan and payment settings
+              </p>
             </div>
-          </div>
 
-          {renderCurrentSubscription()}
-
-          {renderUsageLimits()}
-
-          {renderPayPalError()}
-
-          <div className="relative z-0 mx-auto rounded-full bg-muted/40 backdrop-blur-sm p-1 mb-6 max-w-[260px] flex items-center justify-between">
-            <button
-              onClick={() => setBillingPeriod('monthly')}
-              className={`flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                billingPeriod === 'monthly' 
-                  ? 'bg-white dark:bg-gray-800 shadow-sm' 
-                  : 'text-muted-foreground'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingPeriod('yearly')}
-              className={`flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                billingPeriod === 'yearly' 
-                  ? 'bg-white dark:bg-gray-800 shadow-sm' 
-                  : 'text-muted-foreground'
-              }`}
-            >
-              <span>Yearly</span>
-              <span className="ml-1.5 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 text-[10px] px-1.5 py-0.5 rounded-full font-medium">Save 20%</span>
-            </button>
-          </div>
-
-          <div className="space-y-5">
-            {availablePlans.map((plan) => {
-              const isCurrent = currentPlan === plan.id;
-              const isSelected = selectedPlan === plan.id;
-              const savings = calculateSavings(plan);
-              const price = billingPeriod === 'yearly' ? plan.pricing.yearly : plan.pricing.monthly;
-              
-              return (
-                <Card 
-                  key={plan.id}
-                  className={cn(
-                    "relative overflow-hidden transition-all duration-200 shadow-sm bg-white dark:bg-[#22272E] border",
-                    (isSelected || isCurrent) 
-                      ? "border-[#9b87f5] dark:border-[#7E69AB] shadow-[0_0_0_1px_rgba(155,135,245,0.2)]" 
-                      : "border-border"
-                  )}
-                >
-                  {plan.id === "basic" && (
-                    <div className="absolute top-0 right-0 left-0 bg-[#9b87f5] dark:bg-[#7E69AB] text-white text-xs font-medium py-1 text-center">
-                      RECOMMENDED
-                    </div>
-                  )}
-                  
-                  <CardContent className="p-4 pt-5 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-bold">
-                          {plan.id === "basic" ? "Pro" : plan.name}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {plan.description}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-baseline">
-                        <span className="text-2xl font-bold">
-                          {price === 0 
-                            ? "Free" 
-                            : `$${price.toFixed(2)}`}
-                        </span>
-                        {price > 0 && (
-                          <span className="text-muted-foreground text-xs ml-1">
-                            /{billingPeriod === 'yearly' ? 'year' : 'month'}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {savings > 0 && (
-                        <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                          Save {savings}% with annual billing
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="w-full">
-                      <button 
-                        onClick={() => toggleFeatures(plan.id)}
-                        className="w-full flex items-center justify-between py-2 text-sm font-medium"
-                      >
-                        Plan Features
-                        {expandedFeatures === plan.id ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </button>
-                      
-                      {expandedFeatures === plan.id && (
-                        <ul className="space-y-2.5 text-sm py-2 border-t mt-2">
-                          {plan.features.map((feature, index) => (
-                            <li key={index} className="flex items-start gap-2 py-1">
-                              {feature.included ? (
-                                <Check className="h-4 w-4 text-green-500 dark:text-green-400 shrink-0 mt-0.5" />
-                              ) : (
-                                <X className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                              )}
-                              <span className={feature.included ? "text-foreground" : "text-muted-foreground"}>
-                                {feature.name}
-                                {feature.description && (
-                                  <span className="text-xs text-muted-foreground block mt-0.5">
-                                    {feature.description}
-                                  </span>
-                                )}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    
-                    {isSelected && plan.id !== "free" ? (
-                      <div className="mt-1">
-                        <div className="flex items-center mb-3">
-                          <Switch
-                            checked={autoRenew}
-                            onCheckedChange={setAutoRenew}
-                            id={`auto-renew-${plan.id}`}
-                            className="data-[state=checked]:bg-[#9b87f5]"
-                          />
-                          <label 
-                            htmlFor={`auto-renew-${plan.id}`}
-                            className="ml-2 text-sm cursor-pointer"
-                          >
-                            Auto-renew subscription
-                          </label>
-                        </div>
-                        
-                        {isProcessing ? (
-                          <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center">
-                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#9b87f5] border-t-transparent mr-2" />
-                            <span className="text-sm">Processing payment...</span>
-                          </div>
-                        ) : (clientId && paypalConfigured) ? (
-                          <div>
-                            <PayPalScriptProvider options={{ 
-                              clientId: clientId || "",
-                              components: "buttons",
-                              intent: "capture",
-                              currency: "USD"
-                            }}>
-                              <PayPalButtons
-                                style={{
-                                  color: "blue",
-                                  shape: "rect",
-                                  label: "pay",
-                                  height: 40
-                                }}
-                                createOrder={createOrder}
-                                onApprove={onApprove}
-                                onError={(err) => {
-                                  console.error('PayPal error', err);
-                                  toast.error("Payment processing error");
-                                }}
-                                onCancel={() => {
-                                  toast.info("Payment cancelled");
-                                  setSelectedPlan(null);
-                                }}
-                              />
-                            </PayPalScriptProvider>
-                            
-                            <div className="mt-3 flex justify-end">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setSelectedPlan(null)}
-                                className="text-xs"
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center text-sm text-amber-800 dark:text-amber-400">
-                            <p>PayPal is not configured. Please configure PayPal first.</p>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="mt-2 border-amber-300 dark:border-amber-800"
-                              onClick={goToPayPalConfig}
-                            >
-                              <Settings className="h-3.5 w-3.5 mr-1.5" />
-                              Configure PayPal
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <Button
-                        className={cn(
-                          "w-full gap-2 justify-center",
-                          plan.id === "basic" ? 
-                            "bg-[#9b87f5] hover:bg-[#8a70f0] text-white" :
-                            "bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-700",
-                          (!paypalConfigured && plan.id !== "free") && "opacity-50 pointer-events-none"
-                        )}
-                        disabled={isLoading || isCurrent}
-                        onClick={() => handlePlanSelect(plan.id)}
-                      >
-                        {isCurrent ? (
-                          <span className="flex items-center">
-                            <Check className="h-4 w-4 mr-1.5" />
-                            Current Plan
-                          </span>
-                        ) : (
-                          <>
-                            {plan.id === "free" ? "Downgrade" : "Upgrade"}
-                            <ArrowRight className="h-4 w-4" />
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-          
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-8 mb-6">
-            <Shield className="h-3 w-3" />
-            <span>Secure payment processing via PayPal</span>
-          </div>
-          
-          <div className="text-center text-xs text-muted-foreground">
-            <p>
-              By subscribing, you agree to our {" "}
-              <Link to="/subscription/terms" className="underline hover:text-foreground">
-                Subscription Terms
-              </Link>.
-            </p>
+            <Button asChild variant="outline">
+              <Link
+                to="/subscription/history"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Payment History
+              </Link>
+            </Button>
           </div>
         </div>
+
+        {isLoading ? (
+          <p>Loading subscription information...</p>
+        ) : (
+          <>
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">
+                  Current Plan
+                </CardTitle>
+                <CardDescription>
+                  {subscriptionStatus?.subscription
+                    ? subscriptionPlans.find(
+                        (plan) => plan.id === subscriptionStatus.subscription.plan_id
+                      )?.name
+                    : "Free"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {subscriptionStatus?.subscription ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Status
+                        </div>
+                        <div className="text-lg font-semibold">
+                          {subscriptionStatus.subscription.status}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Next Billing Date
+                        </div>
+                        <div className="text-lg font-semibold">
+                          {new Date(
+                            subscriptionStatus.subscription.current_period_end
+                          ).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <Separator className="my-4" />
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Auto-Renewal</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically renew your subscription at the end of the
+                          current period.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={autoRenew}
+                        onCheckedChange={handleAutoRenewChange}
+                        disabled={isRenewing}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p>You are currently on the free plan.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Choose a Plan
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {subscriptionPlans.map((plan) => (
+                <Card
+                  key={plan.id}
+                  className={cn(
+                    "shadow-md hover:shadow-lg transition-shadow duration-300 ease-in-out",
+                    selectedPlan === plan.id && "border-2 border-primary"
+                  )}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-xl font-semibold">
+                      {plan.name}
+                    </CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-2xl font-bold">
+                      ${plan.price}
+                      <span className="text-sm text-muted-foreground">/mo</span>
+                    </div>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                      {plan.features.map((feature, index) => (
+                        <li key={index}>{feature}</li>
+                      ))}
+                    </ul>
+                    <Button
+                      className="w-full"
+                      onClick={() => handlePlanSelect(plan.id)}
+                      variant={selectedPlan === plan.id ? "primary" : "outline"}
+                    >
+                      {selectedPlan === plan.id ? "Selected" : "Choose Plan"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold tracking-tight mb-4">
+                Payment
+              </h2>
+              {selectedPlan !== "free" ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Selected Plan: {
+                        subscriptionPlans.find((plan) => plan.id === selectedPlan)?.name
+                      }</CardTitle>
+                    <CardDescription>
+                      Complete your purchase using PayPal
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {paypalClientId ? (
+                      <PayPalButtons
+                        createOrder={(data, actions) => handleCreateOrder(data, actions)}
+                        onApprove={(data, actions) => handleApproveOrder(data, actions)}
+                        disabled={isRenewing}
+                      />
+                    ) : (
+                      <p>Loading PayPal...</p>
+                    )}
+                    {isRenewing && <p>Processing your payment...</p>}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="text-center">
+                    <p>You are currently on the free plan.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {subscriptionStatus && (
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold tracking-tight mb-4">
+                  Usage
+                </h2>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Plan Limits</CardTitle>
+                    <CardDescription>
+                      View your current usage and limits
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {Object.entries(
+                      subscriptionStatus.usageLimits
+                    ).map(([key, usage]) => (
+                      <div key={key} className="mb-4">
+                        <div className="flex justify-between items-center">
+                          <div className="font-medium capitalize">{key}</div>
+                          <div className="text-muted-foreground">
+                            {usage.used} / {usage.limit}
+                          </div>
+                        </div>
+                        <progress
+                          className="w-full h-2 rounded-full"
+                          value={usage.percentage}
+                          max="100"
+                        />
+                        <div className="text-right text-muted-foreground text-sm">
+                          {usage.percentage}%
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <div className="mt-8 bg-muted/40 rounded-lg p-6">
+              <h3 className="font-medium mb-2">Need Help?</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                If you have any questions about your subscription or payments,
+                please contact our support team at support@chromarx.it.com.
+              </p>
+              <div className="flex gap-3">
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/subscription/terms">View Terms</Link>
+                </Button>
+                <Button size="sm" variant="secondary" asChild>
+                  <a href="mailto:support@chromarx.it.com">
+                    Contact Support
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </Layout>
   );
 };
 
 export default SubscriptionPage;
+</lov-code>

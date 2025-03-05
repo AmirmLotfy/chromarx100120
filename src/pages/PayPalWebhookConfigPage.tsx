@@ -11,6 +11,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Info, Copy, Link, Check, AlertTriangle } from "lucide-react";
 import { checkPayPalConfiguration } from "@/utils/chromeUtils";
 
+// Define interface for webhook data
+interface WebhookConfig {
+  id: string;
+  webhook_id: string;
+  event_types: string[];
+  url: string;
+  created_at: string;
+  updated_at: string;
+  active: boolean;
+}
+
 const PayPalWebhookConfigPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [webhookId, setWebhookId] = useState("");
@@ -28,14 +39,15 @@ const PayPalWebhookConfigPage = () => {
         
         // Get webhook configuration
         const { data } = await supabase
-          .from('paypal_webhooks')
+          .from('app_configuration')
           .select('*')
-          .eq('active', true)
+          .eq('key', 'paypal_webhook_config')
           .maybeSingle();
           
-        if (data) {
-          setWebhookId(data.webhook_id);
-          setIsConfigured(true);
+        if (data && data.value) {
+          const webhookConfig = data.value as { webhook_id: string };
+          setWebhookId(webhookConfig.webhook_id || '');
+          setIsConfigured(!!webhookConfig.webhook_id);
         }
         
         // Generate webhook URL based on current environment
@@ -63,17 +75,17 @@ const PayPalWebhookConfigPage = () => {
     try {
       // First check if we already have a configuration
       const { data: existingData } = await supabase
-        .from('paypal_webhooks')
+        .from('app_configuration')
         .select('*')
-        .eq('active', true)
+        .eq('key', 'paypal_webhook_config')
         .maybeSingle();
         
       if (existingData) {
         // Update existing configuration
         const { error } = await supabase
-          .from('paypal_webhooks')
+          .from('app_configuration')
           .update({
-            webhook_id: webhookId
+            value: { webhook_id: webhookId, updated_at: new Date().toISOString() }
           })
           .eq('id', existingData.id);
           
@@ -81,16 +93,19 @@ const PayPalWebhookConfigPage = () => {
       } else {
         // Create new configuration
         const { error } = await supabase
-          .from('paypal_webhooks')
+          .from('app_configuration')
           .insert({
-            webhook_id: webhookId,
-            url: webhookUrl,
-            event_types: [
-              'PAYMENT.SALE.COMPLETED',
-              'BILLING.SUBSCRIPTION.CREATED',
-              'BILLING.SUBSCRIPTION.CANCELLED',
-              'BILLING.SUBSCRIPTION.EXPIRED'
-            ]
+            key: 'paypal_webhook_config',
+            value: {
+              webhook_id: webhookId,
+              url: webhookUrl,
+              event_types: [
+                'PAYMENT.SALE.COMPLETED',
+                'BILLING.SUBSCRIPTION.CREATED',
+                'BILLING.SUBSCRIPTION.CANCELLED',
+                'BILLING.SUBSCRIPTION.EXPIRED'
+              ]
+            }
           });
           
         if (error) throw error;
@@ -138,7 +153,7 @@ const PayPalWebhookConfigPage = () => {
         </div>
         
         {!paypalConfigured && (
-          <Alert variant="warning" className="mb-6">
+          <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>PayPal not configured</AlertTitle>
             <AlertDescription>
