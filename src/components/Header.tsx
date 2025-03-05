@@ -1,6 +1,6 @@
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, User, LogOut, Menu, Bell } from "lucide-react";
+import { Moon, Sun, User, LogOut, Menu, Bell, Check } from "lucide-react";
 import { LanguageSelector } from "./LanguageSelector";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -112,6 +112,15 @@ const Header = () => {
     }
   };
 
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "bookmarks": return "🔖";
+      case "reminders": return "⏰";
+      case "system": return "🔔";
+      default: return "📌";
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -138,27 +147,27 @@ const Header = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 w-8 rounded-full p-0 relative touch-target"
+                      className="h-9 w-9 rounded-full p-0 relative touch-target"
                       aria-label="Notifications"
                     >
-                      <Bell className="h-[1.1rem] w-[1.1rem]" />
+                      <Bell className="h-[1.2rem] w-[1.2rem]" />
                       {showNotificationDot && (
-                        <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+                        <span className="absolute top-0 right-0 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-background" />
                       )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[calc(100vw-40px)] max-w-[350px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden rounded-xl"
+                    className="w-[calc(100vw-32px)] max-w-[350px] p-0 border border-border/60 shadow-lg rounded-2xl bg-background/95 backdrop-blur-md"
                     align="end"
-                    alignOffset={-15}
-                    sideOffset={10}
+                    alignOffset={-8}
+                    sideOffset={16}
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-primary/5 rounded-t-2xl">
                       <h3 className="font-medium text-sm flex items-center gap-1.5">
-                        <Bell className="h-3.5 w-3.5 text-primary/70" />
+                        <Bell className="h-3.5 w-3.5 text-primary" />
                         Notifications
                         {unreadCount > 0 && (
-                          <Badge variant="secondary" className="ml-1 text-xs py-0 h-5">
+                          <Badge variant="secondary" className="ml-1 text-xs py-0 h-5 bg-primary/10 text-primary">
                             {unreadCount} new
                           </Badge>
                         )}
@@ -167,28 +176,31 @@ const Header = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="h-7 text-xs font-normal touch-target"
+                          className="h-7 text-xs font-normal touch-target hover:bg-primary/10"
                           onClick={markAllAsRead}
                         >
+                          <Check className="h-3.5 w-3.5 mr-1" />
                           Mark all read
                         </Button>
                       )}
                     </div>
                     
-                    <ScrollArea className="h-[min(70vh,320px)] overflow-hidden bg-background">
+                    <ScrollArea className="h-[min(70vh,350px)]">
                       {notifications.length > 0 ? (
                         <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-3 hover:bg-muted transition-colors touch-target ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors touch-target ${!notification.read ? 'bg-primary/5' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
-                                <div className={`${getTypeColor(notification.type)} w-1 rounded-full flex-shrink-0`} />
+                                <div className="flex-shrink-0 h-9 w-9 rounded-full bg-muted/80 flex items-center justify-center text-base">
+                                  {getTypeIcon(notification.type)}
+                                </div>
                                 <div className="space-y-1 flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-1.5">
-                                    <p className="text-sm font-medium truncate pr-1 flex items-center gap-1.5">
+                                    <p className="text-sm font-semibold truncate pr-1 flex items-center gap-1.5">
                                       {notification.title}
                                       {!notification.read && (
                                         <span className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0" />
@@ -208,16 +220,21 @@ const Header = () => {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full py-8">
-                          <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                          <div className="h-14 w-14 rounded-full bg-muted/30 flex items-center justify-center mb-3">
+                            <Bell className="h-6 w-6 text-muted-foreground/50" />
+                          </div>
                           <p className="text-sm text-muted-foreground">No notifications</p>
+                          <p className="text-xs text-muted-foreground/70 max-w-[200px] text-center mt-1">
+                            We'll notify you when something important happens
+                          </p>
                         </div>
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-3 border-t border-border/40 bg-muted/50">
+                    <div className="px-4 py-3 border-t border-border/40 bg-muted/30 rounded-b-2xl">
                       <Link 
                         to="/notifications"
-                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1 touch-target h-8"
+                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1 touch-target h-9"
                         onClick={() => document.body.click()} // Close the popover
                       >
                         View all notifications
@@ -254,26 +271,27 @@ const Header = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 w-8 rounded-full p-0 relative"
+                      className="h-9 w-9 rounded-full p-0 relative hover:bg-muted/80"
                       aria-label="Notifications"
                     >
-                      <Bell className="h-[1.1rem] w-[1.1rem]" />
+                      <Bell className="h-[1.2rem] w-[1.2rem]" />
                       {showNotificationDot && (
-                        <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+                        <span className="absolute top-0 right-0 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-background" />
                       )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[320px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden rounded-xl"
+                    className="w-[350px] p-0 border border-border/60 shadow-lg rounded-2xl bg-background/95 backdrop-blur-md"
                     align="end"
-                    sideOffset={8}
+                    alignOffset={-5}
+                    sideOffset={16}
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-primary/5 rounded-t-2xl">
                       <h3 className="font-medium text-sm flex items-center gap-1.5">
-                        <Bell className="h-3.5 w-3.5 text-primary/70" />
+                        <Bell className="h-3.5 w-3.5 text-primary" />
                         Notifications
                         {unreadCount > 0 && (
-                          <Badge variant="secondary" className="ml-1 text-xs py-0 h-5">
+                          <Badge variant="secondary" className="ml-1 text-xs py-0 h-5 bg-primary/10 text-primary">
                             {unreadCount} new
                           </Badge>
                         )}
@@ -282,28 +300,31 @@ const Header = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="h-7 text-xs font-normal"
+                          className="h-7 text-xs font-normal hover:bg-primary/10"
                           onClick={markAllAsRead}
                         >
+                          <Check className="h-3.5 w-3.5 mr-1" />
                           Mark all read
                         </Button>
                       )}
                     </div>
                     
-                    <ScrollArea className="h-[280px] overflow-hidden bg-background">
+                    <ScrollArea className="h-[300px]">
                       {notifications.length > 0 ? (
                         <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-2.5 hover:bg-muted transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors ${!notification.read ? 'bg-primary/5' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
-                                <div className={`${getTypeColor(notification.type)} w-1 rounded-full flex-shrink-0`} />
+                                <div className="flex-shrink-0 h-9 w-9 rounded-full bg-muted/80 flex items-center justify-center text-base">
+                                  {getTypeIcon(notification.type)}
+                                </div>
                                 <div className="space-y-1 flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-1.5">
-                                    <p className="text-sm font-medium truncate pr-1 flex items-center gap-1.5">
+                                    <p className="text-sm font-semibold truncate pr-1 flex items-center gap-1.5">
                                       {notification.title}
                                       {!notification.read && (
                                         <span className="w-1.5 h-1.5 bg-primary rounded-full flex-shrink-0" />
@@ -323,16 +344,21 @@ const Header = () => {
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full py-8">
-                          <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                          <div className="h-14 w-14 rounded-full bg-muted/30 flex items-center justify-center mb-3">
+                            <Bell className="h-6 w-6 text-muted-foreground/50" />
+                          </div>
                           <p className="text-sm text-muted-foreground">No notifications</p>
+                          <p className="text-xs text-muted-foreground/70 max-w-[200px] text-center mt-1">
+                            We'll notify you when something important happens
+                          </p>
                         </div>
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-2.5 border-t border-border/40 bg-muted/50">
+                    <div className="px-4 py-3 border-t border-border/40 bg-muted/30 rounded-b-2xl">
                       <Link 
                         to="/notifications"
-                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1"
+                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1 h-8"
                         onClick={() => document.body.click()} // Close the popover
                       >
                         View all notifications
