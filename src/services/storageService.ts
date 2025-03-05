@@ -1,69 +1,101 @@
-// This is a minimal implementation for testing purposes
-// The actual implementation would interact with Chrome storage
 
-interface StorageService {
-  get: <T>(key: string) => Promise<T>;
-  set: <T>(key: string, value: T) => Promise<void>;
-  remove: (key: string) => Promise<void>;
-  clearCache: () => Promise<void>;
-  populateTestData: () => Promise<void>;
+import { chromeDb } from '@/lib/chrome-storage';
+import { retryWithBackoff } from '@/utils/retryUtils';
+import { toast } from 'sonner';
+
+export class StorageService {
+  private static instance: StorageService;
+  private cache = new Map<string, unknown>();
+  private isExtension: boolean;
+
+  private constructor() {
+    // Check if we're running in a Chrome extension context
+    this.isExtension = typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
+  }
+
+  static getInstance(): StorageService {
+    if (!this.instance) {
+      this.instance = new StorageService();
+    }
+    return this.instance;
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    try {
+      if (this.cache.has(key)) {
+        return this.cache.get(key) as T;
+      }
+
+      if (!this.isExtension) {
+        // If not in extension, try localStorage as fallback
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : null;
+      }
+
+      const result = await chrome.storage.sync.get(key);
+      const value = result[key] || null;
+      
+      if (value !== null) {
+        this.cache.set(key, value);
+      }
+      return value as T;
+    } catch (error) {
+      console.error(`Error reading ${key} from storage:`, error);
+      toast.error(`Failed to read ${key} from storage`);
+      return null;
+    }
+  }
+
+  async set<T>(key: string, value: T): Promise<void> {
+    try {
+      if (!this.isExtension) {
+        // If not in extension, use localStorage as fallback
+        localStorage.setItem(key, JSON.stringify(value));
+        this.cache.set(key, value);
+        return;
+      }
+
+      await chrome.storage.sync.set({ [key]: value });
+      this.cache.set(key, value);
+    } catch (error) {
+      console.error(`Error writing ${key} to storage:`, error);
+      toast.error(`Failed to write ${key} to storage`);
+      throw error;
+    }
+  }
+
+  async update<T extends Record<string, any>>(key: string, value: Partial<T>): Promise<void> {
+    try {
+      const current = await this.get<T>(key);
+      const updated = { ...current, ...value };
+      await this.set(key, updated);
+    } catch (error) {
+      console.error(`Error updating ${key} in storage:`, error);
+      toast.error(`Failed to update ${key} in storage`);
+      throw error;
+    }
+  }
+
+  async remove(key: string): Promise<void> {
+    try {
+      if (!this.isExtension) {
+        localStorage.removeItem(key);
+        this.cache.delete(key);
+        return;
+      }
+
+      await chrome.storage.sync.remove(key);
+      this.cache.delete(key);
+    } catch (error) {
+      console.error(`Error removing ${key} from storage:`, error);
+      toast.error(`Failed to remove ${key} from storage`);
+      throw error;
+    }
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
 }
 
-// Create a simple in-memory storage for testing in web environment
-const createWebStorage = (): StorageService => {
-  const storage = localStorage;
-
-  return {
-    get: async <T>(key: string): Promise<T> => {
-      const item = storage.getItem(key);
-      return item ? JSON.parse(item) : null;
-    },
-    set: async <T>(key: string, value: T): Promise<void> => {
-      storage.setItem(key, JSON.stringify(value));
-    },
-    remove: async (key: string): Promise<void> => {
-      storage.removeItem(key);
-    },
-    clearCache: async (): Promise<void> => {
-      // Only clear extension-related data, not all localStorage
-      const keysToPreserve = [];
-      for (let i = 0; i < storage.length; i++) {
-        const key = storage.key(i);
-        if (key && !key.startsWith('_extension_')) {
-          keysToPreserve.push(key);
-        }
-      }
-      
-      storage.clear();
-      
-      // Restore non-extension keys
-      keysToPreserve.forEach(key => {
-        const value = storage.getItem(key);
-        if (value) storage.setItem(key, value);
-      });
-    },
-    populateTestData: async (): Promise<void> => {
-      // Add subscription data
-      await storage.setItem('user_subscription', JSON.stringify({
-        planId: 'free',
-        status: 'active'
-      }));
-      
-      // Add usage data
-      await storage.setItem('usage', JSON.stringify({
-        bookmarks: { used: 3, limit: 5, percentage: 60 },
-        notes: { used: 1, limit: 2, percentage: 50 },
-        aiRequests: { used: 5, limit: 10, percentage: 50 },
-        tasks: { used: 2, limit: 5, percentage: 40 }
-      }));
-    }
-  };
-};
-
-// Determine if we're in a Chrome extension environment
-const isExtensionEnvironment = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
-
-// Use the appropriate storage implementation
-export const storage: StorageService = isExtensionEnvironment 
-  ? (window as any).storage /* This would be provided by the actual extension */
-  : createWebStorage();
+export const storage = StorageService.getInstance();
