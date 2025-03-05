@@ -17,7 +17,7 @@ const BookmarkSearchView = () => {
 
   return (
     <motion.div 
-      className="flex-1 flex flex-col items-center justify-start px-3 py-6 text-center max-h-[calc(100vh-10rem)] overflow-hidden"
+      className="flex-1 flex flex-col items-center justify-start px-4 py-8 text-center max-h-[calc(100vh-10rem)] overflow-hidden"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
@@ -26,23 +26,23 @@ const BookmarkSearchView = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-20 h-20 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full flex items-center justify-center mb-5 shadow-inner border border-primary/20"
+        className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-sm border border-primary/10"
       >
         <BookmarkPlus className="h-10 w-10 text-primary" strokeWidth={1.5} />
       </motion.div>
       
       <h3 className="text-xl font-medium mb-2">Search Your Bookmarks</h3>
-      <p className="text-sm text-muted-foreground max-w-sm mb-6">
+      <p className="text-sm text-muted-foreground max-w-sm mb-8">
         Find and explore your bookmarked content using natural language
       </p>
       
       {/* Enhanced AI/Web search toggle */}
-      <div className="flex items-center justify-center gap-2 mb-7 bg-muted/30 p-1.5 rounded-full shadow-sm border border-muted/50 w-full max-w-sm">
+      <div className="flex items-center justify-center gap-2 mb-8 bg-muted/20 p-1.5 rounded-full shadow-sm border border-muted/30 w-full max-w-sm">
         <button 
           className={cn(
             "text-sm flex items-center gap-1.5 py-2.5 px-4 rounded-full transition-all w-1/2 justify-center",
             !webSearchEnabled 
-              ? "bg-background border border-primary/20 shadow-sm text-foreground" 
+              ? "bg-background border border-primary/10 shadow-sm text-foreground" 
               : "text-muted-foreground"
           )}
           onClick={() => setWebSearchEnabled(false)}
@@ -55,7 +55,7 @@ const BookmarkSearchView = () => {
           className={cn(
             "text-sm flex items-center gap-1.5 py-2.5 px-4 rounded-full transition-all w-1/2 justify-center",
             webSearchEnabled 
-              ? "bg-background border border-primary/20 shadow-sm text-foreground" 
+              ? "bg-background border border-primary/10 shadow-sm text-foreground" 
               : "text-muted-foreground"
           )}
           onClick={() => setWebSearchEnabled(true)}
@@ -65,9 +65,9 @@ const BookmarkSearchView = () => {
         </button>
       </div>
       
-      <div className="w-full max-w-md space-y-4 mb-6 overflow-y-auto hide-scrollbar px-2">
+      <div className="w-full max-w-md space-y-4 mb-8 overflow-y-auto hide-scrollbar px-2">
         <h4 className="text-sm font-medium text-muted-foreground">Try asking:</h4>
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-3">
           {searchExamples.map((example, index) => (
             <motion.div
               key={index}
@@ -77,7 +77,7 @@ const BookmarkSearchView = () => {
             >
               <Button 
                 variant="outline" 
-                className="w-full justify-start text-left h-auto py-3 px-4 text-sm group hover:border-primary/30"
+                className="w-full justify-start text-left h-auto py-3.5 px-4 text-sm group hover:border-primary/30 bg-background/50 hover:bg-background"
                 size="sm"
               >
                 <Search className="h-4 w-4 mr-2 text-primary/70 flex-shrink-0 group-hover:text-primary" />
@@ -95,7 +95,7 @@ const BookmarkSearchView = () => {
           transition={{ delay: 0.6 }}
           className="w-full max-w-md mt-2 px-2"
         >
-          <div className="text-sm py-3 px-4 bg-primary/5 rounded-lg border border-primary/10 flex items-center gap-2">
+          <div className="text-sm py-3.5 px-4 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary/70" />
             <span>Web search is enabled. Your queries will search both bookmarks and the web.</span>
           </div>

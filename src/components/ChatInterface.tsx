@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useChatState } from "./chat/useChatState";
 import ChatInput from "./ChatInput";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ChatHeader from "./chat/ChatHeader";
 import ChatSidebar from "./chat/ChatSidebar";
@@ -52,7 +52,7 @@ const ChatInterface = () => {
     if (messages.length > 0 && markMessagesAsRead && activeConversation) {
       markMessagesAsRead();
     }
-  }, [activeConversation, markMessagesAsRead]);
+  }, [activeConversation, markMessagesAsRead, messages.length]);
 
   useEffect(() => {
     const checkGeminiAvailability = async () => {
@@ -69,21 +69,15 @@ const ChatInterface = () => {
     
     checkGeminiAvailability();
     checkConnection();
-  }, []);
+  }, [checkConnection]);
 
   return (
-    <div className="flex flex-col h-full relative bg-background rounded-lg shadow-lg overflow-hidden border border-primary/10">
+    <div className="flex flex-col h-full relative rounded-xl shadow-lg overflow-hidden border border-primary/10 bg-gradient-to-b from-background/95 to-background">
       <div className="flex flex-1 h-full relative">
         {/* Sidebar */}
         <AnimatePresence>
           {isHistoryOpen && (
-            <motion.div 
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="absolute inset-y-0 left-0 z-30 h-full w-full sm:w-80 md:w-96 md:relative"
-            >
+            <div className="absolute inset-y-0 left-0 z-30 h-full w-full sm:w-80 md:w-80 md:relative bg-background/95 backdrop-blur-sm">
               <ChatSidebar 
                 isHistoryOpen={isHistoryOpen}
                 setIsHistoryOpen={setIsHistoryOpen}
@@ -101,17 +95,14 @@ const ChatInterface = () => {
                 updateConversationCategory={updateConversationCategory}
                 togglePinned={togglePinned}
               />
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
         
         <AnimatePresence>
           {isHistoryOpen && isMobile && (
-            <motion.div 
+            <div 
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               onClick={() => setIsHistoryOpen(false)}
               aria-hidden="true"
             />
@@ -143,7 +134,7 @@ const ChatInterface = () => {
             markMessagesAsRead={markMessagesAsRead}
           />
           
-          <div className="sticky bottom-0 p-2 md:p-3 mt-auto bg-background/95 backdrop-blur-sm border-t border-primary/10">
+          <div className="p-3 mt-auto bg-background/90 backdrop-blur-sm border-t border-primary/5">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}

@@ -32,7 +32,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   };
 
   return (
-    <div className="flex flex-col space-y-4 p-2">
+    <div className="flex flex-col space-y-5 p-1.5">
       {messages.map((message, index) => (
         <motion.div
           key={message.id}
@@ -45,17 +45,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           )}
         >
           {message.sender === "assistant" && (
-            <Avatar className="h-8 w-8 bg-primary/10 flex-shrink-0 mt-1">
-              <span className="text-xs text-primary/70">AI</span>
+            <Avatar className="h-8 w-8 bg-primary/20 text-primary-foreground flex-shrink-0 mt-1 border border-primary/10">
+              <span className="text-xs font-medium">AI</span>
             </Avatar>
           )}
           
           <div 
             className={cn(
-              "relative rounded-xl p-3 text-sm max-w-[85%] sm:max-w-[75%]",
+              "relative rounded-2xl p-3.5 text-sm max-w-[85%] sm:max-w-[75%] shadow-sm",
               message.sender === "user" 
-                ? "bg-primary text-primary-foreground" 
-                : "bg-muted border border-muted-foreground/10"
+                ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground" 
+                : "bg-gradient-to-br from-muted/30 to-muted/60 border border-muted-foreground/10"
             )}
           >
             {highlightTerm ? (
@@ -68,7 +68,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 right-1.5 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
                 onClick={() => copyToClipboard(message.content, message.id)}
               >
                 {copiedMessageIds.includes(message.id) ? (
@@ -83,8 +83,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
           
           {message.sender === "user" && (
-            <Avatar className="h-8 w-8 bg-primary/20 flex-shrink-0 mt-1">
-              <span className="text-xs text-primary">You</span>
+            <Avatar className="h-8 w-8 bg-background/95 border border-primary/20 flex-shrink-0 mt-1">
+              <span className="text-xs text-primary font-medium">You</span>
             </Avatar>
           )}
         </motion.div>

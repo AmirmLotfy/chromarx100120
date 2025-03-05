@@ -7,7 +7,6 @@ import { AIProgressIndicator } from "../ui/ai-progress-indicator";
 import { RefreshCw, X, BookmarkPlus, Globe } from "lucide-react";
 import { Button } from "../ui/button";
 import { Message } from "@/types/chat";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ChatMainContentProps {
@@ -35,16 +34,14 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   isBookmarkSearchMode,
   markMessagesAsRead,
 }) => {
-  const isMobile = useIsMobile();
-  
   const renderSearchResults = (message: Message) => {
     if (!message.bookmarks?.length && !message.webResults?.length) return null;
     
     return (
-      <div className="mt-3 space-y-2 bg-muted/30 p-2 rounded-lg">
+      <div className="mt-3 space-y-2 bg-gradient-to-br from-muted/40 to-muted/20 p-3 rounded-xl border border-primary/5">
         {message.bookmarks && message.bookmarks.length > 0 && (
-          <div className="space-y-1.5">
-            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1">
+          <div className="space-y-2">
+            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1.5">
               <BookmarkPlus className="h-3.5 w-3.5" />
               Your Bookmarks
             </h4>
@@ -55,7 +52,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
                   href={bookmark.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2.5 bg-background hover:bg-muted rounded-lg transition-colors border border-primary/10"
+                  className="block text-xs p-2.5 bg-background hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20"
                 >
                   <span className="font-medium line-clamp-1">{bookmark.title}</span>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">{bookmark.url}</span>
@@ -66,8 +63,8 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         )}
         
         {message.webResults && message.webResults.length > 0 && (
-          <div className="space-y-1.5">
-            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1">
+          <div className="space-y-2">
+            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5" />
               Web Results
             </h4>
@@ -78,7 +75,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
                   href={result.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2.5 bg-background hover:bg-muted rounded-lg transition-colors border border-primary/10"
+                  className="block text-xs p-2.5 bg-background hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20"
                 >
                   <span className="font-medium line-clamp-1">{result.title}</span>
                   <span className="text-[10px] text-muted-foreground line-clamp-1">{result.url}</span>
@@ -92,7 +89,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
   };
   
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-gradient-to-b from-background/60 via-background/90 to-background">
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="sticky top-0 z-10 px-2 pt-1.5 space-y-1.5 bg-background/90 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (

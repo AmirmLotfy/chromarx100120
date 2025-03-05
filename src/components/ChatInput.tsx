@@ -171,7 +171,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg overflow-hidden z-10"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-md overflow-hidden z-10"
             ref={suggestionsRef}
           >
             <div className="p-2">
@@ -194,16 +194,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
       <div className="relative">
         <div className="flex items-end gap-1.5">
-          <div className="relative flex-1 overflow-hidden rounded-xl border shadow-sm bg-background">
+          <div className="relative flex-1 overflow-hidden rounded-xl border shadow-sm bg-background/80 backdrop-blur-sm">
             <textarea
               ref={textareaRef}
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={handleInputFocus}
-              placeholder={isBookmarkSearchMode ? "Search your bookmarks and the web..." : "Message..."}
-              className="w-full resize-none bg-transparent pl-3 pr-14 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ minHeight: "40px", maxHeight: "120px" }}
+              placeholder={isBookmarkSearchMode ? "Search your bookmarks and the web..." : "Send a message..."}
+              className="w-full resize-none bg-transparent pl-3.5 pr-14 py-3.5 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ minHeight: "44px", maxHeight: "120px" }}
               disabled={isProcessing || disabled}
               rows={1}
             />
@@ -253,7 +253,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                   "h-9 w-9 rounded-full p-0 flex items-center justify-center transition-all",
                   (!inputValue.trim() || isProcessing || disabled) 
                     ? "text-muted-foreground"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground hover:opacity-90"
                 )}
               >
                 {isBookmarkSearchMode ? (
