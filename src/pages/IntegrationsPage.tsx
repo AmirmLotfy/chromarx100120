@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { AlertCircle, Chrome, ExternalLink, Info, Link2, Plug, RefreshCw, Shield, Wrench } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
+import { requestPermissions, removePermissions, hasPermissions } from "@/utils/permissionUtils";
 
 interface Integration {
   id: string;
@@ -67,10 +68,46 @@ const IntegrationsPage = () => {
     }
   ]);
 
-  const toggleIntegration = (id: string) => {
-    // In a real app, this would handle the actual permissions request
-    // and integration enabling/disabling
+  // Check which permissions are already granted on mount
+  useEffect(() => {
+    const checkExistingPermissions = async () => {
+      const updatedIntegrations = [...integrations];
+      let hasChanges = false;
 
+      for (let i = 0; i < updatedIntegrations.length; i++) {
+        const integration = updatedIntegrations[i];
+        const hasRequiredPermissions = await hasPermissions({ 
+          permissions: integration.permissions as chrome.permissions.Permissions['permissions']
+        });
+
+        if (hasRequiredPermissions && !integration.enabled) {
+          updatedIntegrations[i] = {
+            ...integration,
+            enabled: true,
+            status: "active"
+          };
+          hasChanges = true;
+        } else if (!hasRequiredPermissions && integration.enabled) {
+          updatedIntegrations[i] = {
+            ...integration,
+            enabled: false,
+            status: "inactive"
+          };
+          hasChanges = true;
+        }
+      }
+
+      if (hasChanges) {
+        setIntegrations(updatedIntegrations);
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.permissions) {
+      checkExistingPermissions();
+    }
+  }, []);
+
+  const toggleIntegration = async (id: string) => {
     if (!user) {
       toast.error("Please sign in to manage integrations");
       return;
@@ -80,9 +117,19 @@ const IntegrationsPage = () => {
     if (!integration) return;
 
     if (!integration.enabled) {
-      // In Chrome extensions, this would trigger the permissions API
+      // Request permissions using our utility
       if (typeof chrome !== 'undefined' && chrome.permissions) {
         toast.info(`Requesting permissions for ${integration.name}...`);
+        
+        const granted = await requestPermissions({ 
+          permissions: integration.permissions as chrome.permissions.Permissions['permissions']
+        });
+        
+        if (granted) {
+          setIntegrations(integrations.map(i => 
+            i.id === id ? { ...i, enabled: true, status: "active" } : i
+          ));
+        }
       } else {
         // In development or non-extension environment
         setIntegrations(integrations.map(i => 
@@ -91,6 +138,13 @@ const IntegrationsPage = () => {
         toast.success(`${integration.name} enabled successfully!`);
       }
     } else {
+      // Remove permissions if possible
+      if (typeof chrome !== 'undefined' && chrome.permissions) {
+        await removePermissions({ 
+          permissions: integration.permissions as chrome.permissions.Permissions['permissions']
+        });
+      }
+      
       setIntegrations(integrations.map(i => 
         i.id === id ? { ...i, enabled: false, status: "inactive" } : i
       ));

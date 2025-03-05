@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/stores/settingsStore';
 import { cleanupData, exportUserData } from '@/utils/cleanupUtils';
 import { storage } from '@/services/storageService';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const DataSecuritySettings = () => {
   const { user } = useAuth();
@@ -19,13 +19,16 @@ const DataSecuritySettings = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const { isGranted: hasStoragePermission } = usePermissions({ 
+    permissions: ['storage'] 
+  });
 
   const handleExportData = async () => {
     try {
       setIsExporting(true);
       const jsonData = await exportUserData();
       
-      // Create download
       const blob = new Blob([jsonData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -34,7 +37,6 @@ const DataSecuritySettings = () => {
       document.body.appendChild(a);
       a.click();
       
-      // Cleanup
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
@@ -55,7 +57,6 @@ const DataSecuritySettings = () => {
       await cleanupData(['all']);
       setShowDeleteDialog(false);
       toast.success('All data has been deleted');
-      // Reload the page to reflect the changes
       setTimeout(() => {
         window.location.reload();
       }, 1500);
