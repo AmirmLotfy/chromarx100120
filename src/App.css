@@ -631,6 +631,8 @@ body,
     left: 2.5vw !important;
     right: 2.5vw !important;
     max-width: none !important;
+    transform: translateX(0) !important;
+    overflow-x: hidden !important;
   }
 }
 
@@ -638,5 +640,21 @@ body,
   .notification-popover {
     width: 90vw !important;
     max-width: none !important;
+    transform: translateX(0) !important;
+    overflow-x: hidden !important;
   }
+}
+
+/* Prevent horizontal scrolling in notification popovers */
+.notification-popover .scrollbar, 
+.notification-popover [data-radix-scroll-area-viewport] {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+.notification-popover .notification-item {
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
