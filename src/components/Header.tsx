@@ -138,7 +138,7 @@ const Header = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 w-8 rounded-full p-0 relative"
+                      className="h-8 w-8 rounded-full p-0 relative touch-target"
                       aria-label="Notifications"
                     >
                       <Bell className="h-[1.1rem] w-[1.1rem]" />
@@ -148,9 +148,10 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[calc(100vw-32px)] max-w-[320px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden"
+                    className="w-[calc(100vw-40px)] max-w-[350px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden rounded-xl"
                     align="end"
-                    sideOffset={8}
+                    alignOffset={-15}
+                    sideOffset={10}
                   >
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted">
                       <h3 className="font-medium text-sm flex items-center gap-1.5">
@@ -166,7 +167,7 @@ const Header = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          className="h-7 text-xs font-normal"
+                          className="h-7 text-xs font-normal touch-target"
                           onClick={markAllAsRead}
                         >
                           Mark all read
@@ -174,13 +175,13 @@ const Header = () => {
                       )}
                     </div>
                     
-                    <ScrollArea className="h-[280px] overflow-hidden bg-background">
+                    <ScrollArea className="h-[min(70vh,320px)] overflow-hidden bg-background">
                       {notifications.length > 0 ? (
                         <div className="py-1">
                           {notifications.map((notification) => (
                             <div 
                               key={notification.id}
-                              className={`px-4 py-2.5 hover:bg-muted transition-colors ${!notification.read ? 'bg-accent/10' : ''}`}
+                              className={`px-4 py-3 hover:bg-muted transition-colors touch-target ${!notification.read ? 'bg-accent/10' : ''}`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex gap-3">
@@ -213,10 +214,10 @@ const Header = () => {
                       )}
                     </ScrollArea>
                     
-                    <div className="px-4 py-2.5 border-t border-border/40 bg-muted/50">
+                    <div className="px-4 py-3 border-t border-border/40 bg-muted/50">
                       <Link 
                         to="/notifications"
-                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1"
+                        className="flex items-center justify-center text-xs font-medium text-primary hover:underline gap-1 touch-target h-8"
                         onClick={() => document.body.click()} // Close the popover
                       >
                         View all notifications
@@ -228,7 +229,7 @@ const Header = () => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 w-8 rounded-full p-0"
+                  className="h-8 w-8 rounded-full p-0 touch-target"
                   onClick={toggleTheme}
                   aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
                 >
@@ -239,7 +240,7 @@ const Header = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 rounded-full p-0"
+                  className="h-8 w-8 rounded-full p-0 touch-target"
                   onClick={toggleMenu}
                   aria-label="Open menu"
                 >
@@ -263,7 +264,7 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[320px] max-w-[100vw-32px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden"
+                    className="w-[320px] p-0 border border-border/60 shadow-lg bg-background overflow-hidden rounded-xl"
                     align="end"
                     sideOffset={8}
                   >
