@@ -1,10 +1,8 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
 import Layout from "@/components/Layout";
 import BookmarkHeader from "@/components/BookmarkHeader";
-import BookmarkContent from "@/components/BookmarkContent";
 import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +11,8 @@ import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
 import { dummyBookmarks } from "@/utils/dummyBookmarks";
+import { useBatchProcessing } from "@/hooks/useBatchProcessing";
+import OptimizedBookmarkContent from "@/components/OptimizedBookmarkContent";
 
 const BookmarksPage = () => {
   const {
@@ -33,10 +33,9 @@ const BookmarksPage = () => {
     handleForceSync
   } = useBookmarkState();
 
-  // Always ensure we have bookmarks by combining real and dummy ones
   const bookmarks = originalBookmarks.length > 0 
     ? originalBookmarks 
-    : dummyBookmarks.slice(0, 10); // Use 10 dummy bookmarks when no real ones exist
+    : dummyBookmarks.slice(0, 10);
 
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -45,7 +44,6 @@ const BookmarksPage = () => {
   const [view, setView] = useState<"grid" | "list">("list");
   const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
 
-  // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setIsOfflineMode(false);
@@ -105,12 +103,9 @@ const BookmarksPage = () => {
   }, [setBookmarks]);
 
   const handleImport = (importedBookmarks: ChromeBookmark[]) => {
-    // Add the imported bookmarks to existing bookmarks
     setBookmarks(prev => [...prev, ...importedBookmarks]);
     
-    // Try to add to Chrome bookmarks if available
     if (chrome.bookmarks && navigator.onLine) {
-      // We'll add them to Chrome in the background
       importedBookmarks.forEach(bookmark => {
         if (bookmark.url) {
           chrome.bookmarks.create({
@@ -263,7 +258,7 @@ const BookmarksPage = () => {
           domains={domains.map(d => d.domain)}
         />
 
-        <BookmarkContent
+        <OptimizedBookmarkContent
           categories={categories}
           domains={domains}
           selectedCategory={selectedCategory}
@@ -289,11 +284,12 @@ const BookmarksPage = () => {
           onReorder={loadBookmarks}
           onBulkDelete={handleDeleteSelected}
           onRefresh={loadBookmarks}
-          loading={false} // Set loading to false to ensure bookmarks are always visible
+          loading={false}
           filteredBookmarks={filteredBookmarks}
           onUpdateCategories={handleUpdateCategories}
           isOffline={isOfflineMode}
           onClearFilters={() => handleSearch("")}
+          searchQuery={searchQuery}
         />
       </div>
     </Layout>
