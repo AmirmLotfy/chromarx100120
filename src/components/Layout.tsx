@@ -146,8 +146,8 @@ const Layout = ({
           </button>
         </div>}
       
-      <main tabIndex={0} className="flex-1 w-full mx-auto flex flex-col overflow-y-auto pt-14 pb-20 py-0">
-        <div className="w-full mx-auto px-0">
+      <main tabIndex={0} className="flex-1 w-full mx-auto flex flex-col overflow-y-auto">
+        <div className="w-full mx-auto">
           {children}
         </div>
       </main>

@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import SyncStatusIndicator from '@/components/ui/sync-status-indicator';
 
 interface HeaderProps {
-  toggleSidebar: () => void;
+  toggleSidebar?: () => void;
 }
 
 interface Notification {
@@ -140,11 +140,6 @@ const Header = ({
   return <>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center">
-          <div className="mr-4 flex md:hidden">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={toggleSidebar}>
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
           <div className="flex items-center gap-2">
             <Link to="/" className="flex items-center gap-2">
               <img src="/logo.png" alt="ChroMarx Logo" className="h-7 w-auto" />
