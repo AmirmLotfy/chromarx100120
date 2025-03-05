@@ -157,7 +157,7 @@ const Header = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[calc(100vw-32px)] max-w-[350px] p-0 border border-border/60 shadow-lg rounded-2xl bg-background/95 backdrop-blur-md"
+                    className="w-[90vw] max-w-[350px] p-0 border border-border/60 shadow-lg rounded-2xl bg-background/95 backdrop-blur-md notification-popover"
                     align="end"
                     alignOffset={-8}
                     sideOffset={16}

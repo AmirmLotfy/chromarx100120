@@ -627,8 +627,16 @@ body,
 /* Make notification popover take full width on very small screens */
 @media (max-width: 350px) {
   .notification-popover {
-    width: calc(100vw - 24px) !important;
-    left: 12px !important;
-    right: 12px !important;
+    width: 95vw !important;
+    left: 2.5vw !important;
+    right: 2.5vw !important;
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 351px) and (max-width: 500px) {
+  .notification-popover {
+    width: 90vw !important;
+    max-width: none !important;
   }
 }
