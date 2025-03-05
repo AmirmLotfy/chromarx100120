@@ -29,32 +29,32 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <motion.div 
-      className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur-sm z-10"
+      className="flex items-center justify-between px-3 py-2 border-b bg-background/95 backdrop-blur-sm z-10"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <motion.button 
           whileTap={{ scale: 0.95 }}
           onClick={handleToggleSidebar}
-          className="h-9 w-9 rounded-full hover:bg-accent flex items-center justify-center"
+          className="h-8 w-8 rounded-full hover:bg-accent flex items-center justify-center"
           aria-label={isHistoryOpen ? "Close menu" : "Open menu"}
         >
           {isHistoryOpen ? 
-            <ChevronLeft size={18} className="text-primary" /> : 
-            <Menu size={18} />
+            <ChevronLeft size={16} className="text-primary" /> : 
+            <Menu size={16} />
           }
         </motion.button>
         
         <div className="flex flex-col">
-          <h1 className="text-sm font-medium flex items-center gap-1.5">
+          <h1 className="text-xs font-medium flex items-center gap-1">
             {activeConversation?.name || "New Chat"}
             {activeConversation?.pinned && (
               <div className="h-1.5 w-1.5 rounded-full bg-primary" />
             )}
           </h1>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[10px] text-muted-foreground">
             {messagesCount === 0 
               ? "Start a conversation" 
               : `${messagesCount} messages${activeConversation?.category ? ` • ${activeConversation.category}` : ''}`}
@@ -62,13 +62,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {!isBookmarkSearchMode && activeConversation && (
           <Button
             onClick={clearChat}
             size="sm"
             variant="ghost"
-            className="h-8 text-xs"
+            className="h-7 text-[10px]"
           >
             New Chat
           </Button>
@@ -78,7 +78,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           initial={false}
           whileTap={{ scale: 0.95 }}
           onClick={toggleBookmarkSearchMode}
-          className={`relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors ${
+          className={`relative h-7 px-2 rounded-full text-[10px] font-medium flex items-center gap-1 transition-colors ${
             isBookmarkSearchMode 
               ? "bg-primary/90 text-primary-foreground hover:bg-primary" 
               : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -93,9 +93,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             transition={{ duration: 0.4 }}
           >
             {isBookmarkSearchMode ? (
-              <MessageCircle size={14} />
+              <MessageCircle size={12} />
             ) : (
-              <BookmarkPlus size={14} />
+              <BookmarkPlus size={12} />
             )}
           </motion.div>
           <span>{isBookmarkSearchMode ? "Exit Search" : "Search Bookmarks"}</span>

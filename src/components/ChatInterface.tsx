@@ -116,7 +116,7 @@ const ChatInterface = () => {
         
         {/* Main chat area */}
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          {/* Header - fixed position to ensure it's always visible */}
+          {/* Header - more compact */}
           <ChatHeader 
             isHistoryOpen={isHistoryOpen}
             setIsHistoryOpen={setIsHistoryOpen}
@@ -140,8 +140,8 @@ const ChatInterface = () => {
             markMessagesAsRead={markMessagesAsRead}
           />
           
-          {/* Chat input section */}
-          <div className="sticky bottom-0 p-2 mt-auto bg-background/95 backdrop-blur-sm">
+          {/* More compact chat input */}
+          <div className="sticky bottom-0 p-1.5 mt-auto bg-background/95 backdrop-blur-sm">
             <ChatInput
               onSendMessage={handleSendMessage}
               isProcessing={isProcessing}

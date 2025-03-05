@@ -37,13 +37,10 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
 }) => {
   const isMobile = useIsMobile();
   
-  // Remove the useEffect that was causing the infinite loop
-  // The markMessagesAsRead will be called from ChatInterface instead
-
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Notifications section */}
-      <div className="sticky top-0 z-10 px-3 pt-2 space-y-2 bg-background/95 backdrop-blur-sm">
+    <div className="flex-1 flex flex-col max-h-[calc(100%-1rem)] overflow-hidden">
+      {/* Notifications section - made more compact */}
+      <div className="sticky top-0 z-10 px-2 pt-1 space-y-1 bg-background/95 backdrop-blur-sm">
         <AnimatePresence>
           {(isOffline || !isAIAvailable) && (
             <motion.div
@@ -51,6 +48,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
+              className="scale-95 origin-top"
             >
               <ChatOfflineNotice 
                 isOffline={isOffline} 
@@ -62,25 +60,25 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           
           {error && (
             <motion.div 
-              className="mb-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-xl text-sm"
+              className="mb-1 px-2 py-1 bg-destructive/10 border border-destructive/20 rounded-xl text-xs"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex gap-2 items-start">
-                <div className="h-6 w-6 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
-                  <X size={12} className="text-destructive" />
+                <div className="h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
+                  <X size={10} className="text-destructive" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-destructive text-xs">{error.message || "Error"}</p>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="mt-2 h-7 text-xs"
+                    className="mt-1 h-6 text-xs"
                     onClick={retryLastMessage}
                   >
-                    <RefreshCw size={12} className="mr-1.5" /> Retry
+                    <RefreshCw size={10} className="mr-1" /> Retry
                   </Button>
                 </div>
               </div>
@@ -89,7 +87,7 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
           
           {isProcessing && (
             <motion.div 
-              className="mb-2"
+              className="mb-1"
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
@@ -107,12 +105,12 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
       </div>
       
       {/* Chat messages section with improved scrolling */}
-      <div className="flex-1 overflow-y-auto px-1 pb-4 scroll-smooth">
+      <div className="flex-1 overflow-y-auto px-1 pb-3 scroll-smooth">
         <AnimatePresence mode="wait">
           {isBookmarkSearchMode ? (
             <BookmarkSearchView key="search" />
           ) : (
-            <div className="pb-6">
+            <div className="pb-2">
               <ChatMessages 
                 key="messages"
                 messages={messages} 
