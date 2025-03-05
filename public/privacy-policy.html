@@ -19,10 +19,56 @@
         .last-updated { font-style: italic; color: #666; }
         .important { color: #d32f2f; font-weight: bold; }
         .mobile-friendly { max-width: 100%; overflow-x: auto; }
+        .section-heading { 
+            background-color: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 30px;
+        }
+        .toc { 
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 30px;
+        }
+        .toc ul { 
+            list-style-type: none;
+            padding-left: 10px;
+        }
+        .toc li { 
+            margin-bottom: 8px;
+        }
+        .toc a {
+            text-decoration: none;
+            color: #0066cc;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
         @media (max-width: 768px) {
             body { padding: 15px; }
             h1 { font-size: 1.8rem; }
             h2 { font-size: 1.3rem; }
+            .toc ul { padding-left: 5px; }
+        }
+        @media (prefers-color-scheme: dark) {
+            body { 
+                background-color: #121212; 
+                color: #e0e0e0; 
+            }
+            h1, h2 { color: #f0f0f0; }
+            .section-heading { 
+                background-color: #2a2a2a;
+            }
+            .toc { 
+                background-color: #1e1e1e;
+            }
+            .toc a {
+                color: #66b3ff;
+            }
+            a {
+                color: #66b3ff;
+            }
         }
     </style>
 </head>
@@ -30,14 +76,33 @@
     <h1>ChroMarx Privacy Policy</h1>
     <p class="last-updated">Last Updated: May 2024</p>
     
-    <div class="section">
-        <h2>1. Introduction</h2>
+    <div class="toc">
+        <h3>Table of Contents</h3>
+        <ul>
+            <li><a href="#introduction">1. Introduction</a></li>
+            <li><a href="#information">2. Information We Collect</a></li>
+            <li><a href="#usage">3. How We Use Your Information</a></li>
+            <li><a href="#storage">4. Data Storage and Security</a></li>
+            <li><a href="#sharing">5. Data Sharing and Third Parties</a></li>
+            <li><a href="#permissions">6. Extension Permissions</a></li>
+            <li><a href="#rights">7. Your Data Rights</a></li>
+            <li><a href="#retention">8. Data Retention</a></li>
+            <li><a href="#children">9. Children's Privacy</a></li>
+            <li><a href="#changes">10. Changes to This Privacy Policy</a></li>
+            <li><a href="#chrome-store">11. Chrome Web Store Compliance</a></li>
+            <li><a href="#contact">12. Contact Us</a></li>
+            <li><a href="#consent">13. Consent</a></li>
+        </ul>
+    </div>
+    
+    <div id="introduction" class="section">
+        <h2 class="section-heading">1. Introduction</h2>
         <p>ChroMarx ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Chrome extension.</p>
         <p>By installing and using ChroMarx, you consent to the data practices described in this policy. If you do not agree with the terms of this privacy policy, please do not access or use the extension.</p>
     </div>
     
-    <div class="section">
-        <h2>2. Information We Collect</h2>
+    <div id="information" class="section">
+        <h2 class="section-heading">2. Information We Collect</h2>
         <p>ChroMarx collects and processes the following data:</p>
         <ul>
             <li><strong>Bookmark data:</strong> Titles, URLs, and organizational structure of your bookmarks</li>
@@ -48,8 +113,8 @@
         </ul>
     </div>
     
-    <div class="section">
-        <h2>3. How We Use Your Information</h2>
+    <div id="usage" class="section">
+        <h2 class="section-heading">3. How We Use Your Information</h2>
         <p>We use the collected information for the following purposes:</p>
         <ul>
             <li>To provide and maintain our extension's functionality</li>
@@ -61,8 +126,8 @@
         </ul>
     </div>
     
-    <div class="section">
-        <h2>4. Data Storage and Security</h2>
+    <div id="storage" class="section">
+        <h2 class="section-heading">4. Data Storage and Security</h2>
         <p>Your data is stored:</p>
         <ul>
             <li>Locally on your device using Chrome's storage API</li>
@@ -72,8 +137,8 @@
         <p>We implement appropriate technical and organizational security measures to protect your personal information from accidental loss, unauthorized access, and improper use or disclosure.</p>
     </div>
     
-    <div class="section">
-        <h2>5. Data Sharing and Third Parties</h2>
+    <div id="sharing" class="section">
+        <h2 class="section-heading">5. Data Sharing and Third Parties</h2>
         <p>We do not sell, trade, or otherwise transfer your personal information to third parties. We may share your information with:</p>
         <ul>
             <li><strong>Service providers:</strong> Companies that provide services to help us deliver our extension (e.g., hosting providers)</li>
@@ -89,8 +154,8 @@
         </ul>
     </div>
     
-    <div class="section">
-        <h2>6. Extension Permissions</h2>
+    <div id="permissions" class="section">
+        <h2 class="section-heading">6. Extension Permissions</h2>
         <p>ChroMarx requires these permissions:</p>
         <ul>
             <li><strong>storage:</strong> To save your bookmarks and preferences</li>
@@ -100,11 +165,11 @@
             <li><strong>sidePanel:</strong> To display the extension in Chrome's side panel</li>
             <li><strong>history:</strong> (Optional) For analyzing browsing history if enabled</li>
         </ul>
-        <p>We only use these permissions for the purposes stated and never in ways that compromise your privacy.</p>
+        <p>We only use these permissions for the purposes stated and never in ways that compromise your privacy. Each permission is essential for specific functionality, and the extension will not access any data beyond what is necessary for its operation.</p>
     </div>
     
-    <div class="section">
-        <h2>7. Your Data Rights</h2>
+    <div id="rights" class="section">
+        <h2 class="section-heading">7. Your Data Rights</h2>
         <p>You have the right to:</p>
         <ul>
             <li>Access your personal data</li>
@@ -117,32 +182,46 @@
         <p>To exercise these rights, visit the Settings page within the extension or contact us using the information below.</p>
     </div>
     
-    <div class="section">
-        <h2>8. Data Retention</h2>
+    <div id="retention" class="section">
+        <h2 class="section-heading">8. Data Retention</h2>
         <p>We retain your personal information only for as long as necessary to fulfill the purposes outlined in this privacy policy, comply with legal obligations, or enforce our agreements.</p>
         <p>When you uninstall the extension, local data is automatically removed. Cloud data (if enabled) is retained for 30 days after account deletion to allow for recovery, after which it is permanently deleted.</p>
     </div>
     
-    <div class="section">
-        <h2>9. Children's Privacy</h2>
+    <div id="children" class="section">
+        <h2 class="section-heading">9. Children's Privacy</h2>
         <p>ChroMarx is not directed to children under 13 years of age. We do not knowingly collect personal information from children under 13. If we discover that a child under 13 has provided us with personal information, we will promptly delete it.</p>
     </div>
     
-    <div class="section">
-        <h2>10. Changes to This Privacy Policy</h2>
+    <div id="changes" class="section">
+        <h2 class="section-heading">10. Changes to This Privacy Policy</h2>
         <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
         <p>You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
     </div>
     
-    <div class="section">
-        <h2>11. Contact Us</h2>
+    <div id="chrome-store" class="section">
+        <h2 class="section-heading">11. Chrome Web Store Compliance</h2>
+        <p>ChroMarx complies with the <a href="https://developer.chrome.com/docs/webstore/program_policies/" target="_blank">Chrome Web Store Developer Program Policies</a> and the <a href="https://www.google.com/chrome/privacy/eula_text.html" target="_blank">Google Chrome Terms of Service</a>.</p>
+        <p>In accordance with these policies:</p>
+        <ul>
+            <li>We do not display advertisements without clear notification to users</li>
+            <li>We do not use misleading installation tactics</li>
+            <li>We do not modify user search settings or homepage without explicit consent</li>
+            <li>We maintain transparency regarding the collection and use of your data</li>
+            <li>We provide secure transmission and storage of any data collected</li>
+            <li>We do not engage in any deceptive, malicious, or harmful practices</li>
+        </ul>
+    </div>
+    
+    <div id="contact" class="section">
+        <h2 class="section-heading">12. Contact Us</h2>
         <p>If you have questions or concerns about this Privacy Policy or our data practices, please contact us at:</p>
         <p>Email: <a href="mailto:privacy@chromarx.it.com">privacy@chromarx.it.com</a></p>
         <p>Support: <a href="https://chromarx.it.com/support">https://chromarx.it.com/support</a></p>
     </div>
     
-    <div class="section">
-        <h2>12. Consent</h2>
+    <div id="consent" class="section">
+        <h2 class="section-heading">13. Consent</h2>
         <p>By using our extension, you consent to our Privacy Policy and agree to its terms.</p>
     </div>
     
