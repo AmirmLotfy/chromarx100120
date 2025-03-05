@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Menu, MessageCircle, Search, ChevronLeft, Sparkles } from "lucide-react";
+import { Menu, MessageCircle, Search, ChevronLeft, Sparkles, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <motion.div 
-      className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur-sm z-10"
+      className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -49,13 +49,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         </motion.button>
         
         <div className="flex flex-col">
-          <h1 className="text-sm font-medium flex items-center gap-1.5 truncate max-w-[160px] sm:max-w-[180px]">
+          <h1 className="text-sm font-medium flex items-center gap-1.5 truncate max-w-[160px] sm:max-w-[220px]">
             {activeConversation?.name || "New Chat"}
             {activeConversation?.pinned && (
-              <div className="h-1.5 w-1.5 rounded-full bg-primary/80 flex-shrink-0" />
+              <div className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
             )}
           </h1>
-          <p className="text-[10px] text-muted-foreground truncate max-w-[160px] sm:max-w-[180px]">
+          <p className="text-[10px] text-muted-foreground truncate max-w-[160px] sm:max-w-[220px]">
             {messagesCount === 0 
               ? "Start a conversation" 
               : `${messagesCount} messages${activeConversation?.category ? ` • ${activeConversation.category}` : ''}`}
@@ -83,8 +83,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           className={cn(
             "relative h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors",
             isBookmarkSearchMode 
-              ? "bg-primary/90 text-primary-foreground hover:bg-primary" 
-              : "bg-gradient-to-r from-secondary/90 to-secondary text-secondary-foreground hover:opacity-90"
+              ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive" 
+              : "bg-primary text-primary-foreground hover:opacity-90"
           )}
         >
           <motion.div
@@ -97,7 +97,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="flex-shrink-0"
           >
             {isBookmarkSearchMode ? (
-              <MessageCircle size={14} />
+              <X size={14} />
             ) : (
               <Search size={14} />
             )}

@@ -26,7 +26,7 @@ const BookmarkSearchView = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-sm border border-primary/10"
+        className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center mb-6 shadow-md border border-primary/10"
       >
         <BookmarkPlus className="h-10 w-10 text-primary" strokeWidth={1.5} />
       </motion.div>
@@ -37,13 +37,13 @@ const BookmarkSearchView = () => {
       </p>
       
       {/* Enhanced AI/Web search toggle */}
-      <div className="flex items-center justify-center gap-2 mb-8 bg-muted/20 p-1.5 rounded-full shadow-sm border border-muted/30 w-full max-w-sm">
+      <div className="flex items-center justify-center gap-2 mb-8 p-1 rounded-full border border-muted/30 w-full max-w-sm bg-background/50 backdrop-blur-sm">
         <button 
           className={cn(
             "text-sm flex items-center gap-1.5 py-2.5 px-4 rounded-full transition-all w-1/2 justify-center",
             !webSearchEnabled 
-              ? "bg-background border border-primary/10 shadow-sm text-foreground" 
-              : "text-muted-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:bg-muted/50"
           )}
           onClick={() => setWebSearchEnabled(false)}
         >
@@ -55,8 +55,8 @@ const BookmarkSearchView = () => {
           className={cn(
             "text-sm flex items-center gap-1.5 py-2.5 px-4 rounded-full transition-all w-1/2 justify-center",
             webSearchEnabled 
-              ? "bg-background border border-primary/10 shadow-sm text-foreground" 
-              : "text-muted-foreground"
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:bg-muted/50"
           )}
           onClick={() => setWebSearchEnabled(true)}
         >
@@ -77,10 +77,10 @@ const BookmarkSearchView = () => {
             >
               <Button 
                 variant="outline" 
-                className="w-full justify-start text-left h-auto py-3.5 px-4 text-sm group hover:border-primary/30 bg-background/50 hover:bg-background"
+                className="w-full justify-start text-left h-auto py-3.5 px-4 text-sm group border-primary/10 hover:border-primary/30 bg-background/50 hover:bg-background"
                 size="sm"
               >
-                <Search className="h-4 w-4 mr-2 text-primary/70 flex-shrink-0 group-hover:text-primary" />
+                <Search className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
                 <span className="truncate">{example}</span>
               </Button>
             </motion.div>
@@ -96,7 +96,7 @@ const BookmarkSearchView = () => {
           className="w-full max-w-md mt-2 px-2"
         >
           <div className="text-sm py-3.5 px-4 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary/70" />
+            <Sparkles className="h-4 w-4 text-primary" />
             <span>Web search is enabled. Your queries will search both bookmarks and the web.</span>
           </div>
         </motion.div>

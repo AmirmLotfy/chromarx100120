@@ -38,24 +38,37 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
     if (!message.bookmarks?.length && !message.webResults?.length) return null;
     
     return (
-      <div className="mt-3 space-y-2 bg-gradient-to-br from-muted/40 to-muted/20 p-3 rounded-xl border border-primary/5">
+      <div className="mt-4 space-y-3 bg-background/70 p-3.5 rounded-xl border border-primary/10 backdrop-blur-sm">
         {message.bookmarks && message.bookmarks.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1.5">
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-medium text-primary flex items-center gap-1.5">
               <BookmarkPlus className="h-3.5 w-3.5" />
               Your Bookmarks
             </h4>
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-1 gap-2">
               {message.bookmarks.map((bookmark, i) => (
                 <a 
                   key={i} 
                   href={bookmark.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2.5 bg-background hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20"
+                  className="block text-xs p-3 hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20 bg-background"
                 >
                   <span className="font-medium line-clamp-1">{bookmark.title}</span>
-                  <span className="text-[10px] text-muted-foreground line-clamp-1">{bookmark.url}</span>
+                  <span className="text-[10px] text-muted-foreground line-clamp-1 mt-1">{bookmark.url}</span>
+                  {bookmark.relevanceScore && (
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <div className="h-1.5 bg-primary/20 rounded-full w-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full" 
+                          style={{ width: `${Math.min(bookmark.relevanceScore * 100, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                        {Math.round(bookmark.relevanceScore * 100)}% match
+                      </span>
+                    </div>
+                  )}
                 </a>
               ))}
             </div>
@@ -63,22 +76,22 @@ const ChatMainContent: React.FC<ChatMainContentProps> = ({
         )}
         
         {message.webResults && message.webResults.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-medium text-primary/80 flex items-center gap-1.5">
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-medium text-primary flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5" />
               Web Results
             </h4>
-            <div className="space-y-1.5">
+            <div className="grid grid-cols-1 gap-2">
               {message.webResults.map((result, i) => (
                 <a 
                   key={i} 
                   href={result.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block text-xs p-2.5 bg-background hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20"
+                  className="block text-xs p-3 hover:bg-primary/5 rounded-lg transition-colors border border-primary/10 hover:border-primary/20 bg-background"
                 >
                   <span className="font-medium line-clamp-1">{result.title}</span>
-                  <span className="text-[10px] text-muted-foreground line-clamp-1">{result.url}</span>
+                  <span className="text-[10px] text-muted-foreground line-clamp-1 mt-1">{result.url}</span>
                 </a>
               ))}
             </div>

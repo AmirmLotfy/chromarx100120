@@ -32,7 +32,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   };
 
   return (
-    <div className="flex flex-col space-y-5 p-1.5">
+    <div className="flex flex-col space-y-6 p-2">
       {messages.map((message, index) => (
         <motion.div
           key={message.id}
@@ -45,17 +45,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           )}
         >
           {message.sender === "assistant" && (
-            <Avatar className="h-8 w-8 bg-primary/20 text-primary-foreground flex-shrink-0 mt-1 border border-primary/10">
+            <Avatar className="h-8 w-8 bg-primary/10 text-primary-foreground flex-shrink-0 mt-1 border border-primary/5">
               <span className="text-xs font-medium">AI</span>
             </Avatar>
           )}
           
           <div 
             className={cn(
-              "relative rounded-2xl p-3.5 text-sm max-w-[85%] sm:max-w-[75%] shadow-sm",
+              "relative rounded-2xl p-4 text-sm max-w-[85%] sm:max-w-[75%]",
               message.sender === "user" 
-                ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground" 
-                : "bg-gradient-to-br from-muted/30 to-muted/60 border border-muted-foreground/10"
+                ? "bg-primary text-primary-foreground shadow-md" 
+                : "bg-muted/30 border border-muted-foreground/5 shadow-sm"
             )}
           >
             {highlightTerm ? (
@@ -83,7 +83,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
           
           {message.sender === "user" && (
-            <Avatar className="h-8 w-8 bg-background/95 border border-primary/20 flex-shrink-0 mt-1">
+            <Avatar className="h-8 w-8 bg-background border border-primary/10 flex-shrink-0 mt-1">
               <span className="text-xs text-primary font-medium">You</span>
             </Avatar>
           )}
