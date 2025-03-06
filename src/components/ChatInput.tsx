@@ -177,7 +177,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-md overflow-hidden z-10 max-w-full mx-auto"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-lg shadow-md overflow-hidden z-10 max-w-full mx-auto"
             ref={suggestionsRef}
           >
             <div className="p-2">
@@ -186,7 +186,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 {recentQueries.map((query, index) => (
                   <button
                     key={index}
-                    className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-muted text-xs truncate"
+                    className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted text-xs truncate"
                     onClick={() => handleRecentQueryClick(query)}
                   >
                     {query}
@@ -199,7 +199,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       </AnimatePresence>
 
       <div className="relative flex items-end gap-1.5">
-        <div className="relative flex-1 overflow-hidden rounded-xl border shadow-sm bg-background/90 backdrop-blur-sm">
+        <div className="relative flex-1 overflow-hidden rounded-xl border bg-background/90 backdrop-blur-sm">
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -257,7 +257,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           onClick={handleSendMessage}
           disabled={!inputValue.trim() || isProcessing || disabled}
           className={cn(
-            "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all shadow-sm",
+            "h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all shadow-sm",
             (!inputValue.trim() || isProcessing || disabled) 
               ? "bg-muted text-muted-foreground"
               : "bg-primary text-primary-foreground"
@@ -267,11 +267,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
         </motion.button>
       </div>
       
-      {/* Model indicator */}
-      <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
-        {modeIcon}
-        <span>Using {modeName}</span>
-      </div>
+      {/* Mode indicator */}
+      {modeName && (
+        <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
+          {modeIcon}
+          <span>{modeName}</span>
+        </div>
+      )}
     </motion.div>
   );
 };

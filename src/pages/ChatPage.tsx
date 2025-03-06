@@ -2,7 +2,7 @@
 import { useRef, useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles, BookmarkPlus, Globe, Bot, Search } from "lucide-react";
+import { Sparkles, BookmarkPlus, Globe, Bot, Search, X } from "lucide-react";
 import { Message } from "@/types/chat";
 import { useChatState } from "@/components/chat/useChatState";
 import ChatMessages from "@/components/ChatMessages";
@@ -86,7 +86,7 @@ const ChatPage = () => {
     if (!message.bookmarks?.length && !message.webResults?.length) return null;
     
     return (
-      <div className="mt-3 space-y-3 rounded-xl bg-background/80 backdrop-blur-sm p-3 border border-primary/10">
+      <div className="mt-3 pt-3 space-y-3 border-t border-primary/10">
         {message.bookmarks && message.bookmarks.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-xs font-medium text-primary flex items-center gap-1.5">
@@ -151,166 +151,176 @@ const ChatPage = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] w-full max-w-screen-sm mx-auto overflow-hidden bg-gradient-to-b from-background/80 to-background shadow-lg rounded-2xl">
-        {/* Integrated Mode Toggle & Header */}
-        <div className="flex items-center p-3 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0">
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-sm font-medium flex items-center gap-1.5">
-              {mode === "chat" ? (
-                <Sparkles size={16} className="text-primary" />
-              ) : mode === "bookmark-search" ? (
-                <BookmarkPlus size={16} className="text-primary" />
+      <div className="flex flex-col h-[calc(100vh-4rem)] w-full max-w-screen-sm mx-auto overflow-hidden bg-gradient-to-b from-background/80 to-background rounded-2xl shadow-md">
+        {/* Main Chat Container with unified interface */}
+        <div className="flex flex-col h-full">
+          {/* Header with Mode Toggle */}
+          <div className="flex items-center justify-between p-3 bg-background/95 backdrop-blur-sm border-b z-10">
+            <div className="flex items-center gap-2">
+              {activeConversation?.name ? (
+                <span className="text-sm font-medium truncate max-w-[200px]">{activeConversation.name}</span>
               ) : (
-                <Globe size={16} className="text-primary" />
+                <span className="text-sm font-medium">AI Assistant</span>
               )}
-              {mode === "chat" ? "Chat" : mode === "bookmark-search" ? "Bookmarks" : "Web"}
-            </span>
-            {activeConversation?.name && (
-              <span className="text-xs text-muted-foreground">
-                {activeConversation.name}
-              </span>
-            )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-muted rounded-full p-0.5">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 w-7 p-0 rounded-full text-xs",
+                    mode === "chat" ? "bg-primary text-primary-foreground" : "hover:bg-muted-foreground/10"
+                  )}
+                  onClick={() => changeMode("chat")}
+                >
+                  <Sparkles size={14} />
+                  <span className="sr-only">Chat</span>
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 w-7 p-0 rounded-full text-xs",
+                    mode === "bookmark-search" ? "bg-primary text-primary-foreground" : "hover:bg-muted-foreground/10"
+                  )}
+                  onClick={() => changeMode("bookmark-search")}
+                >
+                  <BookmarkPlus size={14} />
+                  <span className="sr-only">Bookmarks</span>
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 w-7 p-0 rounded-full text-xs",
+                    mode === "web-search" ? "bg-primary text-primary-foreground" : "hover:bg-muted-foreground/10"
+                  )}
+                  onClick={() => changeMode("web-search")}
+                >
+                  <Globe size={14} />
+                  <span className="sr-only">Web</span>
+                </Button>
+              </div>
+              
+              {messages.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 rounded-full hover:bg-muted-foreground/10"
+                  onClick={clearChat}
+                >
+                  <X size={14} />
+                  <span className="sr-only">Clear</span>
+                </Button>
+              )}
+            </div>
           </div>
           
-          <div className="flex items-center gap-1 bg-accent/50 rounded-full p-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className={cn(
-                "h-8 w-8 p-0 rounded-full",
-                mode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              )}
-              onClick={() => changeMode("chat")}
-            >
-              <Sparkles size={15} />
-              <span className="sr-only">Chat</span>
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              className={cn(
-                "h-8 w-8 p-0 rounded-full",
-                mode === "bookmark-search" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              )}
-              onClick={() => changeMode("bookmark-search")}
-            >
-              <BookmarkPlus size={15} />
-              <span className="sr-only">Bookmarks</span>
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              className={cn(
-                "h-8 w-8 p-0 rounded-full",
-                mode === "web-search" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              )}
-              onClick={() => changeMode("web-search")}
-            >
-              <Globe size={15} />
-              <span className="sr-only">Web</span>
-            </Button>
+          {/* Welcome Screen / Chat Area */}
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full px-3 py-3">
+              <AnimatePresence mode="wait">
+                {isWelcome ? (
+                  <motion.div
+                    key="welcome"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center justify-center h-full px-4 py-6 space-y-6 text-center"
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        {mode === "chat" ? (
+                          <Sparkles className="h-6 w-6 text-primary" />
+                        ) : mode === "bookmark-search" ? (
+                          <BookmarkPlus className="h-6 w-6 text-primary" />
+                        ) : (
+                          <Globe className="h-6 w-6 text-primary" />
+                        )}
+                      </div>
+                      
+                      <h2 className="text-lg font-medium mt-2">
+                        {mode === "chat" ? "Chat with AI" : 
+                         mode === "bookmark-search" ? "Search Bookmarks" : 
+                         "Search the Web"}
+                      </h2>
+                      
+                      <p className="text-sm text-muted-foreground max-w-xs">
+                        {mode === "chat" ? "Ask anything and get intelligent answers powered by AI" : 
+                         mode === "bookmark-search" ? "Find content from your saved bookmarks" : 
+                         "Get AI-enhanced summaries from web search"}
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
+                      {(mode === "chat" ? [
+                        "What are the best productivity tips?",
+                        "How can I learn programming quickly?",
+                      ] : mode === "bookmark-search" ? [
+                        "Find my productivity bookmarks",
+                        "Articles about programming",
+                      ] : [
+                        "Latest AI developments",
+                        "Healthy meal recipes",
+                      ]).map((example, idx) => (
+                        <Button 
+                          key={idx}
+                          variant="outline" 
+                          size="sm"
+                          className="justify-start h-auto py-2 text-xs font-normal"
+                          onClick={() => handleQuerySubmit(example)}
+                        >
+                          {example}
+                        </Button>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="chat"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-2"
+                  >
+                    <ChatMessages 
+                      messages={messages} 
+                      messagesEndRef={messagesEndRef}
+                      renderAdditionalContent={renderSearchResults}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </ScrollArea>
           </div>
-        </div>
-        
-        {/* Main Chat/Search Area */}
-        <ScrollArea className="flex-1 pb-0">
-          <AnimatePresence mode="wait">
-            {isWelcome ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center h-full text-center p-5"
-              >
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  {mode === "chat" ? (
-                    <Sparkles className="h-8 w-8 text-primary" />
-                  ) : mode === "bookmark-search" ? (
-                    <BookmarkPlus className="h-8 w-8 text-primary" />
-                  ) : (
-                    <Globe className="h-8 w-8 text-primary" />
-                  )}
-                </div>
-                
-                <h2 className="text-lg font-medium mb-2">
-                  {mode === "chat" ? "Chat with Gemini AI" : 
-                   mode === "bookmark-search" ? "Search Your Bookmarks" : 
-                   "Search the Web"}
-                </h2>
-                
-                <p className="text-sm text-muted-foreground max-w-xs mb-4">
-                  {mode === "chat" ? "Ask any question and get intelligent answers powered by Gemini AI" : 
-                   mode === "bookmark-search" ? "Search through your bookmarked content using natural language" : 
-                   "Search the web and get AI-enhanced summaries of results"}
-                </p>
-                
-                <div className="grid grid-cols-1 gap-2 w-full max-w-md">
-                  {/* Example cards for each mode */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {(mode === "chat" ? [
-                      "What are the benefits of meditation?",
-                      "How can I improve my productivity?",
-                    ] : mode === "bookmark-search" ? [
-                      "Find all my productivity bookmarks",
-                      "Which tech blogs did I save?",
-                    ] : [
-                      "Latest news about artificial intelligence",
-                      "Best places to visit in Japan",
-                    ]).map((example, idx) => (
-                      <Button 
-                        key={idx}
-                        variant="outline" 
-                        size="sm"
-                        className="justify-start h-auto py-2.5 px-3 text-xs font-normal"
-                        onClick={() => handleQuerySubmit(example)}
-                      >
-                        {example}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="pt-2 px-3 pb-3"
-              >
-                <ChatMessages 
-                  messages={messages} 
-                  messagesEndRef={messagesEndRef}
-                  renderAdditionalContent={renderSearchResults}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </ScrollArea>
-        
-        {/* Chat Input Area */}
-        <div className="px-3 py-2 border-t bg-background/95 backdrop-blur-sm">
-          <ChatInput
-            onSendMessage={handleQuerySubmit}
-            isProcessing={isProcessing}
-            disabled={isOffline}
-            placeholder={
-              mode === "chat" ? "Ask anything..." : 
-              mode === "bookmark-search" ? "Search your bookmarks..." : 
-              "Search the web..."
-            }
-            modeIcon={
-              mode === "chat" ? <Sparkles size={14} /> : 
-              mode === "bookmark-search" ? <BookmarkPlus size={14} /> : 
-              <Globe size={14} />
-            }
-            modeName={
-              mode === "chat" ? "Gemini" : 
-              mode === "bookmark-search" ? "Bookmarks" : 
-              "Web"
-            }
-            isBookmarkSearchMode={isBookmarkSearchMode}
-          />
+          
+          {/* Input Area - Modern and Minimal */}
+          <div className="p-3 bg-background/95 backdrop-blur-sm border-t mt-auto">
+            <ChatInput
+              onSendMessage={handleQuerySubmit}
+              isProcessing={isProcessing}
+              disabled={isOffline}
+              placeholder={
+                mode === "chat" ? "Message AI..." : 
+                mode === "bookmark-search" ? "Search bookmarks..." : 
+                "Search the web..."
+              }
+              modeIcon={
+                mode === "chat" ? <Sparkles size={12} /> : 
+                mode === "bookmark-search" ? <BookmarkPlus size={12} /> : 
+                <Globe size={12} />
+              }
+              modeName={
+                mode === "chat" ? "Gemini AI" : 
+                mode === "bookmark-search" ? "Bookmark Search" : 
+                "Web Search"
+              }
+              isBookmarkSearchMode={isBookmarkSearchMode}
+            />
+          </div>
         </div>
       </div>
     </Layout>
