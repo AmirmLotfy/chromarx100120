@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -10,10 +9,11 @@ import {
   Send, 
   Bookmark, 
   Sparkles, 
-  X, 
   ChevronDown, 
   MessageCircle, 
-  Library
+  Library,
+  Mic,
+  MicOff
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,8 @@ import { aiRequestManager } from "@/utils/aiRequestManager";
 import { getGeminiResponse } from "@/utils/geminiUtils";
 import { extractPageContent } from "@/utils/contentExtractor";
 import { toast } from "sonner";
+import { VoiceRecorder, convertBlobToBase64 } from "@/utils/voiceUtils";
+import { performGoogleSearch, processSearchResults } from "@/utils/searchApiUtils";
 
 // Define types for our chat functionality
 type MessageType = 'user' | 'assistant' | 'error' | 'loading';
@@ -41,6 +43,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [chatMode, setChatMode] = useState<ChatMode>('chat');
   const [selectedBookmarks, setSelectedBookmarks] = useState<ChromeBookmark[]>([]);
   const [searchResults, setSearchResults] = useState<ChromeBookmark[]>([]);
@@ -48,6 +51,53 @@ const ChatPage = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const voiceRecorderRef = useRef<VoiceRecorder | null>(null);
+  
+  // Initialize voice recorder
+  useEffect(() => {
+    voiceRecorderRef.current = new VoiceRecorder(
+      // onStart
+      () => {
+        setIsRecording(true);
+        toast("Recording started...", {
+          duration: 2000,
+        });
+      },
+      // onStop
+      async (audioBlob) => {
+        setIsRecording(false);
+        toast("Processing your voice...", {
+          duration: 2000,
+        });
+        
+        try {
+          // Convert audio to base64
+          const base64Audio = await convertBlobToBase64(audioBlob);
+          
+          // Here you would typically send the audio to a transcription service
+          // For now, we'll just add a placeholder message
+          const transcriptionMessage = "Voice input would be transcribed here. You'll need to connect this to a voice-to-text service like Whisper API.";
+          
+          setInputValue(transcriptionMessage);
+        } catch (error) {
+          console.error("Error processing voice input:", error);
+          toast.error("Could not process your voice input");
+        }
+      },
+      // onError
+      (error) => {
+        console.error("Voice recording error:", error);
+        setIsRecording(false);
+        toast.error("Error accessing microphone: " + error.message);
+      }
+    );
+    
+    return () => {
+      if (voiceRecorderRef.current?.isCurrentlyRecording()) {
+        voiceRecorderRef.current.stopRecording();
+      }
+    };
+  }, []);
   
   // Scroll to bottom of chat when new messages are added
   useEffect(() => {
@@ -61,6 +111,15 @@ const ChatPage = () => {
   // Generate a unique ID for each message
   const generateId = () => {
     return Math.random().toString(36).substring(2, 9);
+  };
+
+  // Toggle voice recording
+  const toggleVoiceRecording = () => {
+    if (isRecording) {
+      voiceRecorderRef.current?.stopRecording();
+    } else {
+      voiceRecorderRef.current?.startRecording();
+    }
   };
 
   // Handle sending a message
@@ -198,9 +257,13 @@ const ChatPage = () => {
   // Handle web search
   const handleWebSearch = async (query: string) => {
     try {
-      // This would be connected to Google search API
-      // For now, we'll just return a placeholder
-      return `Here are the web search results for: "${query}"\n\nThis feature will be connected to Google Search API.`;
+      // Perform the Google search
+      const searchResults = await performGoogleSearch(query);
+      
+      // Process the search results
+      const processedResponse = await processSearchResults(searchResults, query);
+      
+      return processedResponse;
     } catch (error) {
       console.error('Error performing web search:', error);
       throw error;
@@ -364,36 +427,51 @@ const ChatPage = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Chat Input */}
+        {/* Chat Input - More Compact Version */}
         <div className="relative bg-background rounded-lg border shadow-sm">
-          <Textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={
-              chatMode === 'chat' 
-                ? "Ask anything..." 
-                : chatMode === 'bookmarks'
-                ? "Search your bookmarks..." 
-                : "Search the web..."
-            }
-            className="min-h-[60px] max-h-[120px] pr-10 py-3 resize-none"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
+          <div className="flex items-center">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={
+                chatMode === 'chat' 
+                  ? "Ask anything..." 
+                  : chatMode === 'bookmarks'
+                  ? "Search your bookmarks..." 
+                  : "Search the web..."
               }
-            }}
-          />
-          
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute right-2 bottom-2 h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={handleSendMessage}
-            disabled={isLoading || !inputValue.trim()}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+              className="border-0 shadow-none focus-visible:ring-0 px-3 py-2 h-9 text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+            
+            <div className="flex items-center pr-2">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
+                onClick={toggleVoiceRecording}
+                disabled={isLoading}
+                title={isRecording ? "Stop recording" : "Start voice input"}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handleSendMessage}
+                disabled={isLoading || !inputValue.trim()}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </Layout>
