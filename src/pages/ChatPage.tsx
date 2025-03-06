@@ -2,21 +2,19 @@
 import { useRef, useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { AnimatePresence, motion } from "framer-motion";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sparkles, BookmarkPlus, Search, Globe, Bot } from "lucide-react";
+import { Sparkles, BookmarkPlus, Globe, Bot, Search } from "lucide-react";
 import { Message } from "@/types/chat";
 import { useChatState } from "@/components/chat/useChatState";
 import ChatMessages from "@/components/ChatMessages";
 import ChatInput from "@/components/ChatInput";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { checkGeminiAvailability } from "@/utils/geminiUtils";
 
 const ChatPage = () => {
   const [mode, setMode] = useState<"chat" | "bookmark-search" | "web-search">("chat");
   const [isWelcome, setIsWelcome] = useState(true);
-  const messageEndRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
   
   // Get chat state from our hook
   const {
@@ -25,20 +23,12 @@ const ChatPage = () => {
     handleSendMessage,
     clearChat,
     messagesEndRef,
-    error,
     activeConversation,
     isOffline,
     checkConnection,
     toggleBookmarkSearchMode,
     isBookmarkSearchMode,
   } = useChatState();
-
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
 
   // Check if Gemini API is available on first load
   useEffect(() => {
@@ -96,7 +86,7 @@ const ChatPage = () => {
     if (!message.bookmarks?.length && !message.webResults?.length) return null;
     
     return (
-      <div className="mt-3 space-y-3 rounded-xl overflow-hidden bg-background/80 backdrop-blur-sm p-3 border border-primary/10">
+      <div className="mt-3 space-y-3 rounded-xl bg-background/80 backdrop-blur-sm p-3 border border-primary/10">
         {message.bookmarks && message.bookmarks.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-xs font-medium text-primary flex items-center gap-1.5">
@@ -161,145 +151,132 @@ const ChatPage = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] w-full overflow-hidden bg-gradient-to-b from-background/80 to-background">
-        {/* Header with Mode Switcher */}
-        <div className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0">
-          <h1 className="text-sm font-medium">
-            {mode === "chat" ? "Chat" : mode === "bookmark-search" ? "Bookmark Search" : "Web Search"}
-            <span className="ml-2 text-xs text-muted-foreground">
-              {activeConversation?.name || (messages.length > 1 ? "New conversation" : "")}
+      <div className="flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] w-full max-w-screen-sm mx-auto overflow-hidden bg-gradient-to-b from-background/80 to-background shadow-lg rounded-2xl">
+        {/* Integrated Mode Toggle & Header */}
+        <div className="flex items-center p-3 border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0">
+          <div className="flex-1 flex items-center gap-2">
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              {mode === "chat" ? (
+                <Sparkles size={16} className="text-primary" />
+              ) : mode === "bookmark-search" ? (
+                <BookmarkPlus size={16} className="text-primary" />
+              ) : (
+                <Globe size={16} className="text-primary" />
+              )}
+              {mode === "chat" ? "Chat" : mode === "bookmark-search" ? "Bookmarks" : "Web"}
             </span>
-          </h1>
+            {activeConversation?.name && (
+              <span className="text-xs text-muted-foreground">
+                {activeConversation.name}
+              </span>
+            )}
+          </div>
           
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center gap-1 bg-accent/50 rounded-full p-1">
             <Button
               size="sm"
-              variant={mode === "chat" ? "default" : "ghost"}
+              variant="ghost"
               className={cn(
-                "h-8 gap-1.5 text-xs px-2.5 rounded-full",
+                "h-8 w-8 p-0 rounded-full",
                 mode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
               )}
               onClick={() => changeMode("chat")}
             >
-              <Bot size={14} />
-              <span className={isMobile ? "sr-only" : ""}>Chat</span>
+              <Sparkles size={15} />
+              <span className="sr-only">Chat</span>
             </Button>
             
             <Button
               size="sm"
-              variant={mode === "bookmark-search" ? "default" : "ghost"}
+              variant="ghost"
               className={cn(
-                "h-8 gap-1.5 text-xs px-2.5 rounded-full",
+                "h-8 w-8 p-0 rounded-full",
                 mode === "bookmark-search" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
               )}
               onClick={() => changeMode("bookmark-search")}
             >
-              <BookmarkPlus size={14} />
-              <span className={isMobile ? "sr-only" : ""}>Bookmarks</span>
+              <BookmarkPlus size={15} />
+              <span className="sr-only">Bookmarks</span>
             </Button>
             
             <Button
               size="sm"
-              variant={mode === "web-search" ? "default" : "ghost"}
+              variant="ghost"
               className={cn(
-                "h-8 gap-1.5 text-xs px-2.5 rounded-full",
+                "h-8 w-8 p-0 rounded-full",
                 mode === "web-search" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
               )}
               onClick={() => changeMode("web-search")}
             >
-              <Globe size={14} />
-              <span className={isMobile ? "sr-only" : ""}>Web</span>
+              <Globe size={15} />
+              <span className="sr-only">Web</span>
             </Button>
           </div>
         </div>
         
         {/* Main Chat/Search Area */}
-        <div className="flex-1 overflow-y-auto p-3 pb-0">
+        <ScrollArea className="flex-1 pb-0">
           <AnimatePresence mode="wait">
             {isWelcome ? (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center h-full text-center p-5"
               >
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                   {mode === "chat" ? (
-                    <Sparkles className="h-10 w-10 text-primary" />
+                    <Sparkles className="h-8 w-8 text-primary" />
                   ) : mode === "bookmark-search" ? (
-                    <BookmarkPlus className="h-10 w-10 text-primary" />
+                    <BookmarkPlus className="h-8 w-8 text-primary" />
                   ) : (
-                    <Globe className="h-10 w-10 text-primary" />
+                    <Globe className="h-8 w-8 text-primary" />
                   )}
                 </div>
                 
-                <h2 className="text-xl font-medium mb-2">
+                <h2 className="text-lg font-medium mb-2">
                   {mode === "chat" ? "Chat with Gemini AI" : 
                    mode === "bookmark-search" ? "Search Your Bookmarks" : 
                    "Search the Web"}
                 </h2>
                 
-                <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                <p className="text-sm text-muted-foreground max-w-xs mb-4">
                   {mode === "chat" ? "Ask any question and get intelligent answers powered by Gemini AI" : 
                    mode === "bookmark-search" ? "Search through your bookmarked content using natural language" : 
                    "Search the web and get AI-enhanced summaries of results"}
                 </p>
                 
-                <div className="grid grid-cols-1 gap-2 w-full max-w-md mt-4">
-                  {mode === "chat" && [
-                    "What are the benefits of meditation?",
-                    "How can I improve my productivity?",
-                    "Tell me about the latest AI advancements",
-                  ].map((example, idx) => (
-                    <Button 
-                      key={idx}
-                      variant="outline" 
-                      size="sm"
-                      className="justify-start h-auto py-3 px-4 text-sm font-normal"
-                      onClick={() => handleQuerySubmit(example)}
-                    >
-                      <span>{example}</span>
-                    </Button>
-                  ))}
-                  
-                  {mode === "bookmark-search" && [
-                    "Find all my productivity bookmarks",
-                    "Which tech blogs did I save last month?",
-                    "Show me recipes I've bookmarked",
-                  ].map((example, idx) => (
-                    <Button 
-                      key={idx}
-                      variant="outline" 
-                      size="sm"
-                      className="justify-start h-auto py-3 px-4 text-sm font-normal"
-                      onClick={() => handleQuerySubmit(example)}
-                    >
-                      <span>{example}</span>
-                    </Button>
-                  ))}
-                  
-                  {mode === "web-search" && [
-                    "Latest news about artificial intelligence",
-                    "Best places to visit in Japan",
-                    "How to make sourdough bread",
-                  ].map((example, idx) => (
-                    <Button 
-                      key={idx}
-                      variant="outline" 
-                      size="sm"
-                      className="justify-start h-auto py-3 px-4 text-sm font-normal"
-                      onClick={() => handleQuerySubmit(example)}
-                    >
-                      <span>{example}</span>
-                    </Button>
-                  ))}
+                <div className="grid grid-cols-1 gap-2 w-full max-w-md">
+                  {/* Example cards for each mode */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(mode === "chat" ? [
+                      "What are the benefits of meditation?",
+                      "How can I improve my productivity?",
+                    ] : mode === "bookmark-search" ? [
+                      "Find all my productivity bookmarks",
+                      "Which tech blogs did I save?",
+                    ] : [
+                      "Latest news about artificial intelligence",
+                      "Best places to visit in Japan",
+                    ]).map((example, idx) => (
+                      <Button 
+                        key={idx}
+                        variant="outline" 
+                        size="sm"
+                        className="justify-start h-auto py-2.5 px-3 text-xs font-normal"
+                        onClick={() => handleQuerySubmit(example)}
+                      >
+                        {example}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="pt-2 pb-4"
+                className="pt-2 px-3 pb-3"
               >
                 <ChatMessages 
                   messages={messages} 
@@ -309,10 +286,10 @@ const ChatPage = () => {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </ScrollArea>
         
         {/* Chat Input Area */}
-        <div className="p-3 border-t bg-background/95 backdrop-blur-sm">
+        <div className="px-3 py-2 border-t bg-background/95 backdrop-blur-sm">
           <ChatInput
             onSendMessage={handleQuerySubmit}
             isProcessing={isProcessing}
@@ -332,6 +309,7 @@ const ChatPage = () => {
               mode === "bookmark-search" ? "Bookmarks" : 
               "Web"
             }
+            isBookmarkSearchMode={isBookmarkSearchMode}
           />
         </div>
       </div>

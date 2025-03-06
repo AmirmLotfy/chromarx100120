@@ -24,7 +24,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   recentQueries = [],
   placeholder = "Type a message...",
   modeIcon,
-  modeName = "AI"
+  modeName = "AI",
+  isBookmarkSearchMode = false,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [showRecentQueries, setShowRecentQueries] = useState(false);
@@ -60,7 +61,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 80)}px`;
     }
   };
 
@@ -136,7 +137,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             
             if (textareaRef.current) {
               textareaRef.current.style.height = "auto";
-              textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+              textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 80)}px`;
             }
           };
           
@@ -164,7 +165,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <motion.div 
-      className="w-full max-w-2xl mx-auto"
+      className="w-full max-w-full mx-auto"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
@@ -176,12 +177,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-md overflow-hidden z-10 max-w-2xl mx-auto"
+            className="absolute bottom-full left-0 right-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-xl shadow-md overflow-hidden z-10 max-w-full mx-auto"
             ref={suggestionsRef}
           >
             <div className="p-2">
               <h3 className="text-xs font-medium text-muted-foreground px-2 py-1">Recent</h3>
-              <div className="space-y-0.5 max-h-36 overflow-y-auto">
+              <div className="space-y-0.5 max-h-28 overflow-y-auto">
                 {recentQueries.map((query, index) => (
                   <button
                     key={index}
@@ -197,7 +198,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </AnimatePresence>
 
-      <div className="relative flex items-end gap-2">
+      <div className="relative flex items-end gap-1.5">
         <div className="relative flex-1 overflow-hidden rounded-xl border shadow-sm bg-background/90 backdrop-blur-sm">
           <textarea
             ref={textareaRef}
@@ -206,13 +207,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
             placeholder={placeholder}
-            className="w-full resize-none bg-transparent pl-3.5 pr-12 py-3 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ minHeight: "44px", maxHeight: "120px" }}
+            className="w-full resize-none bg-transparent pl-3 pr-12 py-2.5 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ minHeight: "42px", maxHeight: "80px" }}
             disabled={isProcessing || disabled}
             rows={1}
           />
           
-          <div className="absolute right-2 bottom-2 flex items-center space-x-1">
+          <div className="absolute right-2 bottom-1.5 flex items-center space-x-1">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={toggleSpeechRecognition}
@@ -262,12 +263,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
               : "bg-primary text-primary-foreground"
           )}
         >
-          <SendHorizontal className="h-5 w-5" />
+          <SendHorizontal className="h-[18px] w-[18px]" />
         </motion.button>
       </div>
       
       {/* Model indicator */}
-      <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground">
         {modeIcon}
         <span>Using {modeName}</span>
       </div>
