@@ -14,8 +14,7 @@ export function useOptimizedBookmarks() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const offlineStatus = useOfflineStatus();
-  const isOffline = offlineStatus.isOffline;
+  const { isOffline } = useOfflineStatus();
 
   // Initialize the loader with enhanced performance options
   useEffect(() => {
