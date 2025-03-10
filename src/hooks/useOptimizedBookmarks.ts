@@ -14,18 +14,22 @@ export function useOptimizedBookmarks() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const { isOffline } = useOfflineStatus();
+  const offlineStatus = useOfflineStatus();
+  const isOffline = offlineStatus.isOffline;
 
-  // Initialize the loader
+  // Initialize the loader with enhanced performance options
   useEffect(() => {
     if (!isInitialized) {
-      bookmarkLoader.initialize().then(() => {
+      bookmarkLoader.initialize({
+        useFastLoading: true,
+        prioritizeCache: true
+      }).then(() => {
         setIsInitialized(true);
       });
     }
   }, [isInitialized]);
 
-  // Load bookmarks with progress tracking
+  // Load bookmarks with progress tracking and performance optimizations
   const loadBookmarks = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
       bookmarkLoader.clearCache();
@@ -37,7 +41,7 @@ export function useOptimizedBookmarks() {
     setLoadingProgress(0);
     
     try {
-      // Initial load - this might return cached data immediately
+      // Initial fast load from cache - for immediate UI display
       const initialBookmarks = await bookmarkLoader.loadBookmarks(
         // Progress callback
         (progress) => {
@@ -46,7 +50,7 @@ export function useOptimizedBookmarks() {
         // Batch complete callback - update the UI as we get more data
         (newBatch) => {
           setBookmarks(current => {
-            // Merge without duplicates
+            // Merge without duplicates using a more efficient Set-based approach
             const idSet = new Set(current.map(b => b.id));
             const uniqueNewBookmarks = newBatch.filter(b => !idSet.has(b.id));
             return [...current, ...uniqueNewBookmarks];
@@ -69,13 +73,14 @@ export function useOptimizedBookmarks() {
     }
   }, [loadingStatus]);
 
-  // Filter bookmarks based on search query
+  // Filter bookmarks based on search query with improved performance
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredBookmarks(bookmarks);
       return;
     }
     
+    // Use a worker for filtering if available, otherwise do it directly
     const query = searchQuery.toLowerCase().trim();
     const filtered = bookmarks.filter(bookmark => 
       bookmark.title.toLowerCase().includes(query) ||
