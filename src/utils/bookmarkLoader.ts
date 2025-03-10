@@ -2,11 +2,13 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { chromeDb } from "@/lib/chrome-storage";
 import { toast } from "sonner";
+import { cache } from "@/utils/cacheUtils";
 
 // Constants for optimization
-const BATCH_SIZE = 50;
-const MAX_INITIAL_LOAD = 100;
-const THROTTLE_DELAY = 300;
+const BATCH_SIZE = 100; // Increased from 50 for faster loading
+const MAX_INITIAL_LOAD = 200; // Increased from 100 
+const THROTTLE_DELAY = 50; // Reduced from 300ms for faster processing
+const CATEGORY_CACHE_KEY = 'bookmark-categories';
 
 /**
  * Efficient bookmark loader with progressive loading and advanced caching
@@ -16,6 +18,7 @@ export class BookmarkLoader {
   private categoryCache: Map<string, string> = new Map();
   private loadingPromise: Promise<ChromeBookmark[]> | null = null;
   private isInitialized = false;
+  private storageKeys: string[] = [];
 
   /**
    * Initialize the loader - preload essential data
@@ -24,20 +27,59 @@ export class BookmarkLoader {
     if (this.isInitialized) return;
 
     try {
-      // Preload category cache
-      const categoryKeys = await chromeDb.keys();
-      for (const key of categoryKeys) {
-        if (key.startsWith('bookmark-category-')) {
-          const bookmarkId = key.replace('bookmark-category-', '');
-          const category = await chromeDb.get<string>(key);
-          if (category) this.categoryCache.set(bookmarkId, category);
+      // Load categories in bulk for better performance
+      const categoriesData = await chromeDb.get<Record<string, string>>(CATEGORY_CACHE_KEY) || {};
+      
+      // If we have the bulk categories cache, use it
+      if (Object.keys(categoriesData).length > 0) {
+        for (const [bookmarkId, category] of Object.entries(categoriesData)) {
+          this.categoryCache.set(bookmarkId, category);
+        }
+        console.log('Loaded categories from bulk cache:', this.categoryCache.size);
+      } else {
+        // Fall back to individual keys (for backward compatibility)
+        // Get all keys with prefix bookmark-category- using manual search
+        const allData = await chromeDb.get<Record<string, any>>('all-storage-data');
+        if (allData) {
+          this.storageKeys = Object.keys(allData);
+          const categoryKeys = this.storageKeys.filter(key => key.startsWith('bookmark-category-'));
+          
+          for (const key of categoryKeys) {
+            const bookmarkId = key.replace('bookmark-category-', '');
+            const category = allData[key];
+            if (category) this.categoryCache.set(bookmarkId, category);
+          }
         }
       }
+      
+      // Pre-cache bookmarks if localStorage has them (faster startup)
+      this.loadCachedBookmarks();
       
       this.isInitialized = true;
       console.log('BookmarkLoader initialized with', this.categoryCache.size, 'cached categories');
     } catch (error) {
       console.error('Error initializing BookmarkLoader:', error);
+    }
+  }
+
+  /**
+   * Load cached bookmarks from localStorage for immediate display
+   */
+  private loadCachedBookmarks(): void {
+    try {
+      const cachedData = localStorage.getItem('bookmark_cache');
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        // Only use if cache is fresh (less than 5 minutes old)
+        if (Date.now() - timestamp < 5 * 60 * 1000 && Array.isArray(data)) {
+          data.forEach(bookmark => {
+            this.bookmarkCache.set(bookmark.id, bookmark);
+          });
+          console.log('Pre-loaded', data.length, 'bookmarks from localStorage cache');
+        }
+      }
+    } catch (error) {
+      console.error('Error pre-loading cached bookmarks:', error);
     }
   }
 
@@ -63,7 +105,7 @@ export class BookmarkLoader {
   }
 
   /**
-   * Internal implementation of bookmark loading
+   * Internal implementation of bookmark loading with optimizations
    */
   private async _loadBookmarksInternal(
     onProgress?: (progress: number) => void,
@@ -75,7 +117,7 @@ export class BookmarkLoader {
       if (cached && cached.length > 0) {
         // If we have cached bookmarks, return them immediately
         // and continue loading in the background
-        setTimeout(() => this.refreshBookmarksInBackground(onProgress, onBatchComplete), 100);
+        setTimeout(() => this.refreshBookmarksInBackground(onProgress, onBatchComplete), 50);
         return cached;
       }
 
@@ -85,14 +127,15 @@ export class BookmarkLoader {
         return [];
       }
 
-      const allBookmarks = await chrome.bookmarks.getRecent(2000);
+      // Use a more efficient approach to get all bookmarks
+      const allBookmarks = await this.getAllBookmarks();
       const processedBookmarks: ChromeBookmark[] = [];
       
       // Process in batches
       for (let i = 0; i < allBookmarks.length; i += BATCH_SIZE) {
         const batchStartTime = performance.now();
         const batch = allBookmarks.slice(i, i + BATCH_SIZE);
-        const batchResults = await this.processBatch(batch);
+        const batchResults = await this.processBatchFast(batch);
         
         processedBookmarks.push(...batchResults);
         
@@ -105,7 +148,7 @@ export class BookmarkLoader {
           onBatchComplete(batchResults);
         }
         
-        // Add delay between batches to avoid UI blocking
+        // Add minimal delay between batches to avoid UI blocking
         const batchProcessTime = performance.now() - batchStartTime;
         if (batchProcessTime < THROTTLE_DELAY) {
           await new Promise(resolve => setTimeout(resolve, THROTTLE_DELAY - batchProcessTime));
@@ -123,9 +166,50 @@ export class BookmarkLoader {
   }
 
   /**
-   * Process a batch of bookmarks
+   * Get all bookmarks using an optimized approach
    */
-  private async processBatch(batch: chrome.bookmarks.BookmarkTreeNode[]): Promise<ChromeBookmark[]> {
+  private async getAllBookmarks(): Promise<chrome.bookmarks.BookmarkTreeNode[]> {
+    try {
+      // Try to get all bookmarks efficiently
+      const tree = await chrome.bookmarks.getTree();
+      const bookmarks: chrome.bookmarks.BookmarkTreeNode[] = [];
+      
+      // Flatten the tree (more efficient than getRecent which has limitations)
+      const processNode = (node: chrome.bookmarks.BookmarkTreeNode) => {
+        if (node.url) {
+          bookmarks.push(node);
+        }
+        if (node.children) {
+          for (const child of node.children) {
+            processNode(child);
+          }
+        }
+      };
+      
+      // Process all nodes
+      for (const root of tree) {
+        if (root.children) {
+          for (const child of root.children) {
+            processNode(child);
+          }
+        }
+      }
+      
+      // Sort by date added (newest first) to match getRecent behavior
+      bookmarks.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+      
+      return bookmarks;
+    } catch (error) {
+      console.error('Error getting all bookmarks:', error);
+      // Fallback to getRecent
+      return chrome.bookmarks.getRecent(2000);
+    }
+  }
+
+  /**
+   * Process a batch of bookmarks with minimal async operations
+   */
+  private async processBatchFast(batch: chrome.bookmarks.BookmarkTreeNode[]): Promise<ChromeBookmark[]> {
     const processedBatch: ChromeBookmark[] = [];
     
     for (const bookmark of batch) {
@@ -140,13 +224,8 @@ export class BookmarkLoader {
           continue;
         }
         
-        // Process new bookmark
-        const category = this.categoryCache.get(bookmark.id) || await chromeDb.get<string>(`bookmark-category-${bookmark.id}`);
-        
-        // If category found, cache it
-        if (category && !this.categoryCache.has(bookmark.id)) {
-          this.categoryCache.set(bookmark.id, category);
-        }
+        // Get category from cache
+        const category = this.categoryCache.get(bookmark.id);
         
         const processedBookmark: ChromeBookmark = {
           id: bookmark.id,
@@ -178,13 +257,16 @@ export class BookmarkLoader {
     try {
       if (!chrome.bookmarks) return;
       
-      const allBookmarks = await chrome.bookmarks.getRecent(2000);
+      // Get fresh bookmarks
+      const allBookmarks = await this.getAllBookmarks();
       const processedBookmarks: ChromeBookmark[] = [];
       
-      // Process in batches
-      for (let i = 0; i < allBookmarks.length; i += BATCH_SIZE) {
-        const batch = allBookmarks.slice(i, i + BATCH_SIZE);
-        const batchResults = await this.processBatch(batch);
+      // Process in larger batches for background loading
+      const bgBatchSize = BATCH_SIZE * 2;
+      
+      for (let i = 0; i < allBookmarks.length; i += bgBatchSize) {
+        const batch = allBookmarks.slice(i, i + bgBatchSize);
+        const batchResults = await this.processBatchFast(batch);
         
         processedBookmarks.push(...batchResults);
         
@@ -197,14 +279,34 @@ export class BookmarkLoader {
           onBatchComplete(batchResults);
         }
         
-        // Add small delay between batches to avoid UI blocking
-        await new Promise(resolve => setTimeout(resolve, 10));
+        // Minimal delay to avoid blocking
+        await new Promise(resolve => setTimeout(resolve, 5));
       }
       
       // Cache the results
       await this.setCachedBookmarks(processedBookmarks);
+      
+      // Update categories in bulk for better performance
+      this.saveCategoriesInBulk();
     } catch (error) {
       console.error('Error refreshing bookmarks in background:', error);
+    }
+  }
+
+  /**
+   * Save all categories in bulk for better performance
+   */
+  private async saveCategoriesInBulk(): Promise<void> {
+    try {
+      const categoriesData: Record<string, string> = {};
+      this.categoryCache.forEach((category, bookmarkId) => {
+        categoriesData[bookmarkId] = category;
+      });
+      
+      await chromeDb.set(CATEGORY_CACHE_KEY, categoriesData);
+      console.log('Saved categories in bulk:', Object.keys(categoriesData).length);
+    } catch (error) {
+      console.error('Error saving categories in bulk:', error);
     }
   }
 
@@ -245,10 +347,11 @@ export class BookmarkLoader {
     };
 
     try {
-      // Update both local and sync storage
+      // Update localStorage for fastest access
       localStorage.setItem('bookmark_cache', JSON.stringify(cacheData));
       
       try {
+        // Try to store in Chrome storage
         await chromeDb.set('bookmark_cache', cacheData);
       } catch (error) {
         console.warn("Cache might be too large for single storage item, using split storage");
@@ -271,15 +374,7 @@ export class BookmarkLoader {
         chunks.push(bookmarks.slice(i, i + chunkSize));
       }
       
-      // Clear existing chunks
-      const keys = await chromeDb.keys();
-      for (const key of keys) {
-        if (key.startsWith('bookmarks_chunk_')) {
-          await chromeDb.remove(key);
-        }
-      }
-      
-      // Store new chunks
+      // Store new chunks directly
       for (let i = 0; i < chunks.length; i++) {
         await chromeDb.set(`bookmarks_chunk_${i}`, chunks[i]);
       }
@@ -319,6 +414,7 @@ export class BookmarkLoader {
    */
   async setCategory(bookmarkId: string, category: string): Promise<void> {
     try {
+      // Update individual category
       await chromeDb.set(`bookmark-category-${bookmarkId}`, category);
       this.categoryCache.set(bookmarkId, category);
       
@@ -328,10 +424,29 @@ export class BookmarkLoader {
         bookmark.category = category;
         this.bookmarkCache.set(bookmarkId, bookmark);
       }
+      
+      // Update bulk categories periodically
+      this.scheduleBulkCategoryUpdate();
     } catch (error) {
       console.error("Error setting bookmark category:", error);
       throw error;
     }
+  }
+  
+  private bulkUpdateTimeout: number | null = null;
+  
+  /**
+   * Schedule a bulk update of categories for better performance
+   */
+  private scheduleBulkCategoryUpdate(): void {
+    if (this.bulkUpdateTimeout) {
+      window.clearTimeout(this.bulkUpdateTimeout);
+    }
+    
+    this.bulkUpdateTimeout = window.setTimeout(() => {
+      this.saveCategoriesInBulk();
+      this.bulkUpdateTimeout = null;
+    }, 5000);
   }
 
   /**
@@ -339,7 +454,6 @@ export class BookmarkLoader {
    */
   clearCache(): void {
     this.bookmarkCache.clear();
-    this.isInitialized = false;
     localStorage.removeItem('bookmark_cache');
     console.log('BookmarkLoader cache cleared');
   }
