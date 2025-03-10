@@ -1,127 +1,73 @@
-import { useState, useCallback, useEffect } from "react";
+
+import { useState, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
 import Layout from "@/components/Layout";
 import BookmarkHeader from "@/components/BookmarkHeader";
-import { useBookmarkState } from "@/components/BookmarkStateManager";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Check, Wifi, WifiOff } from "lucide-react";
 import { AIProgressIndicator } from "@/components/ui/ai-progress-indicator";
 import { BookmarkImport } from "@/components/BookmarkImport";
 import { motion } from "framer-motion";
-import { dummyBookmarks } from "@/utils/dummyBookmarks";
 import { useBatchProcessing } from "@/hooks/useBatchProcessing";
-import OptimizedBookmarkContent from "@/components/OptimizedBookmarkContent";
 import FolderCreationDialog from "@/components/FolderCreationDialog";
 import { chromeBookmarkService } from "@/services/chromeBookmarkService";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import ErrorFallback from "@/components/ErrorFallback";
+import LazyBookmarkList from "@/components/LazyBookmarkList";
+import { useOptimizedBookmarks } from "@/hooks/useOptimizedBookmarks";
 
 const BookmarksContent = () => {
   const {
-    bookmarks: originalBookmarks,
-    setBookmarks,
-    loading,
-    newBookmarks,
-    loadBookmarks,
-    suggestions,
+    bookmarks,
+    filteredBookmarks,
+    loadingStatus,
+    loadingProgress,
     searchQuery,
-    handleSearch,
-    isProcessing,
-    processingMessage,
-    syncStatus,
-    lastSynced,
-    isConnected,
-    syncProgress,
-    handleForceSync
-  } = useBookmarkState();
-
-  const bookmarks = originalBookmarks.length > 0 
-    ? originalBookmarks 
-    : dummyBookmarks.slice(0, 10);
+    setSearchQuery,
+    loadBookmarks,
+    updateBookmarkCategory,
+    deleteBookmark,
+    isOffline
+  } = useOptimizedBookmarks();
 
   const [sortBy, setSortBy] = useState<"title" | "dateAdded" | "url">("dateAdded");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"grid" | "list">("list");
-  const [isOfflineMode, setIsOfflineMode] = useState(!navigator.onLine);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
-
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOfflineMode(false);
-      toast.success("You're back online");
-    };
-    
-    const handleOffline = () => {
-      setIsOfflineMode(true);
-      toast.warning("You're offline. Limited functionality available.");
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState("");
 
   const handleDelete = async (id: string) => {
-    try {
-      if (chrome.bookmarks) {
-        await chrome.bookmarks.remove(id);
-        setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
-      } else {
-        setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
-      }
-    } catch (error) {
-      console.error("Error deleting bookmark:", error);
-    }
+    await deleteBookmark(id);
   };
 
   const handleDeleteSelected = async () => {
     try {
-      const promises = Array.from(selectedBookmarks).map((id) =>
-        chrome.bookmarks ? chrome.bookmarks.remove(id) : Promise.resolve()
-      );
+      const promises = Array.from(selectedBookmarks).map(id => deleteBookmark(id));
       await Promise.all(promises);
-      setBookmarks((prev) =>
-        prev.filter((bookmark) => !selectedBookmarks.has(bookmark.id))
-      );
       setSelectedBookmarks(new Set());
+      toast.success("Selected bookmarks deleted");
     } catch (error) {
       console.error("Error deleting bookmarks:", error);
+      toast.error("Failed to delete some bookmarks");
     }
   };
 
   const handleUpdateCategories = useCallback((updatedBookmarks: ChromeBookmark[]) => {
-    setBookmarks(prev => {
-      const bookmarkMap = new Map(prev.map(b => [b.id, b]));
-      updatedBookmarks.forEach(bookmark => {
-        bookmarkMap.set(bookmark.id, bookmark);
-      });
-      return Array.from(bookmarkMap.values());
+    updatedBookmarks.forEach(bookmark => {
+      if (bookmark.category) {
+        updateBookmarkCategory(bookmark.id, bookmark.category);
+      }
     });
-  }, [setBookmarks]);
+  }, [updateBookmarkCategory]);
 
   const handleImport = (importedBookmarks: ChromeBookmark[]) => {
-    setBookmarks(prev => [...prev, ...importedBookmarks]);
-    
-    if (chrome.bookmarks && navigator.onLine) {
-      importedBookmarks.forEach(bookmark => {
-        if (bookmark.url) {
-          chrome.bookmarks.create({
-            title: bookmark.title,
-            url: bookmark.url,
-          }).catch(error => {
-            console.error("Error adding to Chrome bookmarks:", error);
-          });
-        }
-      });
-    }
+    toast.success(`${importedBookmarks.length} bookmarks imported`);
+    loadBookmarks(true);
   };
 
   const formatDate = (timestamp?: number) => {
@@ -152,7 +98,8 @@ const BookmarksContent = () => {
     try {
       const newFolder = await chromeBookmarkService.createFolder(name, parentId);
       if (newFolder) {
-        setBookmarks(prev => [...prev, newFolder]);
+        toast.success(`Folder "${name}" created`);
+        loadBookmarks(true);
         return Promise.resolve();
       }
       return Promise.reject("Failed to create folder");
@@ -162,18 +109,37 @@ const BookmarksContent = () => {
     }
   };
 
-  const filteredBookmarks = bookmarks
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleRefresh = () => {
+    loadBookmarks(true);
+    toast.success("Refreshing bookmarks...");
+  };
+
+  const handleForceSync = async () => {
+    setIsProcessing(true);
+    setProcessingMessage("Syncing bookmarks...");
+    
+    try {
+      await loadBookmarks(true);
+      toast.success("Bookmarks synced successfully!");
+    } catch (error) {
+      console.error("Error during sync:", error);
+      toast.error("Failed to sync bookmarks");
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
+    }
+  };
+
+  const filteredAndSortedBookmarks = filteredBookmarks
     .filter((bookmark) => {
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch =
-        bookmark.title.toLowerCase().includes(searchLower) ||
-        bookmark.url?.toLowerCase().includes(searchLower);
-      const matchesCategory =
-        !selectedCategory || bookmark.category === selectedCategory;
-      const matchesDomain =
-        !selectedDomain ||
+      const matchesCategory = !selectedCategory || bookmark.category === selectedCategory;
+      const matchesDomain = !selectedDomain || 
         (bookmark.url && extractDomain(bookmark.url) === selectedDomain);
-      return matchesSearch && matchesCategory && matchesDomain;
+      return matchesCategory && matchesDomain;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -196,18 +162,13 @@ const BookmarksContent = () => {
         className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl backdrop-blur-sm border border-indigo-100 dark:border-indigo-900/30"
       >
         <div className="flex items-center space-x-2">
-          {isConnected ? (
+          {!isOffline ? (
             <Wifi className="h-4 w-4 text-green-500" />
           ) : (
             <WifiOff className="h-4 w-4 text-red-500" />
           )}
           <span className="text-xs">
-            {isConnected ? "Online" : "Offline"} 
-            {syncStatus === 'success' && lastSynced && (
-              <span className="text-muted-foreground ml-2 hidden sm:inline text-xs">
-                Last synced: {new Date(lastSynced).toLocaleString()}
-              </span>
-            )}
+            {!isOffline ? "Online" : "Offline"} 
           </span>
         </div>
         <Button 
@@ -215,27 +176,23 @@ const BookmarksContent = () => {
           variant="outline" 
           className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
           onClick={handleForceSync}
-          disabled={!isConnected || isProcessing}
+          disabled={isOffline || isProcessing || loadingStatus === 'loading'}
         >
-          {syncStatus === 'success' ? (
-            <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
-          ) : (
-            <WifiOff className="h-3.5 w-3.5 mr-1" />
-          )}
+          <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
           <span>Sync</span>
         </Button>
       </motion.div>
       
-      {isProcessing && (
+      {(isProcessing || loadingStatus === 'loading') && (
         <AIProgressIndicator 
           isLoading={true} 
-          message={processingMessage}
-          progress={syncProgress}
-          status={isConnected ? "processing" : "offline"}
+          message={processingMessage || "Loading bookmarks..."}
+          progress={loadingProgress}
+          status={isOffline ? "offline" : "processing"}
         />
       )}
 
-      {isOfflineMode && (
+      {isOffline && (
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
@@ -262,50 +219,75 @@ const BookmarksContent = () => {
         onUpdateCategories={handleUpdateCategories}
         searchQuery={searchQuery}
         onSearchChange={handleSearch}
-        onImport={(bookmarks) => {
-          /* This will be replaced by the new import functionality */
-        }}
+        onImport={() => {}}
         onCreateFolder={() => setIsFolderDialogOpen(true)}
-        suggestions={suggestions}
+        suggestions={[]}
         onSelectSuggestion={(suggestion) => handleSearch(suggestion)}
         importComponent={<BookmarkImport onImportComplete={handleImport} />}
         categories={categories.map(c => c.name)}
         domains={domains.map(d => d.domain)}
       />
 
-      <OptimizedBookmarkContent
-        filteredBookmarks={filteredBookmarks}
-        selectedBookmarks={selectedBookmarks}
-        onToggleSelect={(id) => {
-          setSelectedBookmarks(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-              next.delete(id);
-            } else {
-              next.add(id);
-            }
-            return next;
-          });
-        }}
-        onDelete={handleDelete}
-        formatDate={formatDate}
-        onRefresh={loadBookmarks}
-        onClearFilters={() => {
-          setSelectedCategory(null);
-          setSelectedDomain(null);
-          handleSearch("");
-        }}
-        loading={loading}
-        categories={categories}
-        domains={domains}
-        selectedCategory={selectedCategory}
-        selectedDomain={selectedDomain}
-        onSelectCategory={setSelectedCategory}
-        onSelectDomain={setSelectedDomain}
-        onUpdateCategories={handleUpdateCategories}
-        searchQuery={searchQuery}
-        isOffline={isOfflineMode}
-      />
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Main content area */}
+        <main className="flex-1">
+          {(selectedCategory || selectedDomain) && (
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-wrap gap-2">
+                {selectedCategory && (
+                  <div className="inline-flex items-center bg-primary/10 text-xs rounded-full px-2 py-1">
+                    <span className="mr-1">Category: {selectedCategory}</span>
+                    <button onClick={() => setSelectedCategory(null)}>
+                      <AlertCircle className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                {selectedDomain && (
+                  <div className="inline-flex items-center bg-primary/10 text-xs rounded-full px-2 py-1">
+                    <span className="mr-1">Domain: {selectedDomain}</span>
+                    <button onClick={() => setSelectedDomain(null)}>
+                      <AlertCircle className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedDomain(null);
+                }}
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+
+          <LazyBookmarkList
+            bookmarks={filteredAndSortedBookmarks}
+            selectedBookmarks={selectedBookmarks}
+            onToggleSelect={(id) => {
+              setSelectedBookmarks(prev => {
+                const next = new Set(prev);
+                if (next.has(id)) {
+                  next.delete(id);
+                } else {
+                  next.add(id);
+                }
+                return next;
+              });
+            }}
+            onDelete={handleDelete}
+            formatDate={formatDate}
+            onUpdateCategories={handleUpdateCategories}
+            searchQuery={searchQuery}
+            isLoading={loadingStatus === 'loading'}
+            onRefresh={handleRefresh}
+          />
+        </main>
+      </div>
     
       <FolderCreationDialog
         isOpen={isFolderDialogOpen}
