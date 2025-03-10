@@ -411,7 +411,7 @@ export class BookmarkLoader {
         chunks.push(bookmarks.slice(i, i + chunkSize));
       }
       
-      // Store new chunks directly
+      // Store each chunk directly
       for (let i = 0; i < chunks.length; i++) {
         await chromeDb.set(`bookmarks_chunk_${i}`, chunks[i]);
       }

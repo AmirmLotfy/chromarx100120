@@ -11,8 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight, FolderPlus, Grid, Home, LayoutGrid, List, Pencil, Plus, Settings, Share2, Trash } from "lucide-react";
 import { toast } from "sonner";
+import { chromeDb } from "@/lib/chrome-storage";
 
-// Mock types
+// Types
 interface BookmarkCollection {
   id: string;
   name: string;
@@ -24,6 +25,8 @@ interface BookmarkCollection {
   isPublic: boolean;
 }
 
+const COLLECTIONS_STORAGE_KEY = "bookmark-collections";
+
 const CollectionsPage = () => {
   const { user } = useAuth();
   const [collections, setCollections] = useState<BookmarkCollection[]>([]);
@@ -31,44 +34,37 @@ const CollectionsPage = () => {
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDesc, setNewCollectionDesc] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Load collections from storage
   useEffect(() => {
-    // Mock data - in a real app, you would fetch collections from storage
-    const mockCollections: BookmarkCollection[] = [
-      {
-        id: "1",
-        name: "Work Resources",
-        description: "Important links for my job",
-        color: "#4f46e5",
-        icon: "briefcase",
-        bookmarkCount: 15,
-        createdAt: new Date().toISOString(),
-        isPublic: false
-      },
-      {
-        id: "2",
-        name: "Research Papers",
-        description: "Academic articles and papers",
-        color: "#0ea5e9",
-        icon: "book",
-        bookmarkCount: 23,
-        createdAt: new Date().toISOString(),
-        isPublic: true
-      },
-      {
-        id: "3",
-        name: "Recipes",
-        description: "Cooking inspiration",
-        color: "#10b981",
-        icon: "utensils",
-        bookmarkCount: 8,
-        createdAt: new Date().toISOString(),
-        isPublic: false
+    const loadCollections = async () => {
+      setIsLoading(true);
+      try {
+        const storedCollections = await chromeDb.get<BookmarkCollection[]>(COLLECTIONS_STORAGE_KEY);
+        if (storedCollections && Array.isArray(storedCollections)) {
+          setCollections(storedCollections);
+        }
+      } catch (error) {
+        console.error("Error loading collections:", error);
+        toast.error("Failed to load your collections");
+      } finally {
+        setIsLoading(false);
       }
-    ];
+    };
 
-    setCollections(mockCollections);
+    loadCollections();
   }, []);
+
+  // Save collections to storage when they change
+  const saveCollections = async (newCollections: BookmarkCollection[]) => {
+    try {
+      await chromeDb.set(COLLECTIONS_STORAGE_KEY, newCollections);
+    } catch (error) {
+      console.error("Error saving collections:", error);
+      toast.error("Failed to save your collections");
+    }
+  };
 
   const handleCreateCollection = () => {
     if (!newCollectionName) {
@@ -87,7 +83,10 @@ const CollectionsPage = () => {
       isPublic: false
     };
     
-    setCollections([...collections, newCollection]);
+    const updatedCollections = [...collections, newCollection];
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
+    
     toast.success(`Collection "${newCollectionName}" created`);
     setNewCollectionName("");
     setNewCollectionDesc("");
@@ -95,7 +94,9 @@ const CollectionsPage = () => {
   };
 
   const handleDeleteCollection = (id: string, name: string) => {
-    setCollections(collections.filter(c => c.id !== id));
+    const updatedCollections = collections.filter(c => c.id !== id);
+    setCollections(updatedCollections);
+    saveCollections(updatedCollections);
     toast.success(`Collection "${name}" deleted`);
   };
 
@@ -179,7 +180,11 @@ const CollectionsPage = () => {
           </TabsList>
         </Tabs>
 
-        {collections.length > 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : collections.length > 0 ? (
           <div className={`grid gap-4 ${view === "grid" ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" : "grid-cols-1"}`}>
             {collections.map((collection) => (
               <Card key={collection.id} className="overflow-hidden">
