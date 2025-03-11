@@ -29,12 +29,6 @@ const ProductivityNotifications = () => {
         const storedNotifications = await chromeDb.get<Notification[]>(NOTIFICATIONS_STORAGE_KEY);
         if (storedNotifications && Array.isArray(storedNotifications)) {
           setNotifications(storedNotifications);
-          
-          // Show toast for unread notifications
-          const unreadCount = storedNotifications.filter(n => !n.read).length;
-          if (unreadCount > 0) {
-            toast.success(`You have ${unreadCount} new notification${unreadCount > 1 ? 's' : ''}!`);
-          }
         }
       } catch (error) {
         console.error("Error loading notifications:", error);

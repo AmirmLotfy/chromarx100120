@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,12 +14,6 @@ const AuthPage = () => {
   const { toast } = useToast();
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isRemix, setIsRemix] = useState(false);
-
-  useEffect(() => {
-    // Check if we're in a Lovable remix environment
-    setIsRemix(window.location.hostname.includes('lovableproject.com'));
-  }, []);
 
   // Redirect if already logged in
   if (user) {
@@ -105,14 +99,6 @@ const AuthPage = () => {
                   </span>
                 </Button>
               </Link>
-              
-              {isRemix && (
-                <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-950 rounded-md text-sm">
-                  <p className="text-yellow-800 dark:text-yellow-200">
-                    You're in a Lovable remix environment. Authentication is bypassed for testing purposes.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </TabsContent>
           
@@ -158,14 +144,6 @@ const AuthPage = () => {
                   </span>
                 </Button>
               </Link>
-              
-              {isRemix && (
-                <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-950 rounded-md text-sm">
-                  <p className="text-yellow-800 dark:text-yellow-200">
-                    You're in a Lovable remix environment. Authentication is bypassed for testing purposes.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </TabsContent>
         </Tabs>

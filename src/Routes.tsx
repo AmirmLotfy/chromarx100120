@@ -26,15 +26,12 @@ import PayPalConfigPage from "./pages/PayPalConfigPage";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  // Always allow access in development, remixes, and during loading
-  // This prevents redirect loops during remix
-  const isLovableRemix = window.location.hostname.includes('lovableproject.com');
-  
-  if (isLovableRemix || process.env.NODE_ENV === 'development' || loading) {
+  // Always allow access during loading or in any environment other than production
+  if (loading || process.env.NODE_ENV !== 'production') {
     return <>{children}</>;
   }
   
-  // If not in a remix environment and authentication is complete, check for user
+  // Only check for authentication in production
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
@@ -51,119 +48,21 @@ const Routes = () => {
       <Route path="/suggested-services" element={<SuggestedServicesPage />} />
       <Route path="/help" element={<HelpPage />} />
       
-      {/* Protected routes - now allowing access for remixing */}
-      <Route 
-        path="/bookmarks" 
-        element={
-          <ProtectedRoute>
-            <BookmarksPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/chat" 
-        element={
-          <ProtectedRoute>
-            <ChatPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/summaries" 
-        element={
-          <ProtectedRoute>
-            <SummariesPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/analytics" 
-        element={
-          <ProtectedRoute>
-            <AnalyticsPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/timer" 
-        element={
-          <ProtectedRoute>
-            <TimerPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/tasks" 
-        element={
-          <ProtectedRoute>
-            <TaskPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/notes" 
-        element={
-          <ProtectedRoute>
-            <NotesPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/subscription" 
-        element={
-          <ProtectedRoute>
-            <SubscriptionPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/user" 
-        element={
-          <ProtectedRoute>
-            <UserPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/notifications" 
-        element={
-          <ProtectedRoute>
-            <NotificationsPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/collections" 
-        element={
-          <ProtectedRoute>
-            <CollectionsPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/export-import" 
-        element={
-          <ProtectedRoute>
-            <ExportImportPage />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/integrations" 
-        element={
-          <ProtectedRoute>
-            <IntegrationsPage />
-          </ProtectedRoute>
-        } 
-      />
+      {/* Protected routes */}
+      <Route path="/bookmarks" element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />
+      <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+      <Route path="/summaries" element={<ProtectedRoute><SummariesPage /></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/timer" element={<ProtectedRoute><TimerPage /></ProtectedRoute>} />
+      <Route path="/tasks" element={<ProtectedRoute><TaskPage /></ProtectedRoute>} />
+      <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+      <Route path="/user" element={<ProtectedRoute><UserPage /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      <Route path="/collections" element={<ProtectedRoute><CollectionsPage /></ProtectedRoute>} />
+      <Route path="/export-import" element={<ProtectedRoute><ExportImportPage /></ProtectedRoute>} />
+      <Route path="/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
       <Route path="/paypal-config" element={<PayPalConfigPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>

@@ -16,7 +16,7 @@ export function useOptimizedBookmarks() {
   const [isInitialized, setIsInitialized] = useState(false);
   const { isOffline } = useOfflineStatus();
 
-  // Initialize the loader with enhanced performance options
+  // Initialize the loader
   useEffect(() => {
     if (!isInitialized) {
       bookmarkLoader.initialize({
@@ -28,7 +28,7 @@ export function useOptimizedBookmarks() {
     }
   }, [isInitialized]);
 
-  // Load bookmarks with progress tracking and performance optimizations
+  // Load bookmarks
   const loadBookmarks = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
       bookmarkLoader.clearCache();
@@ -40,26 +40,17 @@ export function useOptimizedBookmarks() {
     setLoadingProgress(0);
     
     try {
-      // Initial fast load from cache - for immediate UI display
-      const initialBookmarks = await bookmarkLoader.loadBookmarks(
-        // Progress callback
+      const bookmarks = await bookmarkLoader.loadBookmarks(
         (progress) => {
           setLoadingProgress(progress);
         },
-        // Batch complete callback - update the UI as we get more data
         (newBatch) => {
-          setBookmarks(current => {
-            // Merge without duplicates using a more efficient Set-based approach
-            const idSet = new Set(current.map(b => b.id));
-            const uniqueNewBookmarks = newBatch.filter(b => !idSet.has(b.id));
-            return [...current, ...uniqueNewBookmarks];
-          });
+          setBookmarks(current => [...current, ...newBatch]);
         }
       );
       
-      // Set initial data if we got any
-      if (initialBookmarks.length > 0) {
-        setBookmarks(initialBookmarks);
+      if (bookmarks.length > 0) {
+        setBookmarks(bookmarks);
       }
       
       setLoadingStatus('loaded');
@@ -72,14 +63,13 @@ export function useOptimizedBookmarks() {
     }
   }, [loadingStatus]);
 
-  // Filter bookmarks based on search query with improved performance
+  // Filter bookmarks based on search query
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredBookmarks(bookmarks);
       return;
     }
     
-    // Use a worker for filtering if available, otherwise do it directly
     const query = searchQuery.toLowerCase().trim();
     const filtered = bookmarks.filter(bookmark => 
       bookmark.title.toLowerCase().includes(query) ||
@@ -121,7 +111,6 @@ export function useOptimizedBookmarks() {
     try {
       await bookmarkLoader.setCategory(bookmarkId, category);
       
-      // Update the bookmark in state
       setBookmarks(current => 
         current.map(bookmark => 
           bookmark.id === bookmarkId 

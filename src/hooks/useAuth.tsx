@@ -40,46 +40,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Safely check for session, with error handling for remixes
-    try {
-      checkSession();
-    } catch (e) {
-      console.error('Failed to check session, possibly a remix issue:', e);
-      setLoading(false);
-    }
+    checkSession();
 
     // Listen for auth changes
-    let subscription: { unsubscribe: () => void } | null = null;
-    
-    try {
-      const { data } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          if (session?.user) {
-            setUser({
-              id: session.user.id,
-              email: session.user.email
-            });
-          } else {
-            setUser(null);
-          }
-          setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email
+          });
+        } else {
+          setUser(null);
         }
-      );
-      
-      subscription = data.subscription;
-    } catch (error) {
-      console.error('Error setting up auth listener:', error);
-      setLoading(false);
-    }
+        setLoading(false);
+      }
+    );
 
     return () => {
-      if (subscription) {
-        try {
-          subscription.unsubscribe();
-        } catch (e) {
-          console.error('Error unsubscribing from auth:', e);
-        }
-      }
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -95,19 +74,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
-      // For remix environments, get the actual URL from window location
-      // This ensures we don't redirect to Lovable's homepage
-      const isRemix = window.location.hostname.includes('lovableproject.com');
-      
-      // Use a more reliable redirect URL that works in both environments
-      let redirectUrl;
-      if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
-        redirectUrl = chrome.runtime.getURL('index.html');
-      } else {
-        // For remix and development environments
-        redirectUrl = `${window.location.origin}/#/auth`;
-      }
-      
+      // Simple approach that works in all environments
+      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
       console.log('Using redirect URL:', redirectUrl);
 
       const { error } = await supabase.auth.signInWithOAuth({
