@@ -1,9 +1,9 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Chrome } from "lucide-react";
+import { Chrome, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,6 +86,19 @@ const AuthPage = () => {
                   </span>
                 )}
               </Button>
+              
+              <Link to="/">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2"
+                >
+                  <span className="flex items-center gap-2">
+                    <Home className="h-4 w-4" />
+                    Continue without signing in
+                  </span>
+                </Button>
+              </Link>
             </CardContent>
           </TabsContent>
           
@@ -118,6 +131,19 @@ const AuthPage = () => {
                   </span>
                 )}
               </Button>
+              
+              <Link to="/">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2"
+                >
+                  <span className="flex items-center gap-2">
+                    <Home className="h-4 w-4" />
+                    Continue without signing up
+                  </span>
+                </Button>
+              </Link>
             </CardContent>
           </TabsContent>
         </Tabs>

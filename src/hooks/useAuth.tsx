@@ -1,6 +1,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
@@ -39,25 +40,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    checkSession();
+    // Safely check for session, with error handling for remixes
+    try {
+      checkSession();
+    } catch (e) {
+      console.error('Failed to check session, possibly a remix issue:', e);
+      setLoading(false);
+    }
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email
-          });
-        } else {
-          setUser(null);
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    try {
+      const { data } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (session?.user) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email
+            });
+          } else {
+            setUser(null);
+          }
+          setLoading(false);
         }
-        setLoading(false);
-      }
-    );
+      );
+      
+      subscription = data.subscription;
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
+      setLoading(false);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (e) {
+          console.error('Error unsubscribing from auth:', e);
+        }
+      }
     };
   }, []);
 
@@ -67,23 +89,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error;
     } catch (error) {
       console.error('Error signing out:', error);
-      throw error;
+      toast.error('Failed to sign out. Please try again.');
     }
   };
 
   const signInWithGoogle = async () => {
     try {
+      // Get the current URL without any query parameters
+      const baseUrl = window.location.origin;
+      const redirectUrl = chrome.runtime?.getURL 
+        ? chrome.runtime.getURL('index.html') 
+        : `${baseUrl}/#/auth`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: chrome.runtime?.getURL ? chrome.runtime.getURL('index.html') : window.location.origin
+          redirectTo: redirectUrl
         }
       });
       
       if (error) throw error;
     } catch (error) {
       console.error('Error signing in with Google:', error);
-      throw error;
+      toast.error('Failed to sign in with Google. Please try again.');
     }
   };
 

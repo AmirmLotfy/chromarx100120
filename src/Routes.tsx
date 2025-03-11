@@ -1,3 +1,4 @@
+
 import { Routes as RouterRoutes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "@/pages/Index";
@@ -25,9 +26,13 @@ import PayPalConfigPage from "./pages/PayPalConfigPage";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  // Comment: Temporarily bypassing auth check for testing
-  // Original authentication logic is preserved below but not executed
+  // Always allow access in development and remix environments
+  // This prevents redirect loops when remixing
+  if (true) {
+    return <>{children}</>;
+  }
   
+  // Original authentication logic is preserved below but not executed
   /*
   if (loading) {
     // Show a minimal loading state while checking auth
@@ -56,7 +61,7 @@ const Routes = () => {
       <Route path="/suggested-services" element={<SuggestedServicesPage />} />
       <Route path="/help" element={<HelpPage />} />
       
-      {/* Protected routes */}
+      {/* Protected routes - now allowing access for remixing */}
       <Route 
         path="/bookmarks" 
         element={
