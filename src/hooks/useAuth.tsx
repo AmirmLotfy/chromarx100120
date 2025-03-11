@@ -95,11 +95,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
-      // Get the current URL without any query parameters
-      const baseUrl = window.location.origin;
-      const redirectUrl = chrome.runtime?.getURL 
-        ? chrome.runtime.getURL('index.html') 
-        : `${baseUrl}/#/auth`;
+      // For remix environments, get the actual URL from window location
+      // This ensures we don't redirect to Lovable's homepage
+      const isRemix = window.location.hostname.includes('lovableproject.com');
+      
+      // Use a more reliable redirect URL that works in both environments
+      let redirectUrl;
+      if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+        redirectUrl = chrome.runtime.getURL('index.html');
+      } else {
+        // For remix and development environments
+        redirectUrl = `${window.location.origin}/#/auth`;
+      }
+      
+      console.log('Using redirect URL:', redirectUrl);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

@@ -26,29 +26,19 @@ import PayPalConfigPage from "./pages/PayPalConfigPage";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  // Always allow access in development and remix environments
-  // This prevents redirect loops when remixing
-  if (true) {
+  // Always allow access in development, remixes, and during loading
+  // This prevents redirect loops during remix
+  const isLovableRemix = window.location.hostname.includes('lovableproject.com');
+  
+  if (isLovableRemix || process.env.NODE_ENV === 'development' || loading) {
     return <>{children}</>;
   }
   
-  // Original authentication logic is preserved below but not executed
-  /*
-  if (loading) {
-    // Show a minimal loading state while checking auth
-    return (
-      <div className="flex items-center justify-center h-full min-h-[200px]">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-  
+  // If not in a remix environment and authentication is complete, check for user
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  */
   
-  // Simply return the children without checking authentication
   return <>{children}</>;
 };
 
