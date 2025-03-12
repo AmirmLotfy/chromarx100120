@@ -1,7 +1,6 @@
-
 import { toast } from "sonner";
-import { bookmarkDbService } from "@/services/indexedDbService";
 import { ChromeBookmark } from "@/types/bookmark";
+import { optimizedBookmarkStorage } from "@/services/optimizedBookmarkStorage";
 
 interface SearchResult {
   title: string;
@@ -9,71 +8,12 @@ interface SearchResult {
   snippet: string;
 }
 
-// Enhanced local search with better indexing
+// Enhanced local search using optimized storage
 export const performLocalSearch = async (query: string): Promise<ChromeBookmark[]> => {
   if (!query.trim()) return [];
   
   try {
-    // Get all bookmarks from IndexedDB
-    const allBookmarks = await bookmarkDbService.getAll<ChromeBookmark>('bookmarks');
-    
-    // Split query into words for more targeted search
-    const queryWords = query.toLowerCase().trim().split(/\s+/);
-    
-    // Score each bookmark based on match quality
-    const scoredBookmarks = allBookmarks.map(bookmark => {
-      let score = 0;
-      
-      // Basic scoring: title is most important, then url, then category
-      for (const word of queryWords) {
-        // Title matches (most important)
-        if (bookmark.title.toLowerCase().includes(word)) {
-          score += 10;
-          // Bonus for exact title match
-          if (bookmark.title.toLowerCase() === word) {
-            score += 15;
-          }
-          // Bonus for start of title
-          if (bookmark.title.toLowerCase().startsWith(word)) {
-            score += 5;
-          }
-        }
-        
-        // URL matches
-        if (bookmark.url?.toLowerCase().includes(word)) {
-          score += 8;
-          // Bonus for domain match
-          if (bookmark.url.toLowerCase().split('/')[2]?.includes(word)) {
-            score += 4;
-          }
-        }
-        
-        // Category matches
-        if (bookmark.category?.toLowerCase().includes(word)) {
-          score += 6;
-        }
-        
-        // Content matches (if available)
-        if (bookmark.content?.toLowerCase().includes(word)) {
-          score += 3;
-        }
-        
-        // Tag matches (if available)
-        if (bookmark.tags?.some(tag => tag.toLowerCase().includes(word))) {
-          score += 7;
-        }
-      }
-      
-      return { bookmark, score };
-    });
-    
-    // Filter out zero scores and sort by score (descending)
-    const filteredAndSorted = scoredBookmarks
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score);
-    
-    // Return just the bookmarks
-    return filteredAndSorted.map(item => item.bookmark);
+    return await optimizedBookmarkStorage.searchBookmarks(query);
   } catch (error) {
     console.error('Error performing local search:', error);
     return [];

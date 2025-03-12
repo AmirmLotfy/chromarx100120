@@ -3,7 +3,7 @@ import { ChromeBookmark } from "@/types/bookmark";
 import { bookmarkLoader } from "@/utils/bookmarkLoader";
 import { toast } from "sonner";
 import { useOfflineStatus } from "./useOfflineStatus";
-import { bookmarkDbService } from "@/services/indexedDbService";
+import { optimizedBookmarkStorage } from "@/services/optimizedBookmarkStorage";
 import { useAuth } from "./useAuth";
 
 type BookmarkLoadingStatus = 'idle' | 'loading' | 'loaded' | 'error';
@@ -23,30 +23,22 @@ export function useOptimizedBookmarks() {
     if (!isInitialized) {
       const initializeBookmarks = async () => {
         try {
-          // First initialize the traditional loader
-          await bookmarkLoader.initialize({
-            useFastLoading: true,
-            prioritizeCache: true
-          });
+          // Initialize the optimized storage
+          await optimizedBookmarkStorage.initialize();
           
-          // Then check if we have bookmarks in IndexedDB
-          const storedBookmarks = await bookmarkDbService.getAll<ChromeBookmark>('bookmarks');
+          // First try to load from optimized storage
+          const storedBookmarks = await optimizedBookmarkStorage.getAllBookmarks();
           
           if (storedBookmarks && storedBookmarks.length > 0) {
             setBookmarks(storedBookmarks);
             setFilteredBookmarks(storedBookmarks);
-            console.log(`Loaded ${storedBookmarks.length} bookmarks from IndexedDB`);
+            console.log(`Loaded ${storedBookmarks.length} bookmarks from optimized storage`);
           }
           
           setIsInitialized(true);
         } catch (error) {
           console.error('Error initializing bookmark system:', error);
-          // Fall back to traditional initialization
-          await bookmarkLoader.initialize({
-            useFastLoading: true,
-            prioritizeCache: true
-          });
-          setIsInitialized(true);
+          toast.error('Failed to initialize bookmark system');
         }
       };
       
@@ -57,12 +49,12 @@ export function useOptimizedBookmarks() {
   // Load bookmarks with chunked processing
   const loadBookmarks = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
-      bookmarkLoader.clearCache();
-      // Also clear the IndexedDB cache if forcing refresh
+      // Clear both storages if forcing refresh
       try {
         await bookmarkDbService.clear('bookmarks');
+        await bookmarkDbService.clear('bookmark_indices');
       } catch (error) {
-        console.error('Error clearing IndexedDB cache:', error);
+        console.error('Error clearing storage:', error);
       }
     }
     
@@ -72,8 +64,8 @@ export function useOptimizedBookmarks() {
     setLoadingProgress(0);
     
     try {
-      // Try to load from IndexedDB first for better performance
-      const storedBookmarks = await bookmarkDbService.getAll<ChromeBookmark>('bookmarks');
+      // Try to load from optimized storage first
+      const storedBookmarks = await optimizedBookmarkStorage.getAllBookmarks();
       
       if (!forceRefresh && storedBookmarks && storedBookmarks.length > 0) {
         setBookmarks(storedBookmarks);
@@ -82,17 +74,17 @@ export function useOptimizedBookmarks() {
         return;
       }
       
-      // Fall back to traditional loading if no indexed data or force refresh
+      // Fall back to traditional loading if needed
       const loadedBookmarks = await bookmarkLoader.loadBookmarks(
         (progress) => {
           setLoadingProgress(progress);
         },
-        (newBatch) => {
+        async (newBatch) => {
           setBookmarks(current => {
             const combined = [...current, ...newBatch];
             
-            // Store batch in IndexedDB (don't await to keep UI responsive)
-            storeBookmarksInIndexedDb(newBatch);
+            // Store batch in optimized storage (don't await to keep UI responsive)
+            optimizedBookmarkStorage.addBookmarks(newBatch).catch(console.error);
             
             return combined;
           });
@@ -102,8 +94,8 @@ export function useOptimizedBookmarks() {
       if (loadedBookmarks.length > 0) {
         setBookmarks(loadedBookmarks);
         
-        // Store all bookmarks in IndexedDB
-        storeBookmarksInIndexedDb(loadedBookmarks);
+        // Store all bookmarks in optimized storage
+        await optimizedBookmarkStorage.addBookmarks(loadedBookmarks);
       }
       
       setLoadingStatus('loaded');
@@ -115,15 +107,6 @@ export function useOptimizedBookmarks() {
       setLoadingProgress(100);
     }
   }, [loadingStatus]);
-
-  // Helper function to store bookmarks in IndexedDB
-  const storeBookmarksInIndexedDb = async (bookmarksToStore: ChromeBookmark[]) => {
-    try {
-      await bookmarkDbService.bulkPut('bookmarks', bookmarksToStore);
-    } catch (error) {
-      console.error('Error storing bookmarks in IndexedDB:', error);
-    }
-  };
 
   // Filter bookmarks based on search query
   useEffect(() => {
