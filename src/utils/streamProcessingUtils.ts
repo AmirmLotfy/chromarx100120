@@ -9,6 +9,7 @@ interface ProcessingOptions {
   onChunkProcessed?: (chunk: ChromeBookmark[]) => void;
   filter?: (bookmark: ChromeBookmark) => boolean;
   prioritizeVisible?: boolean;
+  useWorker?: boolean;
 }
 
 /**
@@ -24,7 +25,8 @@ export async function streamProcess<T>(
     pauseBetweenChunks = 0,
     onProgress,
     filter,
-    prioritizeVisible = false
+    prioritizeVisible = false,
+    useWorker = false
   } = options;
 
   const filteredItems = filter ? items.filter(filter as any) : items;
@@ -39,6 +41,22 @@ export async function streamProcess<T>(
     const visibleItems = items.filter(options.filter as any);
     await Promise.all(visibleItems.map((item, idx) => processItem(item, idx)));
     processedCount += visibleItems.length;
+    
+    // Report progress after processing visible items
+    if (onProgress) {
+      onProgress(Math.floor((processedCount / totalItems) * 100));
+    }
+  }
+
+  // Check if we should use Web Worker for processing
+  if (useWorker && typeof Worker !== 'undefined' && window.isSecureContext) {
+    await processWithWorker(filteredItems, processItem, { 
+      chunkSize, 
+      onProgress, 
+      processedCount, 
+      totalItems 
+    });
+    return;
   }
 
   // Process in chunks
@@ -70,6 +88,98 @@ export async function streamProcess<T>(
 }
 
 /**
+ * Use a web worker to process items
+ */
+async function processWithWorker<T>(
+  items: T[],
+  processItem: (item: T, index: number) => Promise<void> | void,
+  options: {
+    chunkSize: number;
+    onProgress?: (progress: number) => void;
+    processedCount: number;
+    totalItems: number;
+  }
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a worker inline to avoid file loading issues
+      const workerCode = `
+        self.onmessage = async function(e) {
+          const { items, processedCount, totalItems, chunkSize } = e.data;
+          let processed = processedCount;
+          
+          for (let i = 0; i < items.length; i += chunkSize) {
+            const chunk = items.slice(i, Math.min(i + chunkSize, items.length));
+            
+            // Process chunk
+            await Promise.all(chunk.map((item, idx) => {
+              // Simple processing in worker - complex logic handled in main thread
+              return Promise.resolve();
+            }));
+            
+            processed += chunk.length;
+            
+            // Report progress back to main thread
+            self.postMessage({
+              type: 'progress',
+              progress: Math.floor((processed / totalItems) * 100),
+              processedCount: processed,
+              chunk: chunk,
+              chunkIndex: i
+            });
+            
+            // Small pause to prevent blocking
+            await new Promise(resolve => setTimeout(resolve, 1));
+          }
+          
+          self.postMessage({ type: 'complete' });
+        };
+      `;
+      
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const worker = new Worker(URL.createObjectURL(blob));
+      
+      worker.onmessage = async (e) => {
+        const { type, progress, chunk, chunkIndex } = e.data;
+        
+        if (type === 'progress') {
+          if (options.onProgress) {
+            options.onProgress(progress);
+          }
+          
+          // Process each chunk in the main thread
+          if (chunk) {
+            await Promise.all(chunk.map(
+              (item, idx) => processItem(item, chunkIndex + idx)
+            ));
+          }
+        } else if (type === 'complete') {
+          worker.terminate();
+          resolve();
+        }
+      };
+      
+      worker.onerror = (error) => {
+        console.error('Worker error:', error);
+        worker.terminate();
+        reject(error);
+      };
+      
+      // Start the worker
+      worker.postMessage({
+        items,
+        processedCount: options.processedCount,
+        totalItems: options.totalItems,
+        chunkSize: options.chunkSize
+      });
+    } catch (error) {
+      console.error('Error starting worker:', error);
+      reject(error);
+    }
+  });
+}
+
+/**
  * Process and index bookmarks in background
  */
 export async function backgroundIndexBookmarks(
@@ -82,20 +192,38 @@ export async function backgroundIndexBookmarks(
   try {
     if (totalBookmarks === 0) return;
     
+    // Detect if worker is available
+    const useWorker = typeof Worker !== 'undefined' && window.isSecureContext;
+    
     // Process bookmarks in chunks for better UI responsiveness
-    for (let i = 0; i < totalBookmarks; i += chunkSize) {
-      const chunk = bookmarks.slice(i, Math.min(i + chunkSize, totalBookmarks));
-      
-      // Store chunk in IndexedDB
-      await optimizedBookmarkStorage.addBookmarks(chunk);
-      
-      // Update progress
-      if (onProgress) {
-        onProgress(Math.floor((i + chunk.length) / totalBookmarks * 100));
+    if (useWorker) {
+      await streamProcess(
+        bookmarks, 
+        async (bookmark) => {
+          await optimizedBookmarkStorage.addBookmark(bookmark);
+        },
+        {
+          chunkSize,
+          onProgress,
+          useWorker: true
+        }
+      );
+    } else {
+      // Fallback to standard chunking
+      for (let i = 0; i < totalBookmarks; i += chunkSize) {
+        const chunk = bookmarks.slice(i, Math.min(i + chunkSize, totalBookmarks));
+        
+        // Store chunk in IndexedDB
+        await optimizedBookmarkStorage.addBookmarks(chunk);
+        
+        // Update progress
+        if (onProgress) {
+          onProgress(Math.floor((i + chunk.length) / totalBookmarks * 100));
+        }
+        
+        // Allow UI thread to breathe
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
-      
-      // Allow UI thread to breathe
-      await new Promise(resolve => setTimeout(resolve, 10));
     }
   } catch (error) {
     console.error('Error in background indexing:', error);
@@ -142,7 +270,8 @@ export async function prioritizedBookmarkProcessing(
           const scaledProgress = 10 + Math.floor(nonVisibleProgress * 0.9);
           onProgress(scaledProgress);
         }
-      }
+      },
+      useWorker: typeof Worker !== 'undefined' && window.isSecureContext
     }
   );
 }

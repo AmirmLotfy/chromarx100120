@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
@@ -16,7 +17,6 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import ErrorFallback from "@/components/ErrorFallback";
 import LazyBookmarkList from "@/components/LazyBookmarkList";
 import { useOptimizedBookmarks } from "@/hooks/useOptimizedBookmarks";
-import { backgroundIndexBookmarks } from "@/utils/streamProcessingUtils";
 
 const BookmarksContent = () => {
   const {
@@ -29,6 +29,7 @@ const BookmarksContent = () => {
     loadBookmarks,
     updateBookmarkCategory,
     deleteBookmark,
+    runBackgroundOptimization,
     isOffline
   } = useOptimizedBookmarks();
 
@@ -135,35 +136,36 @@ const BookmarksContent = () => {
     }
   };
 
-  const runBackgroundIndexing = useCallback(async () => {
+  const handleOptimize = async () => {
     if (bookmarks.length === 0 || isProcessing) return;
     
     setIsProcessing(true);
     setProcessingMessage("Optimizing bookmarks for faster search...");
+    setIndexingProgress(0);
     
     try {
-      await backgroundIndexBookmarks(bookmarks, (progress) => {
+      await runBackgroundOptimization((progress) => {
         setIndexingProgress(progress);
       });
-      
-      toast.success("Bookmarks optimized for faster search");
     } catch (error) {
       console.error("Error during bookmark optimization:", error);
+      toast.error("Failed to optimize bookmarks");
     } finally {
       setIsProcessing(false);
       setProcessingMessage("");
     }
-  }, [bookmarks, isProcessing]);
+  };
 
+  // Auto-run optimization for large bookmark collections
   useEffect(() => {
     if (bookmarks.length > 300 && loadingStatus === 'loaded' && !isProcessing) {
       const timer = setTimeout(() => {
-        runBackgroundIndexing();
+        handleOptimize();
       }, 2000);
       
       return () => clearTimeout(timer);
     }
-  }, [bookmarks.length, loadingStatus, isProcessing, runBackgroundIndexing]);
+  }, [bookmarks.length, loadingStatus, isProcessing]);
 
   const filteredAndSortedBookmarks = filteredBookmarks
     .filter((bookmark) => {
@@ -203,12 +205,12 @@ const BookmarksContent = () => {
           </span>
         </div>
         <div className="flex gap-2">
-          {bookmarks.length > 300 && !isProcessing && (
+          {bookmarks.length > 100 && !isProcessing && (
             <Button 
               size="sm" 
               variant="outline" 
               className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
-              onClick={runBackgroundIndexing}
+              onClick={handleOptimize}
               disabled={isOffline || isProcessing || loadingStatus === 'loading'}
             >
               <span>Optimize</span>

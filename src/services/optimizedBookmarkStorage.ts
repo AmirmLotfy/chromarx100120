@@ -244,6 +244,54 @@ class OptimizedBookmarkStorage {
       return 0;
     }
   }
+
+  // New method to efficiently search bookmarks by prefix
+  async searchBookmarksByPrefix(prefix: string, limit = 10): Promise<ChromeBookmark[]> {
+    if (!prefix.trim()) return [];
+
+    try {
+      const indices = await bookmarkDbService.getAll<BookmarkIndex>(this.BOOKMARK_INDEX_STORE);
+      const normalizedPrefix = prefix.toLowerCase().trim();
+      
+      // Find matches based on prefix
+      const matchingIds = indices
+        .filter(index => 
+          index.title.startsWith(normalizedPrefix) ||
+          index.url?.includes(normalizedPrefix) ||
+          index.category?.startsWith(normalizedPrefix)
+        )
+        .sort((a, b) => {
+          // Sort by relevance: title matches first, then URL, then category
+          const aStartsWithTitle = a.title.startsWith(normalizedPrefix) ? 3 : 0;
+          const bStartsWithTitle = b.title.startsWith(normalizedPrefix) ? 3 : 0;
+          
+          const aContainsUrl = a.url?.includes(normalizedPrefix) ? 2 : 0;
+          const bContainsUrl = b.url?.includes(normalizedPrefix) ? 2 : 0;
+          
+          const aStartsWithCategory = a.category?.startsWith(normalizedPrefix) ? 1 : 0;
+          const bStartsWithCategory = b.category?.startsWith(normalizedPrefix) ? 1 : 0;
+          
+          const aScore = aStartsWithTitle + aContainsUrl + aStartsWithCategory;
+          const bScore = bStartsWithTitle + bContainsUrl + bStartsWithCategory;
+          
+          return bScore - aScore;
+        })
+        .slice(0, limit)
+        .map(index => index.id);
+      
+      // Get full bookmarks for matching IDs
+      const bookmarks = await Promise.all(
+        matchingIds.map(id => 
+          bookmarkDbService.get<ChromeBookmark>(this.BOOKMARKS_STORE, id)
+        )
+      );
+      
+      return bookmarks.filter((bookmark): bookmark is ChromeBookmark => bookmark !== null);
+    } catch (error) {
+      console.error('Error searching bookmarks by prefix:', error);
+      return [];
+    }
+  }
 }
 
 export const optimizedBookmarkStorage = OptimizedBookmarkStorage.getInstance();
