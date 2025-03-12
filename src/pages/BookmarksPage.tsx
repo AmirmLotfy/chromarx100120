@@ -1,5 +1,4 @@
-
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { extractDomain } from "@/utils/domainUtils";
 import Layout from "@/components/Layout";
@@ -17,6 +16,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import ErrorFallback from "@/components/ErrorFallback";
 import LazyBookmarkList from "@/components/LazyBookmarkList";
 import { useOptimizedBookmarks } from "@/hooks/useOptimizedBookmarks";
+import { backgroundIndexBookmarks } from "@/utils/streamProcessingUtils";
 
 const BookmarksContent = () => {
   const {
@@ -134,6 +134,36 @@ const BookmarksContent = () => {
     }
   };
 
+  const runBackgroundIndexing = useCallback(async () => {
+    if (bookmarks.length === 0 || isProcessing) return;
+    
+    setIsProcessing(true);
+    setProcessingMessage("Optimizing bookmarks for faster search...");
+    
+    try {
+      await backgroundIndexBookmarks(bookmarks, (progress) => {
+        setLoadingProgress(progress);
+      });
+      
+      toast.success("Bookmarks optimized for faster search");
+    } catch (error) {
+      console.error("Error during bookmark optimization:", error);
+    } finally {
+      setIsProcessing(false);
+      setProcessingMessage("");
+    }
+  }, [bookmarks, isProcessing]);
+
+  useEffect(() => {
+    if (bookmarks.length > 300 && loadingStatus === 'loaded' && !isProcessing) {
+      const timer = setTimeout(() => {
+        runBackgroundIndexing();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [bookmarks.length, loadingStatus, isProcessing, runBackgroundIndexing]);
+
   const filteredAndSortedBookmarks = filteredBookmarks
     .filter((bookmark) => {
       const matchesCategory = !selectedCategory || bookmark.category === selectedCategory;
@@ -171,16 +201,29 @@ const BookmarksContent = () => {
             {!isOffline ? "Online" : "Offline"} 
           </span>
         </div>
-        <Button 
-          size="sm" 
-          variant="outline" 
-          className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
-          onClick={handleForceSync}
-          disabled={isOffline || isProcessing || loadingStatus === 'loading'}
-        >
-          <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
-          <span>Sync</span>
-        </Button>
+        <div className="flex gap-2">
+          {bookmarks.length > 300 && !isProcessing && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
+              onClick={runBackgroundIndexing}
+              disabled={isOffline || isProcessing || loadingStatus === 'loading'}
+            >
+              <span>Optimize</span>
+            </Button>
+          )}
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex items-center gap-1 h-7 rounded-full px-2.5 text-xs bg-white/80 dark:bg-slate-800/80"
+            onClick={handleForceSync}
+            disabled={isOffline || isProcessing || loadingStatus === 'loading'}
+          >
+            <Check className="h-3.5 w-3.5 mr-1 text-green-500" />
+            <span>Sync</span>
+          </Button>
+        </div>
       </motion.div>
       
       {(isProcessing || loadingStatus === 'loading') && (
@@ -229,7 +272,6 @@ const BookmarksContent = () => {
       />
 
       <div className="flex flex-col md:flex-row gap-4">
-        {/* Main content area */}
         <main className="flex-1">
           {(selectedCategory || selectedDomain) && (
             <div className="flex items-center justify-between mb-3">

@@ -1,9 +1,11 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { bookmarkLoader } from "@/utils/bookmarkLoader";
 import { toast } from "sonner";
 import { useOfflineStatus } from "./useOfflineStatus";
 import { optimizedBookmarkStorage } from "@/services/optimizedBookmarkStorage";
+import { bookmarkDbService } from "@/services/indexedDbService";
 import { useAuth } from "./useAuth";
 
 type BookmarkLoadingStatus = 'idle' | 'loading' | 'loaded' | 'error';
@@ -172,11 +174,11 @@ export function useOptimizedBookmarks() {
       // First, update in the traditional way
       await bookmarkLoader.setCategory(bookmarkId, category);
       
-      // Also update in IndexedDB
+      // Also update in optimized storage
       const bookmark = await bookmarkDbService.get<ChromeBookmark>('bookmarks', bookmarkId);
       if (bookmark) {
         bookmark.category = category;
-        await bookmarkDbService.put('bookmarks', bookmark);
+        await optimizedBookmarkStorage.updateBookmark(bookmark);
       }
       
       // Update state
@@ -203,8 +205,8 @@ export function useOptimizedBookmarks() {
         await chrome.bookmarks.remove(bookmarkId);
       }
       
-      // Also remove from IndexedDB
-      await bookmarkDbService.delete('bookmarks', bookmarkId);
+      // Also remove from optimized storage
+      await optimizedBookmarkStorage.deleteBookmark(bookmarkId);
       
       // Update state
       setBookmarks(prev => prev.filter(bookmark => bookmark.id !== bookmarkId));

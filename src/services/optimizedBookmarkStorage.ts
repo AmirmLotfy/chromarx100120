@@ -1,4 +1,3 @@
-
 import { ChromeBookmark } from "@/types/bookmark";
 import { bookmarkDbService } from "./indexedDbService";
 
@@ -28,9 +27,14 @@ class OptimizedBookmarkStorage {
 
   async initialize(): Promise<void> {
     try {
-      // Ensure stores exist
-      await bookmarkDbService.createStore(this.BOOKMARKS_STORE);
-      await bookmarkDbService.createStore(this.BOOKMARK_INDEX_STORE);
+      // Check if stores exist by trying to get a count
+      // If the operation fails, the stores don't exist yet
+      try {
+        await bookmarkDbService.count(this.BOOKMARKS_STORE);
+        await bookmarkDbService.count(this.BOOKMARK_INDEX_STORE);
+      } catch (error) {
+        console.log('Stores do not exist yet, will be created automatically on first use');
+      }
     } catch (error) {
       console.error('Error initializing bookmark storage:', error);
       throw error;
