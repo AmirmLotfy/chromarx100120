@@ -40,6 +40,7 @@ const BookmarksContent = () => {
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState("");
+  const [indexingProgress, setIndexingProgress] = useState(0);
 
   const handleDelete = async (id: string) => {
     await deleteBookmark(id);
@@ -142,7 +143,7 @@ const BookmarksContent = () => {
     
     try {
       await backgroundIndexBookmarks(bookmarks, (progress) => {
-        setLoadingProgress(progress);
+        setIndexingProgress(progress);
       });
       
       toast.success("Bookmarks optimized for faster search");
@@ -230,7 +231,7 @@ const BookmarksContent = () => {
         <AIProgressIndicator 
           isLoading={true} 
           message={processingMessage || "Loading bookmarks..."}
-          progress={loadingProgress}
+          progress={isProcessing ? indexingProgress : loadingProgress}
           status={isOffline ? "offline" : "processing"}
         />
       )}

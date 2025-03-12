@@ -8,6 +8,7 @@ interface ProcessingOptions {
   onProgress?: (progress: number) => void;
   onChunkProcessed?: (chunk: ChromeBookmark[]) => void;
   filter?: (bookmark: ChromeBookmark) => boolean;
+  prioritizeVisible?: boolean;
 }
 
 /**
@@ -22,12 +23,23 @@ export async function streamProcess<T>(
     chunkSize = 50,
     pauseBetweenChunks = 0,
     onProgress,
-    filter
+    filter,
+    prioritizeVisible = false
   } = options;
 
   const filteredItems = filter ? items.filter(filter as any) : items;
   const totalItems = filteredItems.length;
   let processedCount = 0;
+
+  // No items to process
+  if (totalItems === 0) return;
+
+  // Process items that should be prioritized first (like visible items)
+  if (prioritizeVisible && options.filter) {
+    const visibleItems = items.filter(options.filter as any);
+    await Promise.all(visibleItems.map((item, idx) => processItem(item, idx)));
+    processedCount += visibleItems.length;
+  }
 
   // Process in chunks
   for (let i = 0; i < totalItems; i += chunkSize) {
@@ -89,6 +101,50 @@ export async function backgroundIndexBookmarks(
     console.error('Error in background indexing:', error);
     throw error;
   }
+}
+
+/**
+ * Process bookmarks with visual items prioritized
+ */
+export async function prioritizedBookmarkProcessing(
+  allBookmarks: ChromeBookmark[],
+  visibleBookmarks: ChromeBookmark[],
+  processItem: (bookmark: ChromeBookmark) => Promise<void>,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  // Create a set of visible bookmark IDs for quick lookup
+  const visibleIds = new Set(visibleBookmarks.map(b => b.id));
+  
+  // First process visible bookmarks
+  if (visibleBookmarks.length > 0) {
+    await Promise.all(visibleBookmarks.map(bookmark => processItem(bookmark)));
+    
+    if (onProgress) {
+      onProgress(Math.floor((visibleBookmarks.length / allBookmarks.length) * 10)); // 10% progress for visible
+    }
+  }
+  
+  // Then process non-visible bookmarks
+  const nonVisibleBookmarks = allBookmarks.filter(bookmark => !visibleIds.has(bookmark.id));
+  
+  // Process remaining bookmarks in chunks
+  await streamProcess(
+    nonVisibleBookmarks,
+    async (bookmark) => {
+      await processItem(bookmark);
+    },
+    {
+      chunkSize: 50,
+      pauseBetweenChunks: 5,
+      onProgress: nonVisibleProgress => {
+        if (onProgress) {
+          // Scales from 10% to 100% after visible bookmarks are processed
+          const scaledProgress = 10 + Math.floor(nonVisibleProgress * 0.9);
+          onProgress(scaledProgress);
+        }
+      }
+    }
+  );
 }
 
 // Function for processing bookmarks in a WebWorker
