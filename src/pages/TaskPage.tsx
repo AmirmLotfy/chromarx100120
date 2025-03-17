@@ -1,444 +1,396 @@
-import { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
-import TaskForm from "@/components/tasks/TaskForm";
-import TaskList from "@/components/tasks/TaskList";
-import TaskTemplates from "@/components/tasks/TaskTemplates";
-import TaskAnalytics from "@/components/tasks/TaskAnalytics";
-import { Task, TaskPriority, TaskCategory, TaskStatus } from "@/types/task";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
-import { localStorageClient as supabase } from "@/lib/local-storage-client";
-import { 
-  Plus, 
-  BarChart3, 
-  CheckCircle2, 
-  Clock, 
-  Loader2, 
-  CalendarClock,
-  ListTodo
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
-// Define TaskFormProps to match how it's used
-interface TaskFormProps {
-  onSubmit: (taskData: Omit<Task, "progress" | "id" | "createdAt" | "updatedAt" | "actualDuration">) => Promise<void>;
-}
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Calendar, Trash, Edit, Filter, CheckCircle, Circle, MoreHorizontal } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import TaskForm from "@/components/tasks/TaskForm";
+import TaskAnalytics from "@/components/tasks/TaskAnalytics";
+import TaskTemplates from "@/components/tasks/TaskTemplates";
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { Task } from "@/types/task";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("tasks");
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isViewingTask, setIsViewingTask] = useState(false);
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [channel, setChannel] = useState<any>(null);
 
+  // Fetch tasks
   useEffect(() => {
     fetchTasks();
-    // For this implementation, we'll skip the realtime subscription
-    // as it's causing errors with the mock implementation
+
+    // Set up realtime subscription
+    const taskChannel = supabase.channel('task-changes');
+    const subscription = taskChannel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tasks' },
+      (payload) => {
+        fetchTasks();
+      }
+    );
+
+    setChannel(taskChannel);
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
-
-  // Simplified channel method that returns a compatible object structure
-  const setupRealtimeSubscription = () => {
-    // Return empty cleanup function
-    return () => {};
-  };
-
-  const formatTaskFromPayload = (data: any): Task => ({
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    priority: data.priority as TaskPriority,
-    category: data.category as TaskCategory,
-    status: data.status as TaskStatus,
-    dueDate: data.due_date,
-    estimatedDuration: data.estimated_duration,
-    actualDuration: data.actual_duration,
-    color: data.color,
-    progress: data.progress,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at
-  });
 
   const fetchTasks = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to manage tasks."
-        });
-        return;
-      }
-
-      const result = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Manually check for data and error
-      const data = result.data || [];
-      const error = result.error;
-
-      if (error) throw error;
-
-      const formattedTasks: Task[] = data.map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        priority: task.priority as TaskPriority,
-        category: task.category as TaskCategory,
-        status: task.status as TaskStatus,
-        dueDate: task.due_date,
-        estimatedDuration: task.estimated_duration,
-        actualDuration: task.actual_duration,
-        color: task.color,
-        progress: task.progress,
-        createdAt: task.created_at,
-        updatedAt: task.updated_at
-      }));
-
-      setTasks(formattedTasks);
+      setIsLoading(true);
+      
+      // Mock data for demonstration
+      const mockTasks: Task[] = [
+        {
+          id: '1',
+          title: 'Complete project proposal',
+          description: 'Finish drafting the proposal for the new client project',
+          priority: 'high',
+          category: 'Work',
+          status: 'pending',
+          dueDate: new Date().toISOString(),
+          estimatedDuration: 120,
+          actualDuration: null,
+          color: '#4f46e5',
+          progress: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          userId: 'demo-user'
+        },
+        {
+          id: '2',
+          title: 'Weekly team meeting',
+          description: 'Regular sync-up with the development team',
+          priority: 'medium',
+          category: 'Work',
+          status: 'in-progress',
+          dueDate: new Date(Date.now() + 86400000).toISOString(),
+          estimatedDuration: 60,
+          actualDuration: null,
+          color: '#4f46e5',
+          progress: 50,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          userId: 'demo-user'
+        }
+      ];
+      
+      setTasks(mockTasks);
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch tasks.",
-        variant: "destructive"
-      });
+      toast.error('Failed to load tasks');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleAddTask = async (taskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration">) => {
+  const handleAddTask = async (taskData: Omit<Task, "progress" | "id" | "createdAt" | "updatedAt" | "actualDuration">) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const newTask = {
-        title: taskData.title,
-        description: taskData.description,
-        priority: taskData.priority,
-        category: taskData.category,
-        status: 'pending' as TaskStatus,
-        due_date: taskData.dueDate,
-        estimated_duration: taskData.estimatedDuration,
-        color: taskData.color,
-        user_id: user.id
+      // Simulate adding a task
+      const newTask: Task = {
+        ...taskData,
+        id: `task-${Date.now()}`,
+        progress: 0,
+        actualDuration: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: 'demo-user'
       };
-
-      const result = await supabase
-        .from('tasks')
-        .insert([newTask])
-        .select();
-
-      // Manually check data
-      const data = result.data?.[0];
-      if (!data) throw new Error('Failed to insert task');
-
-      const formattedTask: Task = {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        priority: data.priority as TaskPriority,
-        category: data.category as TaskCategory,
-        status: data.status as TaskStatus,
-        dueDate: data.due_date,
-        estimatedDuration: data.estimated_duration,
-        actualDuration: data.actual_duration,
-        color: data.color,
-        progress: data.progress,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      };
-
-      setTasks(prev => [formattedTask, ...prev]);
-      toast({
-        title: "Task added",
-        description: "Your task has been created successfully."
-      });
+      
+      setTasks([...tasks, newTask]);
+      toast.success('Task added successfully');
+      return true;
     } catch (error) {
       console.error('Error adding task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add task.",
-        variant: "destructive"
-      });
+      toast.error('Failed to add task');
+      return false;
     }
   };
 
-  const handleDeleteTask = async (id: string) => {
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      const result = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', id);
-
-      // Manually check error
-      if (result.error) throw result.error;
-
-      setTasks(prev => prev.filter(task => task.id !== id));
-      toast({
-        title: "Task deleted",
-        description: "Your task has been deleted."
-      });
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleEditTask = async (updatedTask: Task) => {
-    try {
-      const result = await supabase
-        .from('tasks')
-        .update({
-          title: updatedTask.title,
-          description: updatedTask.description,
-          priority: updatedTask.priority,
-          category: updatedTask.category,
-          status: updatedTask.status,
-          due_date: updatedTask.dueDate,
-          estimated_duration: updatedTask.estimatedDuration,
-          actual_duration: updatedTask.actualDuration,
-          color: updatedTask.color,
-          progress: updatedTask.progress
-        })
-        .eq('id', updatedTask.id);
-
-      // Manually check error
-      if (result.error) throw result.error;
-
-      setTasks(prev => prev.map(task => 
-        task.id === updatedTask.id ? {
-          ...updatedTask,
-          updatedAt: new Date().toISOString()
-        } : task
-      ));
-
-      toast({
-        title: "Task updated",
-        description: "Your task has been updated successfully."
-      });
+      const updatedTasks = tasks.map(task =>
+        task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
+      );
+      setTasks(updatedTasks);
+      toast.success('Task updated successfully');
+      return true;
     } catch (error) {
       console.error('Error updating task:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update task.",
-        variant: "destructive"
-      });
+      toast.error('Failed to update task');
+      return false;
     }
   };
 
-  const handleToggleStatus = async (id: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     try {
-      const task = tasks.find(t => t.id === id);
-      if (!task) return;
-
-      const newStatus = task.status === "completed" ? "pending" as TaskStatus : "completed" as TaskStatus;
-      
-      const result = await supabase
-        .from('tasks')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      // Manually check error
-      if (result.error) throw result.error;
-
-      setTasks(prev => prev.map(task => task.id === id ? {
-        ...task,
-        status: newStatus,
-        updatedAt: new Date().toISOString()
-      } : task));
+      setTasks(tasks.filter(task => task.id !== taskId));
+      toast.success('Task deleted successfully');
+      return true;
     } catch (error) {
-      console.error('Error toggling task status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update task status.",
-        variant: "destructive"
-      });
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
+      return false;
     }
   };
 
-  const handleStartTimer = (task: Task) => {
-    localStorage.setItem("currentTimerTask", JSON.stringify(task));
-    navigate("/timer");
-  };
-
-  const handleUseTemplate = (templateData: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration" | "status" | "dueDate">) => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    handleAddTask({
-      ...templateData,
-      dueDate: tomorrow.toISOString(),
-      status: "pending",
-    });
-  };
-
-  const getCompletedTasksCount = () => {
-    return tasks.filter(task => task.status === "completed").length;
-  };
-
-  const getPendingTasksCount = () => {
-    return tasks.filter(task => task.status === "pending").length;
-  };
-
-  const getTodayTasksCount = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return tasks.filter(task => {
-      const taskDate = new Date(task.dueDate);
-      taskDate.setHours(0, 0, 0, 0);
-      return taskDate.getTime() === today.getTime();
-    }).length;
-  };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground text-sm">Loading your tasks...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const filteredTasks = tasks.filter(task => {
+    if (activeTab === "all") return true;
+    if (activeTab === "pending") return task.status === "pending";
+    if (activeTab === "in-progress") return task.status === "in-progress";
+    if (activeTab === "completed") return task.status === "completed";
+    return true;
+  });
 
   return (
-    <Layout>
-      <div className="container max-w-6xl mx-auto px-4 pt-4 pb-24">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Tasks</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Organize and track your productivity
-            </p>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Tasks</h1>
+        <Button onClick={() => setIsAddingTask(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Add Task
+        </Button>
+      </div>
+
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">All Tasks</TabsTrigger>
+          <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {isLoading ? (
+              // Loading state
+              Array(3).fill(0).map((_, i) => (
+                <Card key={i} className="opacity-50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-md">Loading...</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : filteredTasks.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-muted-foreground">No tasks found</p>
+                <Button variant="outline" className="mt-4" onClick={() => setIsAddingTask(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add your first task
+                </Button>
+              </div>
+            ) : (
+              filteredTasks.map((task) => (
+                <Card 
+                  key={task.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedTask(task);
+                    setIsViewingTask(true);
+                  }}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-md">{task.title}</CardTitle>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTask(task);
+                            setIsEditingTask(true);
+                          }}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTask(task.id);
+                          }}>
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                          {task.status !== 'completed' && (
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateTask(task.id, { status: 'completed', progress: 100 });
+                            }}>
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Mark as Completed
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center text-sm text-muted-foreground mb-2">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {format(new Date(task.dueDate), 'PPP')}
+                    </div>
+                    
+                    <div className="flex space-x-2 mb-3">
+                      <Badge style={{ backgroundColor: task.color }}>
+                        {task.category}
+                      </Badge>
+                      <Badge variant={
+                        task.priority === 'high' ? 'destructive' : 
+                        task.priority === 'medium' ? 'secondary' : 'outline'
+                      }>
+                        {task.priority}
+                      </Badge>
+                    </div>
+                    
+                    {task.description && (
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {task.description}
+                      </p>
+                    )}
+                    
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Progress</span>
+                        <span>{task.progress}%</span>
+                      </div>
+                      <Progress value={task.progress} className="h-2" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
-          
-          <Sheet>
-            <SheetTrigger asChild>
-              <button className="bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:shadow-xl transition-all">
-                <Plus className="h-5 w-5" />
-              </button>
-            </SheetTrigger>
-            <SheetContent side={isMobile ? "bottom" : "right"} className="sm:max-w-lg">
-              <SheetHeader className="mb-6">
-                <SheetTitle>Add New Task</SheetTitle>
-                <SheetDescription>
-                  Create a new task to track your progress
-                </SheetDescription>
-              </SheetHeader>
-              <div className="h-[80vh] overflow-y-auto pr-1 pb-10">
-                <TaskForm onSubmit={handleAddTask} />
-                <div className="mt-8 border-t pt-6">
-                  <h3 className="text-lg font-medium mb-4">Templates</h3>
-                  <TaskTemplates onUseTemplate={handleUseTemplate} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Task Dialog */}
+      <Dialog open={isAddingTask} onOpenChange={setIsAddingTask}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          <TaskForm 
+            onCancel={() => setIsAddingTask(false)}
+            onTaskAdded={() => {
+              setIsAddingTask(false);
+              fetchTasks();
+            }}
+            onSubmit={handleAddTask}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Task Dialog */}
+      {selectedTask && (
+        <Dialog open={isViewingTask} onOpenChange={setIsViewingTask}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{selectedTask.title}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex space-x-2">
+                <Badge style={{ backgroundColor: selectedTask.color }}>
+                  {selectedTask.category}
+                </Badge>
+                <Badge variant={
+                  selectedTask.priority === 'high' ? 'destructive' : 
+                  selectedTask.priority === 'medium' ? 'secondary' : 'outline'
+                }>
+                  {selectedTask.priority}
+                </Badge>
+                <Badge variant="outline">{selectedTask.status}</Badge>
+              </div>
+              
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="mr-2 h-4 w-4" />
+                Due: {format(new Date(selectedTask.dueDate), 'PPP')}
+              </div>
+              
+              {selectedTask.description && (
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Description</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTask.description}
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <h3 className="text-sm font-medium mb-1">Progress</h3>
+                <Progress value={selectedTask.progress} className="h-2 mb-1" />
+                <div className="flex justify-between text-xs">
+                  <span>{selectedTask.progress}% complete</span>
+                  <span>
+                    Estimated: {selectedTask.estimatedDuration} minutes
+                  </span>
                 </div>
               </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsViewingTask(false)}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  setIsViewingTask(false);
+                  setIsEditingTask(true);
+                }}>
+                  <Edit className="mr-2 h-4 w-4" /> Edit Task
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-gradient-to-br from-primary/80 to-primary rounded-xl p-4 shadow-md text-primary-foreground">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">All Tasks</h3>
-              <ListTodo className="h-4 w-4 opacity-80" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{tasks.length}</p>
-          </div>
-          
-          <div className="bg-gradient-to-br from-emerald-500/80 to-emerald-600 rounded-xl p-4 shadow-md text-white">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Completed</h3>
-              <CheckCircle2 className="h-4 w-4 opacity-80" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{getCompletedTasksCount()}</p>
-          </div>
-          
-          <div className="bg-gradient-to-br from-amber-500/80 to-amber-600 rounded-xl p-4 shadow-md text-white">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Pending</h3>
-              <Clock className="h-4 w-4 opacity-80" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{getPendingTasksCount()}</p>
-          </div>
-          
-          <div className="bg-gradient-to-br from-blue-500/80 to-blue-600 rounded-xl p-4 shadow-md text-white">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Today</h3>
-              <CalendarClock className="h-4 w-4 opacity-80" />
-            </div>
-            <p className="text-2xl font-bold mt-2">{getTodayTasksCount()}</p>
-          </div>
-        </div>
-
-        <Tabs 
-          defaultValue="tasks" 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="space-y-6"
-        >
-          <TabsList className="grid grid-cols-2 w-full bg-muted/50 rounded-lg p-1">
-            <TabsTrigger 
-              value="tasks"
-              className={cn(
-                "rounded-md transition-all",
-                activeTab === "tasks" && "data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              )}
-            >
-              <ListTodo className="h-4 w-4 mr-2" />
-              Tasks
-            </TabsTrigger>
-            <TabsTrigger 
-              value="analytics" 
-              className={cn(
-                "rounded-md transition-all",
-                activeTab === "analytics" && "data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              )}
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="tasks" className="space-y-6">
-            <TaskList 
-              tasks={tasks} 
-              onDelete={handleDeleteTask} 
-              onEdit={handleEditTask} 
-              onStartTimer={handleStartTimer} 
-              onToggleStatus={handleToggleStatus} 
+      {/* Edit Task Dialog */}
+      {selectedTask && (
+        <Dialog open={isEditingTask} onOpenChange={setIsEditingTask}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+            </DialogHeader>
+            <TaskForm 
+              initialValues={{
+                title: selectedTask.title,
+                description: selectedTask.description,
+                dueDate: new Date(selectedTask.dueDate),
+                priority: selectedTask.priority,
+                category: selectedTask.category,
+                estimatedDuration: selectedTask.estimatedDuration
+              }}
+              onCancel={() => setIsEditingTask(false)}
+              onTaskAdded={() => {
+                setIsEditingTask(false);
+                fetchTasks();
+              }}
+              onSubmit={async (taskData) => {
+                await handleUpdateTask(selectedTask.id, taskData);
+                return true;
+              }}
             />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <TaskAnalytics />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Layout>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 };
 

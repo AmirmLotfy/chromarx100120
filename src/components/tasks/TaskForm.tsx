@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +11,12 @@ import { generateTaskSuggestions, suggestTimerDuration } from '@/utils/geminiUti
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Task } from '@/types/task';
 
-interface TaskFormProps {
+export interface TaskFormProps {
   onTaskAdded: () => void;
   onCancel: () => void;
+  onSubmit?: (taskData: Omit<Task, "progress" | "id" | "createdAt" | "updatedAt" | "actualDuration">) => Promise<void>;
   initialValues?: {
     title?: string;
     description?: string;
@@ -26,7 +27,12 @@ interface TaskFormProps {
   };
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded, onCancel, initialValues }) => {
+const TaskForm: React.FC<TaskFormProps> = ({ 
+  onTaskAdded, 
+  onCancel, 
+  onSubmit,
+  initialValues 
+}) => {
   const [title, setTitle] = useState(initialValues?.title || '');
   const [description, setDescription] = useState(initialValues?.description || '');
   const [dueDate, setDueDate] = useState<Date | undefined>(initialValues?.dueDate || new Date());
@@ -102,28 +108,39 @@ const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded, onCancel, initialValue
 
     setIsLoading(true);
     try {
-      // Get color for category
-      const categoryColor = categories.find(c => c.name === category)?.color || '#4f46e5';
+      if (onSubmit) {
+        await onSubmit({
+          title,
+          description,
+          dueDate: dueDate.toISOString(),
+          priority,
+          category,
+          color: categories.find(c => c.name === category)?.color || '#4f46e5',
+          estimatedDuration
+        });
+      } else {
+        const categoryColor = categories.find(c => c.name === category)?.color || '#4f46e5';
 
-      await supabase.from('tasks').insert({
-        title,
-        description,
-        due_date: dueDate.toISOString(),
-        priority,
-        category,
-        color: categoryColor,
-        estimated_duration: estimatedDuration,
-        status: 'pending',
-        user_id: 'current-user', // In a real app, get from auth
-        progress: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).single();
+        await supabase.from('tasks').insert({
+          title,
+          description,
+          due_date: dueDate.toISOString(),
+          priority,
+          category,
+          color: categoryColor,
+          estimated_duration: estimatedDuration,
+          status: 'pending',
+          user_id: 'current-user', // In a real app, get from auth
+          progress: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).single();
 
-      toast({
-        title: "Success",
-        description: "Task created successfully",
-      });
+        toast({
+          title: "Success",
+          description: "Task created successfully",
+        });
+      }
       
       onTaskAdded();
     } catch (error) {

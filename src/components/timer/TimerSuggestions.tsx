@@ -1,102 +1,118 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { generateTimerSuggestion } from '@/utils/timerAI';
-import { localStorageClient as supabase } from "@/lib/local-storage-client";
-import { TimerSession } from "@/types/timer";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
+import { Clock, Target, Brain, Calendar } from 'lucide-react';
+import { suggestTimerDuration } from '@/utils/geminiUtils';
 
-interface TimerSuggestionProps {
-  onSelectSuggestion: (duration: number, mode: 'focus' | 'break') => void;
-  taskContext?: string;
+export interface TimerSuggestionProps {
+  onSelectDuration: (mins: number) => void;
+  taskContext: string;
+  mode: "focus" | "break";
 }
 
-const TimerSuggestions: React.FC<TimerSuggestionProps> = ({ onSelectSuggestion, taskContext }) => {
-  const [suggestions, setSuggestions] = useState<Array<{ duration: number; reason: string; mode: 'focus' | 'break' }>>([]);
+const TimerSuggestions: React.FC<TimerSuggestionProps> = ({ 
+  onSelectDuration, 
+  taskContext, 
+  mode 
+}) => {
   const [loading, setLoading] = useState(true);
-  const [previousSessions, setPreviousSessions] = useState<TimerSession[]>([]);
+  const [suggestions, setSuggestions] = useState<{ duration: number; reason: string }[]>([]);
+  const [personalSuggestion, setPersonalSuggestion] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchPreviousSessions = async () => {
-      try {
-        const result = await supabase
-          .from('timer_sessions')
-          .select('*')
-          .order('start_time', { ascending: false })
-          .execute();
-
-        if (result.data) {
-          setPreviousSessions(result.data.slice(0, 5));
-        }
-      } catch (error) {
-        console.error('Error fetching previous sessions:', error);
-      }
-    };
-
-    fetchPreviousSessions();
-  }, []);
-
-  useEffect(() => {
-    const fetchSuggestions = async () => {
+    async function loadSuggestions() {
       try {
         setLoading(true);
-        // Get suggestions based on context and previous sessions
-        const aiSuggestions = await generateTimerSuggestion({
-          taskContext: taskContext || 'General work',
-          previousSessions
-        });
         
-        setSuggestions(aiSuggestions);
-      } catch (error) {
-        console.error('Error generating suggestions:', error);
-        // Fallback suggestions
+        // Get task data if context exists
+        if (taskContext) {
+          const suggestedDuration = await suggestTimerDuration(taskContext, mode);
+          setPersonalSuggestion(suggestedDuration);
+        }
+        
+        // Set default suggestions
         setSuggestions([
-          { duration: 25, reason: 'Standard pomodoro session', mode: 'focus' },
-          { duration: 5, reason: 'Short break', mode: 'break' },
-          { duration: 50, reason: 'Deep work session', mode: 'focus' },
-          { duration: 15, reason: 'Longer break', mode: 'break' }
+          { duration: 25, reason: 'Classic Pomodoro technique' },
+          { duration: 50, reason: 'Extended focus session' },
+          { duration: 90, reason: 'Deep work block' },
+          { duration: mode === 'focus' ? 45 : 10, reason: 'Balanced productivity' }
+        ]);
+      } catch (error) {
+        console.error("Error loading timer suggestions:", error);
+        setSuggestions([
+          { duration: 25, reason: 'Classic Pomodoro technique' },
+          { duration: 50, reason: 'Extended focus session' }
         ]);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchSuggestions();
-  }, [taskContext, previousSessions]);
+    loadSuggestions();
+  }, [taskContext, mode]);
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-[60px] w-full" />
+        <Skeleton className="h-[60px] w-full" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-lg font-medium">Suggested Timers</h3>
-      {loading ? (
-        <div className="space-y-2">
-          <Card className="p-3 animate-pulse bg-muted h-16" />
-          <Card className="p-3 animate-pulse bg-muted h-16" />
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {suggestions.map((suggestion, index) => (
-            <Card 
-              key={index} 
-              className="p-3 cursor-pointer hover:bg-accent transition-colors"
-              onClick={() => onSelectSuggestion(suggestion.duration, suggestion.mode)}
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{suggestion.duration} min</span>
-                    <Badge variant={suggestion.mode === 'focus' ? 'default' : 'secondary'}>
-                      {suggestion.mode === 'focus' ? 'Focus' : 'Break'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{suggestion.reason}</p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {personalSuggestion && (
+        <Card className="bg-primary/5 border-primary/30">
+          <CardContent className="p-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-1">
+                  <Brain className="h-3 w-3 text-primary" />
+                  <span className="text-xs font-medium text-primary">AI Suggestion</span>
                 </div>
-                <Button size="sm" variant="outline">Select</Button>
+                <p className="text-sm font-medium mt-1">{personalSuggestion} minutes</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Based on your task context</p>
               </div>
-            </Card>
-          ))}
-        </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7"
+                onClick={() => onSelectDuration(personalSuggestion)}
+              >
+                Select
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
+      
+      {suggestions.map((suggestion, index) => (
+        <Card key={index}>
+          <CardContent className="p-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium">{suggestion.duration} minutes</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{suggestion.reason}</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7"
+                onClick={() => onSelectDuration(suggestion.duration)}
+              >
+                Select
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

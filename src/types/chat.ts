@@ -1,19 +1,14 @@
 
+export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";
+
 export interface Message {
   id: string;
   content: string;
   sender: "user" | "assistant";
   timestamp: number;
   isRead?: boolean;
-  bookmarks?: {
-    title: string;
-    url: string;
-    relevanceScore?: number;
-  }[];
-  webResults?: {
-    title: string;
-    url: string;
-  }[];
+  bookmarks?: any;
+  webResults?: any;
 }
 
 export interface Conversation {
@@ -25,8 +20,6 @@ export interface Conversation {
   pinned?: boolean;
   bookmarkContext?: string[];
   isBookmarkSearch?: boolean;
-  category: ConversationCategory;
+  category?: ConversationCategory;
   archived?: boolean;
 }
-
-export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";

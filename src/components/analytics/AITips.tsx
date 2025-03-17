@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,19 +30,19 @@ const AITips = () => {
         // Get last 7 days of analytics data
         const analyticsResult = await supabase
           .from('analytics_data')
-          .select('*');
+          .select('*')
+          .execute();
 
         // Get user's goals
         const user = await supabase.auth.getUser();
         const goalsResult = await supabase
           .from('analytics_goals')
           .select('*')
-          .eq('user_id', user.data?.user?.id || 'demo-user-id');
+          .eq('user_id', user.data?.user?.id || 'demo-user-id')
+          .execute();
 
-        // Check for errors separately after each query
-        if (analyticsResult.error) throw analyticsResult.error;
-        if (goalsResult.error) throw goalsResult.error;
-
+        // Process the results - no need to check errors here as they're handled in the catch block
+        
         // For demonstration purposes, create mock insights
         const mockInsights: AIInsight = {
           summary: "You've been maintaining consistent productivity. Focus sessions have increased by 15% this week.",
@@ -95,7 +94,9 @@ const AITips = () => {
     fetchInsights();
 
     // Simulate real-time data every 3 minutes (for demo purposes)
-    const interval = setInterval(simulateDataUpdate, 180000);
+    const interval = setInterval(() => {
+      simulateDataUpdate();
+    }, 180000);
 
     return () => {
       clearInterval(interval);

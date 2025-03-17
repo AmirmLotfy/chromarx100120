@@ -1,57 +1,41 @@
-import { useState, useEffect } from 'react';
-import Layout from "@/components/Layout";
-import { TimerDisplay } from "@/components/timer/TimerDisplay";
-import { TimerControls } from "@/components/timer/TimerControls";
-import { TimerSettings } from "@/components/timer/TimerSettings";
-import TimerSuggestions from "@/components/timer/TimerSuggestions";
-import { useToast } from "@/hooks/use-toast";
-import { timerService } from "@/services/timerService";
-import { TimerSession, TimerStats } from "@/types/timer";
-import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
-import { Loader2, Clock, BarChart4, History } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import TimerDisplay from '@/components/timer/TimerDisplay';
+import TimerControls from '@/components/timer/TimerControls';
+import TimerSettings from '@/components/timer/TimerSettings';
+import TimerSuggestions from '@/components/timer/TimerSuggestions';
+import { timerService } from '@/services/timerService';
+import { TimerSession } from '@/types/timer';
+import { useState as useZustand } from 'zustand';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
+import { toast } from 'sonner';
 
-const TimerPage = () => {
-  const [duration, setDuration] = useState(25);
+function TimerPage() {
+  // Component states
   const [isRunning, setIsRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(duration * 60);
-  const [mode, setMode] = useState<"focus" | "break">("focus");
-  const [taskContext, setTaskContext] = useState<string>("focus and productivity");
-  const [currentSession, setCurrentSession] = useState<TimerSession | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const [duration, setDuration] = useState(25 * 60); // Default 25 minutes
+  const [timeLeft, setTimeLeft] = useState(duration);
+  const [mode, setMode] = useState<'focus' | 'break'>('focus');
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [taskContext, setTaskContext] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [productivityRating, setProductivityRating] = useState<number | null>(null);
 
+  // Timer interval reference
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Reset timer when duration changes
   useEffect(() => {
     if (!isRunning) {
-      setTimeLeft(duration * 60);
+      setTimeLeft(duration);
     }
   }, [duration, isRunning]);
 
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ['timerStats'],
-    queryFn: () => timerService.getStats(),
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    meta: {
-      onError: (error: Error) => {
-        console.error("Failed to fetch timer stats:", error);
-        toast({
-          title: "Error loading stats",
-          description: "We couldn't load your productivity stats.",
-          variant: "destructive",
-        });
-      }
-    }
-  });
-
+  // Timer logic
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
     if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
+      timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             handleTimerComplete();
@@ -60,226 +44,280 @@ const TimerPage = () => {
           return prev - 1;
         });
       }, 1000);
+    } else if (!isRunning && timerRef.current) {
+      clearInterval(timerRef.current);
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [isRunning, timeLeft]);
 
+  // Start timer
+  const startTimer = async () => {
+    if (timeLeft === 0) {
+      setTimeLeft(duration);
+    }
+
+    try {
+      // Create a new timer session in the database
+      const session = await timerService.startSession({
+        duration: duration,
+        mode: mode,
+        startTime: new Date(),
+        taskContext: taskContext,
+        aiSuggested: false,
+      });
+
+      setSessionId(session.id);
+      setIsRunning(true);
+      toast.success(`${mode.charAt(0).toUpperCase() + mode.slice(1)} timer started!`);
+    } catch (error) {
+      console.error('Failed to start timer session:', error);
+      toast.error('Failed to start timer');
+    }
+  };
+
+  // Pause timer
+  const pauseTimer = () => {
+    setIsRunning(false);
+  };
+
+  // Reset timer
+  const resetTimer = () => {
+    setIsRunning(false);
+    setTimeLeft(duration);
+    // We don't reset the sessionId here because we want to keep track of the session
+  };
+
+  // Complete timer
   const handleTimerComplete = async () => {
     setIsRunning(false);
-    try {
-      if (currentSession) {
-        await timerService.completeSession(
-          currentSession.id,
-          mode === 'focus' ? calculateProductivityScore() : undefined
-        );
+    
+    if (sessionId) {
+      try {
+        await timerService.completeSession(sessionId);
+        setShowFeedback(true);
+      } catch (error) {
+        console.error('Failed to complete timer session:', error);
       }
-
-      setMode(prevMode => prevMode === "focus" ? "break" : "focus");
-      
-      toast({
-        title: "Time's up!",
-        description: `Your ${mode} session is complete.`,
-      });
-    } catch (error) {
-      console.error("Error completing timer session:", error);
-      toast({
-        title: "Error",
-        description: "Failed to complete timer session",
-        variant: "destructive"
-      });
     }
+    
+    // Play sound and show notification
+    timerService.playCompletionSound();
+    timerService.showNotification();
+    
+    toast.success(`${mode.charAt(0).toUpperCase() + mode.slice(1)} session completed!`);
   };
 
-  const handleStart = async () => {
-    try {
-      const session = await timerService.startSession({
-        duration: duration * 60,
-        mode,
-        startTime: new Date(),
-        taskContext,
-        aiSuggested: false
-      });
-      
-      setCurrentSession(session);
-      setIsRunning(true);
-      toast({
-        title: "Timer Started",
-        description: `${duration} minute ${mode} session has begun.`,
-      });
-    } catch (error) {
-      console.error('Error starting timer:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start timer session",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const calculateProductivityScore = (): number => {
-    if (!currentSession) return 0;
-    const completionRatio = (duration * 60 - timeLeft) / (duration * 60);
-    return Math.round(completionRatio * 100);
-  };
-
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        toast({
-          title: "Notifications Enabled",
-          description: "You'll receive notifications when timers complete.",
-        });
+  // Submit feedback
+  const submitFeedback = async () => {
+    if (sessionId && productivityRating !== null) {
+      try {
+        await timerService.provideFeedback(sessionId, productivityRating);
+        setShowFeedback(false);
+        setProductivityRating(null);
+      } catch (error) {
+        console.error('Failed to submit feedback:', error);
       }
     }
   };
 
-  useEffect(() => {
-    requestNotificationPermission();
-  }, []);
+  // Switch between focus and break modes
+  const toggleMode = () => {
+    const newMode = mode === 'focus' ? 'break' : 'focus';
+    setMode(newMode);
+    
+    // Set default durations based on mode
+    if (newMode === 'focus') {
+      setDuration(25 * 60); // 25 minutes for focus
+    } else {
+      setDuration(5 * 60); // 5 minutes for break
+    }
+    
+    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60);
+    setIsRunning(false);
+  };
 
-  if (statsLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[70vh]">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading your focus data...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  // Handle task context change
+  const handleTaskContextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTaskContext(e.target.value);
+  };
 
-  if (statsError) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-6 space-y-6 max-w-md">
-          <div className="text-center space-y-3">
-            <h1 className="text-3xl font-bold tracking-tight">Focus Timer</h1>
-            <p className="text-destructive">
-              There was an error loading your timer data.
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-primary text-white rounded-full shadow-md hover:shadow-lg transition-all mt-4"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
+  // Rest of the component
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-6 space-y-8 max-w-md">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-            Focus Timer
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Enhance your productivity with smart focus sessions
-          </p>
-        </div>
-
-        <div className="relative">
-          <TimerDisplay 
-            timeLeft={timeLeft}
-            mode={mode}
-            maxTime={duration * 60}
-          />
-        </div>
-
-        <TimerControls
-          isRunning={isRunning}
-          onStart={handleStart}
-          onPause={() => setIsRunning(false)}
-          onReset={() => {
-            setIsRunning(false);
-            setTimeLeft(duration * 60);
-          }}
-        />
-
-        <div className="py-4">
-          <TimerSuggestions
-            onSelectDuration={(mins) => {
-              setDuration(mins);
-              setTimeLeft(mins * 60);
-            }}
-            taskContext={taskContext}
-            mode={mode}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <Card 
-            className={`p-4 transition-all duration-300 transform ${
-              showSettings ? 'scale-100 opacity-100' : 'scale-95 opacity-90'
-            }`}
-          >
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className="flex items-center justify-between w-full text-left mb-2"
-            >
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                <h3 className="font-medium">Timer Settings</h3>
-              </div>
-              <div className={`transform transition-transform duration-300 ${showSettings ? 'rotate-180' : ''}`}>
-                ▼
-              </div>
-            </button>
-            
-            {showSettings && (
-              <div className="pt-2 animate-fade-in">
-                <TimerSettings
-                  duration={duration}
-                  mode={mode}
-                  onDurationChange={(newDuration) => {
-                    setDuration(newDuration);
-                    setTimeLeft(newDuration * 60);
-                  }}
-                  onModeChange={setMode}
+    <div className="container mx-auto py-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center">
+                {mode === 'focus' ? 'Focus Timer' : 'Break Timer'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              <TimerDisplay 
+                timeLeft={timeLeft} 
+                mode={mode}
+              />
+              
+              <TimerControls 
+                isRunning={isRunning}
+                onStart={startTimer}
+                onPause={pauseTimer}
+                onReset={resetTimer}
+                onModeToggle={toggleMode}
+                mode={mode}
+              />
+              
+              <div className="w-full max-w-md mt-6">
+                <label className="text-sm font-medium mb-2 block">
+                  What are you working on? (optional)
+                </label>
+                <input
+                  type="text"
+                  value={taskContext}
+                  onChange={handleTaskContextChange}
+                  placeholder="e.g., Project research, Writing report..."
+                  className="w-full p-2 border rounded-md"
+                  disabled={isRunning}
                 />
               </div>
-            )}
+            </CardContent>
+          </Card>
+          
+          {/* Timer suggestions */}
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-2">Suggested Duration</h3>
+            <TimerSuggestions 
+              onSelectDuration={(mins) => setDuration(mins * 60)}
+              taskContext={taskContext}
+              mode={mode}
+            />
+          </div>
+        </div>
+        
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Timer Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TimerSettings 
+                duration={duration}
+                onDurationChange={(newDuration) => setDuration(newDuration)}
+                mode={mode}
+                disabled={isRunning}
+              />
+            </CardContent>
+          </Card>
+          
+          {/* Stats Card */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Your Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="today">
+                <TabsList className="w-full">
+                  <TabsTrigger value="today" className="flex-1">Today</TabsTrigger>
+                  <TabsTrigger value="week" className="flex-1">This Week</TabsTrigger>
+                  <TabsTrigger value="month" className="flex-1">This Month</TabsTrigger>
+                </TabsList>
+                <TabsContent value="today" className="space-y-4 mt-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Focus Sessions</span>
+                    <span className="font-medium">3</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Total Focus Time</span>
+                    <span className="font-medium">1h 15m</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Completion Rate</span>
+                    <span className="font-medium">85%</span>
+                  </div>
+                </TabsContent>
+                <TabsContent value="week" className="space-y-4 mt-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Focus Sessions</span>
+                    <span className="font-medium">12</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Total Focus Time</span>
+                    <span className="font-medium">6h 45m</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Completion Rate</span>
+                    <span className="font-medium">78%</span>
+                  </div>
+                </TabsContent>
+                <TabsContent value="month" className="space-y-4 mt-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Focus Sessions</span>
+                    <span className="font-medium">42</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Total Focus Time</span>
+                    <span className="font-medium">24h 30m</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Completion Rate</span>
+                    <span className="font-medium">82%</span>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
           </Card>
         </div>
-
-        {stats && (
-          <Card className="p-4 bg-gradient-to-br from-background to-accent/30 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <BarChart4 className="h-5 w-5 text-primary" />
-              <h3 className="font-medium">Your Focus Stats</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-y-4">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Focus Time</p>
-                <p className="text-xl font-bold">{Math.round(stats.totalFocusTime / 60)}h</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Sessions</p>
-                <p className="text-xl font-bold">{stats.totalSessions}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Productivity</p>
-                <p className="text-xl font-bold">{Math.round(stats.averageProductivity)}%</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground">Completion</p>
-                <p className="text-xl font-bold">{Math.round(stats.completionRate)}%</p>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        <div className="h-12"></div> {/* Bottom spacing for mobile */}
       </div>
-    </Layout>
+      
+      {/* Feedback Dialog */}
+      {showFeedback && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-lg font-medium mb-4">How productive was your session?</h3>
+            <div className="flex justify-between mb-6">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <button
+                  key={rating}
+                  onClick={() => setProductivityRating(rating)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    productivityRating === rating 
+                      ? 'bg-primary text-white' 
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
+                >
+                  {rating}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowFeedback(false)}
+                className="px-4 py-2 border rounded-md hover:bg-gray-100"
+              >
+                Skip
+              </button>
+              <button
+                onClick={submitFeedback}
+                disabled={productivityRating === null}
+                className={`px-4 py-2 rounded-md ${
+                  productivityRating === null
+                    ? 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary/90'
+                }`}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
-};
+}
 
 export default TimerPage;

@@ -2,6 +2,14 @@
 // This is a mock implementation of Supabase client for local storage
 // It provides the necessary methods to mimic Supabase behavior
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 class LocalStorageClient {
   auth = {
     getUser: async () => ({ data: { user: { id: 'demo-user-id' } } }),
@@ -13,29 +21,43 @@ class LocalStorageClient {
   from(table: string) {
     return {
       select: (fields?: string) => {
-        return {
+        const result = {
+          data: [],
+          error: null,
+          
           eq: (column: string, value: any) => {
             return {
               single: () => Promise.resolve({ data: {}, error: null }),
               execute: () => Promise.resolve({ data: [], error: null }),
               order: (orderColumn: string, options?: { ascending: boolean }) => {
-                return { execute: () => Promise.resolve({ data: [], error: null }) };
+                return { 
+                  execute: () => Promise.resolve({ data: [], error: null }) 
+                };
               }
             };
           },
+          
           single: () => Promise.resolve({ data: {}, error: null }),
+          
           execute: () => Promise.resolve({ data: [], error: null }),
+          
           order: (column: string, options?: { ascending: boolean }) => {
-            return { execute: () => Promise.resolve({ data: [], error: null }) };
+            return { 
+              execute: () => Promise.resolve({ data: [], error: null }) 
+            };
           }
         };
+        
+        return result;
       },
+      
       insert: (data: any) => {
         return {
           single: () => Promise.resolve({ data: {}, error: null }),
           select: () => Promise.resolve({ data: [{}], error: null })
         };
       },
+      
       update: (data: any) => {
         return {
           eq: (column: string, value: any) => {
@@ -43,9 +65,11 @@ class LocalStorageClient {
               single: () => Promise.resolve({ data: {}, error: null }),
               execute: () => Promise.resolve({ data: {}, error: null })
             };
-          }
+          },
+          single: () => Promise.resolve({ data: {}, error: null })
         };
       },
+      
       delete: () => {
         return {
           eq: (column: string, value: any) => {
@@ -55,6 +79,7 @@ class LocalStorageClient {
           }
         };
       },
+      
       upsert: (data: any) => {
         return Promise.resolve({ data: {}, error: null });
       }
@@ -65,8 +90,11 @@ class LocalStorageClient {
   channel(channelName: string) {
     return {
       on: (event: string, config: any, callback: (payload: any) => void) => {
-        return { subscribe: () => ({ data: {}, error: null }) };
-      }
+        return { 
+          subscribe: () => ({ data: {}, error: null }) 
+        };
+      },
+      unsubscribe: () => {}
     };
   }
 
