@@ -1,107 +1,84 @@
 
-import { Note } from "@/types/note";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MoreVertical, Edit2, Trash2 } from "lucide-react";
-import NoteActions from "./NoteActions";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { Card } from "@/components/ui/card";
+import { formatDistanceToNow } from 'date-fns';
+import { Note } from '@/types/note';
+import NoteActions from './NoteActions';
 
-interface NoteCardProps {
-  note: Note;
-  isSelected: boolean;
-  onSelect: (note: Note) => void;
-  onDelete: (id: string) => void;
+export interface NoteCardProps {
+  note: Note & { category?: string; sentiment?: 'positive' | 'negative' | 'neutral' };
   onEdit: (note: Note) => void;
-  onAnalyze: (note: Note) => void;
-  onConvertToTask: (note: Note) => void;
-  onLinkBookmark: (note: Note) => void;
+  onDelete: (noteId: string) => Promise<void>;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  onAnalyze?: () => void;
+  onConvertToTask?: () => void;
+  onLinkBookmark?: () => void;
 }
 
-const NoteCard = ({
+const NoteCard: React.FC<NoteCardProps> = ({
   note,
-  isSelected,
-  onSelect,
-  onDelete,
   onEdit,
-  onAnalyze,
-  onConvertToTask,
-  onLinkBookmark,
-}: NoteCardProps) => {
-  const sentimentColors = {
-    positive: "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300",
-    negative: "bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300",
-    neutral: "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300",
+  onDelete,
+  isSelected = false,
+  onSelect = () => {},
+  onAnalyze = () => {},
+  onConvertToTask = () => {},
+  onLinkBookmark = () => {}
+}) => {
+  const formattedDate = formatDistanceToNow(
+    new Date(typeof note.createdAt === 'string' ? note.createdAt : note.createdAt),
+    { addSuffix: true }
+  );
+
+  const getNoteColorClass = () => {
+    if (note.color) return note.color;
+    
+    // Default color based on sentiment if available
+    if (note.sentiment === 'positive') return 'border-green-200';
+    if (note.sentiment === 'negative') return 'border-red-200';
+    if (note.sentiment === 'neutral') return 'border-blue-200';
+    
+    // Default color based on category if available
+    if (note.category === 'Work') return 'border-purple-200';
+    if (note.category === 'Personal') return 'border-yellow-200';
+    if (note.category === 'Ideas') return 'border-cyan-200';
+    
+    return 'border-gray-200';
   };
 
-  const sentimentColor = note.sentiment ? sentimentColors[note.sentiment] : "";
-  const formattedDate = note.updatedAt ? format(new Date(note.updatedAt), "MMM d, yyyy") : "";
-
   return (
-    <Card
-      className={cn(
-        "overflow-hidden transition-all border-input/40 shadow-sm hover:shadow-md",
-        isSelected ? "ring-2 ring-primary" : ""
-      )}
-      onClick={() => onSelect(note)}
+    <Card 
+      className={`p-4 h-full flex flex-col border-l-4 ${getNoteColorClass()} ${
+        isSelected ? 'ring-2 ring-primary' : ''
+      } hover:shadow-md transition-shadow`}
+      onClick={onSelect}
     >
-      <div className="relative">
-        {/* Color indicator based on sentiment */}
-        {note.sentiment && (
-          <div className={cn("absolute top-0 right-0 h-2 w-1/4 rounded-bl", sentimentColor)} />
+      <div className="flex justify-between items-start">
+        <h3 className="font-medium truncate">{note.title}</h3>
+        <NoteActions 
+          note={note} 
+          onEdit={() => onEdit(note)} 
+          onDelete={() => onDelete(note.id)}
+          onAnalyze={onAnalyze}
+          onConvertToTask={onConvertToTask}
+          onLinkBookmark={onLinkBookmark}
+        />
+      </div>
+      
+      {note.category && (
+        <div className="mt-1 text-xs text-muted-foreground">{note.category}</div>
+      )}
+      
+      <div className="mt-2 text-sm line-clamp-4 flex-grow">
+        {note.content}
+      </div>
+      
+      <div className="mt-4 flex justify-between items-center text-xs text-muted-foreground">
+        <span>{formattedDate}</span>
+        {note.tags && note.tags.length > 0 && (
+          <span>{note.tags.slice(0, 2).join(', ')}</span>
         )}
-
-        <div className="px-4 pt-4 pb-1 flex items-start justify-between">
-          <h3 className="font-medium text-base line-clamp-1 pr-6">{note.title}</h3>
-          
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(note);
-              }}
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            
-            <NoteActions
-              note={note}
-              onConvertToTask={onConvertToTask}
-              onLinkBookmark={onLinkBookmark}
-            />
-          </div>
-        </div>
-        
-        <CardContent className="px-4 py-2">
-          <p className="text-sm text-muted-foreground line-clamp-3 mb-2">{note.content}</p>
-          
-          <div className="flex items-center justify-between pt-1">
-            {note.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {note.tags.slice(0, 2).map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-                {note.tags.length > 2 && (
-                  <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full">
-                    +{note.tags.length - 2}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div></div>
-            )}
-            
-            <span className="text-xs text-muted-foreground">{formattedDate}</span>
-          </div>
-        </CardContent>
       </div>
     </Card>
   );

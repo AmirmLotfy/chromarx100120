@@ -1,172 +1,135 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Note } from '@/types/note';
-import { X, Plus, Tag } from "lucide-react";
 
 interface NoteEditorProps {
-  note: Note | null;
-  onSave: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  note?: Note & { category?: string; sentiment?: 'positive' | 'negative' | 'neutral'; tags?: string[] };
+  onSave: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'> & { 
+    category?: string; 
+    sentiment?: 'positive' | 'negative' | 'neutral';
+    tags?: string[];
+  }) => Promise<void>;
   onCancel: () => void;
-  defaultCategory?: string;
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel, defaultCategory = 'General' }) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState(defaultCategory);
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [sentiment, setSentiment] = useState<'positive' | 'negative' | 'neutral'>('neutral');
-  
+const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
+  const [title, setTitle] = useState(note?.title || '');
+  const [content, setContent] = useState(note?.content || '');
+  const [category, setCategory] = useState(note?.category || 'General');
+  const [sentiment, setSentiment] = useState(note?.sentiment || 'neutral');
+  const [tags, setTags] = useState(note?.tags?.join(', ') || '');
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     if (note) {
       setTitle(note.title);
       setContent(note.content);
-      setCategory(note.category || defaultCategory);
-      setTags(note.tags || []);
-      setSentiment((note.sentiment as 'positive' | 'negative' | 'neutral') || 'neutral');
-    } else {
-      // Reset form for new notes
-      setTitle('');
-      setContent('');
-      setCategory(defaultCategory);
-      setTags([]);
-      setSentiment('neutral');
+      setCategory(note.category || 'General');
+      setSentiment(note.sentiment || 'neutral');
+      setTags(note.tags?.join(', ') || '');
     }
-  }, [note, defaultCategory]);
-  
-  const handleSubmit = (e: React.FormEvent) => {
+  }, [note]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    onSave({
-      title,
-      content,
-      tags,
-      category,
-      sentiment,
-    });
-  };
-  
-  const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+    if (!title.trim() || !content.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const tagArray = tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+
+      await onSave({
+        title,
+        content,
+        category,
+        sentiment: sentiment as 'positive' | 'negative' | 'neutral',
+        tags: tagArray,
+        userId: note?.userId || 'demo-user-id',
+        color: note?.color,
+        pinned: note?.pinned || false,
+        folder: note?.folder,
+        bookmarkIds: note?.bookmarkIds
+      });
+    } catch (error) {
+      console.error('Error saving note:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
-  
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddTag();
-    }
-  };
-  
-  const categories = [
-    'General',
-    'Personal',
-    'Work',
-    'Ideas',
-    'Projects',
-    'Research',
-    'Learning',
-    'Journal'
-  ];
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
+      <div>
         <Input
           placeholder="Note title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="text-lg font-medium"
+          className="font-medium"
           required
         />
       </div>
-      
-      <div className="space-y-2">
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="General">General</SelectItem>
+              <SelectItem value="Work">Work</SelectItem>
+              <SelectItem value="Personal">Personal</SelectItem>
+              <SelectItem value="Ideas">Ideas</SelectItem>
+              <SelectItem value="Projects">Projects</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Select value={sentiment} onValueChange={setSentiment}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sentiment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="positive">Positive</SelectItem>
+              <SelectItem value="neutral">Neutral</SelectItem>
+              <SelectItem value="negative">Negative</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
         <Textarea
           placeholder="Write your note here..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="min-h-[200px] resize-y"
+          className="min-h-[200px]"
           required
         />
       </div>
-      
-      <div className="flex flex-wrap gap-2 items-center">
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map(cat => (
-              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <Select value={sentiment} onValueChange={(value: 'positive' | 'negative' | 'neutral') => setSentiment(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sentiment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="positive">Positive</SelectItem>
-            <SelectItem value="neutral">Neutral</SelectItem>
-            <SelectItem value="negative">Negative</SelectItem>
-          </SelectContent>
-        </Select>
+
+      <div>
+        <Input
+          placeholder="Tags (comma separated)"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+        />
       </div>
-      
-      <div className="space-y-2">
-        <div className="flex items-center">
-          <Tag className="mr-2 h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Tags</span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Add tag..."
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <Button type="button" size="sm" onClick={handleAddTag}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex flex-wrap gap-1 mt-2">
-          {tags.map(tag => (
-            <Badge key={tag} variant="secondary" className="px-2 py-1">
-              {tag}
-              <button
-                type="button"
-                className="ml-1 text-muted-foreground hover:text-foreground"
-                onClick={() => handleRemoveTag(tag)}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      </div>
-      
-      <div className="flex justify-end gap-2 pt-4">
+
+      <div className="flex justify-end space-x-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">
-          {note ? 'Update' : 'Create'} Note
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Note'}
         </Button>
       </div>
     </form>
