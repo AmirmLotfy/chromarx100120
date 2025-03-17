@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +8,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { CalendarIcon, Clock, Plus } from 'lucide-react';
 import { generateTaskSuggestions, suggestTimerDuration } from '@/utils/geminiUtils';
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
+import { localStorageClient } from '@/lib/local-storage-client';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Task, TaskPriority } from '@/types/task';
+
+interface TaskCategory {
+  name: string;
+  color: string;
+}
 
 export interface TaskFormProps {
   onTaskAdded: () => void;
@@ -40,7 +44,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [priority, setPriority] = useState<TaskPriority>(initialValues?.priority || 'medium');
   const [category, setCategory] = useState(initialValues?.category || 'Work');
   const [estimatedDuration, setEstimatedDuration] = useState(initialValues?.estimatedDuration || 60);
-  const [categories, setCategories] = useState<{ name: string; color: string }[]>([]);
+  const [categories, setCategories] = useState<TaskCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -59,20 +63,30 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   const fetchCategories = async () => {
     try {
-      const result = await supabase
+      const result = await localStorageClient
         .from('task_categories')
-        .select('*')
+        .select()
         .execute();
 
-      const data = result.data || [];
-      const defaultCategories = [
+      const defaultCategories: TaskCategory[] = [
         { name: 'Work', color: '#4f46e5' },
         { name: 'Personal', color: '#ec4899' },
         { name: 'Learning', color: '#8b5cf6' },
         { name: 'Health', color: '#10b981' },
       ];
       
-      setCategories(data.length > 0 ? data : defaultCategories);
+      if (result.data && result.data.length > 0) {
+        const mappedCategories: TaskCategory[] = result.data.map(item => {
+          const categoryData = item as any;
+          return {
+            name: typeof categoryData.name === 'string' ? categoryData.name : 'Uncategorized',
+            color: typeof categoryData.color === 'string' ? categoryData.color : '#666666'
+          };
+        });
+        setCategories(mappedCategories);
+      } else {
+        setCategories(defaultCategories);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
       setCategories([
@@ -123,20 +137,23 @@ const TaskForm: React.FC<TaskFormProps> = ({
       } else {
         const categoryColor = categories.find(c => c.name === category)?.color || '#4f46e5';
 
-        await supabase.from('tasks').insert({
-          title,
-          description,
-          due_date: dueDate.toISOString(),
-          priority,
-          category,
-          color: categoryColor,
-          estimated_duration: estimatedDuration,
-          status: 'pending',
-          user_id: 'current-user', // In a real app, get from auth
-          progress: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }).single();
+        await localStorageClient
+          .from('tasks')
+          .insert({
+            title,
+            description,
+            due_date: dueDate.toISOString(),
+            priority,
+            category,
+            color: categoryColor,
+            estimated_duration: estimatedDuration,
+            status: 'pending',
+            user_id: 'current-user', // In a real app, get from auth
+            progress: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .execute();
 
         toast({
           title: "Success",

@@ -47,20 +47,22 @@ class TimerService {
       const id = 'timer-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
       const userId = 'local-user';
       
+      const dbSession: DbTimerSession = {
+        id,
+        user_id: userId,
+        duration: session.duration,
+        mode: session.mode,
+        start_time: session.startTime.toISOString(),
+        task_context: session.taskContext,
+        ai_suggested: session.aiSuggested,
+        completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
       const result = await localStorageClient
         .from('timer_sessions')
-        .insert({
-          id,
-          user_id: userId,
-          duration: session.duration,
-          mode: session.mode,
-          start_time: session.startTime.toISOString(),
-          task_context: session.taskContext,
-          ai_suggested: session.aiSuggested,
-          completed: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(dbSession)
         .execute();
 
       if (result.error) throw result.error;
@@ -117,25 +119,28 @@ class TimerService {
       };
 
       const focusSessions = sessions.filter(s => {
-        const mode = String(s?.mode || '');
-        return mode === 'focus';
+        const sessionObj = s as any;
+        return typeof sessionObj.mode === 'string' && sessionObj.mode === 'focus';
       });
       
       const completedSessions = sessions.filter(s => {
-        return Boolean(s?.completed);
+        const sessionObj = s as any;
+        return typeof sessionObj.completed === 'boolean' && sessionObj.completed === true;
       });
       
       const totalSessions = sessions.length;
 
       // Safe accessing with type conversion
       const totalFocusTime = focusSessions.reduce((acc, s) => {
-        const duration = typeof s?.duration === 'number' ? s.duration : 0;
+        const sessionObj = s as any;
+        const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
         return acc + duration;
       }, 0);
 
       const averageProductivity = totalSessions > 0 
         ? completedSessions.reduce((acc, s) => {
-            const score = typeof s?.productivity_score === 'number' ? s.productivity_score : 0;
+            const sessionObj = s as any;
+            const score = typeof sessionObj.productivity_score === 'number' ? sessionObj.productivity_score : 0;
             return acc + score;
           }, 0) / totalSessions 
         : 0;
@@ -212,20 +217,24 @@ class TimerService {
   }
 
   private mapSessionFromDb(data: any): TimerSession {
+    if (!data) {
+      return {} as TimerSession;
+    }
+    
     return {
-      id: String(data?.id || ''),
-      userId: String(data?.user_id || ''),
-      duration: Number(data?.duration || 0),
-      mode: data?.mode === 'focus' ? 'focus' : 'break',
-      startTime: new Date(data?.start_time || new Date()),
-      endTime: data?.end_time ? new Date(data.end_time) : undefined,
-      completed: Boolean(data?.completed),
-      taskContext: data?.task_context ? String(data.task_context) : undefined,
-      productivityScore: typeof data?.productivity_score === 'number' ? data.productivity_score : undefined,
-      aiSuggested: Boolean(data?.ai_suggested),
-      feedbackRating: typeof data?.feedback_rating === 'number' ? data.feedback_rating : undefined,
-      createdAt: new Date(data?.created_at || new Date()),
-      updatedAt: new Date(data?.updated_at || new Date())
+      id: typeof data.id === 'string' ? data.id : '',
+      userId: typeof data.user_id === 'string' ? data.user_id : '',
+      duration: typeof data.duration === 'number' ? data.duration : 0,
+      mode: data.mode === 'focus' ? 'focus' : 'break',
+      startTime: new Date(data.start_time || new Date()),
+      endTime: data.end_time ? new Date(data.end_time) : undefined,
+      completed: Boolean(data.completed),
+      taskContext: typeof data.task_context === 'string' ? data.task_context : undefined,
+      productivityScore: typeof data.productivity_score === 'number' ? data.productivity_score : undefined,
+      aiSuggested: Boolean(data.ai_suggested),
+      feedbackRating: typeof data.feedback_rating === 'number' ? data.feedback_rating : undefined,
+      createdAt: new Date(data.created_at || new Date()),
+      updatedAt: new Date(data.updated_at || new Date())
     };
   }
 }

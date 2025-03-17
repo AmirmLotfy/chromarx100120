@@ -1,8 +1,9 @@
+
 import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat, DomainCategory } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
 import { chromeDb } from "@/lib/chrome-storage";
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
-import { Json } from "@/integrations/supabase/types";
+import { localStorageClient } from '@/lib/local-storage-client';
+import { Json } from "@/lib/json-types";
 import { toast } from "sonner";
 
 const MAX_RETRIES = 3;
@@ -70,13 +71,22 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
 
     const visitData: VisitData[] = visitTimeData.filter((item): item is VisitData => item !== null);
 
-    // Get custom domain categories from Supabase
-    const { data: customCategories } = await supabase
+    // Get custom domain categories
+    const result = await localStorageClient
       .from('domain_categories')
-      .select('domain, category');
+      .select()
+      .execute();
+    
+    const customCategories = (result.data || []).map(item => {
+      const categoryItem = item as any;
+      return {
+        domain: String(categoryItem?.domain || ''),
+        category: String(categoryItem?.category || '')
+      };
+    });
 
     // Calculate time distribution before creating analytics data
-    const timeDistribution = await calculateTimeDistribution(visitData, customCategories || []);
+    const timeDistribution = await calculateTimeDistribution(visitData, customCategories);
     const domainStats = calculateDomainStats(visitData);
     const productivityScore = calculateProductivityScore(visitData, tabs);
     const productivityTrends = await calculateProductivityTrends(visitData);
@@ -90,10 +100,8 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
     };
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error("No authenticated user found");
-    }
+    const userData = await localStorageClient.auth.getUser();
+    const userId = userData.data?.user?.id || 'demo-user-id';
 
     // Convert complex objects to JSON-compatible format
     const jsonDomainStats = domainStats.map(stat => ({
@@ -107,22 +115,21 @@ export const getAnalyticsData = async (): Promise<AnalyticsData> => {
       time: dist.time
     }));
 
-    // Store daily analytics data in Supabase
-    const { error: storeError } = await supabase
+    // Store daily analytics data
+    const analyticsStorage = {
+      user_id: userId,
+      date: new Date().toISOString().split('T')[0],
+      productivity_score: analyticsData.productivityScore || null,
+      total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0) || null,
+      domain_stats: jsonDomainStats as any,
+      category_distribution: jsonTimeDistribution as any
+    };
+    
+    // Insert using our custom client
+    await localStorageClient
       .from('analytics_data')
-      .upsert([{
-        user_id: user.id,
-        date: new Date().toISOString().split('T')[0],
-        productivity_score: analyticsData.productivityScore || null,
-        total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0) || null,
-        domain_stats: jsonDomainStats as unknown as Json,
-        category_distribution: jsonTimeDistribution as unknown as Json
-      }]);
-
-    if (storeError) {
-      console.error("Error storing analytics data:", storeError);
-      toast.error("Failed to store analytics data");
-    }
+      .insert(analyticsStorage)
+      .execute();
 
     // Validate analytics data
     validateAnalyticsData(analyticsData);

@@ -8,7 +8,6 @@ export type Json =
   | Json[];
 
 // Define expected DB types to match the conversationService
-
 export interface DbResponse<T> {
   data: T;
   error: any;

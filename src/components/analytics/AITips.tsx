@@ -1,7 +1,8 @@
+
 import { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { localStorageClient as supabase } from "@/lib/local-storage-client";
+import { localStorageClient } from "@/lib/chrome-storage-client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Bell, Brain, ChartLine, Zap, Target } from "lucide-react";
@@ -28,17 +29,17 @@ const AITips = () => {
     const fetchInsights = async () => {
       try {
         // Get last 7 days of analytics data
-        const analyticsResult = await supabase
+        const analyticsResult = await localStorageClient
           .from('analytics_data')
-          .select('*')
+          .select()
           .execute();
 
-        // Get user's goals
-        const user = await supabase.auth.getUser();
-        const goalsResult = await supabase
+        // Get user's goals - using our mockup auth
+        const userData = await localStorageClient.auth.getUser();
+        const goalsResult = await localStorageClient
           .from('analytics_goals')
-          .select('*')
-          .eq('user_id', user.data?.user?.id || 'demo-user-id')
+          .select()
+          .eq('user_id', userData.data?.user?.id || 'demo-user-id')
           .execute();
 
         // Process the results - no need to check errors here as they're handled in the catch block

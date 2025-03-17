@@ -23,20 +23,22 @@ interface DbNote {
 
 // Helper function to safely map database note to client note model
 const mapNoteFromDb = (note: any): Note => {
+  if (!note) return {} as Note;
+  
   return {
-    id: String(note?.id || ''),
-    title: String(note?.title || ''),
-    content: String(note?.content || ''),
-    createdAt: String(note?.created_at || ''),
-    updatedAt: String(note?.updated_at || ''),
-    userId: String(note?.user_id || ''),
-    tags: Array.isArray(note?.tags) ? note.tags : [],
-    color: note?.color ? String(note.color) : undefined,
-    pinned: typeof note?.pinned === 'boolean' ? note.pinned : false,
-    folder: note?.folder_id ? String(note.folder_id) : undefined,
-    bookmarkIds: Array.isArray(note?.bookmark_ids) ? note.bookmark_ids : [],
-    category: note?.category ? String(note.category) : 'General',
-    sentiment: (note?.sentiment as NoteSentiment) || 'neutral'
+    id: typeof note.id === 'string' ? note.id : '',
+    title: typeof note.title === 'string' ? note.title : '',
+    content: typeof note.content === 'string' ? note.content : '',
+    createdAt: typeof note.created_at === 'string' ? note.created_at : '',
+    updatedAt: typeof note.updated_at === 'string' ? note.updated_at : '',
+    userId: typeof note.user_id === 'string' ? note.user_id : '',
+    tags: Array.isArray(note.tags) ? note.tags : [],
+    color: typeof note.color === 'string' ? note.color : undefined,
+    pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
+    folder: typeof note.folder_id === 'string' ? note.folder_id : undefined,
+    bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
+    category: typeof note.category === 'string' ? note.category : 'General',
+    sentiment: note.sentiment as NoteSentiment || 'neutral'
   };
 };
 
@@ -91,23 +93,25 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
     const newNoteId = uuidv4();
     const now = new Date().toISOString();
 
+    const dbNote: DbNote = {
+      id: newNoteId,
+      title: noteData.title,
+      content: noteData.content,
+      user_id: 'current-user',
+      created_at: now,
+      updated_at: now,
+      color: noteData.color || '#fef08a',
+      pinned: noteData.pinned || false,
+      folder_id: noteData.folder || null,
+      bookmark_ids: noteData.bookmarkIds || [],
+      tags: noteData.tags || [],
+      category: noteData.category || 'General',
+      sentiment: noteData.sentiment || 'neutral'
+    };
+
     const result = await localStorageClient
       .from('notes')
-      .insert({
-        id: newNoteId,
-        title: noteData.title,
-        content: noteData.content,
-        user_id: 'current-user',
-        created_at: now,
-        updated_at: now,
-        color: noteData.color || '#fef08a',
-        pinned: noteData.pinned || false,
-        folder_id: noteData.folder || null,
-        bookmark_ids: noteData.bookmarkIds || [],
-        tags: noteData.tags || [],
-        category: noteData.category || 'General',
-        sentiment: noteData.sentiment || 'neutral'
-      })
+      .insert(dbNote)
       .execute();
 
     if (result.error) {
@@ -205,8 +209,10 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
     }
     
     const filteredNotes = (result.data || []).filter(note => {
-      const title = String(note?.title || '');
-      const content = String(note?.content || '');
+      const noteObj = note as any;
+      const title = typeof noteObj.title === 'string' ? noteObj.title : '';
+      const content = typeof noteObj.content === 'string' ? noteObj.content : '';
+      
       return title.toLowerCase().includes(query.toLowerCase()) ||
              content.toLowerCase().includes(query.toLowerCase());
     });
