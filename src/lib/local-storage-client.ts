@@ -119,7 +119,7 @@ class LocalStorageClient {
             // Add created_at and updated_at if not present
             const now = new Date().toISOString();
             const dataWithTimestamps = newData.map(item => ({
-              ...item,
+              ...(item as object),
               created_at: item.created_at || now,
               updated_at: item.updated_at || now
             }));
@@ -168,8 +168,8 @@ class LocalStorageClient {
             const updatedData = tableData.map(item => {
               if (filters.every(filter => item[filter.column] === filter.value)) {
                 return { 
-                  ...item, 
-                  ...data, 
+                  ...(item as object),
+                  ...(data as object),
                   updated_at: data.updated_at || now 
                 };
               }

@@ -8,7 +8,7 @@ export const getNotes = async (): Promise<Note[]> => {
   try {
     const result = await localStorageClient
       .from('notes')
-      .select('*')
+      .select()
       .eq('user_id', 'current-user')
       .order('created_at', { ascending: false })
       .execute();
@@ -18,19 +18,19 @@ export const getNotes = async (): Promise<Note[]> => {
     }
 
     return (result.data || []).map(note => ({
-      id: note.id,
-      title: note.title,
-      content: note.content,
-      createdAt: note.created_at,
-      updatedAt: note.updated_at,
-      userId: note.user_id,
-      tags: note.tags || [],
-      color: note.color,
-      pinned: note.pinned,
-      folder: note.folder_id,
-      bookmarkIds: note.bookmark_ids,
-      category: note.category,
-      sentiment: note.sentiment
+      id: String(note.id),
+      title: String(note.title),
+      content: String(note.content),
+      createdAt: String(note.created_at),
+      updatedAt: String(note.updated_at),
+      userId: String(note.user_id),
+      tags: Array.isArray(note.tags) ? note.tags : [],
+      color: note.color ? String(note.color) : undefined,
+      pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
+      folder: note.folder_id ? String(note.folder_id) : undefined,
+      bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
+      category: note.category ? String(note.category) : 'General',
+      sentiment: (note.sentiment as NoteSentiment) || 'neutral'
     }));
   } catch (error) {
     console.error('Error fetching notes:', error);
@@ -43,7 +43,7 @@ export const getNote = async (id: string): Promise<Note | null> => {
   try {
     const result = await localStorageClient
       .from('notes')
-      .select('*')
+      .select()
       .eq('id', id)
       .eq('user_id', 'current-user')
       .execute();
@@ -55,19 +55,19 @@ export const getNote = async (id: string): Promise<Note | null> => {
     if (result.data && result.data.length > 0) {
       const note = result.data[0];
       return {
-        id: note.id,
-        title: note.title,
-        content: note.content,
-        createdAt: note.created_at,
-        updatedAt: note.updated_at,
-        userId: note.user_id,
-        tags: note.tags || [],
-        color: note.color,
-        pinned: note.pinned,
-        folder: note.folder_id,
-        bookmarkIds: note.bookmark_ids,
-        category: note.category,
-        sentiment: note.sentiment
+        id: String(note.id),
+        title: String(note.title),
+        content: String(note.content),
+        createdAt: String(note.created_at),
+        updatedAt: String(note.updated_at),
+        userId: String(note.user_id),
+        tags: Array.isArray(note.tags) ? note.tags : [],
+        color: note.color ? String(note.color) : undefined,
+        pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
+        folder: note.folder_id ? String(note.folder_id) : undefined,
+        bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
+        category: note.category ? String(note.category) : 'General',
+        sentiment: (note.sentiment as NoteSentiment) || 'neutral'
       };
     }
 
@@ -101,7 +101,6 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
         category: noteData.category || 'General',
         sentiment: noteData.sentiment || 'neutral'
       })
-      .select()
       .execute();
 
     if (result.error) {
@@ -112,19 +111,19 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
       const newNote = result.data[0];
       toast.success('Note created successfully');
       return {
-        id: newNote.id,
-        title: newNote.title,
-        content: newNote.content,
-        createdAt: newNote.created_at,
-        updatedAt: newNote.updated_at,
-        userId: newNote.user_id,
-        tags: newNote.tags || [],
-        color: newNote.color,
-        pinned: newNote.pinned,
-        folder: newNote.folder_id,
-        bookmarkIds: newNote.bookmark_ids,
-        category: newNote.category,
-        sentiment: newNote.sentiment
+        id: String(newNote.id),
+        title: String(newNote.title),
+        content: String(newNote.content),
+        createdAt: String(newNote.created_at),
+        updatedAt: String(newNote.updated_at),
+        userId: String(newNote.user_id),
+        tags: Array.isArray(newNote.tags) ? newNote.tags : [],
+        color: newNote.color ? String(newNote.color) : undefined,
+        pinned: typeof newNote.pinned === 'boolean' ? newNote.pinned : false,
+        folder: newNote.folder_id ? String(newNote.folder_id) : undefined,
+        bookmarkIds: Array.isArray(newNote.bookmark_ids) ? newNote.bookmark_ids : [],
+        category: newNote.category ? String(newNote.category) : 'General',
+        sentiment: (newNote.sentiment as NoteSentiment) || 'neutral'
       };
     }
 
@@ -149,7 +148,6 @@ export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' |
       .update(updateData)
       .eq('id', id)
       .eq('user_id', 'current-user')
-      .select()
       .execute();
 
     if (result.error) {
@@ -160,19 +158,19 @@ export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' |
       const updatedNote = result.data[0];
       toast.success('Note updated successfully');
       return {
-        id: updatedNote.id,
-        title: updatedNote.title,
-        content: updatedNote.content,
-        createdAt: updatedNote.created_at,
-        updatedAt: updatedNote.updated_at,
-        userId: updatedNote.user_id,
-        tags: updatedNote.tags || [],
-        color: updatedNote.color,
-        pinned: updatedNote.pinned,
-        folder: updatedNote.folder_id,
-        bookmarkIds: updatedNote.bookmark_ids,
-        category: updatedNote.category,
-        sentiment: updatedNote.sentiment
+        id: String(updatedNote.id),
+        title: String(updatedNote.title),
+        content: String(updatedNote.content),
+        createdAt: String(updatedNote.created_at),
+        updatedAt: String(updatedNote.updated_at),
+        userId: String(updatedNote.user_id),
+        tags: Array.isArray(updatedNote.tags) ? updatedNote.tags : [],
+        color: updatedNote.color ? String(updatedNote.color) : undefined,
+        pinned: typeof updatedNote.pinned === 'boolean' ? updatedNote.pinned : false,
+        folder: updatedNote.folder_id ? String(updatedNote.folder_id) : undefined,
+        bookmarkIds: Array.isArray(updatedNote.bookmark_ids) ? updatedNote.bookmark_ids : [],
+        category: updatedNote.category ? String(updatedNote.category) : 'General',
+        sentiment: (updatedNote.sentiment as NoteSentiment) || 'neutral'
       };
     }
 
@@ -210,7 +208,7 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
   try {
     const result = await localStorageClient
       .from('notes')
-      .select('*')
+      .select()
       .eq('user_id', 'current-user')
       .execute();
     
@@ -219,24 +217,24 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
     }
     
     const filteredNotes = (result.data || []).filter(note => 
-      note.title.toLowerCase().includes(query.toLowerCase()) ||
-      note.content.toLowerCase().includes(query.toLowerCase())
+      String(note.title).toLowerCase().includes(query.toLowerCase()) ||
+      String(note.content).toLowerCase().includes(query.toLowerCase())
     );
     
     return filteredNotes.map(note => ({
-      id: note.id,
-      title: note.title,
-      content: note.content,
-      createdAt: note.created_at,
-      updatedAt: note.updated_at,
-      userId: note.user_id,
-      tags: note.tags || [],
-      color: note.color,
-      pinned: note.pinned,
-      folder: note.folder_id,
-      bookmarkIds: note.bookmark_ids,
-      category: note.category,
-      sentiment: note.sentiment
+      id: String(note.id),
+      title: String(note.title),
+      content: String(note.content),
+      createdAt: String(note.created_at),
+      updatedAt: String(note.updated_at),
+      userId: String(note.user_id),
+      tags: Array.isArray(note.tags) ? note.tags : [],
+      color: note.color ? String(note.color) : undefined,
+      pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
+      folder: note.folder_id ? String(note.folder_id) : undefined,
+      bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
+      category: note.category ? String(note.category) : 'General',
+      sentiment: (note.sentiment as NoteSentiment) || 'neutral'
     }));
   } catch (error) {
     console.error('Error searching notes:', error);

@@ -44,7 +44,6 @@ class TimerService {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .select()
         .execute();
 
       if (result.error) throw result.error;
@@ -87,7 +86,7 @@ class TimerService {
     try {
       const result = await localStorageClient
         .from('timer_sessions')
-        .select('*')
+        .select()
         .execute();
 
       if (result.error) throw result.error;
@@ -100,16 +99,27 @@ class TimerService {
         completionRate: 0
       };
 
-      const focusSessions = sessions.filter(s => s.mode === 'focus');
-      const completedSessions = sessions.filter(s => s.completed);
+      const focusSessions = sessions.filter(s => String(s.mode) === 'focus');
+      const completedSessions = sessions.filter(s => Boolean(s.completed));
       const totalSessions = sessions.length;
 
+      // Safe accessing with type conversion
+      const totalFocusTime = focusSessions.reduce((acc, s) => {
+        const duration = typeof s.duration === 'number' ? s.duration : 0;
+        return acc + duration;
+      }, 0);
+
+      const averageProductivity = totalSessions > 0 
+        ? completedSessions.reduce((acc, s) => {
+            const score = typeof s.productivity_score === 'number' ? s.productivity_score : 0;
+            return acc + score;
+          }, 0) / totalSessions 
+        : 0;
+
       return {
-        totalFocusTime: focusSessions.reduce((acc, s) => acc + (s.duration || 0), 0),
+        totalFocusTime,
         totalSessions,
-        averageProductivity: totalSessions > 0 
-          ? completedSessions.reduce((acc, s) => acc + (s.productivity_score || 0), 0) / totalSessions 
-          : 0,
+        averageProductivity,
         completionRate: totalSessions > 0 
           ? (completedSessions.length / totalSessions) * 100 
           : 0
@@ -179,17 +189,17 @@ class TimerService {
 
   private mapSessionFromDb(data: any): TimerSession {
     return {
-      id: data.id,
-      userId: data.user_id,
-      duration: data.duration,
-      mode: data.mode,
+      id: String(data.id),
+      userId: String(data.user_id),
+      duration: Number(data.duration),
+      mode: data.mode === 'focus' ? 'focus' : 'break',
       startTime: new Date(data.start_time),
       endTime: data.end_time ? new Date(data.end_time) : undefined,
-      completed: data.completed || false,
-      taskContext: data.task_context,
-      productivityScore: data.productivity_score,
-      aiSuggested: data.ai_suggested || false,
-      feedbackRating: data.feedback_rating,
+      completed: Boolean(data.completed),
+      taskContext: data.task_context ? String(data.task_context) : undefined,
+      productivityScore: typeof data.productivity_score === 'number' ? data.productivity_score : undefined,
+      aiSuggested: Boolean(data.ai_suggested),
+      feedbackRating: typeof data.feedback_rating === 'number' ? data.feedback_rating : undefined,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at)
     };
