@@ -1,7 +1,5 @@
 
-import { useState, useEffect, createContext, useContext } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { createContext, useContext, ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -15,85 +13,40 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create a context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: false,
+  signInWithGoogle: async () => {},
+  signOut: async () => {},
+});
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email
-          });
-        }
-      } catch (error) {
-        console.error('Error checking auth session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email
-          });
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Failed to sign out. Please try again.');
-    }
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // Provide a dummy user for development
+  const dummyUser = {
+    id: 'demo-user-id',
+    email: 'demo@example.com'
   };
 
   const signInWithGoogle = async () => {
-    try {
-      // Simple approach that works in all environments
-      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
-      console.log('Using redirect URL:', redirectUrl);
+    console.log('Sign in with Google called (dummy implementation)');
+    // No actual implementation needed
+  };
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl
-        }
-      });
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error signing in with Google:', error);
-      toast.error('Failed to sign in with Google. Please try again.');
-    }
+  const signOut = async () => {
+    console.log('Sign out called (dummy implementation)');
+    // No actual implementation needed
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider 
+      value={{ 
+        user: dummyUser, // Always provide the dummy user
+        loading: false,
+        signInWithGoogle,
+        signOut
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

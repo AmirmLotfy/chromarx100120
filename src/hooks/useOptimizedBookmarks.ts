@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ChromeBookmark } from "@/types/bookmark";
 import { bookmarkLoader } from "@/utils/bookmarkLoader";
@@ -6,7 +5,6 @@ import { toast } from "sonner";
 import { useOfflineStatus } from "./useOfflineStatus";
 import { optimizedBookmarkStorage } from "@/services/optimizedBookmarkStorage";
 import { bookmarkDbService } from "@/services/indexedDbService";
-import { useAuth } from "./useAuth";
 import { streamProcess, backgroundIndexBookmarks } from "@/utils/streamProcessingUtils";
 
 type BookmarkLoadingStatus = 'idle' | 'loading' | 'loaded' | 'error';
@@ -19,7 +17,6 @@ export function useOptimizedBookmarks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const { isOffline } = useOfflineStatus();
-  const { user } = useAuth();
   const searchTimeoutRef = useRef<number | null>(null);
 
   // Initialize the bookmark system

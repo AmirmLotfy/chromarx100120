@@ -1,9 +1,8 @@
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, User, LogOut, Menu, Bell, Check } from "lucide-react";
+import { Moon, Sun, Menu, Bell, Check } from "lucide-react";
 import { LanguageSelector } from "./LanguageSelector";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,11 +10,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import SyncStatusIndicator from '@/components/ui/sync-status-indicator';
+
 interface HeaderProps {
   toggleSidebar?: () => void;
 }
+
 interface Notification {
   id: string;
   title: string;
@@ -24,21 +24,16 @@ interface Notification {
   timestamp: string;
   read: boolean;
 }
+
 const Header = ({
   toggleSidebar
 }: HeaderProps) => {
-  const {
-    theme,
-    setTheme
-  } = useTheme();
-  const {
-    user,
-    signOut
-  } = useAuth();
+  const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotificationDot, setShowNotificationDot] = useState(false);
+  
   useEffect(() => {
     const demoNotifications: Notification[] = [{
       id: "1",
@@ -65,6 +60,7 @@ const Header = ({
     setNotifications(demoNotifications);
     setShowNotificationDot(demoNotifications.some(n => !n.read));
   }, []);
+  
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
@@ -73,7 +69,9 @@ const Header = ({
       className: "theme-toggle-toast"
     });
   };
+  
   const toggleMenu = () => setMenuOpen(!menuOpen);
+  
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(notif => notif.id === id ? {
       ...notif,
@@ -82,6 +80,7 @@ const Header = ({
     const hasUnread = notifications.some(n => !n.read && n.id !== id);
     setShowNotificationDot(hasUnread);
   };
+  
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(notif => ({
       ...notif,
@@ -90,6 +89,7 @@ const Header = ({
     setShowNotificationDot(false);
     toast.success("All notifications marked as read");
   };
+  
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -99,6 +99,7 @@ const Header = ({
     if (diff < 24 * 60) return `${Math.floor(diff / 60)}h ago`;
     return date.toLocaleDateString();
   };
+  
   const getTypeColor = (type: string) => {
     switch (type) {
       case "bookmarks":
@@ -111,6 +112,7 @@ const Header = ({
         return "bg-gray-500";
     }
   };
+  
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "bookmarks":
@@ -123,8 +125,11 @@ const Header = ({
         return "📌";
     }
   };
+  
   const unreadCount = notifications.filter(n => !n.read).length;
-  return <>
+  
+  return (
+    <>
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center">
           <div className="flex items-center gap-2">
@@ -135,11 +140,12 @@ const Header = ({
           </div>
           <div className="flex flex-1 items-center justify-end space-x-2">
             <nav className="flex items-center gap-2">
-              {user && <div className="hidden sm:flex">
-                  <SyncStatusIndicator showLabel={false} interactive={true} />
-                </div>}
+              <div className="hidden sm:flex">
+                <SyncStatusIndicator showLabel={false} interactive={true} />
+              </div>
               
-              {isMobile ? <div className="flex items-center gap-3">
+              {isMobile ? (
+                <div className="flex items-center gap-3">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full p-0 relative touch-target" aria-label="Notifications">
@@ -205,15 +211,29 @@ const Header = ({
                     </PopoverContent>
                   </Popover>
                   
-                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 touch-target" onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 rounded-full p-0 touch-target" 
+                    onClick={toggleTheme} 
+                    aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  >
                     <Sun className="h-[1.1rem] w-[1.1rem] rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-[1.1rem] w-[1.1rem] rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
                   </Button>
                   
-                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0 touch-target" onClick={toggleMenu} aria-label="Open menu">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 rounded-full p-0 touch-target" 
+                    onClick={toggleMenu} 
+                    aria-label="Open menu"
+                  >
                     <Menu className="h-5 w-5" />
                   </Button>
-                </div> : <div className="flex items-center gap-3">
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full p-0 relative hover:bg-muted/80" aria-label="Notifications">
@@ -279,94 +299,47 @@ const Header = ({
                     </PopoverContent>
                   </Popover>
                   
-                  {user ? <div className="flex items-center gap-2">
-                      <Link to="/user">
-                        <Button variant="ghost" size="sm" className="gap-1 h-8 rounded-full">
-                          <User className="h-4 w-4" />
-                          <span className="hidden md:inline">{user.email?.split('@')[0] || 'Account'}</span>
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" size="sm" onClick={() => signOut()} aria-label="Sign out" title="Sign out" className="h-8 w-8 rounded-full p-0">
-                        <LogOut className="h-4 w-4" />
-                      </Button>
-                    </div> : <Link to="/auth">
-                      <Button size="sm" variant="outline" className="gap-1 rounded-full h-8">
-                        <User className="h-4 w-4" />
-                        <span>Sign In</span>
-                      </Button>
-                    </Link>}
-                  
                   <div className="flex items-center gap-2">
                     <LanguageSelector />
                     
-                    <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 rounded-full transition-colors hover:bg-accent">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={toggleTheme} 
+                      className="h-8 w-8 rounded-full transition-colors hover:bg-accent"
+                    >
                       <Sun className="h-[1.1rem] w-[1.1rem] rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
                       <Moon className="absolute h-[1.1rem] w-[1.1rem] rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
                       <span className="sr-only">Toggle theme</span>
                     </Button>
                   </div>
-                </div>}
+                </div>
+              )}
             </nav>
           </div>
         </div>
       </header>
 
       <AnimatePresence>
-        {menuOpen && isMobile && <motion.div initial={{
-        opacity: 0,
-        y: -20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} exit={{
-        opacity: 0,
-        y: -20
-      }} transition={{
-        duration: 0.2
-      }} className="fixed top-[3.5rem] left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/40 shadow-lg">
+        {menuOpen && isMobile && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-[3.5rem] left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/40 shadow-lg"
+          >
             <div className="container py-3 px-4 space-y-3">
-              {user ? <>
-                  <Link to="/user" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{user.email?.split('@')[0] || 'Account'}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  </Link>
-                  
-                  <div className="h-px bg-border/50 my-2" />
-                  
-                  <button className="flex w-full items-center gap-3 p-2 rounded-lg hover:bg-accent/10" onClick={() => {
-              signOut();
-              setMenuOpen(false);
-            }}>
-                    <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                      <LogOut className="h-4 w-4 text-destructive" />
-                    </div>
-                    <span className="text-sm">Sign Out</span>
-                  </button>
-                </> : <Link to="/auth" onClick={() => setMenuOpen(false)}>
-                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/10">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium">Sign In</span>
-                  </div>
-                </Link>}
-              
-              <div className="h-px bg-border/50 my-2" />
-              
               <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/10">
                 <span className="text-sm">Language</span>
                 <LanguageSelector />
               </div>
             </div>
-          </motion.div>}
+          </motion.div>
+        )}
       </AnimatePresence>
-    </>;
+    </>
+  );
 };
+
 export default Header;
