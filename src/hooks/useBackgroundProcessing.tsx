@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useOfflineStatus } from './useOfflineStatus';
@@ -30,6 +31,13 @@ export interface BackgroundTask {
   progress: number;
 }
 
+// Define a proper type for task callbacks
+interface TaskCallbacks {
+  onComplete?: () => void;
+  onError?: (error: Error, item: any) => void;
+  onProgress?: (progress: number) => void;
+}
+
 export function useBackgroundProcessing<T>() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,7 +52,8 @@ export function useBackgroundProcessing<T>() {
   const { registration } = useOptimizedServiceWorker();
   
   const abortControllerRef = useRef<AbortController | null>(null);
-  const taskCallbacksRef = useRef<Map<string, Function>>(new Map());
+  // Update the type of the taskCallbacksRef to use our new interface
+  const taskCallbacksRef = useRef<Map<string, TaskCallbacks>>(new Map());
 
   // Listen for service worker messages
   useEffect(() => {
