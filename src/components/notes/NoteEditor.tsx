@@ -1,21 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Note } from '@/types/note';
+import { NoteEditorProps } from './NoteEditorProps';
 
-interface NoteEditorProps {
-  note?: Note;
-  onSave: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onCancel: () => void;
-}
-
-const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
+const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel, defaultCategory }) => {
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
-  const [category, setCategory] = useState<string>(note?.category || 'General');
+  const [category, setCategory] = useState<string>(note?.category || defaultCategory || 'General');
   const [sentiment, setSentiment] = useState<'positive' | 'negative' | 'neutral'>(note?.sentiment || 'neutral');
   const [tags, setTags] = useState(note?.tags?.join(', ') || '');
   const [isSaving, setIsSaving] = useState(false);
@@ -24,11 +18,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
     if (note) {
       setTitle(note.title);
       setContent(note.content);
-      setCategory(note.category || 'General');
+      setCategory(note.category || defaultCategory || 'General');
       setSentiment(note.sentiment || 'neutral');
       setTags(note.tags?.join(', ') || '');
     }
-  }, [note]);
+  }, [note, defaultCategory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

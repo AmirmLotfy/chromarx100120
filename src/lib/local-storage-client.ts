@@ -71,6 +71,7 @@ class LocalStorageClient {
             return {
               eq: (col: string, val: any): DbSingleResult<any> => {
                 return {
+                  eq: (column: string, value: any): DbSingleResult<any> => this.from(table).update(data).eq(column, value).eq,
                   select: () => Promise.resolve({ data: [{}], error: null }),
                   execute: () => Promise.resolve({ data: {}, error: null }),
                   error: null
@@ -93,6 +94,7 @@ class LocalStorageClient {
             return {
               eq: (col: string, val: any) => {
                 return {
+                  eq: (column: string, value: any) => this.from(table).delete().eq(column, value).eq,
                   execute: () => Promise.resolve({ data: null, error: null }),
                   error: null
                 };
