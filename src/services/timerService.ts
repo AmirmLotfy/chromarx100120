@@ -135,6 +135,7 @@ class TimerService {
 
       const totalFocusTime = focusSessions.reduce((acc, s) => {
         const sessionObj = s as Record<string, any>;
+        // Fix for error TS2365: Ensure duration is a number before adding
         const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
         return acc + duration;
       }, 0);
@@ -151,6 +152,7 @@ class TimerService {
         }
       });
       
+      // Fix for error TS2322: Explicitly defining the type as number
       const averageProductivity: number = countWithScores > 0 ? sumProductivity / countWithScores : 0;
 
       return {
