@@ -76,7 +76,7 @@ export const getNote = async (id: string): Promise<Note | null> => {
       throw result.error;
     }
 
-    if (result.data && result.data.length > 0) {
+    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
       return mapNoteFromDb(result.data[0]);
     }
 
@@ -121,7 +121,7 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
     // Fix the type issue with result.data by properly asserting it as an array
     if (result.data && Array.isArray(result.data)) {
       const resultData = result.data;
-      if (resultData.length > 0) {
+      if (resultData && resultData.length > 0) {
         toast.success('Note created successfully');
         return mapNoteFromDb(resultData[0]);
       }
@@ -165,7 +165,7 @@ export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' |
       throw result.error;
     }
 
-    if (result.data && result.data.length > 0) {
+    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
       toast.success('Note updated successfully');
       return mapNoteFromDb(result.data[0]);
     }

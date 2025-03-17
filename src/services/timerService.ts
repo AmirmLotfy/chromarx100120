@@ -1,3 +1,4 @@
+
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
@@ -63,10 +64,13 @@ class TimerService {
         .execute();
 
       if (result.error) throw result.error;
-      const data = result.data?.[0];
-      if (!data) throw new Error('Failed to insert timer session');
-
-      return this.mapSessionFromDb(data);
+      
+      if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+        const data = result.data[0];
+        return this.mapSessionFromDb(data);
+      }
+      
+      throw new Error('Failed to insert timer session');
     } catch (error) {
       console.error('Error starting timer session:', error);
       toast.error('Failed to start timer session');
@@ -107,6 +111,7 @@ class TimerService {
 
       if (result.error) throw result.error;
       
+      // Ensure result.data is an array
       const sessions = Array.isArray(result.data) ? result.data : [];
 
       if (sessions.length === 0) return {
