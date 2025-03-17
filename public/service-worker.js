@@ -2,6 +2,10 @@
 // ChroMarx Service Worker
 console.log('ChroMarx Service Worker Initialized');
 
+// Check if Chrome extension APIs are available
+const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.runtime && !!chrome.runtime.id;
+console.log(`Running in ${isChromeExtension ? 'Chrome Extension' : 'Web'} context`);
+
 // Cache name for offline support
 const CACHE_NAME = 'chromarx-cache-v1';
 const urlsToCache = [
@@ -115,65 +119,76 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Chrome Extension specific API handlers
-chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Extension installed:', details.reason);
-  
-  if (details.reason === 'install') {
-    // First time installation
-    chrome.storage.local.set({ installDate: Date.now() });
-  } else if (details.reason === 'update') {
-    // Extension was updated
-    console.log('Updated from version', details.previousVersion);
-  }
-});
+// Chrome Extension specific API handlers - only run in extension context
+if (isChromeExtension) {
+  try {
+    // Extension installed event
+    chrome.runtime.onInstalled.addListener((details) => {
+      console.log('Extension installed:', details.reason);
+      
+      if (details.reason === 'install') {
+        // First time installation
+        chrome.storage.local.set({ installDate: Date.now() });
+      } else if (details.reason === 'update') {
+        // Extension was updated
+        console.log('Updated from version', details.previousVersion);
+      }
+    });
 
-// Handle the browser action (icon) being clicked
-chrome.action.onClicked.addListener((tab) => {
-  // Open the side panel
-  chrome.sidePanel.open({ windowId: tab.windowId });
-});
+    // Handle the browser action (icon) being clicked
+    chrome.action.onClicked.addListener((tab) => {
+      // Open the side panel
+      if (chrome.sidePanel) {
+        chrome.sidePanel.open({ windowId: tab.windowId });
+      }
+    });
 
-// Handle keyboard shortcuts
-chrome.commands.onCommand.addListener((command) => {
-  console.log('Command triggered:', command);
-  
-  switch (command) {
-    case 'toggle-theme':
-      chrome.runtime.sendMessage({ action: 'toggle-theme' });
-      break;
-    case 'quick-add':
-      // Get the current tab
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs && tabs[0]) {
-          chrome.runtime.sendMessage({ 
-            action: 'quick-add-bookmark',
-            url: tabs[0].url,
-            title: tabs[0].title
+    // Handle keyboard shortcuts
+    chrome.commands.onCommand.addListener((command) => {
+      console.log('Command triggered:', command);
+      
+      switch (command) {
+        case 'toggle-theme':
+          chrome.runtime.sendMessage({ action: 'toggle-theme' });
+          break;
+        case 'quick-add':
+          // Get the current tab
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs && tabs[0]) {
+              chrome.runtime.sendMessage({ 
+                action: 'quick-add-bookmark',
+                url: tabs[0].url,
+                title: tabs[0].title
+              });
+            }
           });
-        }
-      });
-      break;
-    case 'advanced-search':
-      chrome.runtime.sendMessage({ action: 'open-advanced-search' });
-      break;
-  }
-});
+          break;
+        case 'advanced-search':
+          chrome.runtime.sendMessage({ action: 'open-advanced-search' });
+          break;
+      }
+    });
 
-// Handle CORS preflight requests
-self.addEventListener('fetch', (event) => {
-  if (event.request.method === 'OPTIONS') {
-    // Respond to CORS preflight requests
-    event.respondWith(
-      new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Max-Age': '86400'
-        }
-      })
-    );
+    // Handle CORS preflight requests
+    self.addEventListener('fetch', (event) => {
+      if (event.request.method === 'OPTIONS') {
+        // Respond to CORS preflight requests
+        event.respondWith(
+          new Response(null, {
+            status: 204,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+              'Access-Control-Max-Age': '86400'
+            }
+          })
+        );
+      }
+    });
+    
+    console.log('Chrome Extension specific handlers registered');
+  } catch (error) {
+    console.error('Error setting up Chrome Extension handlers:', error);
   }
-});
+}

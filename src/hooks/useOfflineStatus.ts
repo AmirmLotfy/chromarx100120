@@ -1,110 +1,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
+import { isChromeExtension } from '@/lib/utils';
 
-/**
- * Enhanced hook to monitor and manage offline status
- * Provides additional functionality for working with service worker
- */
-export function useOfflineStatus() {
-  const [isOffline, setIsOffline] = useState(false);
-  const [lastOnlineTime, setLastOnlineTime] = useState<number | null>(null);
-  const [hasNetworkListeners, setHasNetworkListeners] = useState(false);
-  const [serviceWorkerActive, setServiceWorkerActive] = useState(false);
+interface OfflineStatusHookResult {
+  isOffline: boolean;
+  isChecking: boolean;
+  checkConnection: () => Promise<boolean>;
+  lastChecked: Date | null;
+}
 
-  // Set up network status listeners
-  useEffect(() => {
-    if (hasNetworkListeners) return;
+export function useOfflineStatus(): OfflineStatusHookResult {
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isChecking, setIsChecking] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
 
-    const handleOnline = () => {
-      setIsOffline(false);
-      setLastOnlineTime(Date.now());
-      console.log('Connection restored, device is online');
-      
-      // Notify service worker of online status change
-      if (serviceWorkerActive && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'ONLINE_STATUS_CHANGE',
-          isOnline: true
-        });
-      }
-    };
-
-    const handleOffline = () => {
-      setIsOffline(true);
-      console.log('Connection lost, device is offline');
-      
-      // Notify service worker of online status change
-      if (serviceWorkerActive && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'ONLINE_STATUS_CHANGE',
-          isOnline: false
-        });
-      }
-      
-      // Show toast notification
-      toast.warning('You are offline. Changes will be saved locally and synced when you reconnect.');
-    };
-
-    // Check initial status using Network Information API if available
-    if ('connection' in navigator && navigator.connection) {
-      const connection = navigator.connection as any;
-      setIsOffline(connection.type === 'none');
-      
-      // Listen for connection changes if supported
-      if (connection.addEventListener) {
-        connection.addEventListener('change', () => {
-          setIsOffline(connection.type === 'none');
-          
-          if (connection.type !== 'none') {
-            setLastOnlineTime(Date.now());
-          }
-        });
-      }
-    }
-
-    // Set up standard online/offline listeners
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+  // Function to check connection status
+  const checkConnection = useCallback(async () => {
+    setIsChecking(true);
     
-    // Also listen for service worker messages
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'ONLINE_STATUS_UPDATE') {
-        setIsOffline(!event.data.isOnline);
-        
-        if (event.data.isOnline) {
-          setLastOnlineTime(Date.now());
-        }
-      }
-    });
-    
-    setHasNetworkListeners(true);
-
-    // Initial status check
-    setIsOffline(!navigator.onLine);
-    
-    if (navigator.onLine) {
-      setLastOnlineTime(Date.now());
-    }
-
-    // Check for service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(() => {
-        setServiceWorkerActive(true);
-        console.log('Service worker is active and ready');
-      });
-    }
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [hasNetworkListeners, serviceWorkerActive]);
-
-  // Function to manually check connection
-  const checkConnection = useCallback(async (): Promise<boolean> => {
     try {
-      // Perform a fetch to check connectivity
+      // Try to fetch a small resource (favicon) to test connectivity
       const response = await fetch('/favicon.ico', {
         method: 'HEAD',
         cache: 'no-store',
@@ -113,44 +28,95 @@ export function useOfflineStatus() {
       
       const isOnline = response.ok;
       setIsOffline(!isOnline);
+      setLastChecked(new Date());
       
-      if (isOnline) {
-        setLastOnlineTime(Date.now());
+      // If in Chrome Extension environment, notify the service worker of status change
+      if (isChromeExtension() && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'ONLINE_STATUS_CHANGE',
+          isOnline
+        });
       }
       
       return isOnline;
     } catch (error) {
+      // If fetch fails, we're offline
       setIsOffline(true);
+      setLastChecked(new Date());
+      
+      // Notify service worker if in extension context
+      if (isChromeExtension() && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'ONLINE_STATUS_CHANGE',
+          isOnline: false
+        });
+      }
+      
       return false;
+    } finally {
+      setIsChecking(false);
     }
   }, []);
 
-  // Function to trigger syncing when back online
-  const syncWhenOnline = useCallback(async () => {
-    if (isOffline) {
-      toast.info('Sync requested. Will sync when back online.');
-      return false;
+  // Listen for online/offline events
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      setLastChecked(new Date());
+      
+      // Double-check with an actual network request
+      checkConnection();
+    };
+    
+    const handleOffline = () => {
+      setIsOffline(true);
+      setLastChecked(new Date());
+      
+      // Notify service worker if in extension context
+      if (isChromeExtension() && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'ONLINE_STATUS_CHANGE',
+          isOnline: false
+        });
+      }
+    };
+    
+    // Listen for service worker messages
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'ONLINE_STATUS_UPDATE') {
+        setIsOffline(!event.data.isOnline);
+        setLastChecked(new Date());
+      }
+    };
+    
+    // Set up event listeners
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
     }
     
-    if (serviceWorkerActive && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'PROCESS_QUEUE'
-      });
+    // Initial check
+    checkConnection();
+    
+    // Clean up event listeners on unmount
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       
-      toast.success('Syncing data...');
-      return true;
-    } else {
-      // Fallback if no service worker
-      toast.info('Sync requested but service worker is not active.');
-      return false;
-    }
-  }, [isOffline, serviceWorkerActive]);
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
+    };
+  }, [checkConnection]);
 
   return {
     isOffline,
-    lastOnlineTime,
-    serviceWorkerActive,
+    isChecking,
     checkConnection,
-    syncWhenOnline
+    lastChecked
   };
 }
+
+export default useOfflineStatus;

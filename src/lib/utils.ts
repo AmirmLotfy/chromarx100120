@@ -25,6 +25,21 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
 }
 
 /**
+ * Check if the runtime environment is within a Chrome extension
+ * @returns boolean indicating if running as a Chrome extension
+ */
+export function isChromeExtension(): boolean {
+  return typeof chrome !== 'undefined' && !!chrome.runtime && !!chrome.runtime.id;
+}
+
+/**
+ * Check if the app is running in a Chrome Extension side panel
+ */
+export function isChromeSidePanel(): boolean {
+  return isChromeExtension() && typeof chrome.sidePanel !== 'undefined';
+}
+
+/**
  * Check if the Service Worker API is available in the browser
  */
 export function isServiceWorkerSupported(): boolean {
@@ -32,7 +47,7 @@ export function isServiceWorkerSupported(): boolean {
 }
 
 /**
- * Register the service worker
+ * Register the service worker with fallbacks for different environments
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!isServiceWorkerSupported()) {
@@ -41,7 +56,13 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/service-worker.js');
+    // Determine which service worker to use based on environment
+    const swPath = isChromeExtension() 
+      ? '/service-worker.js'
+      : '/improved-service-worker.js';
+    
+    console.log(`Registering service worker from: ${swPath}`);
+    const registration = await navigator.serviceWorker.register(swPath);
     console.log('Service worker registered successfully:', registration.scope);
     return registration;
   } catch (error) {
@@ -91,20 +112,6 @@ export async function unregisterServiceWorker(): Promise<boolean> {
     console.error('Service worker unregistration failed:', error);
     return false;
   }
-}
-
-/**
- * Check if the app is running in a Chrome Extension context
- */
-export function isChromeExtension(): boolean {
-  return typeof chrome !== 'undefined' && !!chrome.runtime && !!chrome.runtime.id;
-}
-
-/**
- * Check if the app is running in a Chrome Extension side panel
- */
-export function isChromeSidePanel(): boolean {
-  return isChromeExtension() && typeof chrome.sidePanel !== 'undefined';
 }
 
 /**

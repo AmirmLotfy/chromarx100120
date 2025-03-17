@@ -1,5 +1,10 @@
+
 // Improved Service Worker for Bookmark Manager
 // Version 1.0.0
+
+// Check if Chrome extension APIs are available
+const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.runtime && !!chrome.runtime.id;
+console.log(`Running in ${isChromeExtension ? 'Chrome Extension' : 'Web'} context`);
 
 const CACHE_NAME = 'bookmark-manager-cache-v1';
 const OFFLINE_PAGE = '/offline.html';
@@ -172,28 +177,44 @@ async function syncBookmarks() {
 }
 
 // Periodically check connection status
-setInterval(() => {
-  fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store' })
-    .then(() => {
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'ONLINE_STATUS_UPDATE',
-            isOnline: true
+if (!isChromeExtension) {
+  // Only use setInterval in web context, not in extension
+  setInterval(() => {
+    fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store' })
+      .then(() => {
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'ONLINE_STATUS_UPDATE',
+              isOnline: true
+            });
+          });
+        });
+      })
+      .catch(() => {
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({
+              type: 'ONLINE_STATUS_UPDATE',
+              isOnline: false
+            });
           });
         });
       });
-    })
-    .catch(() => {
-      self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'ONLINE_STATUS_UPDATE',
-            isOnline: false
-          });
-        });
-      });
-    });
-}, 30000);
+  }, 30000);
+}
+
+// Chrome extension specific handlers
+if (isChromeExtension) {
+  try {
+    console.log('[Service Worker] Setting up Chrome extension handlers');
+    
+    // Chrome Extension background script functionality would go here
+    // But we use conditional checks to ensure these only run in extension context
+    
+  } catch (error) {
+    console.error('[Service Worker] Failed to initialize extension features:', error);
+  }
+}
 
 console.log('[Service Worker] Service Worker Registered');

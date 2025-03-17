@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { isChromeExtension } from '@/lib/utils';
 
 interface EnhancedServiceWorkerOptions {
   path?: string;
@@ -24,7 +25,7 @@ interface ScheduledTask {
  * Provides additional functionality for Chrome extensions
  */
 export function useEnhancedServiceWorker({
-  path = '/enhanced-service-worker.js',
+  path,
   scope = '/',
   onSuccess,
   onUpdate,
@@ -42,14 +43,22 @@ export function useEnhancedServiceWorker({
 
   // Initialize the service worker
   useEffect(() => {
+    // Determine which service worker to use based on environment
+    const defaultPath = isChromeExtension()
+      ? '/service-worker.js'
+      : '/enhanced-service-worker.js';
+    
+    const swPath = path || defaultPath;
+    
     // Check if service workers are supported
     if ('serviceWorker' in navigator) {
       const registerServiceWorker = async () => {
         try {
           setIsInitializing(true);
           
+          console.log(`Registering enhanced service worker from: ${swPath}`);
           // Register the service worker
-          const reg = await navigator.serviceWorker.register(path, { scope });
+          const reg = await navigator.serviceWorker.register(swPath, { scope });
           setRegistration(reg);
           
           // Check if active

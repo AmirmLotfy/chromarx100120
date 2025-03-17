@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { isChromeExtension } from '@/lib/utils';
 
 interface ServiceWorkerOptions {
   path?: string;
@@ -12,7 +13,7 @@ interface ServiceWorkerOptions {
 }
 
 export function useServiceWorker({
-  path = '/service-worker.js',
+  path,
   scope = '/',
   onSuccess,
   onUpdate,
@@ -22,13 +23,22 @@ export function useServiceWorker({
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
+    // Determine which service worker to use based on environment
+    const defaultPath = isChromeExtension() 
+      ? '/service-worker.js'
+      : '/improved-service-worker.js';
+    
+    const swPath = path || defaultPath;
+    
     // Check if service workers are supported
     if ('serviceWorker' in navigator) {
       const registerServiceWorker = async () => {
         try {
-          const reg = await navigator.serviceWorker.register(path, { scope });
+          console.log(`Registering service worker from: ${swPath}`);
+          const reg = await navigator.serviceWorker.register(swPath, { scope });
           
           setRegistration(reg);
           setIsActive(!!reg.active);
@@ -82,6 +92,8 @@ export function useServiceWorker({
           if (onError && error instanceof Error) {
             onError(error);
           }
+        } finally {
+          setIsInitializing(false);
         }
       };
       
@@ -94,6 +106,7 @@ export function useServiceWorker({
       if (showToasts) {
         toast.warning('Offline mode not supported in this browser');
       }
+      setIsInitializing(false);
     }
   }, [path, scope, onSuccess, onUpdate, onError, showToasts]);
 
@@ -146,6 +159,7 @@ export function useServiceWorker({
     registration,
     isActive,
     updateAvailable,
+    isInitializing,
     update,
     unregister,
     skipWaiting
