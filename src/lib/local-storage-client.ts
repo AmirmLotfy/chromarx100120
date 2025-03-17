@@ -1,363 +1,248 @@
-import { DbResponse, DbListResponse, DbQueryResult, DbSingleResult, DbInsertResult } from './json-types';
+import { chromeStorage } from '@/services/chromeStorageService';
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+// Interface for query result
+interface QueryResult<T> {
+  data: T[] | null;
+  error: Error | null;
+}
 
-// This is a mock implementation that mimics Supabase client for local storage
-class LocalStorageClient {
-  private getTableData<T>(tableName: string): T[] {
-    try {
-      const data = localStorage.getItem(`table_${tableName}`);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error(`Error getting data from table ${tableName}:`, error);
-      return [];
-    }
+// Interface for the builder pattern for building queries
+interface QueryBuilder<T> {
+  select(): QueryBuilder<T>;
+  eq(column: string, value: any): QueryBuilder<T>;
+  order(column: string, options?: { ascending: boolean }): QueryBuilder<T>;
+  delete(): QueryBuilder<T>;
+  insert(data: T | T[]): QueryBuilder<T>;
+  update(data: Partial<T>): QueryBuilder<T>;
+  from: (table: string) => QueryBuilder<T>;
+  execute(): Promise<QueryResult<T>>;
+}
+
+// Implements a Supabase-like client for Chrome storage
+class ChromeStorageClient {
+  private tableName: string = '';
+  private filters: Array<{ column: string; value: any }> = [];
+  private orderByColumn: string | null = null;
+  private ascending: boolean = true;
+  private operation: 'select' | 'insert' | 'update' | 'delete' = 'select';
+  private dataToInsert: any = null;
+  private dataToUpdate: any = null;
+
+  async get<T>(key: string): Promise<T | null> {
+    return await chromeStorage.get<T>(key);
   }
 
-  private saveTableData<T>(tableName: string, data: T[]): void {
-    try {
-      localStorage.setItem(`table_${tableName}`, JSON.stringify(data));
-    } catch (error) {
-      console.error(`Error saving data to table ${tableName}:`, error);
-    }
+  async set<T>(key: string, value: T): Promise<boolean> {
+    return await chromeStorage.set(key, value);
   }
 
-  auth = {
-    getUser: async () => ({ data: { user: { id: 'demo-user-id' } } }),
-    signIn: async () => ({ data: {}, error: null }),
-    signOut: async () => ({ error: null }),
-    onAuthStateChange: () => ({ data: {}, error: null })
-  };
+  async remove(key: string): Promise<boolean> {
+    return await chromeStorage.remove(key);
+  }
 
-  from(table: string) {
+  from<T>(tableName: string): QueryBuilder<T> {
+    this.tableName = tableName;
+    this.filters = [];
+    this.orderByColumn = null;
+    this.ascending = true;
+    this.operation = 'select';
+    this.dataToInsert = null;
+    this.dataToUpdate = null;
+    
+    return this.createQueryBuilder<T>();
+  }
+
+  private createQueryBuilder<T>(): QueryBuilder<T> {
     return {
-      select: (fields?: string): DbQueryResult<any> => {
-        let filters: Array<{ column: string; value: any }> = [];
-        let orderByColumn: string | null = null;
-        let ascending = true;
-        
-        const execute = async () => {
-          try {
-            let data = this.getTableData(table);
-            
-            // Apply filters
-            if (filters.length > 0) {
-              data = data.filter(item => 
-                filters.every(filter => item[filter.column] === filter.value)
-              );
-            }
-            
-            // Apply ordering
-            if (orderByColumn) {
-              data.sort((a, b) => {
-                if (a[orderByColumn!] < b[orderByColumn!]) return ascending ? -1 : 1;
-                if (a[orderByColumn!] > b[orderByColumn!]) return ascending ? 1 : -1;
-                return 0;
-              });
-            }
-            
-            return { data, error: null };
-          } catch (error) {
-            console.error(`Error executing select on ${table}:`, error);
-            return { data: null, error };
-          }
-        };
-
-        return {
-          eq: (column: string, value: any): DbQueryResult<any> => {
-            filters.push({ column, value });
-            return {
-              eq: (col: string, val: any): DbQueryResult<any> => {
-                filters.push({ column: col, value: val });
-                return this.from(table).select().eq(col, val);
-              },
-              order: (column: string, options?: { ascending: boolean }): DbQueryResult<any> => {
-                orderByColumn = column;
-                ascending = options?.ascending ?? true;
-                return {
-                  eq: this.from(table).select().eq,
-                  order: this.from(table).select().order,
-                  execute,
-                  data: [],
-                  error: null
-                };
-              },
-              execute,
-              data: [],
-              error: null
-            };
-          },
-          order: (column: string, options?: { ascending: boolean }): DbQueryResult<any> => {
-            orderByColumn = column;
-            ascending = options?.ascending ?? true;
-            return {
-              eq: this.from(table).select().eq,
-              order: this.from(table).select().order,
-              execute,
-              data: [],
-              error: null
-            };
-          },
-          execute,
-          data: [],
-          error: null
-        };
+      select: (): QueryBuilder<T> => {
+        this.operation = 'select';
+        return this.createQueryBuilder<T>();
       },
       
-      insert: (data: any): DbInsertResult<any> => {
-        const execute = async () => {
-          try {
-            const tableData = this.getTableData(table);
-            const newData = Array.isArray(data) ? data : [data];
-            
-            // Add created_at and updated_at if not present
-            const now = new Date().toISOString();
-            const dataWithTimestamps = newData.map(item => ({
-              ...(item as object),
-              created_at: item.created_at || now,
-              updated_at: item.updated_at || now
-            }));
-            
-            // Add the new data
-            const updatedData = [...tableData, ...dataWithTimestamps];
-            this.saveTableData(table, updatedData);
-            
-            return { data: dataWithTimestamps, error: null };
-          } catch (error) {
-            console.error(`Error executing insert on ${table}:`, error);
-            return { data: null, error };
-          }
-        };
-        
-        return {
-          single: async () => {
-            const result = await execute();
-            return { 
-              data: result.data ? result.data[0] : null, 
-              error: result.error 
-            };
-          },
-          select: async () => {
-            const result = await execute();
-            return result;
-          },
-          execute,
-          error: null
-        };
+      eq: (column: string, value: any): QueryBuilder<T> => {
+        this.filters.push({ column, value });
+        return this.createQueryBuilder<T>();
       },
       
-      update: (data: any): DbSingleResult<any> => {
-        let filters: Array<{ column: string; value: any }> = [];
-        
-        const execute = async () => {
-          try {
-            if (filters.length === 0) {
-              throw new Error('No filters provided for update operation');
-            }
-            
-            const tableData = this.getTableData(table);
-            const now = new Date().toISOString();
-            
-            // Find items to update
-            const updatedData = tableData.map(item => {
-              if (filters.every(filter => item[filter.column] === filter.value)) {
-                return { 
-                  ...(item as object),
-                  ...(data as object),
-                  updated_at: data.updated_at || now 
-                };
-              }
-              return item;
-            });
-            
-            this.saveTableData(table, updatedData);
-            
-            // Get updated items
-            const updatedItems = updatedData.filter(item => 
-              filters.every(filter => item[filter.column] === filter.value)
-            );
-            
-            return { data: updatedItems, error: null };
-          } catch (error) {
-            console.error(`Error executing update on ${table}:`, error);
-            return { data: null, error };
-          }
-        };
-        
-        return {
-          eq: (column: string, value: any): DbSingleResult<any> => {
-            filters.push({ column, value });
-            return {
-              eq: (col: string, val: any): DbSingleResult<any> => {
-                filters.push({ column: col, value: val });
-                return this.from(table).update(data).eq(col, val);
-              },
-              select: async () => {
-                const result = await execute();
-                return result;
-              },
-              execute,
-              error: null
-            };
-          },
-          select: async () => {
-            const result = await execute();
-            return result;
-          },
-          execute,
-          error: null
-        };
+      order: (column: string, options?: { ascending: boolean }): QueryBuilder<T> => {
+        this.orderByColumn = column;
+        this.ascending = options?.ascending ?? true;
+        return this.createQueryBuilder<T>();
       },
       
-      delete: () => {
-        let filters: Array<{ column: string; value: any }> = [];
-        
-        const execute = async () => {
-          try {
-            if (filters.length === 0) {
-              throw new Error('No filters provided for delete operation');
-            }
-            
-            const tableData = this.getTableData(table);
-            
-            // Find items to delete
-            const itemsToDelete = tableData.filter(item => 
-              filters.every(filter => item[filter.column] === filter.value)
-            );
-            
-            // Keep items that don't match the filter
-            const remainingData = tableData.filter(item => 
-              !filters.every(filter => item[filter.column] === filter.value)
-            );
-            
-            this.saveTableData(table, remainingData);
-            
-            return { data: itemsToDelete, error: null };
-          } catch (error) {
-            console.error(`Error executing delete on ${table}:`, error);
-            return { data: null, error };
-          }
-        };
-        
-        return {
-          eq: (column: string, value: any) => {
-            filters.push({ column, value });
-            return {
-              eq: (col: string, val: any) => {
-                filters.push({ column: col, value: val });
-                return {
-                  eq: (column2: string, value2: any) => {
-                    filters.push({ column: column2, value: value2 });
-                    return {
-                      execute,
-                      error: null
-                    };
-                  },
-                  execute,
-                  error: null
-                };
-              },
-              execute,
-              error: null
-            };
-          }
-        };
+      delete: (): QueryBuilder<T> => {
+        this.operation = 'delete';
+        return this.createQueryBuilder<T>();
       },
       
-      upsert: (data: any) => {
-        return this.from(table).insert(data);
+      insert: (data: T | T[]): QueryBuilder<T> => {
+        this.operation = 'insert';
+        this.dataToInsert = data;
+        return this.createQueryBuilder<T>();
       },
       
-      eq: (column: string, value: any) => {
-        let filters: Array<{ column: string; value: any }> = [];
-        filters.push({ column, value });
-        
-        const execute = async () => {
-          try {
-            let data = this.getTableData(table);
-            
-            // Apply filters
-            if (filters.length > 0) {
-              data = data.filter(item => 
-                filters.every(filter => item[filter.column] === filter.value)
-              );
-            }
-            
-            return { data, error: null };
-          } catch (error) {
-            console.error(`Error executing eq query on ${table}:`, error);
-            return { data: null, error };
+      update: (data: Partial<T>): QueryBuilder<T> => {
+        this.operation = 'update';
+        this.dataToUpdate = data;
+        return this.createQueryBuilder<T>();
+      },
+      
+      from: this.from.bind(this),
+      
+      execute: async (): Promise<QueryResult<T>> => {
+        try {
+          switch (this.operation) {
+            case 'select':
+              return await this.executeSelect<T>();
+            case 'delete':
+              return await this.executeDelete<T>();
+            case 'insert':
+              return await this.executeInsert<T>();
+            case 'update':
+              return await this.executeUpdate<T>();
+            default:
+              return { data: null, error: new Error('Invalid operation') };
           }
-        };
-        
-        return {
-          eq: (col: string, val: any) => {
-            filters.push({ column: col, value: val });
-            return {
-              select: () => this.from(table).select(),
-              execute,
-              order: (orderColumn: string, options?: { ascending: boolean }) => {
-                return { 
-                  eq: this.from(table).eq,
-                  order: this.from(table).order,
-                  execute,
-                  data: [],
-                  error: null
-                };
-              },
-              data: [],
-              error: null
-            };
-          },
-          select: () => this.from(table).select(),
-          execute,
-          order: (orderColumn: string, options?: { ascending: boolean }) => {
-            return { 
-              eq: this.from(table).eq,
-              order: this.from(table).order,
-              execute,
-              data: [],
-              error: null
-            };
-          },
-          data: [],
-          error: null
-        };
-      },
-      
-      order: (column: string, options?: { ascending: boolean }) => {
-        return { 
-          eq: this.from(table).eq,
-          order: this.from(table).order,
-          execute: async () => ({ data: this.getTableData(table), error: null }),
-          data: [],
-          error: null
-        };
+        } catch (error) {
+          console.error(`Error executing ${this.operation} on ${this.tableName}:`, error);
+          return { 
+            data: null, 
+            error: error instanceof Error ? error : new Error('Unknown error') 
+          };
+        }
       }
     };
   }
 
-  // Add realtime subscription methods (no-op in local storage version)
-  channel(channelName: string) {
-    return {
-      on: (event: string, config: any, callback: (payload: any) => void) => {
-        return { 
-          subscribe: () => ({ data: {}, error: null }) 
-        };
-      },
-      unsubscribe: () => {}
-    };
+  private async executeSelect<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get all data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Apply filters
+      let filteredData = this.applyFilters(tableData);
+      
+      // Apply ordering if specified
+      if (this.orderByColumn) {
+        filteredData = this.applyOrdering(filteredData);
+      }
+      
+      return { data: filteredData, error: null };
+    } catch (error) {
+      console.error(`Error selecting from ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
   }
 
-  removeChannel(channel: any) {
-    return Promise.resolve({ data: {}, error: null });
+  private async executeDelete<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get all data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Apply filters to find items to delete
+      const filteredData = this.applyFilters(tableData);
+      
+      // Get items to keep
+      const itemsToKeep = tableData.filter(item => 
+        !filteredData.some(filteredItem => 
+          this.compareItems(item, filteredItem)
+        )
+      );
+      
+      // Save the updated table
+      await chromeStorage.set(`${this.tableName}`, itemsToKeep);
+      
+      return { data: filteredData, error: null };
+    } catch (error) {
+      console.error(`Error deleting from ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
+  }
+
+  private async executeInsert<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get existing data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Add new data (single item or array)
+      const itemsToAdd = Array.isArray(this.dataToInsert) ? this.dataToInsert : [this.dataToInsert];
+      const updatedData = [...tableData, ...itemsToAdd as T[]]; // Fixed spread type issue with explicit casting
+      
+      // Save the updated table
+      await chromeStorage.set(`${this.tableName}`, updatedData);
+      
+      return { data: itemsToAdd as T[], error: null };
+    } catch (error) {
+      console.error(`Error inserting into ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
+  }
+
+  private async executeUpdate<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get all data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Apply filters to find items to update
+      const itemsToUpdate = this.applyFilters(tableData);
+      
+      // Update the items
+      const updatedItems: T[] = [];
+      const newTableData = tableData.map(item => {
+        if (itemsToUpdate.some(updateItem => this.compareItems(item, updateItem))) {
+          // Use type assertion to avoid spread operator type issues
+          const updated = { ...item as object, ...this.dataToUpdate as object } as T;
+          updatedItems.push(updated);
+          return updated;
+        }
+        return item;
+      });
+      
+      // Save the updated table
+      await chromeStorage.set(`${this.tableName}`, newTableData);
+      
+      return { data: updatedItems, error: null };
+    } catch (error) {
+      console.error(`Error updating ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
+  }
+
+  private async getTable<T>(): Promise<T[]> {
+    const tableData = await chromeStorage.get<T[]>(`${this.tableName}`);
+    return tableData || [];
+  }
+
+  private applyFilters<T>(data: T[]): T[] {
+    return data.filter(item => 
+      this.filters.every(filter => 
+        (item as any)[filter.column] === filter.value
+      )
+    );
+  }
+
+  private applyOrdering<T>(data: T[]): T[] {
+    if (!this.orderByColumn) return data;
+    
+    return [...data].sort((a, b) => {
+      const valueA = (a as any)[this.orderByColumn as string];
+      const valueB = (b as any)[this.orderByColumn as string];
+      
+      if (valueA < valueB) return this.ascending ? -1 : 1;
+      if (valueA > valueB) return this.ascending ? 1 : -1;
+      return 0;
+    });
+  }
+
+  private compareItems<T>(item1: T, item2: T): boolean {
+    // For simplicity, we'll compare IDs if they exist
+    if ('id' in (item1 as any) && 'id' in (item2 as any)) {
+      return (item1 as any).id === (item2 as any).id;
+    }
+    
+    // Otherwise, compare the whole object as JSON
+    return JSON.stringify(item1) === JSON.stringify(item2);
   }
 }
 
-export const localStorageClient = new LocalStorageClient();
+export const localStorageClient = new ChromeStorageClient();

@@ -3,6 +3,23 @@ import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
 
+// Define an interface that represents the database timer session structure
+interface DbTimerSession {
+  id: string;
+  user_id: string;
+  duration: number;
+  mode: 'focus' | 'break';
+  start_time: string;
+  end_time?: string;
+  completed: boolean;
+  task_context?: string;
+  productivity_score?: number;
+  ai_suggested: boolean;
+  feedback_rating?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 class TimerService {
   private static instance: TimerService;
   private audioContext: AudioContext | null = null;
@@ -99,19 +116,26 @@ class TimerService {
         completionRate: 0
       };
 
-      const focusSessions = sessions.filter(s => String(s.mode) === 'focus');
-      const completedSessions = sessions.filter(s => Boolean(s.completed));
+      const focusSessions = sessions.filter(s => {
+        const mode = String(s?.mode || '');
+        return mode === 'focus';
+      });
+      
+      const completedSessions = sessions.filter(s => {
+        return Boolean(s?.completed);
+      });
+      
       const totalSessions = sessions.length;
 
       // Safe accessing with type conversion
       const totalFocusTime = focusSessions.reduce((acc, s) => {
-        const duration = typeof s.duration === 'number' ? s.duration : 0;
+        const duration = typeof s?.duration === 'number' ? s.duration : 0;
         return acc + duration;
       }, 0);
 
       const averageProductivity = totalSessions > 0 
         ? completedSessions.reduce((acc, s) => {
-            const score = typeof s.productivity_score === 'number' ? s.productivity_score : 0;
+            const score = typeof s?.productivity_score === 'number' ? s.productivity_score : 0;
             return acc + score;
           }, 0) / totalSessions 
         : 0;
@@ -189,19 +213,19 @@ class TimerService {
 
   private mapSessionFromDb(data: any): TimerSession {
     return {
-      id: String(data.id),
-      userId: String(data.user_id),
-      duration: Number(data.duration),
-      mode: data.mode === 'focus' ? 'focus' : 'break',
-      startTime: new Date(data.start_time),
-      endTime: data.end_time ? new Date(data.end_time) : undefined,
-      completed: Boolean(data.completed),
-      taskContext: data.task_context ? String(data.task_context) : undefined,
-      productivityScore: typeof data.productivity_score === 'number' ? data.productivity_score : undefined,
-      aiSuggested: Boolean(data.ai_suggested),
-      feedbackRating: typeof data.feedback_rating === 'number' ? data.feedback_rating : undefined,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at)
+      id: String(data?.id || ''),
+      userId: String(data?.user_id || ''),
+      duration: Number(data?.duration || 0),
+      mode: data?.mode === 'focus' ? 'focus' : 'break',
+      startTime: new Date(data?.start_time || new Date()),
+      endTime: data?.end_time ? new Date(data.end_time) : undefined,
+      completed: Boolean(data?.completed),
+      taskContext: data?.task_context ? String(data.task_context) : undefined,
+      productivityScore: typeof data?.productivity_score === 'number' ? data.productivity_score : undefined,
+      aiSuggested: Boolean(data?.ai_suggested),
+      feedbackRating: typeof data?.feedback_rating === 'number' ? data.feedback_rating : undefined,
+      createdAt: new Date(data?.created_at || new Date()),
+      updatedAt: new Date(data?.updated_at || new Date())
     };
   }
 }

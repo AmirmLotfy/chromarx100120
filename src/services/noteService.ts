@@ -4,6 +4,42 @@ import { Note, NoteSentiment } from "@/types/note";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";
 
+// Define an interface that represents the database note structure
+interface DbNote {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  tags: string[];
+  color?: string;
+  pinned?: boolean;
+  folder_id?: string;
+  bookmark_ids?: string[];
+  category?: string;
+  sentiment?: NoteSentiment;
+}
+
+// Helper function to safely map database note to client note model
+const mapNoteFromDb = (note: any): Note => {
+  return {
+    id: String(note?.id || ''),
+    title: String(note?.title || ''),
+    content: String(note?.content || ''),
+    createdAt: String(note?.created_at || ''),
+    updatedAt: String(note?.updated_at || ''),
+    userId: String(note?.user_id || ''),
+    tags: Array.isArray(note?.tags) ? note.tags : [],
+    color: note?.color ? String(note.color) : undefined,
+    pinned: typeof note?.pinned === 'boolean' ? note.pinned : false,
+    folder: note?.folder_id ? String(note.folder_id) : undefined,
+    bookmarkIds: Array.isArray(note?.bookmark_ids) ? note.bookmark_ids : [],
+    category: note?.category ? String(note.category) : 'General',
+    sentiment: (note?.sentiment as NoteSentiment) || 'neutral'
+  };
+};
+
 export const getNotes = async (): Promise<Note[]> => {
   try {
     const result = await localStorageClient
@@ -17,21 +53,7 @@ export const getNotes = async (): Promise<Note[]> => {
       throw result.error;
     }
 
-    return (result.data || []).map(note => ({
-      id: String(note.id),
-      title: String(note.title),
-      content: String(note.content),
-      createdAt: String(note.created_at),
-      updatedAt: String(note.updated_at),
-      userId: String(note.user_id),
-      tags: Array.isArray(note.tags) ? note.tags : [],
-      color: note.color ? String(note.color) : undefined,
-      pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
-      folder: note.folder_id ? String(note.folder_id) : undefined,
-      bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
-      category: note.category ? String(note.category) : 'General',
-      sentiment: (note.sentiment as NoteSentiment) || 'neutral'
-    }));
+    return (result.data || []).map(note => mapNoteFromDb(note));
   } catch (error) {
     console.error('Error fetching notes:', error);
     toast.error('Failed to fetch notes');
@@ -53,22 +75,7 @@ export const getNote = async (id: string): Promise<Note | null> => {
     }
 
     if (result.data && result.data.length > 0) {
-      const note = result.data[0];
-      return {
-        id: String(note.id),
-        title: String(note.title),
-        content: String(note.content),
-        createdAt: String(note.created_at),
-        updatedAt: String(note.updated_at),
-        userId: String(note.user_id),
-        tags: Array.isArray(note.tags) ? note.tags : [],
-        color: note.color ? String(note.color) : undefined,
-        pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
-        folder: note.folder_id ? String(note.folder_id) : undefined,
-        bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
-        category: note.category ? String(note.category) : 'General',
-        sentiment: (note.sentiment as NoteSentiment) || 'neutral'
-      };
+      return mapNoteFromDb(result.data[0]);
     }
 
     return null;
@@ -108,23 +115,8 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
     }
 
     if (result.data && result.data.length > 0) {
-      const newNote = result.data[0];
       toast.success('Note created successfully');
-      return {
-        id: String(newNote.id),
-        title: String(newNote.title),
-        content: String(newNote.content),
-        createdAt: String(newNote.created_at),
-        updatedAt: String(newNote.updated_at),
-        userId: String(newNote.user_id),
-        tags: Array.isArray(newNote.tags) ? newNote.tags : [],
-        color: newNote.color ? String(newNote.color) : undefined,
-        pinned: typeof newNote.pinned === 'boolean' ? newNote.pinned : false,
-        folder: newNote.folder_id ? String(newNote.folder_id) : undefined,
-        bookmarkIds: Array.isArray(newNote.bookmark_ids) ? newNote.bookmark_ids : [],
-        category: newNote.category ? String(newNote.category) : 'General',
-        sentiment: (newNote.sentiment as NoteSentiment) || 'neutral'
-      };
+      return mapNoteFromDb(result.data[0]);
     }
 
     return null;
@@ -138,10 +130,21 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
 export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>): Promise<Note | null> => {
   try {
     const now = new Date().toISOString();
-    const updateData = {
+    const updateData: any = {
       ...noteData,
       updated_at: now
     };
+    
+    // Convert client-side fields to database fields
+    if (noteData.folder !== undefined) {
+      updateData.folder_id = noteData.folder;
+      delete updateData.folder;
+    }
+    
+    if (noteData.bookmarkIds !== undefined) {
+      updateData.bookmark_ids = noteData.bookmarkIds;
+      delete updateData.bookmarkIds;
+    }
 
     const result = await localStorageClient
       .from('notes')
@@ -155,23 +158,8 @@ export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' |
     }
 
     if (result.data && result.data.length > 0) {
-      const updatedNote = result.data[0];
       toast.success('Note updated successfully');
-      return {
-        id: String(updatedNote.id),
-        title: String(updatedNote.title),
-        content: String(updatedNote.content),
-        createdAt: String(updatedNote.created_at),
-        updatedAt: String(updatedNote.updated_at),
-        userId: String(updatedNote.user_id),
-        tags: Array.isArray(updatedNote.tags) ? updatedNote.tags : [],
-        color: updatedNote.color ? String(updatedNote.color) : undefined,
-        pinned: typeof updatedNote.pinned === 'boolean' ? updatedNote.pinned : false,
-        folder: updatedNote.folder_id ? String(updatedNote.folder_id) : undefined,
-        bookmarkIds: Array.isArray(updatedNote.bookmark_ids) ? updatedNote.bookmark_ids : [],
-        category: updatedNote.category ? String(updatedNote.category) : 'General',
-        sentiment: (updatedNote.sentiment as NoteSentiment) || 'neutral'
-      };
+      return mapNoteFromDb(result.data[0]);
     }
 
     return null;
@@ -216,26 +204,14 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
       throw result.error;
     }
     
-    const filteredNotes = (result.data || []).filter(note => 
-      String(note.title).toLowerCase().includes(query.toLowerCase()) ||
-      String(note.content).toLowerCase().includes(query.toLowerCase())
-    );
+    const filteredNotes = (result.data || []).filter(note => {
+      const title = String(note?.title || '');
+      const content = String(note?.content || '');
+      return title.toLowerCase().includes(query.toLowerCase()) ||
+             content.toLowerCase().includes(query.toLowerCase());
+    });
     
-    return filteredNotes.map(note => ({
-      id: String(note.id),
-      title: String(note.title),
-      content: String(note.content),
-      createdAt: String(note.created_at),
-      updatedAt: String(note.updated_at),
-      userId: String(note.user_id),
-      tags: Array.isArray(note.tags) ? note.tags : [],
-      color: note.color ? String(note.color) : undefined,
-      pinned: typeof note.pinned === 'boolean' ? note.pinned : false,
-      folder: note.folder_id ? String(note.folder_id) : undefined,
-      bookmarkIds: Array.isArray(note.bookmark_ids) ? note.bookmark_ids : [],
-      category: note.category ? String(note.category) : 'General',
-      sentiment: (note.sentiment as NoteSentiment) || 'neutral'
-    }));
+    return filteredNotes.map(note => mapNoteFromDb(note));
   } catch (error) {
     console.error('Error searching notes:', error);
     toast.error('Failed to search notes');
