@@ -85,7 +85,7 @@ export class QueryBuilder<T> {
   }
 
   // Insert a new record
-  async insert(data: any): DbInsertResult<T> {
+  async insert(data: any): Promise<DbInsertResult<T>> {
     const queryBuilder = this;
     
     return {
@@ -159,7 +159,7 @@ export class QueryBuilder<T> {
   }
 
   // Update records
-  async update(data: any): DbSingleResult<T> {
+  async update(data: any): Promise<DbSingleResult<T>> {
     const queryBuilder = this;
     
     return {
@@ -232,7 +232,7 @@ export class QueryBuilder<T> {
   }
 
   // Upsert (update or insert)
-  async upsert(data: any): DbSingleResult<T> {
+  async upsert(data: any): Promise<DbSingleResult<T>> {
     const queryBuilder = this;
     
     return {
@@ -284,7 +284,7 @@ export class QueryBuilder<T> {
   }
 
   // Delete records
-  async delete(): DbSingleResult<T> {
+  async delete(): Promise<DbSingleResult<T>> {
     const queryBuilder = this;
     
     return {

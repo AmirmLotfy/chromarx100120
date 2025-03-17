@@ -48,7 +48,7 @@ const TaskAnalytics = () => {
 
       if (result.data) {
         const sessions = result.data.map((session: any) => {
-          const sessionMode = session.mode === 'break' ? 'break' : 'focus';
+          const sessionMode: 'focus' | 'break' = session.mode === 'break' ? 'break' : 'focus';
           
           return {
             id: session.id || '',

@@ -1,4 +1,3 @@
-
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { Note, NoteSentiment } from "@/types/note";
 import { v4 as uuidv4 } from 'uuid';
@@ -118,7 +117,7 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
       throw result.error;
     }
 
-    if (result.data && result.data.length > 0) {
+    if (result.data && Array.isArray(result.data) && result.data.length > 0) {
       toast.success('Note created successfully');
       return mapNoteFromDb(result.data[0]);
     }

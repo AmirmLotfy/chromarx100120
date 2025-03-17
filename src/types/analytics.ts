@@ -1,4 +1,3 @@
-
 export interface AnalyticsData {
   productivityScore: number;
   timeDistribution: TimeDistributionData[];
@@ -42,4 +41,9 @@ export interface AnalyticsGoal {
 export interface DomainCategory {
   domain: string;
   category: string;
+}
+
+export interface DailyAnalytics {
+  date: string;
+  count: number;
 }

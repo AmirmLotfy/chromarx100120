@@ -1,9 +1,7 @@
-
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
 
-// Define an interface that represents the database timer session structure
 interface DbTimerSession {
   id: string;
   user_id: string;
@@ -43,7 +41,6 @@ class TimerService {
 
   async startSession(session: Omit<TimerSession, 'id' | 'userId' | 'completed' | 'createdAt' | 'updatedAt'>): Promise<TimerSession> {
     try {
-      // Generate a simple UUID-like ID since we're not using Supabase anymore
       const id = 'timer-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
       const userId = 'local-user';
       
@@ -130,7 +127,6 @@ class TimerService {
       
       const totalSessions = sessions.length;
 
-      // Safe accessing with type conversion
       const totalFocusTime = focusSessions.reduce((acc, s) => {
         const sessionObj = s as Record<string, any>;
         const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
@@ -227,13 +223,10 @@ class TimerService {
       return {} as TimerSession;
     }
     
-    // Ensure mode is strictly "focus" or "break"
     const mode: 'focus' | 'break' = data.mode === 'break' ? 'break' : 'focus';
     
-    // Convert duration to a number safely
     const duration = typeof data.duration === 'number' ? data.duration : 0;
     
-    // Ensure productivity score is a number or undefined
     let productivityScore: number | undefined = undefined;
     if (typeof data.productivity_score === 'number') {
       productivityScore = data.productivity_score;
