@@ -1,3 +1,4 @@
+
 import { chromeStorage } from '@/services/chromeStorageService';
 
 // Interface for query result
@@ -122,7 +123,7 @@ class ChromeStorageClient {
         }
       },
       
-      update: async (updatedData: Partial<T>): Promise<QueryResult<T>> => {
+      update: async (data: Partial<T>): Promise<QueryResult<T>> => {
         try {
           // Get all data for the table
           const tableData = await this.getTable<T>();
@@ -134,7 +135,7 @@ class ChromeStorageClient {
           const updatedItems: T[] = [];
           const newTableData = tableData.map(item => {
             if (itemsToUpdate.some(updateItem => this.compareItems(item, updateItem))) {
-              const updated = { ...item, ...updatedData };
+              const updated = { ...item, ...data };
               updatedItems.push(updated);
               return updated;
             }
