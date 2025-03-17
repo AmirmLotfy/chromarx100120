@@ -1,58 +1,28 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
-export interface OfflineStatusOptions {
-  showToasts?: boolean;
-  onlineCallback?: () => void;
-  offlineCallback?: () => void;
-  checkInterval?: number;
-}
+/**
+ * Enhanced hook to monitor and manage offline status
+ * Provides additional functionality for working with service worker
+ */
+export function useOfflineStatus() {
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastOnlineTime, setLastOnlineTime] = useState<number | null>(null);
+  const [hasNetworkListeners, setHasNetworkListeners] = useState(false);
+  const [serviceWorkerActive, setServiceWorkerActive] = useState(false);
 
-export function useOfflineStatus(options?: OfflineStatusOptions) {
-  const { 
-    showToasts = false, 
-    onlineCallback, 
-    offlineCallback,
-    checkInterval = 30000 // Check connectivity every 30 seconds
-  } = options || {};
-  
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [lastOnlineTime, setLastOnlineTime] = useState<Date | null>(
-    navigator.onLine ? new Date() : null
-  );
-
-  // Check if service worker is available and registered
-  const [isServiceWorkerActive, setIsServiceWorkerActive] = useState(false);
-
+  // Set up network status listeners
   useEffect(() => {
-    // Check service worker status
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration()
-        .then(registration => {
-          setIsServiceWorkerActive(!!registration && 
-            (registration.active?.state === 'activated' || 
-             registration.active?.state === 'activating'));
-        })
-        .catch(err => console.error('Service worker check failed:', err));
-    }
-  }, []);
+    if (hasNetworkListeners) return;
 
-  useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
-      setLastOnlineTime(new Date());
+      setLastOnlineTime(Date.now());
+      console.log('Connection restored, device is online');
       
-      if (showToasts) {
-        toast.success('You are back online');
-      }
-      
-      if (onlineCallback) {
-        onlineCallback();
-      }
-      
-      // Notify service worker that we're back online
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      // Notify service worker of online status change
+      if (serviceWorkerActive && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: 'ONLINE_STATUS_CHANGE',
           isOnline: true
@@ -62,105 +32,125 @@ export function useOfflineStatus(options?: OfflineStatusOptions) {
 
     const handleOffline = () => {
       setIsOffline(true);
+      console.log('Connection lost, device is offline');
       
-      if (showToasts) {
-        toast.warning('You are offline. Changes will be synced when connection is restored.', {
-          duration: 5000
-        });
-      }
-      
-      if (offlineCallback) {
-        offlineCallback();
-      }
-      
-      // Notify service worker that we're offline
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      // Notify service worker of online status change
+      if (serviceWorkerActive && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: 'ONLINE_STATUS_CHANGE',
           isOnline: false
         });
       }
+      
+      // Show toast notification
+      toast.warning('You are offline. Changes will be saved locally and synced when you reconnect.');
     };
 
-    // Set up active connection checking
-    const checkConnection = async () => {
-      try {
-        // Try to fetch a small resource to confirm actual connectivity
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const response = await fetch('/favicon.ico', {
-          method: 'HEAD',
-          cache: 'no-store',
-          signal: controller.signal
+    // Check initial status using Network Information API if available
+    if ('connection' in navigator && navigator.connection) {
+      const connection = navigator.connection as any;
+      setIsOffline(connection.type === 'none');
+      
+      // Listen for connection changes if supported
+      if (connection.addEventListener) {
+        connection.addEventListener('change', () => {
+          setIsOffline(connection.type === 'none');
+          
+          if (connection.type !== 'none') {
+            setLastOnlineTime(Date.now());
+          }
         });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok && isOffline) {
-          // We have connectivity but state says offline
-          handleOnline();
-        }
-      } catch (error) {
-        // If fetch fails and we think we're online, we're actually offline
-        if (!isOffline && navigator.onLine) {
-          handleOffline();
-        }
       }
-    };
+    }
 
+    // Set up standard online/offline listeners
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Set up interval for connection checking
-    const intervalId = setInterval(checkConnection, checkInterval);
+    // Also listen for service worker messages
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'ONLINE_STATUS_UPDATE') {
+        setIsOffline(!event.data.isOnline);
+        
+        if (event.data.isOnline) {
+          setLastOnlineTime(Date.now());
+        }
+      }
+    });
     
-    // Initial check
-    checkConnection();
+    setHasNetworkListeners(true);
+
+    // Initial status check
+    setIsOffline(!navigator.onLine);
+    
+    if (navigator.onLine) {
+      setLastOnlineTime(Date.now());
+    }
+
+    // Check for service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(() => {
+        setServiceWorkerActive(true);
+        console.log('Service worker is active and ready');
+      });
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(intervalId);
     };
-  }, [showToasts, onlineCallback, offlineCallback, isOffline, checkInterval]);
+  }, [hasNetworkListeners, serviceWorkerActive]);
 
-  return { 
+  // Function to manually check connection
+  const checkConnection = useCallback(async (): Promise<boolean> => {
+    try {
+      // Perform a fetch to check connectivity
+      const response = await fetch('/favicon.ico', {
+        method: 'HEAD',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      
+      const isOnline = response.ok;
+      setIsOffline(!isOnline);
+      
+      if (isOnline) {
+        setLastOnlineTime(Date.now());
+      }
+      
+      return isOnline;
+    } catch (error) {
+      setIsOffline(true);
+      return false;
+    }
+  }, []);
+
+  // Function to trigger syncing when back online
+  const syncWhenOnline = useCallback(async () => {
+    if (isOffline) {
+      toast.info('Sync requested. Will sync when back online.');
+      return false;
+    }
+    
+    if (serviceWorkerActive && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'PROCESS_QUEUE'
+      });
+      
+      toast.success('Syncing data...');
+      return true;
+    } else {
+      // Fallback if no service worker
+      toast.info('Sync requested but service worker is not active.');
+      return false;
+    }
+  }, [isOffline, serviceWorkerActive]);
+
+  return {
     isOffline,
     lastOnlineTime,
-    isServiceWorkerActive,
-    checkConnection: async () => {
-      try {
-        // Fix: Replace the invalid 'timeout' property with AbortController
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const response = await fetch('/favicon.ico', {
-          method: 'HEAD',
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          if (isOffline) {
-            setIsOffline(false);
-            setLastOnlineTime(new Date());
-            if (onlineCallback) onlineCallback();
-            if (showToasts) toast.success('Connection restored');
-          }
-          return true;
-        }
-        return false;
-      } catch (error) {
-        if (!isOffline) {
-          setIsOffline(true);
-          if (offlineCallback) offlineCallback();
-          if (showToasts) toast.error('Connection lost');
-        }
-        return false;
-      }
-    }
+    serviceWorkerActive,
+    checkConnection,
+    syncWhenOnline
   };
 }
