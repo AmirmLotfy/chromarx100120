@@ -8,8 +8,21 @@ import { localStorageClient as supabase } from '@/lib/local-storage-client';
 // Check if Gemini API is available
 export const checkGeminiAvailability = async (): Promise<boolean> => {
   try {
-    // We'll just return true for now as we're simulating the API
-    return true;
+    // Call the Supabase function to check API key existence
+    const response = await fetch('/api/gemini-api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ operation: 'check-api-key' }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to check API availability');
+    }
+    
+    const data = await response.json();
+    return data.exists === true;
   } catch (error) {
     console.error('Failed to check Gemini availability:', error);
     return false;
@@ -19,8 +32,20 @@ export const checkGeminiAvailability = async (): Promise<boolean> => {
 // Test the reliability of the AI response
 export const testAIReliability = async (): Promise<boolean> => {
   try {
-    // Simulated success
-    return true;
+    // Test with a simple request
+    const response = await fetch('/api/gemini-api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        operation: 'categorize',
+        content: 'test reliability',
+        language: 'en'
+      }),
+    });
+    
+    return response.ok;
   } catch (error) {
     console.error('Failed to test AI reliability:', error);
     return false;
@@ -32,31 +57,37 @@ export const getGeminiResponse = async (
   promptOrConfig: string | { prompt: string; type: string; language: string; maxRetries: number }
 ): Promise<string> => {
   try {
-    // Simulate AI thinking delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
     let prompt: string;
+    let operation: string = 'chat';
+    let language: string = 'en';
+    
     if (typeof promptOrConfig === 'string') {
       prompt = promptOrConfig;
     } else {
       prompt = promptOrConfig.prompt;
+      operation = promptOrConfig.type || 'chat';
+      language = promptOrConfig.language || 'en';
     }
     
-    // For testing purposes, we'll return a mock response based on the prompt
-    if (prompt.includes('sentiment') || prompt.includes('emotion')) {
-      return 'positive|0.8|0.9|happiness';
+    // Call the Supabase function
+    const response = await fetch('/api/gemini-api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        operation,
+        content: prompt,
+        language
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
     }
     
-    if (prompt.includes('summary')) {
-      return 'This is a summary of the content provided in the prompt.';
-    }
-    
-    if (prompt.includes('category')) {
-      return 'Technology';
-    }
-    
-    // Default response
-    return `AI generated response for: "${prompt.slice(0, 30)}..."`;
+    const data = await response.json();
+    return data.result || 'No response from the AI service.';
   } catch (error) {
     console.error('Error getting Gemini response:', error);
     return 'Sorry, I was unable to process that request.';

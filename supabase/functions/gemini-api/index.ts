@@ -92,6 +92,9 @@ async function getGeminiResponse(operation: string, content: string, language = 
         prompt = `Suggest an optimal duration in minutes for focusing on this task. Return only the number, nothing else. Language: ${language}\n\nTask: ${content}`;
         params.maxOutputTokens = 50;
         break;
+      case "chat":
+        // Use the content directly as the prompt for chat operations
+        break;
       default:
         throw new Error("Unknown operation");
     }

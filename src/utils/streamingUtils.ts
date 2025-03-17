@@ -13,7 +13,7 @@ export async function streamText(
     return new ReadableStream({
       async start(streamController) {
         try {
-          // Get the full response
+          // Get the full response through the secure backend
           const response = await getGeminiResponse(text);
           
           // Instead of simulating chunks, we'll properly stream the content
@@ -22,7 +22,7 @@ export async function streamText(
           
           for (const chunk of chunks) {
             // Check if the stream was aborted
-            if (controller.signal?.aborted) {
+            if (controller.signal.aborted) {
               break;
             }
             
@@ -73,7 +73,7 @@ export async function streamArrayBuffer(
     // Process in background to avoid blocking
     (async () => {
       try {
-        // Get the response
+        // Get the response using the secure method
         const response = await getGeminiResponse(text);
         
         // Split into natural chunks for more realistic streaming
@@ -81,7 +81,7 @@ export async function streamArrayBuffer(
         
         for (const chunk of chunks) {
           // Check if the controller is aborted
-          if (controller.signal?.aborted) {
+          if (controller.signal.aborted) {
             break;
           }
           
