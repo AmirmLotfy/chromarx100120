@@ -1,10 +1,9 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import Layout from "@/components/Layout";
 import { TimerDisplay } from "@/components/timer/TimerDisplay";
 import { TimerControls } from "@/components/timer/TimerControls";
-import { TimerSuggestions } from "@/components/timer/TimerSuggestions";
 import { TimerSettings } from "@/components/timer/TimerSettings";
+import TimerSuggestions from "@/components/timer/TimerSuggestions";
 import { useToast } from "@/hooks/use-toast";
 import { timerService } from "@/services/timerService";
 import { TimerSession, TimerStats } from "@/types/timer";
@@ -24,7 +23,6 @@ const TimerPage = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  // Update timeLeft when duration changes
   useEffect(() => {
     if (!isRunning) {
       setTimeLeft(duration * 60);
@@ -77,7 +75,6 @@ const TimerPage = () => {
         );
       }
 
-      // Automatically switch modes and suggest new duration
       setMode(prevMode => prevMode === "focus" ? "break" : "focus");
       
       toast({

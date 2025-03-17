@@ -16,8 +16,8 @@ export interface ChatHistoryProps {
 const ChatHistory: React.FC<ChatHistoryProps> = ({
   isOpen,
   onClose,
-  conversations,
-  loadConversation
+  conversations = [],  // Default to empty array if not provided
+  loadConversation = () => {}  // Default no-op function if not provided
 }) => {
   const handleSelectConversation = (conversationId: string) => {
     loadConversation(conversationId);

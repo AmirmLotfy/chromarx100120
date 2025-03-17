@@ -38,9 +38,11 @@ const AITips = () => {
         const goalsResult = await supabase
           .from('analytics_goals')
           .select('*')
-          .eq('user_id', user.data.user?.id || 'demo-user-id');
+          .eq('user_id', user.data?.user?.id || 'demo-user-id');
 
-        if (analyticsResult.error || goalsResult.error) throw analyticsResult.error || goalsResult.error;
+        // Check for errors separately after each query
+        if (analyticsResult.error) throw analyticsResult.error;
+        if (goalsResult.error) throw goalsResult.error;
 
         // For demonstration purposes, create mock insights
         const mockInsights: AIInsight = {

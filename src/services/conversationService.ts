@@ -1,3 +1,4 @@
+
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Conversation, Message, ConversationCategory } from "@/types/chat";
 import { v4 as uuidv4 } from 'uuid';
@@ -14,7 +15,7 @@ const mapDbConversation = (dbConvo: any): Conversation => {
     pinned: dbConvo.pinned,
     bookmarkContext: dbConvo.bookmark_context,
     isBookmarkSearch: dbConvo.is_bookmark_search,
-    category: dbConvo.category as ConversationCategory,
+    category: (dbConvo.category as ConversationCategory) || 'General',
     archived: dbConvo.archived
   };
 };
@@ -50,28 +51,36 @@ export const ConversationService = {
   // Fetch all conversations for the current user
   async getConversations(archived: boolean = false): Promise<Conversation[]> {
     try {
-      const { data: dbConversations, error } = await supabase
+      const result = await supabase
         .from('conversations')
         .select('*')
         .eq('archived', archived)
         .order('updated_at', { ascending: false });
 
+      // Manually access and check data and error
+      const dbConversations = result.data || [];
+      const error = result.error;
+
       if (error) throw error;
 
       const conversations: Conversation[] = [];
-      for (const dbConvo of dbConversations || []) {
+      for (const dbConvo of dbConversations) {
         const conversation = mapDbConversation(dbConvo);
         
         // Get messages for this conversation
-        const { data: dbMessages, error: messagesError } = await supabase
+        const messagesResult = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', dbConvo.id)
           .order('timestamp', { ascending: true });
         
+        // Manually access and check data and error
+        const dbMessages = messagesResult.data || [];
+        const messagesError = messagesResult.error;
+        
         if (messagesError) throw messagesError;
         
-        conversation.messages = (dbMessages || []).map(mapDbMessage);
+        conversation.messages = dbMessages.map(mapDbMessage);
         conversations.push(conversation);
       }
 
@@ -90,28 +99,29 @@ export const ConversationService = {
       const now = Date.now();
 
       // Insert conversation
-      const { data: newConversation, error } = await supabase
+      const result = await supabase
         .from('conversations')
         .insert({
           id: conversationId,
           name,
           category,
-          created_at: new Date(now).toISOString(), // Convert to ISO string
-          updated_at: new Date(now).toISOString()  // Convert to ISO string
+          created_at: new Date(now).toISOString(),
+          updated_at: new Date(now).toISOString()
         })
-        .select()
-        .single();
+        .select();
 
-      if (error) throw error;
+      // Manually check for error
+      if (result.error) throw result.error;
+      const newConversation = result.data?.[0];
 
       // Insert messages
       if (messages.length > 0) {
         const dbMessages = messages.map(msg => mapMessageToDb(msg, conversationId));
-        const { error: messagesError } = await supabase
+        const messagesResult = await supabase
           .from('messages')
           .insert(dbMessages);
 
-        if (messagesError) throw messagesError;
+        if (messagesResult.error) throw messagesResult.error;
       }
 
       const conversation: Conversation = {

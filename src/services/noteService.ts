@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { toast } from 'sonner';
@@ -12,12 +11,14 @@ class NoteServiceClass {
         .from('notes')
         .select('*')
         .eq('user_id', user.data.user?.id)
-        .order('updated_at', { ascending: false })
-        .execute();
+        .order('updated_at', { ascending: false });
       
-      if (result.error) throw result.error;
+      const data = result.data || [];
+      const error = result.error;
       
-      return result.data.map(note => ({
+      if (error) throw error;
+      
+      return data.map(note => ({
         id: note.id,
         title: note.title,
         content: note.content,
@@ -47,9 +48,12 @@ class NoteServiceClass {
         .eq('id', id)
         .single();
       
-      if (result.error) throw result.error;
+      const data = result.data;
+      const error = result.error;
       
-      const note = result.data;
+      if (error) throw error;
+      
+      const note = data;
       return {
         id: note.id,
         title: note.title,
@@ -94,25 +98,28 @@ class NoteServiceClass {
           category: noteData.category || 'General',
           sentiment: noteData.sentiment || 'neutral',
         })
-        .single();
+        .select();
       
-      if (result.error) throw result.error;
+      const data = result.data?.[0];
+      const error = result.error;
       
-      const note = result.data;
+      if (error) throw error;
+      if (!data) throw new Error("Failed to create note");
+      
       return {
-        id: note.id,
-        title: note.title,
-        content: note.content,
-        createdAt: note.created_at,
-        updatedAt: note.updated_at,
-        userId: note.user_id,
-        tags: note.tags,
-        color: note.color,
-        pinned: note.pinned,
-        folder: note.folder_id,
-        bookmarkIds: note.bookmark_ids,
-        category: note.category || 'General',
-        sentiment: note.sentiment || 'neutral',
+        id: data.id,
+        title: data.title,
+        content: data.content,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        userId: data.user_id,
+        tags: data.tags,
+        color: data.color,
+        pinned: data.pinned,
+        folder: data.folder_id,
+        bookmarkIds: data.bookmark_ids,
+        category: data.category || 'General',
+        sentiment: data.sentiment || 'neutral',
       };
     } catch (error) {
       console.error('Error creating note:', error);

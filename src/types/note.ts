@@ -12,7 +12,7 @@ export interface Note {
   bookmarkIds?: string[];
   tags?: string[];
   category?: string;
-  sentiment?: 'positive' | 'negative' | 'neutral';
+  sentiment?: NoteSentiment;
 }
 
 export interface SentimentDetails {
@@ -24,5 +24,5 @@ export interface SentimentDetails {
 
 export type ExtendedNote = Note;
 
-// For backward compatibility with existing code
+// Define the NoteSentiment type that can be exported and used
 export type NoteSentiment = 'positive' | 'negative' | 'neutral';

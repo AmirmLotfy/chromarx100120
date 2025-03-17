@@ -1,3 +1,4 @@
+
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
@@ -25,22 +26,27 @@ class TimerService {
 
   async startSession(session: Omit<TimerSession, 'id' | 'userId' | 'completed' | 'createdAt' | 'updatedAt'>): Promise<TimerSession> {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
+      const userData = await supabase.auth.getUser();
+      const user = userData.data.user;
+      if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      const result = await supabase
         .from('timer_sessions')
         .insert([{
-          user_id: user.user.id,
+          user_id: user.id,
           duration: session.duration,
           mode: session.mode,
           start_time: session.startTime.toISOString(),
           task_context: session.taskContext,
           ai_suggested: session.aiSuggested,
         }])
-        .singlePromise();
+        .select();
 
-      if (error) throw error;
+      // Manually check for error and data
+      if (result.error) throw result.error;
+      const data = result.data?.[0];
+      if (!data) throw new Error('Failed to insert timer session');
+
       return this.mapSessionFromDb(data);
     } catch (error) {
       console.error('Error starting timer session:', error);
@@ -51,7 +57,7 @@ class TimerService {
 
   async completeSession(sessionId: string, productivityScore?: number): Promise<void> {
     try {
-      const { error } = await supabase
+      const result = await supabase
         .from('timer_sessions')
         .update({
           completed: true,
@@ -60,7 +66,8 @@ class TimerService {
         })
         .eq('id', sessionId);
 
-      if (error) throw error;
+      // Manually check for error
+      if (result.error) throw result.error;
       
       await this.playCompletionSound();
       this.showNotification();
@@ -73,13 +80,15 @@ class TimerService {
 
   async getStats(): Promise<TimerStats> {
     try {
-      const { data: sessions, error } = await supabase
+      const result = await supabase
         .from('timer_sessions')
         .select('*');
 
-      if (error) throw error;
+      // Manually check for error and data
+      if (result.error) throw result.error;
+      const sessions = result.data || [];
 
-      if (!sessions) return {
+      if (sessions.length === 0) return {
         totalFocusTime: 0,
         totalSessions: 0,
         averageProductivity: 0,
