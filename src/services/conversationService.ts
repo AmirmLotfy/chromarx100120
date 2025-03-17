@@ -5,17 +5,19 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";
 
 const mapDbConversation = (dbConvo: any): Conversation => {
+  if (!dbConvo) return null as unknown as Conversation;
+  
   return {
-    id: dbConvo.id,
-    name: dbConvo.name,
+    id: dbConvo.id || '',
+    name: dbConvo.name || '',
     messages: [], // Messages are loaded separately
-    createdAt: new Date(dbConvo.created_at).getTime(),
-    updatedAt: new Date(dbConvo.updated_at).getTime(),
-    pinned: dbConvo.pinned,
+    createdAt: dbConvo.created_at ? new Date(dbConvo.created_at).getTime() : Date.now(),
+    updatedAt: dbConvo.updated_at ? new Date(dbConvo.updated_at).getTime() : Date.now(),
+    pinned: dbConvo.pinned || false,
     bookmarkContext: dbConvo.bookmark_context,
     isBookmarkSearch: dbConvo.is_bookmark_search,
     category: (dbConvo.category as ConversationCategory) || 'General',
-    archived: dbConvo.archived
+    archived: dbConvo.archived || false
   };
 };
 
@@ -33,12 +35,14 @@ const mapMessageToDb = (message: Message, conversationId: string) => {
 };
 
 const mapDbMessage = (dbMessage: any): Message => {
+  if (!dbMessage) return null as unknown as Message;
+  
   return {
-    id: dbMessage.id,
-    content: dbMessage.content,
+    id: dbMessage.id || '',
+    content: dbMessage.content || '',
     sender: dbMessage.sender as "user" | "assistant",
-    timestamp: new Date(dbMessage.timestamp).getTime(),
-    isRead: dbMessage.is_read,
+    timestamp: dbMessage.timestamp ? new Date(dbMessage.timestamp).getTime() : Date.now(),
+    isRead: dbMessage.is_read || false,
     bookmarks: dbMessage.bookmarks,
     webResults: dbMessage.web_results
   };
@@ -60,11 +64,13 @@ export const ConversationService = {
 
       const conversations: Conversation[] = [];
       for (const dbConvo of dbConversations) {
+        if (!dbConvo) continue;
+        
         const conversation = mapDbConversation(dbConvo);
         
         const messagesResult = await localStorageClient
           .from('messages')
-          .eq('conversation_id', dbConvo.id || '')
+          .eq('conversation_id', conversation.id)
           .order('timestamp', { ascending: true })
           .select();
         
@@ -73,7 +79,7 @@ export const ConversationService = {
         
         if (messagesError) throw messagesError;
         
-        conversation.messages = dbMessages.map(mapDbMessage);
+        conversation.messages = dbMessages.map(mapDbMessage).filter(Boolean);
         conversations.push(conversation);
       }
 
