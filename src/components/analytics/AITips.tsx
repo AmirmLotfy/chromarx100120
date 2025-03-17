@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Bell, Brain, ChartLine, Zap, Target } from "lucide-react";

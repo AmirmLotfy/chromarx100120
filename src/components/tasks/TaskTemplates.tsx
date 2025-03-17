@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { Card } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 

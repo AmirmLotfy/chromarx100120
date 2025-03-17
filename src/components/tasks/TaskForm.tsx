@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { generateTaskSuggestions, suggestTimerDuration } from "@/utils/geminiUtils";
 import { toast } from "sonner";
 import { useLanguage } from "@/stores/languageStore";
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";

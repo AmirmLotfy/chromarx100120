@@ -1,8 +1,7 @@
-
 import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat, DomainCategory } from "@/types/analytics";
 import { extractDomain } from "@/utils/domainUtils";
 import { chromeDb } from "@/lib/chrome-storage";
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 

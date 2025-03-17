@@ -1,5 +1,4 @@
-
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Conversation, Message, ConversationCategory } from "@/types/chat";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";

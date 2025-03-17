@@ -2,7 +2,7 @@ import { ChromeBookmark } from "@/types/bookmark";
 import { fetchPageContent } from "./contentExtractor";
 import { aiRequestManager } from "./aiRequestManager";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { retryWithBackoff } from "./retryUtils";
 
 interface GeminiRequest {

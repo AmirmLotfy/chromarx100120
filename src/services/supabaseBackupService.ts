@@ -2,9 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { storage } from "@/services/storageService";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
+import { Json } from "@/lib/local-storage-client";
 
-class SupabaseBackupService {
-  private static instance: SupabaseBackupService;
+interface StorageBackup {
+  id: string;
+  key: string;
+  value: Json;
+  user_id: string;
+  storage_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
+class LocalBackupService {
+  private static instance: LocalBackupService;
   private syncInProgress = false;
   private backupInterval: number | null = null;
   private readonly BACKUP_FREQUENCY = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
@@ -17,9 +28,9 @@ class SupabaseBackupService {
     this.initializeLocalBackups();
   }
 
-  static getInstance(): SupabaseBackupService {
+  static getInstance(): LocalBackupService {
     if (!this.instance) {
-      this.instance = new SupabaseBackupService();
+      this.instance = new LocalBackupService();
     }
     return this.instance;
   }
@@ -69,23 +80,32 @@ class SupabaseBackupService {
   async createLocalBackup(): Promise<void> {
     try {
       const timestamp = new Date().toISOString();
-      const allData = await chrome.storage.sync.get(null);
+      // Get all data from storage
+      const allData = {};
+      const keys = Object.keys(localStorage);
+      for (const key of keys) {
+        try {
+          const value = localStorage.getItem(key);
+          if (value) {
+            allData[key] = JSON.parse(value);
+          }
+        } catch (e) {
+          // Skip items that can't be parsed as JSON
+        }
+      }
       
       // Store a snapshot of current data
-      await chrome.storage.local.set({
-        [`backup_${timestamp}`]: allData,
-        'last_local_backup': timestamp
-      });
+      localStorage.setItem(`backup_${timestamp}`, JSON.stringify(allData));
+      localStorage.setItem('last_local_backup', timestamp);
       
       // Keep only the last 5 backups
-      const keys = Object.keys(await chrome.storage.local.get(null))
-        .filter(key => key.startsWith('backup_'))
+      const backupKeys = keys.filter(key => key.startsWith('backup_'))
         .sort()
         .reverse();
       
-      if (keys.length > 5) {
-        for (let i = 5; i < keys.length; i++) {
-          await chrome.storage.local.remove(keys[i]);
+      if (backupKeys.length > 5) {
+        for (let i = 5; i < backupKeys.length; i++) {
+          localStorage.removeItem(backupKeys[i]);
         }
       }
       
@@ -97,13 +117,15 @@ class SupabaseBackupService {
 
   async listLocalBackups(): Promise<{timestamp: string, size: number}[]> {
     try {
-      const allBackups = await chrome.storage.local.get(null);
-      return Object.keys(allBackups)
-        .filter(key => key.startsWith('backup_'))
-        .map(key => ({
-          timestamp: key.replace('backup_', ''),
-          size: JSON.stringify(allBackups[key]).length
-        }))
+      const allKeys = Object.keys(localStorage);
+      return allKeys.filter(key => key.startsWith('backup_'))
+        .map(key => {
+          const value = localStorage.getItem(key) || '{}';
+          return {
+            timestamp: key.replace('backup_', ''),
+            size: value.length
+          };
+        })
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (error) {
       console.error('Error listing local backups:', error);
@@ -114,16 +136,26 @@ class SupabaseBackupService {
   async restoreFromLocalBackup(timestamp: string): Promise<boolean> {
     try {
       const backupKey = `backup_${timestamp}`;
-      const backup = await chrome.storage.local.get(backupKey);
+      const backup = localStorage.getItem(backupKey);
       
-      if (!backup[backupKey]) {
+      if (!backup) {
         toast.error('Backup not found');
         return false;
       }
       
       // Clear current data and restore from backup
-      await chrome.storage.sync.clear();
-      await chrome.storage.sync.set(backup[backupKey]);
+      const backupData = JSON.parse(backup);
+      
+      // Remove all items except the backups themselves
+      const keys = Object.keys(localStorage).filter(key => !key.startsWith('backup_') && key !== 'last_local_backup');
+      keys.forEach(key => localStorage.removeItem(key));
+      
+      // Restore from backup
+      Object.entries(backupData).forEach(([key, value]) => {
+        if (!key.startsWith('backup_') && key !== 'last_local_backup') {
+          localStorage.setItem(key, JSON.stringify(value));
+        }
+      });
       
       toast.success('Data restored from local backup');
       return true;
@@ -139,31 +171,31 @@ class SupabaseBackupService {
 
     try {
       this.syncInProgress = true;
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) {
-        console.log('No user logged in, skipping sync');
-        return;
-      }
-
-      // Get all keys from chrome storage
-      const allData = await chrome.storage.sync.get(null);
-      const totalKeys = Object.keys(allData).length;
-      let processedKeys = 0;
+      const userId = 'local-user-id';
       
-      for (const [key, value] of Object.entries(allData)) {
+      // Get all localStorage items
+      const allData = {};
+      const keys = Object.keys(localStorage);
+      let processedKeys = 0;
+      const totalKeys = keys.length;
+      
+      for (const key of keys) {
         try {
-          // Ensure value is a valid JSON type
-          const jsonValue = this.ensureJsonValue(value);
-          await this.backupItem(key, jsonValue, user.data.user.id);
+          if (!key.startsWith('backup_') && key !== 'last_local_backup') {
+            const value = localStorage.getItem(key);
+            if (value) {
+              allData[key] = this.ensureJsonValue(JSON.parse(value));
+              await this.backupItem(key, allData[key], userId);
+            }
+          }
           
           // Update progress
           processedKeys++;
           if (processedKeys % 10 === 0 || processedKeys === totalKeys) {
             console.log(`Backup progress: ${Math.round((processedKeys / totalKeys) * 100)}%`);
           }
-        } catch (error) {
-          console.error(`Error backing up item ${key}:`, error);
-          // Continue with other items
+        } catch (e) {
+          console.error(`Error backing up item ${key}:`, e);
         }
       }
 
@@ -209,19 +241,17 @@ class SupabaseBackupService {
 
   private async backupItem(key: string, value: Json, userId: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('storage_backups')
-        .upsert({
-          key,
-          value,
-          user_id: userId,
-          storage_type: 'sync',
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,key'
-        });
-
-      if (error) throw error;
+      // Instead of Supabase, store in localStorage with a prefix
+      const backupKey = `cloud_backup_${key}`;
+      const backup = {
+        key,
+        value,
+        user_id: userId,
+        storage_type: 'sync',
+        updated_at: new Date().toISOString()
+      };
+      
+      localStorage.setItem(backupKey, JSON.stringify(backup));
     } catch (error) {
       console.error(`Error backing up ${key}:`, error);
       throw error;
@@ -230,21 +260,18 @@ class SupabaseBackupService {
 
   async getBackupVersions(key: string): Promise<StorageBackup[]> {
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) {
-        console.log('No user logged in, skipping version fetch');
-        return [];
-      }
+      const userId = 'local-user-id';
+      const backupKey = `cloud_backup_${key}`;
+      const backup = localStorage.getItem(backupKey);
       
-      const { data, error } = await supabase
-        .from('storage_backups')
-        .select()
-        .eq('user_id', user.data.user.id)
-        .eq('key', key)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      return data || [];
+      if (!backup) return [];
+      
+      const backupData = JSON.parse(backup);
+      return [{
+        id: `id-${Date.now()}`,
+        ...backupData,
+        created_at: backupData.updated_at
+      }];
     } catch (error) {
       console.error(`Error fetching backup versions for ${key}:`, error);
       return [];
@@ -253,48 +280,57 @@ class SupabaseBackupService {
 
   async restoreFromBackup(timestamp?: string): Promise<void> {
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) {
-        console.log('No user logged in, skipping restore');
-        return;
-      }
-
-      let query = supabase
-        .from('storage_backups')
-        .select()
-        .eq('user_id', user.data.user.id)
-        .eq('storage_type', 'sync');
+      const userId = 'local-user-id';
+      const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('cloud_backup_'));
       
-      // If a specific timestamp is provided, filter by it
-      if (timestamp) {
-        query = query.eq('updated_at', timestamp);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
+      if (backupKeys.length === 0) {
         toast.error('No backup found to restore from');
         return;
       }
-
-      // Clear current storage before restoring
-      await chrome.storage.sync.clear();
-
-      for (const item of data) {
-        await storage.set(item.key, item.value);
+      
+      // Filter by timestamp if provided
+      let backupsToRestore = backupKeys;
+      if (timestamp) {
+        backupsToRestore = backupKeys.filter(key => {
+          const backup = localStorage.getItem(key);
+          if (backup) {
+            const backupData = JSON.parse(backup);
+            return backupData.updated_at === timestamp;
+          }
+          return false;
+        });
+      }
+      
+      if (backupsToRestore.length === 0) {
+        toast.error('No backup found for the specified timestamp');
+        return;
+      }
+      
+      // Clear current data before restoring
+      const keys = Object.keys(localStorage).filter(key => 
+        !key.startsWith('backup_') && 
+        !key.startsWith('cloud_backup_') && 
+        key !== 'last_local_backup'
+      );
+      keys.forEach(key => localStorage.removeItem(key));
+      
+      // Restore from backup
+      for (const backupKey of backupsToRestore) {
+        const backup = localStorage.getItem(backupKey);
+        if (backup) {
+          const backupData = JSON.parse(backup);
+          localStorage.setItem(backupData.key, JSON.stringify(backupData.value));
+        }
       }
 
       toast.success('Data restored from cloud backup');
       
       // Record this restore operation
-      await chrome.storage.local.set({
-        'last_restore': {
-          timestamp: new Date().toISOString(),
-          source: 'cloud',
-          items: data.length
-        }
-      });
+      localStorage.setItem('last_restore', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        source: 'cloud',
+        items: backupsToRestore.length
+      }));
     } catch (error) {
       console.error('Error restoring from backup:', error);
       toast.error('Failed to restore from cloud backup');
@@ -303,19 +339,27 @@ class SupabaseBackupService {
   
   async deleteBackup(timestamp: string): Promise<void> {
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) {
-        console.log('No user logged in, skipping delete');
+      const userId = 'local-user-id';
+      const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('cloud_backup_'));
+      
+      // Find backups with matching timestamp
+      const keysToDelete = backupKeys.filter(key => {
+        const backup = localStorage.getItem(key);
+        if (backup) {
+          const backupData = JSON.parse(backup);
+          return backupData.updated_at === timestamp;
+        }
+        return false;
+      });
+      
+      if (keysToDelete.length === 0) {
+        toast.error('No backup found with the specified timestamp');
         return;
       }
       
-      const { error } = await supabase
-        .from('storage_backups')
-        .delete()
-        .eq('user_id', user.data.user.id)
-        .eq('updated_at', timestamp);
-        
-      if (error) throw error;
+      // Delete the backups
+      keysToDelete.forEach(key => localStorage.removeItem(key));
+      
       toast.success('Backup deleted successfully');
     } catch (error) {
       console.error('Error deleting backup:', error);
@@ -324,4 +368,4 @@ class SupabaseBackupService {
   }
 }
 
-export const supabaseBackup = SupabaseBackupService.getInstance();
+export const supabaseBackup = LocalBackupService.getInstance();

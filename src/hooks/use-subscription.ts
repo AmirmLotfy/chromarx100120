@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { chromeDb } from '@/lib/chrome-storage';
 import { subscriptionPlans, PlanLimits } from '@/config/subscriptionPlans';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { useAuth } from '@/hooks/useAuth';
 import { checkSubscriptionStatus } from '@/utils/chromeUtils';
 

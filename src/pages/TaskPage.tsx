@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import TaskForm from "@/components/tasks/TaskForm";
@@ -7,7 +8,7 @@ import TaskAnalytics from "@/components/tasks/TaskAnalytics";
 import { Task, TaskPriority, TaskCategory, TaskStatus } from "@/types/task";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { 
   Plus, 
   BarChart3, 

@@ -1,5 +1,4 @@
-
-import { supabase } from "@/integrations/supabase/client";
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
 
@@ -125,7 +124,6 @@ class TimerService {
     }
   }
 
-  // Changed from private to public
   async playCompletionSound(): Promise<void> {
     if (!this.audioContext) {
       try {
@@ -153,7 +151,6 @@ class TimerService {
     }
   }
 
-  // Changed from private to public
   showNotification(): void {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Timer Complete!', {
