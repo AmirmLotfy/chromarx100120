@@ -73,24 +73,71 @@ class LocalStorageClient {
                 return {
                   eq: (column: string, value: any): DbSingleResult<any> => {
                     return {
+                      eq: (column: string, value: any): DbSingleResult<any> => {
+                        return {
+                          select: () => Promise.resolve({ data: [{}], error: null }),
+                          execute: () => Promise.resolve({ data: {}, error: null }),
+                          error: null,
+                          eq: (col: string, val: any) => {
+                            return {
+                              select: () => Promise.resolve({ data: [{}], error: null }),
+                              execute: () => Promise.resolve({ data: {}, error: null }),
+                              error: null,
+                              eq: (c: string, v: any) => this.from(table).update(data).eq(c, v)
+                            };
+                          }
+                        };
+                      },
                       select: () => Promise.resolve({ data: [{}], error: null }),
                       execute: () => Promise.resolve({ data: {}, error: null }),
-                      error: null
+                      error: null,
+                      eq: (col: string, val: any) => {
+                        return {
+                          select: () => Promise.resolve({ data: [{}], error: null }),
+                          execute: () => Promise.resolve({ data: {}, error: null }),
+                          error: null,
+                          eq: (c: string, v: any) => this.from(table).update(data).eq(c, v)
+                        };
+                      }
                     };
                   },
                   select: () => Promise.resolve({ data: [{}], error: null }),
                   execute: () => Promise.resolve({ data: {}, error: null }),
-                  error: null
+                  error: null,
+                  eq: (col: string, val: any) => {
+                    return {
+                      select: () => Promise.resolve({ data: [{}], error: null }),
+                      execute: () => Promise.resolve({ data: {}, error: null }),
+                      error: null,
+                      eq: (c: string, v: any) => this.from(table).update(data).eq(c, v)
+                    };
+                  }
                 };
               },
               select: () => Promise.resolve({ data: [{}], error: null }),
               execute: () => Promise.resolve({ data: {}, error: null }),
-              error: null
+              error: null,
+              eq: (col: string, val: any) => {
+                return {
+                  select: () => Promise.resolve({ data: [{}], error: null }),
+                  execute: () => Promise.resolve({ data: {}, error: null }),
+                  error: null,
+                  eq: (c: string, v: any) => this.from(table).update(data).eq(c, v)
+                };
+              }
             };
           },
           select: () => Promise.resolve({ data: [{}], error: null }),
           execute: () => Promise.resolve({ data: {}, error: null }),
-          error: null
+          error: null,
+          eq: (col: string, val: any) => {
+            return {
+              select: () => Promise.resolve({ data: [{}], error: null }),
+              execute: () => Promise.resolve({ data: {}, error: null }),
+              error: null,
+              eq: (c: string, v: any) => this.from(table).update(data).eq(c, v)
+            };
+          }
         };
       },
       
@@ -103,15 +150,36 @@ class LocalStorageClient {
                   eq: (column: string, value: any) => {
                     return {
                       execute: () => Promise.resolve({ data: null, error: null }),
-                      error: null
+                      error: null,
+                      eq: (c: string, v: any) => {
+                        return {
+                          execute: () => Promise.resolve({ data: null, error: null }),
+                          error: null,
+                          eq: (c2: string, v2: any) => this.from(table).delete().eq(c2, v2)
+                        };
+                      }
                     };
                   },
                   execute: () => Promise.resolve({ data: null, error: null }),
-                  error: null
+                  error: null,
+                  eq: (c: string, v: any) => {
+                    return {
+                      execute: () => Promise.resolve({ data: null, error: null }),
+                      error: null,
+                      eq: (c2: string, v2: any) => this.from(table).delete().eq(c2, v2)
+                    };
+                  }
                 };
               },
               execute: () => Promise.resolve({ data: null, error: null }),
-              error: null
+              error: null,
+              eq: (c: string, v: any) => {
+                return {
+                  execute: () => Promise.resolve({ data: null, error: null }),
+                  error: null,
+                  eq: (c2: string, v2: any) => this.from(table).delete().eq(c2, v2)
+                };
+              }
             };
           }
         };
