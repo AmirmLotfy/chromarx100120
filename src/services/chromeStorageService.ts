@@ -48,10 +48,10 @@ export const chromeStorage = {
    */
   async get<T>(key: string, options: StorageOptions = defaultOptions): Promise<T | null> {
     try {
-      const area = options.area || 'local';
+      const storageArea = options.area || 'local';
       
       // Use Chrome storage API to retrieve data
-      const result = await chrome.storage[area].get(key);
+      const result = await chrome.storage[storageArea].get(key);
       
       if (!result[key]) {
         return null;
@@ -74,7 +74,7 @@ export const chromeStorage = {
    */
   async set<T>(key: string, data: T, options: StorageOptions = defaultOptions): Promise<boolean> {
     try {
-      const area = options.area || 'local';
+      const storageArea = options.area || 'local';
       let dataToStore = data;
       
       // Handle encrypted data
@@ -83,7 +83,7 @@ export const chromeStorage = {
       }
       
       // Use Chrome storage API to store data
-      await chrome.storage[area].set({ [key]: dataToStore });
+      await chrome.storage[storageArea].set({ [key]: dataToStore });
       return true;
     } catch (error) {
       console.error(`Error setting data for key ${key}:`, error);
@@ -97,8 +97,8 @@ export const chromeStorage = {
    */
   async remove(key: string, options: StorageOptions = defaultOptions): Promise<boolean> {
     try {
-      const area = options.area || 'local';
-      await chrome.storage[area].remove(key);
+      const storageArea = options.area || 'local';
+      await chrome.storage[storageArea].remove(key);
       return true;
     } catch (error) {
       console.error(`Error removing data for key ${key}:`, error);
@@ -111,11 +111,11 @@ export const chromeStorage = {
    */
   async clear(options: StorageOptions = defaultOptions): Promise<boolean> {
     try {
-      const area = options.area || 'local';
-      await chrome.storage[area].clear();
+      const storageArea = options.area || 'local';
+      await chrome.storage[storageArea].clear();
       return true;
     } catch (error) {
-      console.error(`Error clearing ${area} storage:`, error);
+      console.error(`Error clearing ${storageArea} storage:`, error);
       return false;
     }
   },
@@ -125,8 +125,8 @@ export const chromeStorage = {
    */
   async listKeys(options: StorageOptions = defaultOptions): Promise<string[]> {
     try {
-      const area = options.area || 'local';
-      const allData = await chrome.storage[area].get(null);
+      const storageArea = options.area || 'local';
+      const allData = await chrome.storage[storageArea].get(null);
       return Object.keys(allData);
     } catch (error) {
       console.error(`Error listing keys in ${options.area} storage:`, error);

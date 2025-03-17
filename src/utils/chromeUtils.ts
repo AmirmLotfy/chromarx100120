@@ -28,9 +28,39 @@ interface UsageLimit {
   percentage: number;
 }
 
+interface PayPalConfig {
+  clientId: string;
+  mode: 'sandbox' | 'live';
+}
+
+interface PaymentRecord {
+  id?: string;
+  order_id: string;
+  plan_id: string;
+  amount: number;
+  status: string;
+  provider: string;
+  auto_renew: boolean;
+  user_id: string;
+}
+
+interface SubscriptionRecord {
+  id?: string;
+  plan_id: string;
+  status: string;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  user_id: string;
+}
+
+interface UsageStats {
+  api_calls: number;
+}
+
 // Get PayPal configuration
 export const checkPayPalConfiguration = async () => {
-  const config = await configurationService.getPayPalConfig();
+  const config = await configurationService.getPayPalConfig() as PayPalConfig;
   return {
     clientId: config.clientId,
     mode: config.mode,
@@ -39,12 +69,12 @@ export const checkPayPalConfiguration = async () => {
 };
 
 export const getPayPalClientId = async (): Promise<string> => {
-  const config = await configurationService.getPayPalConfig();
+  const config = await configurationService.getPayPalConfig() as PayPalConfig;
   return config.clientId;
 };
 
 export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
-  const config = await configurationService.getPayPalConfig();
+  const config = await configurationService.getPayPalConfig() as PayPalConfig;
   return config.mode;
 };
 
@@ -58,13 +88,13 @@ export const verifyPayPalPayment = async (
     console.log('Verifying payment:', { orderId, planId, autoRenew });
     
     // Get PayPal configuration
-    const config = await configurationService.getPayPalConfig();
+    const config = await configurationService.getPayPalConfig() as PayPalConfig;
     
     // In a real implementation, you would verify the payment with PayPal's API here
     // For now, we'll simulate a successful verification
     
     // Store the payment in our local database
-    await chromeStorage.db.insert('payment_history', {
+    await chromeStorage.db.insert<PaymentRecord>('payment_history', {
       order_id: orderId,
       plan_id: planId,
       amount: planId === 'premium' ? 9.99 : 4.99,
@@ -79,7 +109,7 @@ export const verifyPayPalPayment = async (
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 1); // One month subscription
     
-    await chromeStorage.db.insert('subscriptions', {
+    await chromeStorage.db.insert<SubscriptionRecord>('subscriptions', {
       plan_id: planId,
       status: 'active',
       current_period_start: startDate.toISOString(),
@@ -225,7 +255,7 @@ async function getNoteCount(userId: string): Promise<number> {
 
 async function getApiCallCount(userId: string): Promise<number> {
   try {
-    const stats = await chromeStorage.get(`usage_stats_${userId}`);
+    const stats = await chromeStorage.get<UsageStats>(`usage_stats_${userId}`);
     return stats?.api_calls || 0;
   } catch (error) {
     console.error('Error getting API call count:', error);

@@ -17,7 +17,11 @@ const PayPalConfigForm = () => {
     const loadConfig = async () => {
       try {
         const paypalConfig = await configurationService.getPayPalConfig();
-        setConfig(paypalConfig);
+        // Type assertion to ensure we have the correct type
+        setConfig({
+          clientId: typeof paypalConfig.clientId === 'string' ? paypalConfig.clientId : '',
+          mode: paypalConfig.mode === 'live' ? 'live' : 'sandbox'
+        });
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading PayPal configuration:", error);

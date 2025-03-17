@@ -6,6 +6,16 @@
 import { configurationService } from './configurationService';
 import { toast } from 'sonner';
 
+// Default Gemini API configuration type
+export interface GeminiConfig {
+  apiKey: string;
+  temperature: number;
+  topK: number;
+  topP: number;
+  maxOutputTokens: number;
+  maxRetries: number;
+}
+
 // Rate limiting implementation
 const RATE_LIMIT = 50; // Requests per hour
 let requestCount = 0;
@@ -51,7 +61,7 @@ export const geminiService = {
       }
       
       // Get API configuration
-      const config = await configurationService.getGeminiConfig();
+      const config = await configurationService.getGeminiConfig() as GeminiConfig;
       
       // Set up API request
       const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
