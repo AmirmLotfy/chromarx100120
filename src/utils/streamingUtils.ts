@@ -154,3 +154,90 @@ export function transformStream<T, R>(
   
   return stream.pipeThrough(transformer);
 }
+
+// Animation frames for streaming progress loader
+export const streamingAnimationFrames = [
+  "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
+];
+
+// Utility for getting a streaming animation frame
+export function getAnimationFrame(counter: number): string {
+  return streamingAnimationFrames[counter % streamingAnimationFrames.length];
+}
+
+// Helper function to create a progress update stream
+export function createProgressStream(
+  totalSteps: number,
+  updateInterval = 100,
+  controller: AbortController
+): { 
+  stream: ReadableStream<number>,
+  updateProgress: (currentStep: number) => void,
+  completeProgress: () => void
+} {
+  let currentProgress = 0;
+  let resolveCurrentStep: ((value: number) => void) | null = null;
+  
+  // Create a promise that will resolve when progress is updated
+  let currentStepPromise = new Promise<number>(resolve => {
+    resolveCurrentStep = resolve;
+  });
+  
+  const updateProgress = (currentStep: number) => {
+    const newProgress = Math.min(Math.round((currentStep / totalSteps) * 100), 100);
+    if (newProgress !== currentProgress) {
+      currentProgress = newProgress;
+      if (resolveCurrentStep) {
+        resolveCurrentStep(currentProgress);
+        // Create a new promise for the next update
+        currentStepPromise = new Promise<number>(resolve => {
+          resolveCurrentStep = resolve;
+        });
+      }
+    }
+  };
+  
+  const completeProgress = () => {
+    updateProgress(totalSteps);
+  };
+  
+  // Create a readable stream that will emit progress updates
+  const stream = new ReadableStream<number>({
+    async start(streamController) {
+      try {
+        while (!controller.signal.aborted && currentProgress < 100) {
+          // Wait for progress to be updated or timeout
+          const timeoutPromise = new Promise<number>(resolve => 
+            setTimeout(() => resolve(currentProgress), updateInterval)
+          );
+          
+          // Use race to either get new progress or continue with current after timeout
+          const progress = await Promise.race([currentStepPromise, timeoutPromise]);
+          
+          // Enqueue the current progress
+          streamController.enqueue(progress);
+          
+          // If we're at 100%, we're done
+          if (progress >= 100) {
+            break;
+          }
+        }
+        
+        // Ensure we always end with 100% if not aborted
+        if (!controller.signal.aborted && currentProgress < 100) {
+          streamController.enqueue(100);
+        }
+        
+        streamController.close();
+      } catch (error) {
+        console.error("Error in progress stream:", error);
+        streamController.error(error);
+      }
+    },
+    cancel() {
+      console.log("Progress stream was canceled");
+    }
+  });
+  
+  return { stream, updateProgress, completeProgress };
+}
