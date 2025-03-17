@@ -28,9 +28,9 @@ export interface DbQueryResult<T> {
   error: any;
 }
 
-// Update DbSingleResult to ensure eq returns a DbSingleResult
+// Fixed DbSingleResult to make eq a method only, not a union type
 export interface DbSingleResult<T> {
-  eq: DbSingleResult<T> | ((column: string, value: any) => DbSingleResult<T>);
+  eq: (column: string, value: any) => DbSingleResult<T>;
   select: () => Promise<DbListResponse<T>>;
   execute: () => Promise<DbResponse<T>>;
   error: any;

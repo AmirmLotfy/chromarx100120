@@ -11,7 +11,7 @@ export async function streamText(
     
     // Create a proper ReadableStream that will yield chunks of text
     return new ReadableStream({
-      async start(controller) {
+      async start(streamController) {
         try {
           // Get the full response
           const response = await getGeminiResponse(text);
@@ -27,18 +27,18 @@ export async function streamText(
             }
             
             // Encode the chunk and add it to the stream
-            controller.enqueue(textEncoder.encode(chunk));
+            streamController.enqueue(textEncoder.encode(chunk));
             
             // Add a small delay to simulate real-time streaming
             await new Promise(resolve => setTimeout(resolve, 50));
           }
           
           // Properly close the stream when done
-          controller.close();
+          streamController.close();
         } catch (error) {
           // Handle errors in the stream
           console.error("Error in stream:", error);
-          controller.error(error);
+          streamController.error(error);
         }
       },
       
