@@ -17,7 +17,7 @@ interface NoteEditorProps {
   onClose: () => void;
 }
 
-const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
+export const NoteEditor = ({ note, onSave, onClose }: NoteEditorProps) => {
   const [title, setTitle] = useState(note?.title || "");
   const [content, setContent] = useState(note?.content || "");
   const [isRecording, setIsRecording] = useState(false);
@@ -69,19 +69,26 @@ Please analyze the sentiment considering:
       `.trim();
 
       const [sentimentResult, summary] = await Promise.all([
-        analyzeSentiment(analysisPrompt, currentLanguage.code),
-        summarizeContent(cleanedText, currentLanguage.code)
+        analyzeSentiment(analysisPrompt), // Fixed: removed the second argument
+        summarizeContent(cleanedText)
       ]);
 
-      // Extract sentiment details
-      const [sentiment, score, confidence, dominantEmotion] = sentimentResult.split('|');
+      // Parse the sentiment result correctly
+      const sentimentData = typeof sentimentResult === 'string' 
+        ? parseSentimentString(sentimentResult)
+        : { 
+            sentiment: 'neutral' as NoteSentiment, 
+            score: 0, 
+            confidence: 0, 
+            dominantEmotion: ''
+          };
       
       return {
-        sentiment: sentiment as NoteSentiment,
+        sentiment: sentimentData.sentiment,
         sentimentDetails: {
-          score: parseFloat(score),
-          confidence: parseFloat(confidence),
-          dominantEmotion,
+          score: sentimentData.score || 0,
+          confidence: sentimentData.confidence || 0,
+          dominantEmotion: sentimentData.dominantEmotion || '',
           language: currentLanguage.code
         },
         summary
@@ -97,6 +104,38 @@ Please analyze the sentiment considering:
           language: currentLanguage.code
         },
         summary: ''
+      };
+    }
+  };
+
+  // Helper function to parse sentiment string
+  const parseSentimentString = (input: string) => {
+    try {
+      // Check if the input contains delimiter
+      if (input.includes('|')) {
+        const [sentiment, score, confidence, dominantEmotion] = input.split('|');
+        return {
+          sentiment: sentiment as NoteSentiment,
+          score: parseFloat(score || '0'),
+          confidence: parseFloat(confidence || '0'),
+          dominantEmotion: dominantEmotion || ''
+        };
+      } else {
+        // Fallback if the format is unexpected
+        return {
+          sentiment: input as NoteSentiment || 'neutral',
+          score: 0,
+          confidence: 0,
+          dominantEmotion: ''
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing sentiment string:', error, input);
+      return {
+        sentiment: 'neutral' as NoteSentiment,
+        score: 0,
+        confidence: 0,
+        dominantEmotion: ''
       };
     }
   };

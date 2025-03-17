@@ -101,14 +101,15 @@ const TaskPage = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      const result = await supabase
         .from('tasks')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .execute();
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
-      const formattedTasks: Task[] = data.map(task => ({
+      const formattedTasks: Task[] = result.data.map(task => ({
         id: task.id,
         title: task.title,
         description: task.description,
@@ -154,13 +155,13 @@ const TaskPage = () => {
         user_id: user.id
       };
 
-      const { data, error } = await supabase
+      const result = await supabase
         .from('tasks')
         .insert([newTask])
-        .select()
-        .single();
+        .select();
 
-      if (error) throw error;
+      const data = result.data?.[0];
+      if (!data) throw new Error('Failed to insert task');
 
       const formattedTask: Task = {
         id: data.id,
@@ -452,6 +453,139 @@ const TaskPage = () => {
       </div>
     </Layout>
   );
+};
+
+// Add the missing functions from the original file
+const handleDeleteTask = async (id: string) => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id)
+      .execute();
+
+    if (error) throw error;
+
+    setTasks(prev => prev.filter(task => task.id !== id));
+    toast({
+      title: "Task deleted",
+      description: "Your task has been deleted."
+    });
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    toast({
+      title: "Error",
+      description: "Failed to delete task.",
+      variant: "destructive"
+    });
+  }
+};
+
+const handleEditTask = async (updatedTask: Task) => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        title: updatedTask.title,
+        description: updatedTask.description,
+        priority: updatedTask.priority,
+        category: updatedTask.category,
+        status: updatedTask.status,
+        due_date: updatedTask.dueDate,
+        estimated_duration: updatedTask.estimatedDuration,
+        actual_duration: updatedTask.actualDuration,
+        color: updatedTask.color,
+        progress: updatedTask.progress
+      })
+      .eq('id', updatedTask.id);
+
+    if (error) throw error;
+
+    setTasks(prev => prev.map(task => 
+      task.id === updatedTask.id ? {
+        ...updatedTask,
+        updatedAt: new Date().toISOString()
+      } : task
+    ));
+
+    toast({
+      title: "Task updated",
+      description: "Your task has been updated successfully."
+    });
+  } catch (error) {
+    console.error('Error updating task:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update task.",
+      variant: "destructive"
+    });
+  }
+};
+
+const handleToggleStatus = async (id: string) => {
+  try {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    const newStatus = task.status === "completed" ? "pending" as TaskStatus : "completed" as TaskStatus;
+    
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    setTasks(prev => prev.map(task => task.id === id ? {
+      ...task,
+      status: newStatus,
+      updatedAt: new Date().toISOString()
+    } : task));
+  } catch (error) {
+    console.error('Error toggling task status:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update task status.",
+      variant: "destructive"
+    });
+  }
+};
+
+const handleStartTimer = (task: Task) => {
+  localStorage.setItem("currentTimerTask", JSON.stringify(task));
+  navigate("/timer");
+};
+
+const handleUseTemplate = (templateData: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration" | "status" | "dueDate">) => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  handleAddTask({
+    ...templateData,
+    dueDate: tomorrow.toISOString(),
+    status: "pending",
+  });
+};
+
+const getCompletedTasksCount = () => {
+  return tasks.filter(task => task.status === "completed").length;
+};
+
+const getPendingTasksCount = () => {
+  return tasks.filter(task => task.status === "pending").length;
+};
+
+const getTodayTasksCount = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  return tasks.filter(task => {
+    const taskDate = new Date(task.dueDate);
+    taskDate.setHours(0, 0, 0, 0);
+    return taskDate.getTime() === today.getTime();
+  }).length;
 };
 
 export default TaskPage;

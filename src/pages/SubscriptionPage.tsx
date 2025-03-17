@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/PageTitle";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -13,12 +13,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { CheckCircle2, Clock, CreditCard, Shield, Star, Zap } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PayPalConfigForm } from "@/components/settings/PayPalConfigForm";
+import PayPalConfigForm from "@/components/settings/PayPalConfigForm";
 import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SubscriptionPage() {
-  const { subscription, loading, error, cancelSubscription, updatePaymentMethod } = useSubscription();
+  const subscriptionHook = useSubscription();
   const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
@@ -29,6 +29,15 @@ export default function SubscriptionPage() {
   const [showPayPalConfig, setShowPayPalConfig] = useState(false);
   const [paypalEnvironment, setPaypalEnvironment] = useState<"sandbox" | "live">("sandbox");
   const { user } = useAuth();
+  
+  // Destructure subscription hook properties for easier access
+  const { 
+    subscription, 
+    loading, 
+    error, 
+    cancelSubscription, 
+    updatePaymentMethod 
+  } = subscriptionHook;
 
   const formatCardNumber = (value: string) => {
     const val = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
@@ -46,7 +55,7 @@ export default function SubscriptionPage() {
   };
   
   const handlePaypalEnvChange = (value: string) => {
-    // Fix for type error: Use type assertion to ensure value is either "sandbox" or "live"
+    // Fix type issues: Only accept valid values
     if (value === "sandbox" || value === "live") {
       setPaypalEnvironment(value);
     } else {
