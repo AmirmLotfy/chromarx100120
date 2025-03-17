@@ -5,5 +5,5 @@ export interface NoteEditorProps {
   note: Note;
   onSave: (noteData: Omit<Note, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   onCancel: () => void;
-  defaultCategory?: string;
+  defaultCategory?: string; // Added defaultCategory as optional prop
 }

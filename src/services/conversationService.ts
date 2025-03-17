@@ -1,10 +1,8 @@
-
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Conversation, Message, ConversationCategory } from "@/types/chat";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";
 
-// Convert Supabase conversation to our app's Conversation type
 const mapDbConversation = (dbConvo: any): Conversation => {
   return {
     id: dbConvo.id,
@@ -20,7 +18,6 @@ const mapDbConversation = (dbConvo: any): Conversation => {
   };
 };
 
-// Convert our app's Message type to Supabase format
 const mapMessageToDb = (message: Message, conversationId: string) => {
   return {
     id: message.id,
@@ -34,7 +31,6 @@ const mapMessageToDb = (message: Message, conversationId: string) => {
   };
 };
 
-// Convert Supabase message to our app's Message type
 const mapDbMessage = (dbMessage: any): Message => {
   return {
     id: dbMessage.id,
@@ -48,7 +44,6 @@ const mapDbMessage = (dbMessage: any): Message => {
 };
 
 export const ConversationService = {
-  // Fetch all conversations for the current user
   async getConversations(archived: boolean = false): Promise<Conversation[]> {
     try {
       const result = await supabase
@@ -57,7 +52,6 @@ export const ConversationService = {
         .eq('archived', archived)
         .order('updated_at', { ascending: false });
 
-      // Manually access and check data and error
       const dbConversations = result.data || [];
       const error = result.error;
 
@@ -67,14 +61,12 @@ export const ConversationService = {
       for (const dbConvo of dbConversations) {
         const conversation = mapDbConversation(dbConvo);
         
-        // Get messages for this conversation
         const messagesResult = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', dbConvo.id)
           .order('timestamp', { ascending: true });
         
-        // Manually access and check data and error
         const dbMessages = messagesResult.data || [];
         const messagesError = messagesResult.error;
         
@@ -92,13 +84,11 @@ export const ConversationService = {
     }
   },
 
-  // Create a new conversation
   async createConversation(name: string, category: ConversationCategory, messages: Message[]): Promise<Conversation | null> {
     try {
       const conversationId = uuidv4();
       const now = Date.now();
 
-      // Insert conversation
       const result = await supabase
         .from('conversations')
         .insert({
@@ -110,11 +100,9 @@ export const ConversationService = {
         })
         .select();
 
-      // Manually check for error
       if (result.error) throw result.error;
       const newConversation = result.data?.[0];
 
-      // Insert messages
       if (messages.length > 0) {
         const dbMessages = messages.map(msg => mapMessageToDb(msg, conversationId));
         const messagesResult = await supabase
@@ -141,7 +129,6 @@ export const ConversationService = {
     }
   },
 
-  // Update an existing conversation
   async updateConversation(conversation: Conversation): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -165,7 +152,6 @@ export const ConversationService = {
     }
   },
 
-  // Add a message to a conversation
   async addMessage(conversationId: string, message: Message): Promise<Message | null> {
     try {
       const { error } = await supabase
@@ -174,7 +160,6 @@ export const ConversationService = {
 
       if (error) throw error;
 
-      // Update conversation's updated_at timestamp
       await supabase
         .from('conversations')
         .update({ updated_at: new Date(Date.now()).toISOString() }) // Convert to ISO string
@@ -188,7 +173,6 @@ export const ConversationService = {
     }
   },
 
-  // Mark messages as read
   async markMessagesAsRead(conversationId: string): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -206,15 +190,16 @@ export const ConversationService = {
     }
   },
 
-  // Archive a conversation
   async archiveConversation(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const result = await supabase
         .from('conversations')
         .update({ archived: true })
         .eq('id', conversationId);
 
-      if (error) throw error;
+      const executeResult = await result.execute();
+      if (executeResult.error) throw executeResult.error;
+      
       return true;
     } catch (error) {
       console.error('Error archiving conversation:', error);
@@ -223,7 +208,6 @@ export const ConversationService = {
     }
   },
 
-  // Restore an archived conversation
   async restoreConversation(conversationId: string): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -240,16 +224,13 @@ export const ConversationService = {
     }
   },
 
-  // Permanently delete a conversation
   async deleteConversation(conversationId: string): Promise<boolean> {
     try {
-      // First delete all messages (though this should cascade automatically)
       await supabase
         .from('messages')
         .delete()
         .eq('conversation_id', conversationId);
 
-      // Then delete the conversation
       const { error } = await supabase
         .from('conversations')
         .delete()
@@ -264,7 +245,6 @@ export const ConversationService = {
     }
   },
 
-  // Update conversation category
   async updateCategory(conversationId: string, category: ConversationCategory): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -280,8 +260,7 @@ export const ConversationService = {
       return false;
     }
   },
-  
-  // Toggle conversation pinned status
+
   async togglePinned(conversationId: string, isPinned: boolean): Promise<boolean> {
     try {
       const { error } = await supabase

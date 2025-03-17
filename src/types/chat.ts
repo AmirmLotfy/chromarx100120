@@ -7,7 +7,7 @@ export interface Message {
   content: string;
   sender: MessageSender;
   timestamp: number;
-  isRead: boolean;
+  isRead?: boolean; // Changed from required to optional
   bookmarks?: {
     title: string;
     url: string;
