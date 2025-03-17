@@ -55,7 +55,7 @@ export const ConversationService = {
         .from('conversations')
         .eq('archived', archived)
         .order('updated_at', { ascending: false })
-        .select();
+        .execute();
 
       const dbConversations = result.data || [];
       const error = result.error;
@@ -72,7 +72,7 @@ export const ConversationService = {
           .from('messages')
           .eq('conversation_id', conversation.id)
           .order('timestamp', { ascending: true })
-          .select();
+          .execute();
         
         const dbMessages = messagesResult.data || [];
         const messagesError = messagesResult.error;
@@ -104,7 +104,8 @@ export const ConversationService = {
           category,
           created_at: new Date(now).toISOString(),
           updated_at: new Date(now).toISOString()
-        });
+        })
+        .execute();
 
       if (result.error) throw result.error;
       
@@ -112,7 +113,8 @@ export const ConversationService = {
         const dbMessages = messages.map(msg => mapMessageToDb(msg, conversationId));
         const messagesResult = await localStorageClient
           .from('messages')
-          .insert(dbMessages);
+          .insert(dbMessages)
+          .execute();
 
         if (messagesResult.error) throw messagesResult.error;
       }
@@ -146,7 +148,8 @@ export const ConversationService = {
           is_bookmark_search: conversation.isBookmarkSearch,
           updated_at: new Date(Date.now()).toISOString() // Convert to ISO string
         })
-        .eq('id', conversation.id);
+        .eq('id', conversation.id)
+        .execute();
 
       if (result.error) throw result.error;
       return true;
@@ -161,14 +164,16 @@ export const ConversationService = {
     try {
       const result = await localStorageClient
         .from('messages')
-        .insert(mapMessageToDb(message, conversationId));
+        .insert(mapMessageToDb(message, conversationId))
+        .execute();
 
       if (result.error) throw result.error;
 
       await localStorageClient
         .from('conversations')
         .update({ updated_at: new Date(Date.now()).toISOString() }) // Convert to ISO string
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .execute();
 
       return message;
     } catch (error) {
@@ -185,7 +190,8 @@ export const ConversationService = {
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
         .eq('sender', 'assistant')
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .execute();
 
       if (result.error) throw result.error;
       return true;
@@ -200,7 +206,8 @@ export const ConversationService = {
       const result = await localStorageClient
         .from('conversations')
         .update({ archived: true })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .execute();
 
       if (result.error) throw result.error;
       
@@ -217,7 +224,8 @@ export const ConversationService = {
       const result = await localStorageClient
         .from('conversations')
         .update({ archived: false })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .execute();
 
       if (result.error) throw result.error;
       return true;
@@ -233,12 +241,14 @@ export const ConversationService = {
       await localStorageClient
         .from('messages')
         .delete()
-        .eq('conversation_id', conversationId);
+        .eq('conversation_id', conversationId)
+        .execute();
 
       const result = await localStorageClient
         .from('conversations')
         .delete()
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .execute();
 
       if (result.error) throw result.error;
       return true;
@@ -254,7 +264,8 @@ export const ConversationService = {
       const result = await localStorageClient
         .from('conversations')
         .update({ category })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .execute();
 
       if (result.error) throw result.error;
       return true;
@@ -270,7 +281,8 @@ export const ConversationService = {
       const result = await localStorageClient
         .from('conversations')
         .update({ pinned: isPinned })
-        .eq('id', conversationId);
+        .eq('id', conversationId)
+        .execute();
 
       if (result.error) throw result.error;
       return true;

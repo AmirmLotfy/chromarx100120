@@ -1,4 +1,3 @@
-
 import { chromeStorage } from '@/services/chromeStorageService';
 
 // Interface for query result
@@ -9,13 +8,14 @@ interface QueryResult<T> {
 
 // Interface for the builder pattern for building queries
 interface QueryBuilder<T> {
-  select(): Promise<QueryResult<T>>;
+  select(): QueryBuilder<T>;
   eq(column: string, value: any): QueryBuilder<T>;
   order(column: string, options?: { ascending: boolean }): QueryBuilder<T>;
-  delete(): Promise<QueryResult<T>>;
-  insert(data: T | T[]): Promise<QueryResult<T>>;
-  update(data: Partial<T>): Promise<QueryResult<T>>;
+  delete(): QueryBuilder<T>;
+  insert(data: T | T[]): QueryBuilder<T>;
+  update(data: Partial<T>): QueryBuilder<T>;
   from: (table: string) => QueryBuilder<T>;
+  execute(): Promise<QueryResult<T>>;
 }
 
 // Implements a Supabase-like client for Chrome storage
@@ -24,6 +24,9 @@ class ChromeStorageClient {
   private filters: Array<{ column: string; value: any }> = [];
   private orderByColumn: string | null = null;
   private ascending: boolean = true;
+  private operation: 'select' | 'insert' | 'update' | 'delete' = 'select';
+  private dataToInsert: any = null;
+  private dataToUpdate: any = null;
 
   async get<T>(key: string): Promise<T | null> {
     return await chromeStorage.get<T>(key);
@@ -42,30 +45,18 @@ class ChromeStorageClient {
     this.filters = [];
     this.orderByColumn = null;
     this.ascending = true;
+    this.operation = 'select';
+    this.dataToInsert = null;
+    this.dataToUpdate = null;
     
     return this.createQueryBuilder<T>();
   }
 
   private createQueryBuilder<T>(): QueryBuilder<T> {
     return {
-      select: async (): Promise<QueryResult<T>> => {
-        try {
-          // Get all data for the table
-          const tableData = await this.getTable<T>();
-          
-          // Apply filters
-          let filteredData = this.applyFilters(tableData);
-          
-          // Apply ordering if specified
-          if (this.orderByColumn) {
-            filteredData = this.applyOrdering(filteredData);
-          }
-          
-          return { data: filteredData, error: null };
-        } catch (error) {
-          console.error(`Error selecting from ${this.tableName}:`, error);
-          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-        }
+      select: (): QueryBuilder<T> => {
+        this.operation = 'select';
+        return this.createQueryBuilder<T>();
       },
       
       eq: (column: string, value: any): QueryBuilder<T> => {
@@ -79,81 +70,141 @@ class ChromeStorageClient {
         return this.createQueryBuilder<T>();
       },
       
-      delete: async (): Promise<QueryResult<T>> => {
-        try {
-          // Get all data for the table
-          const tableData = await this.getTable<T>();
-          
-          // Apply filters to find items to delete
-          const filteredData = this.applyFilters(tableData);
-          
-          // Get items to keep
-          const itemsToKeep = tableData.filter(item => 
-            !filteredData.some(filteredItem => 
-              this.compareItems(item, filteredItem)
-            )
-          );
-          
-          // Save the updated table
-          await chromeStorage.set(`${this.tableName}`, itemsToKeep);
-          
-          return { data: filteredData, error: null };
-        } catch (error) {
-          console.error(`Error deleting from ${this.tableName}:`, error);
-          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-        }
+      delete: (): QueryBuilder<T> => {
+        this.operation = 'delete';
+        return this.createQueryBuilder<T>();
       },
       
-      insert: async (data: T | T[]): Promise<QueryResult<T>> => {
-        try {
-          // Get existing data for the table
-          const tableData = await this.getTable<T>();
-          
-          // Add new data (single item or array)
-          const itemsToAdd = Array.isArray(data) ? data : [data];
-          const updatedData = [...tableData, ...itemsToAdd];
-          
-          // Save the updated table
-          await chromeStorage.set(`${this.tableName}`, updatedData);
-          
-          return { data: itemsToAdd, error: null };
-        } catch (error) {
-          console.error(`Error inserting into ${this.tableName}:`, error);
-          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-        }
+      insert: (data: T | T[]): QueryBuilder<T> => {
+        this.operation = 'insert';
+        this.dataToInsert = data;
+        return this.createQueryBuilder<T>();
       },
       
-      update: async (data: Partial<T>): Promise<QueryResult<T>> => {
-        try {
-          // Get all data for the table
-          const tableData = await this.getTable<T>();
-          
-          // Apply filters to find items to update
-          const itemsToUpdate = this.applyFilters(tableData);
-          
-          // Update the items
-          const updatedItems: T[] = [];
-          const newTableData = tableData.map(item => {
-            if (itemsToUpdate.some(updateItem => this.compareItems(item, updateItem))) {
-              const updated = { ...item, ...data };
-              updatedItems.push(updated);
-              return updated;
-            }
-            return item;
-          });
-          
-          // Save the updated table
-          await chromeStorage.set(`${this.tableName}`, newTableData);
-          
-          return { data: updatedItems, error: null };
-        } catch (error) {
-          console.error(`Error updating ${this.tableName}:`, error);
-          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-        }
+      update: (data: Partial<T>): QueryBuilder<T> => {
+        this.operation = 'update';
+        this.dataToUpdate = data;
+        return this.createQueryBuilder<T>();
       },
       
-      from: this.from.bind(this)
+      from: this.from.bind(this),
+      
+      execute: async (): Promise<QueryResult<T>> => {
+        try {
+          switch (this.operation) {
+            case 'select':
+              return await this.executeSelect<T>();
+            case 'delete':
+              return await this.executeDelete<T>();
+            case 'insert':
+              return await this.executeInsert<T>();
+            case 'update':
+              return await this.executeUpdate<T>();
+            default:
+              return { data: null, error: new Error('Invalid operation') };
+          }
+        } catch (error) {
+          console.error(`Error executing ${this.operation} on ${this.tableName}:`, error);
+          return { 
+            data: null, 
+            error: error instanceof Error ? error : new Error('Unknown error') 
+          };
+        }
+      }
     };
+  }
+
+  private async executeSelect<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get all data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Apply filters
+      let filteredData = this.applyFilters(tableData);
+      
+      // Apply ordering if specified
+      if (this.orderByColumn) {
+        filteredData = this.applyOrdering(filteredData);
+      }
+      
+      return { data: filteredData, error: null };
+    } catch (error) {
+      console.error(`Error selecting from ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
+  }
+
+  private async executeDelete<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get all data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Apply filters to find items to delete
+      const filteredData = this.applyFilters(tableData);
+      
+      // Get items to keep
+      const itemsToKeep = tableData.filter(item => 
+        !filteredData.some(filteredItem => 
+          this.compareItems(item, filteredItem)
+        )
+      );
+      
+      // Save the updated table
+      await chromeStorage.set(`${this.tableName}`, itemsToKeep);
+      
+      return { data: filteredData, error: null };
+    } catch (error) {
+      console.error(`Error deleting from ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
+  }
+
+  private async executeInsert<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get existing data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Add new data (single item or array)
+      const itemsToAdd = Array.isArray(this.dataToInsert) ? this.dataToInsert : [this.dataToInsert];
+      const updatedData = [...tableData, ...itemsToAdd];
+      
+      // Save the updated table
+      await chromeStorage.set(`${this.tableName}`, updatedData);
+      
+      return { data: itemsToAdd, error: null };
+    } catch (error) {
+      console.error(`Error inserting into ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
+  }
+
+  private async executeUpdate<T>(): Promise<QueryResult<T>> {
+    try {
+      // Get all data for the table
+      const tableData = await this.getTable<T>();
+      
+      // Apply filters to find items to update
+      const itemsToUpdate = this.applyFilters(tableData);
+      
+      // Update the items
+      const updatedItems: T[] = [];
+      const newTableData = tableData.map(item => {
+        if (itemsToUpdate.some(updateItem => this.compareItems(item, updateItem))) {
+          const updated = { ...item, ...this.dataToUpdate };
+          updatedItems.push(updated);
+          return updated;
+        }
+        return item;
+      });
+      
+      // Save the updated table
+      await chromeStorage.set(`${this.tableName}`, newTableData);
+      
+      return { data: updatedItems, error: null };
+    } catch (error) {
+      console.error(`Error updating ${this.tableName}:`, error);
+      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+    }
   }
 
   private async getTable<T>(): Promise<T[]> {
