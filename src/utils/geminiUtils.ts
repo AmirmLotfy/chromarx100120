@@ -1,350 +1,233 @@
-import { ChromeBookmark } from "@/types/bookmark";
-import { fetchPageContent } from "./contentExtractor";
-import { aiRequestManager } from "./aiRequestManager";
+
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
+import { storage } from "@/services/storageService";
 import { toast } from "sonner";
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
-import { retryWithBackoff } from "./retryUtils";
+import { ChromeBookmark } from "@/types/bookmark";
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
 
-interface GeminiRequest {
-  prompt: string;
-  type: 'summarize' | 'categorize' | 'timer' | 'sentiment' | 'task' | 'analytics';
-  language: string;
-  contentType?: string;
-  maxRetries?: number;
+interface SummaryOptions {
+  maxWords?: number;
+  focusKeywords?: string[];
+  language?: string;
 }
 
-interface GeminiResponse {
-  result: string;
-  error?: string;
-}
-
-// For local fallback responses when API is unavailable
-const fallbackResponses = {
-  summarize: "Unable to generate summary. Please try again later.",
-  categorize: "uncategorized",
-  sentiment: "neutral",
-  task: "No task suggestions available.",
-  timer: "25",
-  analytics: "No analytics available."
-};
-
-export const getGeminiResponse = async (request: GeminiRequest): Promise<GeminiResponse> => {
+// Initialize the API with the API key
+const getApiInstance = async () => {
   try {
-    const result = await retryWithBackoff(
-      () => callAIFunction(request.type, {
-        content: request.prompt,
-        language: request.language,
-        contentType: request.contentType
-      }),
-      {
-        maxRetries: request.maxRetries || 3,
-        initialDelay: 1000,
-        maxDelay: 10000,
-        onRetry: (error, attempt) => {
-          console.log(`Retry attempt ${attempt} for ${request.type} operation:`, error);
-          if (attempt === 3) {
-            toast.error(`Rate limit reached. Using fallback response.`);
-          }
-        }
-      }
-    );
-    return { result };
-  } catch (error) {
-    console.error('Error getting Gemini response:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // Get API key from local storage
+    const apiKey = await storage.get<string>('geminiApiKey');
     
-    // Enhanced error handling with more specific messages
-    if (errorMessage.includes('rate') && errorMessage.includes('limit')) {
-      toast.error("AI service rate limit reached. Please try again later.");
-    } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-      toast.error("Network issue detected. Check your connection and try again.");
-    } else if (errorMessage.includes('auth') || errorMessage.includes('key')) {
-      toast.error("Authentication issue with AI service. Please check your API key.");
-    } else {
-      toast.error(`AI service error: ${errorMessage}`);
+    if (!apiKey) {
+      console.error('No Gemini API key found in storage');
+      return null;
     }
     
-    // Use fallback responses based on operation type
-    return { 
-      result: fallbackResponses[request.type] || '', 
-      error: errorMessage 
+    // Initialize the API
+    return new GoogleGenerativeAI(apiKey);
+  } catch (error) {
+    console.error('Error initializing Gemini API:', error);
+    return null;
+  }
+};
+
+export async function getBookmarkSummary(content: string, options: SummaryOptions = {}): Promise<string | null> {
+  try {
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      toast.error('Please set your Gemini API key in settings');
+      return null;
+    }
+    
+    // Configure the model
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
+    
+    // Build the prompt based on options
+    let prompt = `Summarize the following content concisely`;
+    
+    if (options.maxWords) {
+      prompt += ` in about ${options.maxWords} words`;
+    }
+    
+    if (options.focusKeywords && options.focusKeywords.length > 0) {
+      prompt += `, focusing on these keywords: ${options.focusKeywords.join(', ')}`;
+    }
+    
+    if (options.language && options.language !== 'en') {
+      prompt += `. Please provide the summary in ${options.language} language`;
+    }
+    
+    prompt += `:\n\n${content}`;
+    
+    // Generate content
+    const result = await model.generateContent(prompt);
+    
+    return result.response.text();
+  } catch (error) {
+    console.error('Error generating summary with Gemini:', error);
+    toast.error('Failed to generate summary');
+    return null;
+  }
+}
+
+export async function analyzeProductivity(analyticsData: any[], goalsData: any[]): Promise<any> {
+  try {
+    // First try to use the Supabase edge function
+    try {
+      const result = await supabase.functions.invoke('analyze-productivity', {
+        body: { analyticsData, goalsData, timeframe: '7days' }
+      });
+      
+      if (result.error) {
+        throw new Error('Failed to use cloud function, falling back to local analysis');
+      }
+      
+      return result.data;
+    } catch (cloudError) {
+      console.warn('Cloud function failed, using local analysis:', cloudError);
+      
+      // Fallback to local analysis with Gemini (if available)
+      const genAI = await getApiInstance();
+      if (!genAI) {
+        toast.error('Please set your Gemini API key in settings');
+        throw new Error('No Gemini API key available for local analysis');
+      }
+      
+      // Configure the model
+      const model = genAI.getGenerativeModel({
+        model: "gemini-pro",
+        safetySettings: [
+          {
+            category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+          },
+        ],
+      });
+      
+      // Prepare the data for analysis
+      const analyticsString = JSON.stringify(analyticsData);
+      const goalsString = JSON.stringify(goalsData);
+      
+      const prompt = `
+        Please analyze the following productivity data and goals to provide insights.
+        
+        Analytics data:
+        ${analyticsString}
+        
+        Goals data:
+        ${goalsString}
+        
+        Please provide a structured JSON response with these fields:
+        - summary: A short overview of the user's productivity
+        - patterns: An array of identified productivity patterns
+        - recommendations: An array of actionable recommendations
+        - alerts: An array of any concerning trends that need attention
+        - domainSpecificTips: An object with domain names as keys and specific tips as values
+        - productivityByDomain: An array of objects with domain and score properties
+        - goalProgress: An array of objects with category, current, and target properties
+      `;
+      
+      // Generate insights
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      
+      // Parse JSON from the response
+      const jsonMatch = text.match(/```json\n([\s\S]*)\n```/) || text.match(/```\n([\s\S]*)\n```/) || text.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error('Could not parse JSON response from Gemini');
+      }
+      
+      const jsonStr = jsonMatch[0].replace(/```json\n|```\n|```/g, '');
+      const insights = JSON.parse(jsonStr);
+      
+      return { insights };
+    }
+  } catch (error) {
+    console.error('Error analyzing productivity:', error);
+    toast.error('Failed to analyze productivity data');
+    
+    // Return mock insights as fallback
+    return {
+      insights: {
+        summary: "We couldn't analyze your productivity at this time. Please try again later.",
+        patterns: ["Not enough data to identify patterns"],
+        recommendations: ["Continue tracking your productivity to get personalized recommendations"],
+        alerts: [],
+        domainSpecificTips: {},
+        productivityByDomain: [],
+        goalProgress: []
+      }
     };
   }
-};
+}
 
-const callAIFunction = async (operation: string, params: any): Promise<string> => {
+export async function suggestBookmarkOrganization(bookmarks: ChromeBookmark[]): Promise<any> {
   try {
-    // Check if Gemini API key is available in Supabase
-    const { data: secretExists, error: secretError } = await supabase.functions.invoke('gemini-api', {
-      body: { operation: 'check-api-key' }
-    });
-
-    if (secretError) {
-      console.error('Error checking API key:', secretError);
-      throw new Error('Failed to check API key status');
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      toast.error('Please set your Gemini API key in settings');
+      return null;
     }
-
-    if (!secretExists || !secretExists.exists) {
-      console.warn('Gemini API key not available');
-      return fallbackResponses[operation] || 'API key not configured';
-    }
-
-    const { data, error } = await supabase.functions.invoke('gemini-api', {
-      body: { operation, ...params }
+    
+    // Configure the model
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
     });
-
-    if (error) throw error;
-    return data.result;
+    
+    // Take a subset of bookmarks if there are too many
+    const sampleBookmarks = bookmarks.slice(0, 50); // Limit to 50 to avoid token limits
+    
+    const prompt = `
+      Please analyze these bookmarks and suggest ways to organize them into folders/categories:
+      
+      ${JSON.stringify(sampleBookmarks.map(b => ({ title: b.title, url: b.url })))}
+      
+      Please provide a structured JSON response with these fields:
+      - suggestedCategories: An array of category names that would make sense
+      - bookmarkAssignments: An object where keys are bookmark titles and values are the suggested category
+      - organizationTips: An array of tips for better bookmark organization
+    `;
+    
+    // Generate insights
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    
+    // Parse JSON from the response
+    const jsonMatch = text.match(/```json\n([\s\S]*)\n```/) || text.match(/```\n([\s\S]*)\n```/) || text.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error('Could not parse JSON response from Gemini');
+    }
+    
+    const jsonStr = jsonMatch[0].replace(/```json\n|```\n|```/g, '');
+    return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('Error calling AI function:', error);
+    console.error('Error suggesting bookmark organization:', error);
+    toast.error('Failed to suggest bookmark organization');
     
-    // Enhanced error type handling
-    if (error instanceof Error) {
-      if (error.message.includes('429')) {
-        throw new Error('Rate limit exceeded. Please try again later.');
-      } else if (error.message.includes('403')) {
-        throw new Error('Access denied. Please check your API key.');
-      } else if (error.message.includes('404')) {
-        throw new Error('AI service endpoint not found. Please check configuration.');
-      } else if (error.message.includes('timeout')) {
-        throw new Error('Request timed out. The AI service may be experiencing high load.');
-      }
-    }
-    
-    throw error;
+    return {
+      suggestedCategories: ["Work", "Personal", "Research", "Shopping", "News"],
+      bookmarkAssignments: {},
+      organizationTips: [
+        "Group similar bookmarks together",
+        "Use descriptive folder names",
+        "Consider using tags for cross-categorization",
+        "Regularly clean up unused bookmarks"
+      ]
+    };
   }
-};
-
-export const summarizeContent = async (content: string, language: string): Promise<string> => {
-  return aiRequestManager.makeRequest(
-    async () => callAIFunction('summarize', { content, language }),
-    `summary_${content.slice(0, 50)}`,
-    'Failed to generate summary'
-  );
-};
-
-export const summarizeBookmark = async (bookmark: ChromeBookmark, language: string): Promise<string> => {
-  try {
-    let content = await fetchPageContent(bookmark.url || '');
-    if (!content) {
-      content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
-    }
-
-    return aiRequestManager.makeRequest(
-      async () => callAIFunction('summarize', { 
-        content,
-        language,
-        url: bookmark.url,
-        title: bookmark.title 
-      }),
-      `bookmark_summary_${bookmark.id}`,
-      'Failed to generate bookmark summary'
-    );
-  } catch (error) {
-    console.error('Error summarizing bookmark:', error);
-    throw error;
-  }
-};
-
-export const suggestBookmarkCategory = async (title: string, url: string, content: string, language: string): Promise<string> => {
-  return aiRequestManager.makeRequest(
-    async () => callAIFunction('categorize', { title, url, content, language }),
-    `category_${url}`,
-    'uncategorized'
-  );
-};
-
-export const generateChatResponse = async (
-  query: string,
-  bookmarks: ChromeBookmark[],
-  language: string
-): Promise<string> => {
-  const bookmarkContents = await Promise.all(
-    bookmarks.map(async bookmark => ({
-      title: bookmark.title,
-      url: bookmark.url,
-      content: await fetchPageContent(bookmark.url || '')
-    }))
-  );
-
-  const content = `
-Query: ${query}
-
-Related Bookmarks:
-${bookmarkContents.map(b => `
-Title: ${b.title}
-URL: ${b.url}
-Content: ${b.content}
-`).join('\n---\n')}
-  `.trim();
-
-  return aiRequestManager.makeRequest(
-    async () => callAIFunction('chat', { content, language }),
-    `chat_${query}_${bookmarks.map(b => b.id).join('_')}`,
-    'Failed to generate chat response'
-  );
-};
-
-export const generateTaskSuggestions = async (content: string, language: string): Promise<string> => {
-  return aiRequestManager.makeRequest(
-    async () => callAIFunction('task', { content, language }),
-    `task_${content.slice(0, 50)}`,
-    'Failed to generate task suggestions'
-  );
-};
-
-export const analyzeProductivity = async (data: any, language: string): Promise<string> => {
-  return aiRequestManager.makeRequest(
-    async () => callAIFunction('analytics', { content: JSON.stringify(data), language }),
-    `analytics_${Date.now()}`,
-    'Failed to analyze productivity'
-  );
-};
-
-export const suggestTimerDuration = async (task: string, language: string): Promise<number> => {
-  const response = await aiRequestManager.makeRequest(
-    async () => callAIFunction('suggest-timer', { content: task, language }),
-    `timer_${task}`,
-    '25'
-  );
-  const minutes = parseInt(response);
-  return isNaN(minutes) ? 25 : minutes;
-};
-
-export const analyzeSentiment = async (content: string, language: string): Promise<'positive' | 'negative' | 'neutral'> => {
-  const sentiment = await aiRequestManager.makeRequest(
-    async () => callAIFunction('sentiment', { content, language }),
-    `sentiment_${content.slice(0, 50)}`,
-    'neutral'
-  );
-  return sentiment.toLowerCase().trim() as 'positive' | 'negative' | 'neutral';
-};
-
-export const checkGeminiAvailability = async (): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.functions.invoke('gemini-api', {
-      body: { operation: 'check-api-key' }
-    });
-
-    if (error) {
-      console.error('Error checking Gemini availability:', error);
-      return false;
-    }
-
-    return data.exists === true;
-  } catch (error) {
-    console.error('Error checking Gemini availability:', error);
-    return false;
-  }
-};
-
-export const processBatchBookmarks = async (
-  bookmarks: ChromeBookmark[], 
-  operation: 'summarize' | 'categorize',
-  language: string,
-  batchSize = 5,
-  onProgress?: (progress: number) => void
-): Promise<ChromeBookmark[]> => {
-  const results: ChromeBookmark[] = [];
-  const totalBookmarks = bookmarks.length;
-  
-  // Process in smaller batches to avoid rate limits
-  for (let i = 0; i < totalBookmarks; i += batchSize) {
-    const batch = bookmarks.slice(i, i + batchSize);
-    
-    const batchPromises = batch.map(async (bookmark) => {
-      try {
-        let processedBookmark = { ...bookmark };
-        
-        if (operation === 'summarize' && bookmark.url) {
-          const summary = await summarizeBookmark(bookmark, language);
-          processedBookmark.metadata = {
-            ...processedBookmark.metadata,
-            summary
-          };
-        } else if (operation === 'categorize' && bookmark.url) {
-          const content = await fetchPageContent(bookmark.url);
-          const category = await suggestBookmarkCategory(
-            bookmark.title,
-            bookmark.url,
-            content,
-            language
-          );
-          processedBookmark.category = category;
-        }
-        
-        return processedBookmark;
-      } catch (error) {
-        console.error(`Error processing bookmark ${bookmark.id}:`, error);
-        // Return original bookmark if processing fails
-        return bookmark;
-      }
-    });
-    
-    const batchResults = await Promise.allSettled(batchPromises);
-    
-    batchResults.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        results.push(result.value);
-      } else {
-        // Keep original bookmark on failure
-        results.push(batch[index]);
-        console.error(`Failed to process bookmark: ${result.reason}`);
-      }
-    });
-    
-    // Report progress
-    if (onProgress) {
-      const progress = Math.min(100, Math.round(((i + batch.length) / totalBookmarks) * 100));
-      onProgress(progress);
-    }
-    
-    // Pause between batches to avoid rate limits
-    if (i + batchSize < totalBookmarks) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-  
-  return results;
-};
-
-export const submitAIFeedback = async (
-  operationType: string,
-  result: string,
-  feedback: 'positive' | 'negative',
-  userSuggestion?: string
-): Promise<void> => {
-  try {
-    await supabase.functions.invoke('gemini-api', {
-      body: { 
-        operation: 'feedback',
-        operationType,
-        result,
-        feedback,
-        userSuggestion
-      }
-    });
-    
-    toast.success('Thank you for your feedback!');
-  } catch (error) {
-    console.error('Error submitting AI feedback:', error);
-    toast.error('Failed to submit feedback');
-  }
-};
-
-export const testAIReliability = async (language: string): Promise<boolean> => {
-  try {
-    // Simple test to check if AI service is responding reliably
-    const testResult = await getGeminiResponse({
-      prompt: 'Test prompt for reliability check',
-      type: 'sentiment',
-      language,
-      maxRetries: 1
-    });
-    
-    return !testResult.error;
-  } catch (error) {
-    console.error('AI reliability test failed:', error);
-    return false;
-  }
-};
+}

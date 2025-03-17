@@ -30,14 +30,15 @@ const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
 
   const fetchTemplates = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('task_templates')
         .select('*')
-        .order('title');
+        .order('title')
+        .execute();
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
-      const formattedTemplates: TaskTemplate[] = data.map(template => ({
+      const formattedTemplates: TaskTemplate[] = result.data.map(template => ({
         id: template.id,
         title: template.title,
         description: template.description,
@@ -56,12 +57,13 @@ const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
 
   const handleDeleteTemplate = async (id: string) => {
     try {
-      const { error } = await supabase
+      const result = await supabase
         .from('task_templates')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .execute();
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       setTemplates(prev => prev.filter(template => template.id !== id));
       toast.success("Template deleted successfully");

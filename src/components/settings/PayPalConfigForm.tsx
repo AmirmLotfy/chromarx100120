@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ const PayPalConfigForm = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase
+      const result = await supabase
         .from('app_configuration')
         .upsert({
           key: 'paypal',
@@ -33,10 +34,11 @@ const PayPalConfigForm = () => {
             client_secret: clientSecret,
             mode: mode
           }
-        });
+        })
+        .select();
         
-      if (error) {
-        throw error;
+      if (result.error) {
+        throw result.error;
       }
       
       toast.success("PayPal configuration saved successfully");

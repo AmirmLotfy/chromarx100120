@@ -204,31 +204,41 @@ const createQueryBuilder = (tableName: string) => {
     insert: (data: any | any[]) => {
       return {
         select: async () => {
-          const dataArray = Array.isArray(data) ? data : [data];
-          const newId = `id-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-          
-          dataArray.forEach(item => {
-            const id = item.id || newId;
-            if (!localDb[currentTable][id]) {
-              localDb[currentTable][id] = [];
-            }
-            const newItem = { ...item, id };
-            localDb[currentTable][id].push(newItem);
-          });
-          
-          persistDb();
-          
-          return { 
-            data: dataArray.map(item => ({ ...item, id: item.id || newId })),
-            error: null
-          };
+          try {
+            const dataArray = Array.isArray(data) ? data : [data];
+            const newId = `id-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            
+            dataArray.forEach(item => {
+              const id = item.id || newId;
+              if (!localDb[currentTable][id]) {
+                localDb[currentTable][id] = [];
+              }
+              const newItem = { ...item, id };
+              localDb[currentTable][id].push(newItem);
+            });
+            
+            persistDb();
+            
+            return { 
+              data: dataArray.map(item => ({ ...item, id: item.id || newId })),
+              error: null
+            };
+          } catch (error) {
+            console.error('Error inserting data:', error);
+            return { data: null, error: 'Insert error' };
+          }
         },
         single: async () => {
-          const result = await builder.insert(data).select();
-          return {
-            data: Array.isArray(result.data) && result.data.length > 0 ? result.data[0] : null,
-            error: result.error
-          };
+          try {
+            const result = await builder.insert(data).select();
+            return {
+              data: Array.isArray(result.data) && result.data.length > 0 ? result.data[0] : null,
+              error: result.error
+            };
+          } catch (error) {
+            console.error('Error inserting single item:', error);
+            return { data: null, error: 'Insert error' };
+          }
         }
       };
     },
@@ -288,55 +298,53 @@ const createQueryBuilder = (tableName: string) => {
     upsert: (data: any, options: { onConflict?: string } = {}) => {
       return {
         select: async () => {
-          const dataArray = Array.isArray(data) ? data : [data];
-          const results: any[] = [];
-          
-          for (const item of dataArray) {
-            const id = item.id || `id-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          try {
+            const dataArray = Array.isArray(data) ? data : [data];
+            const results: any[] = [];
             
-            // Check if item exists with this id
-            let found = false;
-            
-            if (options.onConflict) {
-              // Look for conflicts based on specified column
-              Object.keys(localDb[currentTable]).forEach(key => {
-                localDb[currentTable][key].forEach((existingItem, index) => {
-                  if (existingItem[options.onConflict!] === item[options.onConflict!]) {
-                    found = true;
-                    localDb[currentTable][key][index] = { ...existingItem, ...item };
-                    results.push(localDb[currentTable][key][index]);
-                  }
+            for (const item of dataArray) {
+              const id = item.id || `id-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+              
+              // Check if item exists with this id
+              let found = false;
+              
+              if (options.onConflict) {
+                // Look for conflicts based on specified column
+                Object.keys(localDb[currentTable]).forEach(key => {
+                  localDb[currentTable][key].forEach((existingItem, index) => {
+                    if (existingItem[options.onConflict!] === item[options.onConflict!]) {
+                      found = true;
+                      localDb[currentTable][key][index] = { ...existingItem, ...item };
+                      results.push(localDb[currentTable][key][index]);
+                    }
+                  });
                 });
-              });
+              }
+              
+              // If no conflict found, insert as new
+              if (!found) {
+                if (!localDb[currentTable][id]) {
+                  localDb[currentTable][id] = [];
+                }
+                const newItem = { ...item, id };
+                localDb[currentTable][id].push(newItem);
+                results.push(newItem);
+              }
             }
             
-            // If no conflict found, insert as new
-            if (!found) {
-              if (!localDb[currentTable][id]) {
-                localDb[currentTable][id] = [];
-              }
-              const newItem = { ...item, id };
-              localDb[currentTable][id].push(newItem);
-              results.push(newItem);
-            }
+            persistDb();
+            
+            return { data: results, error: null };
+          } catch (error) {
+            console.error('Error in upsert operation:', error);
+            return { data: null, error: 'Upsert error' };
           }
-          
-          persistDb();
-          
-          return { data: results, error: null };
         }
       };
     }
   };
   
   return builder;
-};
-
-// Supabase client replacement
-export const localStorageClient = {
-  from: (tableName: string) => createQueryBuilder(tableName),
-  auth,
-  functions
 };
 
 // Channel subscription mock
@@ -350,8 +358,8 @@ const createChannel = (channelName: string) => {
   };
 };
 
-// Mock implementation of Supabase
-export const supabase = {
+// Supabase client replacement
+export const localStorageClient = {
   from: (tableName: string) => createQueryBuilder(tableName),
   auth,
   functions,
@@ -371,3 +379,13 @@ export interface StorageBackup {
   created_at: string;
   updated_at: string;
 }
+
+// Mock implementation of Supabase
+export const supabase = {
+  from: (tableName: string) => createQueryBuilder(tableName),
+  auth,
+  functions,
+  channel: (channelName: string) => createChannel(channelName),
+  removeChannel: () => {}
+};
+

@@ -37,11 +37,14 @@ const TaskAnalytics = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const { data: tasks, error } = await supabase
+      const result = await supabase
         .from('tasks')
-        .select('*');
+        .select('*')
+        .execute();
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+
+      const tasks = result.data;
 
       const analytics: TaskAnalytics = {
         totalTasks: tasks.length,

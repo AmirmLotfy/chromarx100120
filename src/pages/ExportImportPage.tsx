@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -224,17 +223,13 @@ const ExportImportPage = () => {
     }
   };
 
-  const handleResolveAllConflicts = async (strategy: 'local' | 'remote') => {
+  const handleResolveAllConflicts = async () => {
     try {
-      setRestoreInProgress(true);
-      await syncService.resolveAllConflicts(user?.id || '', strategy);
-      toast.success(`All conflicts resolved using ${strategy} versions`);
-      loadBackups();
+      await syncService.resolveAllConflicts();
+      fetchConflicts();
     } catch (error) {
-      console.error('Conflict resolution error:', error);
-      toast.error("Failed to resolve conflicts");
-    } finally {
-      setRestoreInProgress(false);
+      console.error('Error resolving conflicts:', error);
+      toast.error('Failed to resolve conflicts');
     }
   };
 

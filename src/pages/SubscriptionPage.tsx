@@ -39,7 +39,7 @@ const SubscriptionPage = () => {
   const [expandedUsage, setExpandedUsage] = useState(false);
   
   const [paypalConfigured, setPaypalConfigured] = useState(false);
-  const [paypalMode, setPaypalMode] = useState<'sandbox' | 'live'>('sandbox');
+  const [mode, setMode] = useState<"sandbox" | "live">("sandbox");
   const [clientId, setClientId] = useState<string | null>(null);
   const [isCheckingConfig, setIsCheckingConfig] = useState(true);
   
@@ -55,7 +55,7 @@ const SubscriptionPage = () => {
         const config = await checkPayPalConfiguration();
         console.log("PayPal config:", config);
         setPaypalConfigured(config.configured);
-        setPaypalMode(config.mode);
+        setMode(config.mode);
         setClientId(config.clientId);
         
         if (user?.id) {
@@ -166,6 +166,10 @@ const SubscriptionPage = () => {
       toast.error("Failed to update auto-renewal setting");
       setAutoRenew(!autoRenew);
     }
+  };
+
+  const handleModeChange = (newMode: "sandbox" | "live") => {
+    setMode(newMode);
   };
 
   const createOrder = async (data: any, actions: any) => {
@@ -555,7 +559,8 @@ const SubscriptionPage = () => {
                               clientId: clientId || "",
                               components: "buttons",
                               intent: "capture",
-                              currency: "USD"
+                              currency: "USD",
+                              mode: mode
                             }}>
                               <PayPalButtons
                                 style={{
