@@ -22,6 +22,74 @@ const CACHED_ASSETS = [
 const API_CACHE_NAME = 'bookmarks-api-cache-v1';
 const STATIC_CACHE_NAME = 'bookmarks-static-cache-v1';
 
+// Background tasks queue storage
+let backgroundTasksQueue = [];
+const TASK_STORAGE_KEY = 'sw-background-tasks';
+
+// Retrieve stored tasks from IndexedDB
+const openTasksDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('BackgroundTasksDB', 1);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('tasks')) {
+        db.createObjectStore('tasks', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject('Error opening tasks database');
+  });
+};
+
+// Load existing tasks when service worker starts
+const loadStoredTasks = async () => {
+  try {
+    const db = await openTasksDB();
+    const transaction = db.transaction(['tasks'], 'readonly');
+    const store = transaction.objectStore('tasks');
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+      request.onsuccess = (event) => {
+        backgroundTasksQueue = event.target.result || [];
+        console.log(`[Service Worker] Loaded ${backgroundTasksQueue.length} stored tasks`);
+        resolve(backgroundTasksQueue);
+      };
+      request.onerror = (event) => reject('Error loading tasks');
+    });
+  } catch (error) {
+    console.error('[Service Worker] Failed to load stored tasks:', error);
+    return [];
+  }
+};
+
+// Save tasks to IndexedDB
+const saveTasksToStorage = async (tasks) => {
+  try {
+    const db = await openTasksDB();
+    const transaction = db.transaction(['tasks'], 'readwrite');
+    const store = transaction.objectStore('tasks');
+    
+    // Clear existing tasks
+    await new Promise((resolve, reject) => {
+      const clearRequest = store.clear();
+      clearRequest.onsuccess = resolve;
+      clearRequest.onerror = reject;
+    });
+    
+    // Add new tasks
+    for (const task of tasks) {
+      store.add(task);
+    }
+    
+    console.log(`[Service Worker] Saved ${tasks.length} tasks to storage`);
+  } catch (error) {
+    console.error('[Service Worker] Failed to save tasks:', error);
+  }
+};
+
 // Install event - Cache critical assets for offline use
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing Optimized Service Worker...');
@@ -34,6 +102,8 @@ self.addEventListener('install', (event) => {
     caches.open(STATIC_CACHE_NAME).then((cache) => {
       console.log('[Service Worker] Caching app shell and content');
       return cache.addAll(CACHED_ASSETS);
+    }).then(() => {
+      return loadStoredTasks();
     })
   );
 });
@@ -59,9 +129,103 @@ self.addEventListener('activate', (event) => {
     }).then(() => {
       console.log('[Service Worker] Claiming clients for latest version');
       return self.clients.claim();
+    }).then(() => {
+      // Process any pending background tasks on activation
+      return processBackgroundTasks();
     })
   );
 });
+
+// Process background tasks
+const processBackgroundTasks = async () => {
+  if (backgroundTasksQueue.length === 0) return;
+  
+  console.log(`[Service Worker] Processing ${backgroundTasksQueue.length} background tasks`);
+  
+  // Process tasks in batches
+  const batchSize = 5;
+  let tasksToProcess = [...backgroundTasksQueue];
+  let processedTasks = [];
+  let failedTasks = [];
+  
+  try {
+    for (let i = 0; i < tasksToProcess.length; i += batchSize) {
+      const batch = tasksToProcess.slice(i, i + batchSize);
+      
+      // Process each batch in parallel
+      const batchResults = await Promise.allSettled(batch.map(async (task) => {
+        try {
+          // Process task based on type
+          switch (task.type) {
+            case 'PROCESS_BATCH':
+              // Just a placeholder, actual processing will be delegated to the client
+              return { success: true, taskId: task.id };
+              
+            case 'SYNC_DATA':
+              // Notify client to sync data
+              notifyClients('SYNC_REQUEST', { taskId: task.id });
+              return { success: true, taskId: task.id };
+              
+            default:
+              console.warn(`[Service Worker] Unknown task type: ${task.type}`);
+              return { success: false, taskId: task.id, error: 'Unknown task type' };
+          }
+        } catch (error) {
+          console.error(`[Service Worker] Task processing error:`, error);
+          return { success: false, taskId: task.id, error: error.message };
+        }
+      }));
+      
+      // Process results
+      batchResults.forEach((result, index) => {
+        const task = batch[index];
+        if (result.status === 'fulfilled' && result.value.success) {
+          processedTasks.push(task);
+        } else {
+          // Increment retry count and maybe try again later
+          task.retries = (task.retries || 0) + 1;
+          if (task.retries < 3) {
+            failedTasks.push(task);
+          } else {
+            processedTasks.push(task); // Give up after 3 retries
+            console.error(`[Service Worker] Giving up on task after ${task.retries} retries`);
+          }
+        }
+      });
+      
+      // Update clients on progress
+      const progress = Math.round((i + batch.length) / tasksToProcess.length * 100);
+      notifyClients('BACKGROUND_PROGRESS', { progress, total: tasksToProcess.length, processed: processedTasks.length });
+    }
+  } catch (error) {
+    console.error('[Service Worker] Error processing background tasks:', error);
+  }
+  
+  // Update queue with remaining tasks
+  backgroundTasksQueue = failedTasks;
+  
+  // Save updated tasks
+  await saveTasksToStorage(backgroundTasksQueue);
+  
+  // Notify clients about completion
+  notifyClients('BACKGROUND_COMPLETE', {
+    processed: processedTasks.length,
+    remaining: failedTasks.length
+  });
+  
+  console.log(`[Service Worker] Background processing complete. Processed: ${processedTasks.length}, Failed: ${failedTasks.length}`);
+};
+
+// Notify all clients
+const notifyClients = async (type, data) => {
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage({
+      type,
+      ...data
+    });
+  });
+};
 
 // Fetch event with optimized strategies for different request types
 self.addEventListener('fetch', (event) => {
@@ -223,6 +387,48 @@ self.addEventListener('message', (event) => {
         });
       });
       break;
+      
+    case 'ADD_BACKGROUND_TASK':
+      // Add task to background processing queue
+      if (data.task) {
+        backgroundTasksQueue.push({
+          ...data.task,
+          added: Date.now(),
+          retries: 0
+        });
+        saveTasksToStorage(backgroundTasksQueue);
+        console.log(`[Service Worker] Added background task. Queue size: ${backgroundTasksQueue.length}`);
+        
+        // Process tasks immediately if online
+        if (navigator.onLine) {
+          processBackgroundTasks();
+        }
+      }
+      break;
+      
+    case 'GET_BACKGROUND_TASKS':
+      // Return current tasks to the client that asked
+      if (event.source) {
+        event.source.postMessage({
+          type: 'BACKGROUND_TASKS',
+          tasks: backgroundTasksQueue
+        });
+      }
+      break;
+      
+    case 'PROCESS_BACKGROUND_TASKS':
+      // Manually trigger background processing
+      processBackgroundTasks();
+      break;
+      
+    case 'TASK_COMPLETED':
+      // Remove a completed task from the queue
+      if (data.taskId) {
+        backgroundTasksQueue = backgroundTasksQueue.filter(task => task.id !== data.taskId);
+        saveTasksToStorage(backgroundTasksQueue);
+        console.log(`[Service Worker] Removed completed task ${data.taskId}. Remaining: ${backgroundTasksQueue.length}`);
+      }
+      break;
   }
 });
 
@@ -236,9 +442,27 @@ self.addEventListener('sync', (event) => {
             type: 'PROCESS_OFFLINE_QUEUE'
           });
         });
+      }).then(() => {
+        return processBackgroundTasks();
       })
     );
   }
+});
+
+// Handle periodic sync for background tasks
+if ('periodicSync' in self.registration) {
+  // Try to process background tasks periodically
+  self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'process-background-tasks') {
+      event.waitUntil(processBackgroundTasks());
+    }
+  });
+}
+
+// If online status changes, try to process tasks
+self.addEventListener('online', () => {
+  console.log('[Service Worker] Device came online, processing background tasks');
+  processBackgroundTasks();
 });
 
 // Only use periodic sync in web context to conserve resources in extension
