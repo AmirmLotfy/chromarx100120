@@ -27,31 +27,35 @@ class LocalStorageClient {
           eq: (column: string, value: any): DbQueryResult<any> => {
             return {
               eq: this.from(table).select().eq,
-              order: (orderColumn: string, options?: { ascending: boolean }): DbQueryResult<any> => {
-                return {
-                  eq: this.from(table).select().eq,
-                  order: this.from(table).select().order,
-                  execute: () => Promise.resolve({ data: [], error: null })
-                };
-              },
-              execute: () => Promise.resolve({ data: [], error: null })
+              order: this.from(table).select().order,
+              single: () => Promise.resolve({ data: {}, error: null }),
+              execute: () => Promise.resolve({ data: [], error: null }),
+              data: [],
+              error: null
             };
           },
           order: (column: string, options?: { ascending: boolean }): DbQueryResult<any> => {
             return {
               eq: this.from(table).select().eq,
               order: this.from(table).select().order,
-              execute: () => Promise.resolve({ data: [], error: null })
+              single: () => Promise.resolve({ data: {}, error: null }),
+              execute: () => Promise.resolve({ data: [], error: null }),
+              data: [],
+              error: null
             };
           },
-          execute: () => Promise.resolve({ data: [], error: null })
+          single: () => Promise.resolve({ data: {}, error: null }),
+          execute: () => Promise.resolve({ data: [], error: null }),
+          data: [],
+          error: null
         };
       },
       
       insert: (data: any): DbInsertResult<any> => {
         return {
           single: () => Promise.resolve({ data: {}, error: null }),
-          select: () => Promise.resolve({ data: [{}], error: null })
+          select: () => Promise.resolve({ data: [{}], error: null }),
+          error: null
         };
       },
       
@@ -61,11 +65,13 @@ class LocalStorageClient {
             return {
               eq: this.from(table).update(data).eq,
               single: () => Promise.resolve({ data: {}, error: null }),
-              execute: () => Promise.resolve({ data: {}, error: null })
+              execute: () => Promise.resolve({ data: {}, error: null }),
+              error: null
             };
           },
           single: () => Promise.resolve({ data: {}, error: null }),
-          execute: () => Promise.resolve({ data: {}, error: null })
+          execute: () => Promise.resolve({ data: {}, error: null }),
+          error: null
         };
       },
       
@@ -92,7 +98,10 @@ class LocalStorageClient {
             return { 
               eq: this.from(table).eq,
               order: this.from(table).order,
-              execute: () => Promise.resolve({ data: [], error: null }) 
+              single: () => Promise.resolve({ data: {}, error: null }),
+              execute: () => Promise.resolve({ data: [], error: null }),
+              data: [],
+              error: null
             };
           }
         };
@@ -102,7 +111,10 @@ class LocalStorageClient {
         return { 
           eq: this.from(table).eq,
           order: this.from(table).order,
-          execute: () => Promise.resolve({ data: [], error: null }) 
+          single: () => Promise.resolve({ data: {}, error: null }),
+          execute: () => Promise.resolve({ data: [], error: null }),
+          data: [],
+          error: null
         };
       }
     };

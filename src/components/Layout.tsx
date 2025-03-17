@@ -1,4 +1,3 @@
-
 import Navigation from "./Navigation";
 import Header from "./Header";
 import { useEffect, useState, useRef } from "react";
@@ -23,9 +22,7 @@ const Layout = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const {
     isOffline
-  } = useOfflineStatus({
-    showToasts: true
-  });
+  } = useOfflineStatus();
   const [serviceWorkerUpdated, setServiceWorkerUpdated] = useState(false);
 
   const toggleSidebar = () => {

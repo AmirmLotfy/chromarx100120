@@ -1,14 +1,22 @@
 
-export type ConversationCategory = "General" | "Work" | "Research" | "Personal" | "Bookmarks";
+export type MessageSender = 'user' | 'assistant';
+export type ConversationCategory = 'General' | 'Work' | 'Research' | 'Personal' | 'Bookmarks' | string;
 
 export interface Message {
   id: string;
   content: string;
-  sender: "user" | "assistant";
+  sender: MessageSender;
   timestamp: number;
-  isRead?: boolean;
-  bookmarks?: any;
-  webResults?: any;
+  isRead: boolean;
+  bookmarks?: {
+    title: string;
+    url: string;
+    relevance: number;
+  }[];
+  webResults?: {
+    title: string;
+    url: string;
+  }[];
 }
 
 export interface Conversation {
@@ -18,8 +26,8 @@ export interface Conversation {
   createdAt: number;
   updatedAt: number;
   pinned?: boolean;
-  bookmarkContext?: string[];
+  bookmarkContext?: string;
   isBookmarkSearch?: boolean;
-  category?: ConversationCategory;
+  category: ConversationCategory;
   archived?: boolean;
 }

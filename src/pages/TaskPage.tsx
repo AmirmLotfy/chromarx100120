@@ -366,7 +366,6 @@ const TaskPage = () => {
               }}
               onSubmit={async (taskData) => {
                 await handleUpdateTask(selectedTask.id, taskData);
-                return true;
               }}
             />
           </DialogContent>

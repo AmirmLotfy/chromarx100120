@@ -9,8 +9,8 @@ import { Conversation } from "@/types/chat";
 export interface ChatHistoryProps {
   isOpen: boolean;
   onClose: () => void;
-  conversations: Conversation[];
-  loadConversation: (conversationId: string) => void;
+  conversations?: Conversation[];
+  loadConversation?: (conversationId: string) => void;
 }
 
 const ChatHistory: React.FC<ChatHistoryProps> = ({
