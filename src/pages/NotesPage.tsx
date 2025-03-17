@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import Layout from "@/components/Layout";
 import NoteEditor from "@/components/notes/NoteEditor";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, ArrowDownAZ, ArrowUpZA, Filter, Calendar } from "lucide-react";
+import { Plus, Search, ArrowDownAZ, Filter, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -43,7 +42,7 @@ const NotesPage = () => {
       const extendedNotes: ExtendedNote[] = fetchedNotes.map(note => ({
         ...note,
         category: note.category || 'General',
-        sentiment: note.sentiment || 'neutral',
+        sentiment: (note.sentiment as 'positive' | 'negative' | 'neutral') || 'neutral',
         tags: note.tags || []
       }));
       setNotes(extendedNotes);
@@ -85,19 +84,26 @@ const NotesPage = () => {
 
   const handleCreateNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const newNote = await createNote(noteData);
+      const newNote = await createNote({
+        ...noteData,
+        category: noteData.category || 'General',
+        sentiment: (noteData.sentiment as 'positive' | 'negative' | 'neutral') || 'neutral',
+        tags: noteData.tags || []
+      });
       
-      // Ensure the new note has all required properties
-      const extendedNote: ExtendedNote = {
-        ...newNote,
-        category: newNote.category || 'General',
-        sentiment: newNote.sentiment || 'neutral',
-        tags: newNote.tags || []
-      };
-      
-      setNotes(prevNotes => [extendedNote, ...prevNotes]);
-      setIsEditorOpen(false);
-      toast.success('Note created successfully');
+      if (newNote) {
+        // Ensure the new note has all required properties
+        const extendedNote: ExtendedNote = {
+          ...newNote,
+          category: newNote.category || 'General',
+          sentiment: (newNote.sentiment as 'positive' | 'negative' | 'neutral') || 'neutral',
+          tags: newNote.tags || []
+        };
+        
+        setNotes(prevNotes => [extendedNote, ...prevNotes]);
+        setIsEditorOpen(false);
+        toast.success('Note created successfully');
+      }
     } catch (error) {
       console.error('Error creating note:', error);
       toast.error('Failed to create note');
@@ -106,22 +112,24 @@ const NotesPage = () => {
 
   const handleUpdateNote = async (updatedNote: Note) => {
     try {
-      await updateNote(updatedNote);
+      const result = await updateNote(updatedNote.id, updatedNote);
       
-      // Ensure the updated note has all required properties
-      const extendedNote: ExtendedNote = {
-        ...updatedNote,
-        category: updatedNote.category || 'General', 
-        sentiment: updatedNote.sentiment || 'neutral',
-        tags: updatedNote.tags || []
-      };
-      
-      setNotes(prevNotes => prevNotes.map(note => 
-        note.id === extendedNote.id ? extendedNote : note
-      ));
-      setEditingNote(null);
-      setIsEditorOpen(false);
-      toast.success('Note updated successfully');
+      if (result) {
+        // Ensure the updated note has all required properties
+        const extendedNote: ExtendedNote = {
+          ...result,
+          category: result.category || 'General', 
+          sentiment: (result.sentiment as 'positive' | 'negative' | 'neutral') || 'neutral',
+          tags: result.tags || []
+        };
+        
+        setNotes(prevNotes => prevNotes.map(note => 
+          note.id === extendedNote.id ? extendedNote : note
+        ));
+        setEditingNote(null);
+        setIsEditorOpen(false);
+        toast.success('Note updated successfully');
+      }
     } catch (error) {
       console.error('Error updating note:', error);
       toast.error('Failed to update note');
@@ -148,6 +156,8 @@ const NotesPage = () => {
     if (category === 'all') return notes.length;
     return notes.filter(note => note.category === category).length;
   };
+
+  const dummyFn = () => {};
 
   return (
     <Layout>
@@ -262,10 +272,10 @@ const NotesPage = () => {
                       onEdit={() => handleEdit(note)} 
                       onDelete={() => handleDeleteNote(note.id)}
                       isSelected={false}
-                      onSelect={() => {}}
-                      onAnalyze={() => {}}
-                      onConvertToTask={() => {}}
-                      onLinkBookmark={() => {}}
+                      onSelect={dummyFn}
+                      onAnalyze={dummyFn}
+                      onConvertToTask={dummyFn}
+                      onLinkBookmark={dummyFn}
                     />
                   ))}
                 </div>
@@ -298,6 +308,9 @@ const NotesPage = () => {
                           note={note} 
                           onEdit={() => handleEdit(note)} 
                           onDelete={() => handleDeleteNote(note.id)}
+                          onAnalyze={dummyFn}
+                          onConvertToTask={dummyFn}
+                          onLinkBookmark={dummyFn}
                         />
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{note.content}</p>
@@ -351,6 +364,7 @@ const NotesPage = () => {
               setIsEditorOpen(false);
               setEditingNote(null);
             }}
+            defaultCategory="General"
           />
         </DialogContent>
       </Dialog>

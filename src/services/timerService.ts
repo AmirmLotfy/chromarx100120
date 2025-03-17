@@ -38,8 +38,7 @@ class TimerService {
           task_context: session.taskContext,
           ai_suggested: session.aiSuggested,
         }])
-        .select('*')
-        .single();
+        .singlePromise();
 
       if (error) throw error;
       return this.mapSessionFromDb(data);

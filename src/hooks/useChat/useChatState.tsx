@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useBookmarkState } from "../../components/BookmarkStateManager";
@@ -93,7 +92,7 @@ export const useChatState = () => {
     if (isOffline) return false;
     
     try {
-      const isAvailable = await testAIReliability(currentLanguage.code);
+      const isAvailable = await testAIReliability();
       setIsAIAvailable(isAvailable);
       return isAvailable;
     } catch (err) {
@@ -101,7 +100,7 @@ export const useChatState = () => {
       setIsAIAvailable(false);
       return false;
     }
-  }, [currentLanguage.code, isOffline]);
+  }, [isOffline]);
 
   useEffect(() => {
     if (navigator.onLine) {

@@ -60,6 +60,8 @@ Please suggest an optimal duration in minutes for this ${mode} session, consider
 3. User's previous feedback
 Response should be ONLY the number of minutes.`;
 
+      // Ensure mode is passed as a valid type, not just any string
+      const currentMode = mode === "focus" || mode === "break" ? mode : "focus";
       const suggestedMinutes = await suggestTimerDuration(prompt, currentLanguage.code);
       
       if (!isNaN(suggestedMinutes)) {

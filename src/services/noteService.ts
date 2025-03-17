@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { toast } from 'sonner';
@@ -15,9 +14,11 @@ export interface Note {
   pinned?: boolean;
   folder?: string;
   bookmarkIds?: string[];
+  category?: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
 }
 
-export const NoteService = {
+class NoteServiceClass {
   async getAllNotes(): Promise<Note[]> {
     try {
       const user = await supabase.auth.getUser();
@@ -41,14 +42,16 @@ export const NoteService = {
         color: note.color,
         pinned: note.pinned,
         folder: note.folder_id,
-        bookmarkIds: note.bookmark_ids
+        bookmarkIds: note.bookmark_ids,
+        category: note.category || 'General',
+        sentiment: note.sentiment || 'neutral',
       }));
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast.error('Failed to load notes');
       return [];
     }
-  },
+  }
   
   async getNote(id: string): Promise<Note | null> {
     try {
@@ -56,7 +59,7 @@ export const NoteService = {
         .from('notes')
         .select('*')
         .eq('id', id)
-        .single();
+        .singlePromise();
       
       if (result.error) throw result.error;
       
@@ -72,14 +75,16 @@ export const NoteService = {
         color: note.color,
         pinned: note.pinned,
         folder: note.folder_id,
-        bookmarkIds: note.bookmark_ids
+        bookmarkIds: note.bookmark_ids,
+        category: note.category || 'General',
+        sentiment: note.sentiment || 'neutral',
       };
     } catch (error) {
       console.error('Error fetching note:', error);
       toast.error('Failed to load note');
       return null;
     }
-  },
+  }
   
   async createNote(noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Promise<Note | null> {
     try {
@@ -99,10 +104,11 @@ export const NoteService = {
           color: noteData.color,
           pinned: noteData.pinned || false,
           folder_id: noteData.folder,
-          bookmark_ids: noteData.bookmarkIds
+          bookmark_ids: noteData.bookmarkIds,
+          category: noteData.category || 'General',
+          sentiment: noteData.sentiment || 'neutral',
         })
-        .select()
-        .single();
+        .singlePromise();
       
       if (result.error) throw result.error;
       
@@ -118,14 +124,16 @@ export const NoteService = {
         color: note.color,
         pinned: note.pinned,
         folder: note.folder_id,
-        bookmarkIds: note.bookmark_ids
+        bookmarkIds: note.bookmark_ids,
+        category: note.category || 'General',
+        sentiment: note.sentiment || 'neutral',
       };
     } catch (error) {
       console.error('Error creating note:', error);
       toast.error('Failed to create note');
       return null;
     }
-  },
+  }
   
   async updateNote(id: string, noteData: Partial<Omit<Note, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Note | null> {
     try {
@@ -138,8 +146,7 @@ export const NoteService = {
           bookmark_ids: noteData.bookmarkIds
         })
         .eq('id', id)
-        .select()
-        .single();
+        .singlePromise();
       
       if (result.error) throw result.error;
       
@@ -155,14 +162,16 @@ export const NoteService = {
         color: note.color,
         pinned: note.pinned,
         folder: note.folder_id,
-        bookmarkIds: note.bookmark_ids
+        bookmarkIds: note.bookmark_ids,
+        category: note.category || 'General',
+        sentiment: note.sentiment || 'neutral',
       };
     } catch (error) {
       console.error('Error updating note:', error);
       toast.error('Failed to update note');
       return null;
     }
-  },
+  }
   
   async deleteNote(id: string): Promise<boolean> {
     try {
@@ -180,7 +189,7 @@ export const NoteService = {
       toast.error('Failed to delete note');
       return false;
     }
-  },
+  }
   
   async getFolders(): Promise<any[]> {
     try {
@@ -199,7 +208,7 @@ export const NoteService = {
       toast.error('Failed to load folders');
       return [];
     }
-  },
+  }
   
   async createFolder(name: string, color?: string, icon?: string): Promise<any | null> {
     try {
@@ -226,6 +235,17 @@ export const NoteService = {
       return null;
     }
   }
-};
+}
 
+// Create an instance of the service
+const NoteService = new NoteServiceClass();
+
+// Export both the class and its methods for compatibility
 export default NoteService;
+export const {
+  getAllNotes: getNotes,
+  getNote,
+  createNote,
+  updateNote,
+  deleteNote,
+} = NoteService;

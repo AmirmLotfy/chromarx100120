@@ -84,3 +84,22 @@ export const useFeaturesEnabled = () => {
     isFeatureEnabled 
   };
 };
+
+// Add a new hook that aliases useFeaturesEnabled for backward compatibility
+export const useFeatureAccess = () => {
+  const featureState = useFeaturesEnabled();
+  
+  // Provide a backward-compatible API
+  return {
+    ...featureState,
+    checkAccess: (feature: string) => {
+      // Map the feature string to a known feature flag if possible
+      const featureKey = feature as keyof FeatureFlags;
+      if (featureKey in featureState.features) {
+        return Promise.resolve(featureState.isFeatureEnabled(featureKey));
+      }
+      // For unknown features, default to false
+      return Promise.resolve(false);
+    }
+  };
+};

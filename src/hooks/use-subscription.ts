@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { chromeDb } from '@/lib/chrome-storage';
 import { subscriptionPlans, PlanLimits } from '@/config/subscriptionPlans';
@@ -30,6 +29,11 @@ interface SubscriptionHook {
   isAutoRenewEnabled: boolean;
   setAutoRenew: (enabled: boolean) => Promise<boolean>;
   expirationDate: Date | null;
+  subscription?: any;
+  loading?: boolean;
+  error?: any;
+  cancelSubscription?: () => Promise<boolean>;
+  updatePaymentMethod?: () => Promise<boolean>;
 }
 
 interface StorageSubscription {
@@ -66,6 +70,7 @@ export const useSubscription = (): SubscriptionHook => {
   });
   const [isAutoRenewEnabled, setIsAutoRenewEnabled] = useState(true);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [error, setError] = useState<any>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -162,6 +167,7 @@ export const useSubscription = (): SubscriptionHook => {
         }
       } catch (error) {
         console.error('Error fetching subscription data:', error);
+        setError(error);
         toast.error('Failed to load subscription data');
       } finally {
         setIsLoading(false);
@@ -405,9 +411,17 @@ export const useSubscription = (): SubscriptionHook => {
 
   const setAutoRenew = async (enabled: boolean): Promise<boolean> => {
     try {
-      setIsAutoRenewEnabled(enabled);
+      if (user?.id) {
+        // Update in Supabase if logged in
+        const result = await supabase
+          .from('user_subscriptions')
+          .update({ cancel_at_period_end: !enabled })
+          .eq('user_id', user.id);
+        
+        if (result.error) throw result.error;
+      }
       
-      // Update locally
+      // Update local storage
       const subscription = await chromeDb.get<StorageSubscription>('user_subscription');
       if (subscription) {
         await chromeDb.set('user_subscription', {
@@ -416,37 +430,29 @@ export const useSubscription = (): SubscriptionHook => {
         });
       }
       
-      // Update in Supabase if user is logged in
-      if (user?.id) {
-        try {
-          const { error } = await supabase
-            .from('subscriptions')
-            .update({
-              cancel_at_period_end: !enabled
-            })
-            .eq('user_id', user.id);
-            
-          if (error) {
-            console.error('Error updating auto-renewal in Supabase:', error);
-            return false;
-          }
-        } catch (supabaseError) {
-          console.error('Error with Supabase auto-renewal update:', supabaseError);
-          return false;
-        }
-      }
-      
+      setIsAutoRenewEnabled(enabled);
       return true;
     } catch (error) {
-      console.error('Error setting auto-renewal:', error);
+      console.error('Error updating auto-renew setting:', error);
+      toast.error('Failed to update renewal settings');
       return false;
     }
   };
 
-  return {
-    isLoading,
-    currentPlan,
-    usage,
+  const cancelSubscription = async () => {
+    toast.error("This is a mock implementation. Please implement actual cancellation logic.");
+    return false;
+  };
+
+  const updatePaymentMethod = async () => {
+    toast.error("This is a mock implementation. Please implement actual payment method update logic.");
+    return false;
+  };
+
+  return { 
+    isLoading, 
+    currentPlan, 
+    usage, 
     incrementUsage,
     checkFeatureAccess,
     hasReachedLimit,
@@ -455,6 +461,11 @@ export const useSubscription = (): SubscriptionHook => {
     getPlanDetails,
     isAutoRenewEnabled,
     setAutoRenew,
-    expirationDate
+    expirationDate,
+    subscription: { planId: currentPlan, autoRenew: isAutoRenewEnabled },
+    loading: isLoading,
+    error,
+    cancelSubscription,
+    updatePaymentMethod
   };
 };
