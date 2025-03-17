@@ -1,368 +1,422 @@
-import { chromeStorage } from '@/services/chromeStorageService';
 
-// Define the Json type for export
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+import { chromeStorage } from "@/services/chromeStorageService";
+import { DbQueryResult, DbListResponse, DbResponse, DbInsertResult, DbSingleResult } from './json-types';
 
-// Interface for query result
-interface QueryResult<T> {
-  data: T[] | null;
-  error: Error | null;
-}
-
-// Interface for the builder pattern for building queries
-interface QueryBuilder<T> {
-  select(): QueryBuilder<T>;
-  eq(column: string, value: any): QueryBuilder<T>;
-  order(column: string, options?: { ascending: boolean }): QueryBuilder<T>;
-  delete(): QueryBuilder<T>;
-  insert(data: T | T[]): QueryBuilder<T>;
-  update(data: Partial<T>): QueryBuilder<T>;
-  upsert(data: T | T[]): QueryBuilder<T>;
-  from: (table: string) => QueryBuilder<T>;
-  execute(): Promise<QueryResult<T>>;
-  single(): Promise<{ data: T | null; error: Error | null }>;
-}
-
-// Add mock auth interface
-interface AuthInterface {
-  getUser(): Promise<{ data: { user: { id: string } | null } }>;
-}
-
-// Implements a Supabase-like client for Chrome storage
-class ChromeStorageClient {
-  private tableName: string = '';
-  private filters: Array<{ column: string; value: any }> = [];
-  private orderByColumn: string | null = null;
-  private ascending: boolean = true;
-  private operation: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select';
-  private dataToInsert: any = null;
-  private dataToUpdate: any = null;
-
-  // Mock auth
-  auth: AuthInterface = {
-    getUser: async () => ({ data: { user: { id: 'current-user' } } })
+export class ChromeStorageClient {
+  auth = {
+    getUser: async (): Promise<{ data: { user: { id: string } | null } }> => {
+      return { data: { user: { id: 'local-user' } } };
+    }
   };
 
-  // Mock channels
-  channel(name: string) {
+  // Basic query builder for selecting data
+  from<T>(table: string): QueryBuilder<T> {
+    return new QueryBuilder<T>(table);
+  }
+
+  // Mock method for channel
+  channel(name: string): { on: (event: string, callback: Function) => void } {
     return {
-      on: (event: string, callback: Function) => this,
-      subscribe: () => Promise.resolve(this)
+      on: (event: string, callback: Function) => {
+        // Mock implementation that doesn't do anything
+        console.log(`Subscribed to ${event} on channel ${name}`);
+      }
     };
   }
 
-  removeChannel(name: string) {
-    // Mock method
-    return;
+  // Mock method to remove channel
+  removeChannel(name: string): void {
+    console.log(`Removed channel ${name}`);
   }
+}
 
-  async get<T>(key: string): Promise<T | null> {
-    return await chromeStorage.get<T>(key);
-  }
+export class QueryBuilder<T> {
+  private tableName: string;
+  private filters: { column: string; value: any }[] = [];
+  private orderByColumn: string | null = null;
+  private orderDirection: 'asc' | 'desc' = 'asc';
+  private limitCount: number | null = null;
 
-  async set<T>(key: string, value: T): Promise<boolean> {
-    return await chromeStorage.set(key, value);
-  }
-
-  async remove(key: string): Promise<boolean> {
-    return await chromeStorage.remove(key);
-  }
-
-  from<T>(tableName: string): QueryBuilder<T> {
+  constructor(tableName: string) {
     this.tableName = tableName;
-    this.filters = [];
-    this.orderByColumn = null;
-    this.ascending = true;
-    this.operation = 'select';
-    this.dataToInsert = null;
-    this.dataToUpdate = null;
-    
-    return this.createQueryBuilder<T>();
   }
 
-  private createQueryBuilder<T>(): QueryBuilder<T> {
-    return {
-      select: (): QueryBuilder<T> => {
-        this.operation = 'select';
-        return this.createQueryBuilder<T>();
-      },
-      
-      eq: (column: string, value: any): QueryBuilder<T> => {
-        this.filters.push({ column, value });
-        return this.createQueryBuilder<T>();
-      },
-      
-      order: (column: string, options?: { ascending: boolean }): QueryBuilder<T> => {
-        this.orderByColumn = column;
-        this.ascending = options?.ascending ?? true;
-        return this.createQueryBuilder<T>();
-      },
-      
-      delete: (): QueryBuilder<T> => {
-        this.operation = 'delete';
-        return this.createQueryBuilder<T>();
-      },
-      
-      insert: (data: T | T[]): QueryBuilder<T> => {
-        this.operation = 'insert';
-        this.dataToInsert = data;
-        return this.createQueryBuilder<T>();
-      },
-      
-      update: (data: Partial<T>): QueryBuilder<T> => {
-        this.operation = 'update';
-        this.dataToUpdate = data;
-        return this.createQueryBuilder<T>();
-      },
-      
-      upsert: (data: T | T[]): QueryBuilder<T> => {
-        this.operation = 'upsert';
-        this.dataToInsert = data;
-        return this.createQueryBuilder<T>();
-      },
-      
-      from: this.from.bind(this),
-      
-      execute: async (): Promise<QueryResult<T>> => {
-        try {
-          switch (this.operation) {
-            case 'select':
-              return await this.executeSelect<T>();
-            case 'delete':
-              return await this.executeDelete<T>();
-            case 'insert':
-              return await this.executeInsert<T>();
-            case 'update':
-              return await this.executeUpdate<T>();
-            case 'upsert':
-              return await this.executeUpsert<T>();
-            default:
-              return { data: null, error: new Error('Invalid operation') };
-          }
-        } catch (error) {
-          console.error(`Error executing ${this.operation} on ${this.tableName}:`, error);
-          return { 
-            data: null, 
-            error: error instanceof Error ? error : new Error('Unknown error') 
-          };
-        }
-      },
-      
-      single: async (): Promise<{ data: T | null; error: Error | null }> => {
-        try {
-          const result = await this.execute();
-          if (result.error) throw result.error;
-          
-          const data = result.data && result.data.length > 0 ? result.data[0] : null;
-          return { data, error: null };
-        } catch (error) {
-          console.error(`Error executing single ${this.operation} on ${this.tableName}:`, error);
-          return { 
-            data: null, 
-            error: error instanceof Error ? error : new Error('Unknown error') 
-          };
-        }
-      }
-    };
-  }
-
-  // Add the execute method directly to ChromeStorageClient for proper type checking
-  async execute<T>(): Promise<QueryResult<T>> {
+  // For getting a single record by id
+  async get(id: string): Promise<DbResponse<T>> {
     try {
-      switch (this.operation) {
-        case 'select':
-          return await this.executeSelect<T>();
-        case 'delete':
-          return await this.executeDelete<T>();
-        case 'insert':
-          return await this.executeInsert<T>();
-        case 'update':
-          return await this.executeUpdate<T>();
-        case 'upsert':
-          return await this.executeUpsert<T>();
-        default:
-          return { data: null, error: new Error('Invalid operation') };
-      }
+      const items = await chromeStorage.get<T[]>(this.tableName) || [];
+      const item = items.find((item: any) => item.id === id);
+      
+      return {
+        data: item as T,
+        error: null
+      };
     } catch (error) {
-      console.error(`Error executing ${this.operation} on ${this.tableName}:`, error);
-      return { 
-        data: null, 
-        error: error instanceof Error ? error : new Error('Unknown error') 
+      console.error(`Error getting item from ${this.tableName}:`, error);
+      return {
+        data: null as unknown as T,
+        error
       };
     }
   }
 
-  private async executeSelect<T>(): Promise<QueryResult<T>> {
+  // Basic selection
+  select(): QueryBuilder<T> {
+    return this;
+  }
+
+  // Filter with an equality condition
+  eq(column: string, value: any): QueryBuilder<T> {
+    this.filters.push({ column, value });
+    return this;
+  }
+
+  // Order results
+  order(column: string, options: { ascending: boolean } = { ascending: true }): QueryBuilder<T> {
+    this.orderByColumn = column;
+    this.orderDirection = options.ascending ? 'asc' : 'desc';
+    return this;
+  }
+
+  // Limit results
+  limit(count: number): QueryBuilder<T> {
+    this.limitCount = count;
+    return this;
+  }
+
+  // Insert a new record
+  async insert(data: any): DbInsertResult<T> {
+    const queryBuilder = this;
+    
+    return {
+      single: async function(): Promise<DbResponse<T>> {
+        try {
+          const items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          
+          // Ensure data has an id
+          if (!data.id) {
+            data.id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          }
+          
+          items.push(data);
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: data as T,
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error inserting into ${queryBuilder.tableName}:`, error);
+          return {
+            data: null as unknown as T,
+            error
+          };
+        }
+      },
+      select: async function(): Promise<DbListResponse<T>> {
+        try {
+          const items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          const lastInserted = items[items.length - 1];
+          
+          return {
+            data: [lastInserted] as T[],
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error selecting after insert from ${queryBuilder.tableName}:`, error);
+          return {
+            data: [],
+            error
+          };
+        }
+      },
+      execute: async function(): Promise<DbListResponse<T>> {
+        try {
+          const items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          
+          // Ensure data has an id
+          if (!data.id) {
+            data.id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          }
+          
+          items.push(data);
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: [data] as T[],
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error executing insert on ${queryBuilder.tableName}:`, error);
+          return {
+            data: [],
+            error
+          };
+        }
+      },
+      error: null
+    };
+  }
+
+  // Update records
+  async update(data: any): DbSingleResult<T> {
+    const queryBuilder = this;
+    
+    return {
+      eq: function(column: string, value: any): DbSingleResult<T> {
+        queryBuilder.filters.push({ column, value });
+        return this;
+      },
+      select: async function(): Promise<DbListResponse<T>> {
+        try {
+          let items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          
+          // Apply filters
+          items = queryBuilder.applyFilters(items);
+          
+          // Update matching items
+          items = items.map(item => {
+            return { ...item, ...data };
+          });
+          
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: items as T[],
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error updating and selecting from ${queryBuilder.tableName}:`, error);
+          return {
+            data: [],
+            error
+          };
+        }
+      },
+      execute: async function(): Promise<DbResponse<T>> {
+        try {
+          let items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          const originalLength = items.length;
+          
+          // Apply filters
+          const filteredItems = queryBuilder.applyFilters(items);
+          const updatedItems = filteredItems.map(item => ({ ...item, ...data }));
+          
+          // Replace original items with updated ones
+          items = items.map(item => {
+            const matchingItem = updatedItems.find(updated => {
+              return queryBuilder.filters.every(filter => {
+                return item[filter.column] === filter.value;
+              });
+            });
+            
+            return matchingItem || item;
+          });
+          
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: updatedItems.length > 0 ? updatedItems[0] as T : null as unknown as T,
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error executing update on ${queryBuilder.tableName}:`, error);
+          return {
+            data: null as unknown as T,
+            error
+          };
+        }
+      },
+      error: null
+    };
+  }
+
+  // Upsert (update or insert)
+  async upsert(data: any): DbSingleResult<T> {
+    const queryBuilder = this;
+    
+    return {
+      eq: function(column: string, value: any): DbSingleResult<T> {
+        queryBuilder.filters.push({ column, value });
+        return this;
+      },
+      select: async function(): Promise<DbListResponse<T>> {
+        return (queryBuilder.update(data) as any).select();
+      },
+      execute: async function(): Promise<DbResponse<T>> {
+        try {
+          let items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          
+          // Check if item exists based on filters
+          const existingItemIndex = items.findIndex(item => {
+            return queryBuilder.filters.every(filter => {
+              return item[filter.column] === filter.value;
+            });
+          });
+          
+          if (existingItemIndex >= 0) {
+            // Update existing item
+            items[existingItemIndex] = { ...items[existingItemIndex], ...data };
+          } else {
+            // Insert new item
+            if (!data.id) {
+              data.id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            }
+            items.push(data);
+          }
+          
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: (existingItemIndex >= 0 ? items[existingItemIndex] : data) as T,
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error upserting in ${queryBuilder.tableName}:`, error);
+          return {
+            data: null as unknown as T,
+            error
+          };
+        }
+      },
+      error: null
+    };
+  }
+
+  // Delete records
+  async delete(): DbSingleResult<T> {
+    const queryBuilder = this;
+    
+    return {
+      eq: function(column: string, value: any): DbSingleResult<T> {
+        queryBuilder.filters.push({ column, value });
+        return this;
+      },
+      select: async function(): Promise<DbListResponse<T>> {
+        try {
+          let items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          
+          // Find items to be deleted for return
+          const itemsToDelete = queryBuilder.applyFilters(items);
+          
+          // Remove items matching filters
+          items = items.filter(item => {
+            return !queryBuilder.filters.every(filter => {
+              return item[filter.column] === filter.value;
+            });
+          });
+          
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: itemsToDelete as T[],
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error deleting and selecting from ${queryBuilder.tableName}:`, error);
+          return {
+            data: [],
+            error
+          };
+        }
+      },
+      execute: async function(): Promise<DbResponse<T>> {
+        try {
+          let items = await chromeStorage.get<any[]>(queryBuilder.tableName) || [];
+          
+          // Find first item to be deleted for return
+          const itemsToDelete = queryBuilder.applyFilters(items);
+          const firstItemToDelete = itemsToDelete.length > 0 ? itemsToDelete[0] : null;
+          
+          // Remove items matching filters
+          items = items.filter(item => {
+            return !queryBuilder.filters.every(filter => {
+              return item[filter.column] === filter.value;
+            });
+          });
+          
+          await chromeStorage.set(queryBuilder.tableName, items);
+          
+          return {
+            data: firstItemToDelete as T,
+            error: null
+          };
+        } catch (error) {
+          console.error(`Error executing delete on ${queryBuilder.tableName}:`, error);
+          return {
+            data: null as unknown as T,
+            error
+          };
+        }
+      },
+      error: null
+    };
+  }
+
+  // Execute the query
+  async execute(): Promise<DbListResponse<T>> {
     try {
-      // Get all data for the table
-      const tableData = await this.getTable<T>();
+      let items = await chromeStorage.get<any[]>(this.tableName) || [];
       
       // Apply filters
-      let filteredData = this.applyFilters(tableData);
+      items = this.applyFilters(items);
       
-      // Apply ordering if specified
+      // Apply ordering
       if (this.orderByColumn) {
-        filteredData = this.applyOrdering(filteredData);
+        items = this.applyOrdering(items);
       }
       
-      return { data: filteredData, error: null };
-    } catch (error) {
-      console.error(`Error selecting from ${this.tableName}:`, error);
-      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-    }
-  }
-
-  private async executeDelete<T>(): Promise<QueryResult<T>> {
-    try {
-      // Get all data for the table
-      const tableData = await this.getTable<T>();
-      
-      // Apply filters to find items to delete
-      const filteredData = this.applyFilters(tableData);
-      
-      // Get items to keep
-      const itemsToKeep = tableData.filter(item => 
-        !filteredData.some(filteredItem => 
-          this.compareItems(item, filteredItem)
-        )
-      );
-      
-      // Save the updated table
-      await chromeStorage.set(`${this.tableName}`, itemsToKeep);
-      
-      return { data: filteredData, error: null };
-    } catch (error) {
-      console.error(`Error deleting from ${this.tableName}:`, error);
-      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-    }
-  }
-
-  private async executeInsert<T>(): Promise<QueryResult<T>> {
-    try {
-      // Get existing data for the table
-      const tableData = await this.getTable<T>();
-      
-      // Add new data (single item or array)
-      const itemsToAdd = Array.isArray(this.dataToInsert) ? this.dataToInsert : [this.dataToInsert];
-      const updatedData = [...tableData, ...(itemsToAdd as T[])]; // Fixed spread type issue with explicit casting
-      
-      // Save the updated table
-      await chromeStorage.set(`${this.tableName}`, updatedData);
-      
-      return { data: itemsToAdd as T[], error: null };
-    } catch (error) {
-      console.error(`Error inserting into ${this.tableName}:`, error);
-      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
-    }
-  }
-
-  private async executeUpsert<T>(): Promise<QueryResult<T>> {
-    try {
-      // Upsert is similar to insert but checks if item exists
-      const tableData = await this.getTable<T>();
-      const itemsToUpsert = Array.isArray(this.dataToInsert) ? this.dataToInsert : [this.dataToInsert];
-      const result: T[] = [];
-      
-      // Create a new array with updated items
-      const updatedData = [...tableData];
-      
-      for (const item of itemsToUpsert as T[]) {
-        const index = tableData.findIndex(existing => 
-          this.compareItems(existing, item)
-        );
-        
-        if (index >= 0) {
-          // Update existing item
-          updatedData[index] = { ...updatedData[index] as object, ...item as object } as T;
-          result.push(updatedData[index]);
-        } else {
-          // Add new item
-          updatedData.push(item);
-          result.push(item);
-        }
+      // Apply limit
+      if (this.limitCount !== null) {
+        items = items.slice(0, this.limitCount);
       }
       
-      // Save the updated table
-      await chromeStorage.set(`${this.tableName}`, updatedData);
-      
-      return { data: result, error: null };
+      // Cast to the proper type with a type assertion
+      return {
+        data: items as T[],
+        error: null
+      };
     } catch (error) {
-      console.error(`Error upserting into ${this.tableName}:`, error);
-      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+      console.error(`Error executing query on ${this.tableName}:`, error);
+      return {
+        data: [],
+        error
+      };
     }
   }
 
-  private async executeUpdate<T>(): Promise<QueryResult<T>> {
-    try {
-      // Get all data for the table
-      const tableData = await this.getTable<T>();
-      
-      // Apply filters to find items to update
-      const itemsToUpdate = this.applyFilters(tableData);
-      
-      // Update the items
-      const updatedItems: T[] = [];
-      const newTableData = tableData.map(item => {
-        if (itemsToUpdate.some(updateItem => this.compareItems(item, updateItem))) {
-          // Use type assertion to avoid spread operator type issues
-          const updated = { ...item as object, ...this.dataToUpdate as object } as T;
-          updatedItems.push(updated);
-          return updated;
-        }
-        return item;
-      });
-      
-      // Save the updated table
-      await chromeStorage.set(`${this.tableName}`, newTableData);
-      
-      return { data: updatedItems, error: null };
-    } catch (error) {
-      console.error(`Error updating ${this.tableName}:`, error);
-      return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+  // Helper method to apply filters
+  private applyFilters(items: any[]): any[] {
+    if (this.filters.length === 0) {
+      return items;
     }
-  }
-
-  private async getTable<T>(): Promise<T[]> {
-    const tableData = await chromeStorage.get<T[]>(`${this.tableName}`);
-    return tableData || [];
-  }
-
-  private applyFilters<T>(data: T[]): T[] {
-    return data.filter(item => 
-      this.filters.every(filter => 
-        (item as any)[filter.column] === filter.value
-      )
-    );
-  }
-
-  private applyOrdering<T>(data: T[]): T[] {
-    if (!this.orderByColumn) return data;
     
-    return [...data].sort((a, b) => {
-      const valueA = (a as any)[this.orderByColumn as string];
-      const valueB = (b as any)[this.orderByColumn as string];
-      
-      if (valueA < valueB) return this.ascending ? -1 : 1;
-      if (valueA > valueB) return this.ascending ? 1 : -1;
-      return 0;
+    return items.filter(item => {
+      return this.filters.every(filter => {
+        return item[filter.column] === filter.value;
+      });
     });
   }
 
-  private compareItems<T>(item1: T, item2: T): boolean {
-    // For simplicity, we'll compare IDs if they exist
-    if ('id' in (item1 as any) && 'id' in (item2 as any)) {
-      return (item1 as any).id === (item2 as any).id;
+  // Helper method to apply ordering
+  private applyOrdering(items: any[]): any[] {
+    if (!this.orderByColumn) {
+      return items;
     }
     
-    // Otherwise, compare the whole object as JSON
-    return JSON.stringify(item1) === JSON.stringify(item2);
+    return [...items].sort((a, b) => {
+      const aValue = a[this.orderByColumn!];
+      const bValue = b[this.orderByColumn!];
+      
+      if (aValue === bValue) return 0;
+      
+      const result = aValue < bValue ? -1 : 1;
+      return this.orderDirection === 'asc' ? result : -result;
+    });
   }
 }
 
 export const localStorageClient = new ChromeStorageClient();
+
+// Re-export the type to avoid isolation module errors
+export type { Json } from './json-types';

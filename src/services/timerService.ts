@@ -119,38 +119,33 @@ class TimerService {
       };
 
       const focusSessions = sessions.filter(s => {
-        return typeof s === 'object' && s !== null && 
-               typeof (s as any).mode === 'string' && 
-               (s as any).mode === 'focus';
+        const sessionObj = s as Record<string, any>;
+        return typeof sessionObj.mode === 'string' && sessionObj.mode === 'focus';
       });
       
       const completedSessions = sessions.filter(s => {
-        return typeof s === 'object' && s !== null && 
-               typeof (s as any).completed === 'boolean' && 
-               (s as any).completed === true;
+        const sessionObj = s as Record<string, any>;
+        return typeof sessionObj.completed === 'boolean' && sessionObj.completed === true;
       });
       
       const totalSessions = sessions.length;
 
       // Safe accessing with type conversion
       const totalFocusTime = focusSessions.reduce((acc, s) => {
-        if (typeof s === 'object' && s !== null) {
-          const duration = typeof (s as any).duration === 'number' ? (s as any).duration : 0;
-          return acc + duration;
-        }
-        return acc;
+        const sessionObj = s as Record<string, any>;
+        const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
+        return acc + duration;
       }, 0);
 
       let sumProductivity = 0;
       let countWithScores = 0;
       
       completedSessions.forEach(s => {
-        if (typeof s === 'object' && s !== null) {
-          const score = typeof (s as any).productivity_score === 'number' ? (s as any).productivity_score : 0;
-          if (score > 0) {
-            sumProductivity += score;
-            countWithScores++;
-          }
+        const sessionObj = s as Record<string, any>;
+        const score = typeof sessionObj.productivity_score === 'number' ? sessionObj.productivity_score : 0;
+        if (score > 0) {
+          sumProductivity += score;
+          countWithScores++;
         }
       });
       
@@ -232,16 +227,28 @@ class TimerService {
       return {} as TimerSession;
     }
     
+    // Ensure mode is strictly "focus" or "break"
+    const mode: 'focus' | 'break' = data.mode === 'break' ? 'break' : 'focus';
+    
+    // Convert duration to a number safely
+    const duration = typeof data.duration === 'number' ? data.duration : 0;
+    
+    // Ensure productivity score is a number or undefined
+    let productivityScore: number | undefined = undefined;
+    if (typeof data.productivity_score === 'number') {
+      productivityScore = data.productivity_score;
+    }
+    
     return {
       id: typeof data.id === 'string' ? data.id : '',
       userId: typeof data.user_id === 'string' ? data.user_id : '',
-      duration: typeof data.duration === 'number' ? data.duration : 0,
-      mode: data.mode === 'focus' ? 'focus' : 'break',
+      duration,
+      mode,
       startTime: new Date(data.start_time || new Date()),
       endTime: data.end_time ? new Date(data.end_time) : undefined,
       completed: Boolean(data.completed),
       taskContext: typeof data.task_context === 'string' ? data.task_context : undefined,
-      productivityScore: typeof data.productivity_score === 'number' ? data.productivity_score : undefined,
+      productivityScore,
       aiSuggested: Boolean(data.ai_suggested),
       feedbackRating: typeof data.feedback_rating === 'number' ? data.feedback_rating : undefined,
       createdAt: new Date(data.created_at || new Date()),

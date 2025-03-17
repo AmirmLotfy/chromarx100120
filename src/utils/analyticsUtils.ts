@@ -1,34 +1,30 @@
 
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { format, subDays, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { AnalyticsData, DailyAnalytics, DomainStat, ProductivityTrend, TimeDistributionData } from '@/types/analytics';
 
-export interface DailyAnalytics {
+export interface DailyAnalyticsData {
   date: string;
   count: number;
 }
 
-export interface AnalyticsData {
-  totalBookmarks: number;
-  bookmarksThisWeek: number;
-  bookmarksToday: number;
-  topDomains: { domain: string; count: number }[];
-  trendData: DailyAnalytics[];
-}
+// Export the type from lib/json-types.ts to help with usage across the app
+export type { Json } from '@/lib/json-types';
 
 export async function fetchAnalyticsData(): Promise<AnalyticsData> {
   try {
     // Get all bookmarks
-    const { data: bookmarks, error } = await localStorageClient
+    const result = await localStorageClient
       .from('bookmarks')
       .select()
       .execute();
 
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
 
     // Use an empty array if there are no bookmarks
-    const bookmarksArray = bookmarks || [];
+    const bookmarksArray = result.data || [];
 
     // Calculate total bookmarks
     const totalBookmarks = bookmarksArray.length;
@@ -37,7 +33,8 @@ export async function fetchAnalyticsData(): Promise<AnalyticsData> {
     const today = new Date();
     const todayStr = format(today, 'yyyy-MM-dd');
     const bookmarksToday = bookmarksArray.filter(bookmark => {
-      const createdAt = typeof bookmark.created_at === 'string' ? bookmark.created_at : '';
+      const bookmarkObj = bookmark as Record<string, any>;
+      const createdAt = typeof bookmarkObj.created_at === 'string' ? bookmarkObj.created_at : '';
       return createdAt.startsWith(todayStr);
     }).length;
 
@@ -45,13 +42,15 @@ export async function fetchAnalyticsData(): Promise<AnalyticsData> {
     const weekStart = startOfWeek(today);
     const weekEnd = endOfWeek(today);
     const bookmarksThisWeek = bookmarksArray.filter(bookmark => {
-      const createdAt = typeof bookmark.created_at === 'string' ? new Date(bookmark.created_at) : null;
+      const bookmarkObj = bookmark as Record<string, any>;
+      const createdAt = typeof bookmarkObj.created_at === 'string' ? new Date(bookmarkObj.created_at) : null;
       return createdAt && createdAt >= weekStart && createdAt <= weekEnd;
     }).length;
 
     // Calculate top domains
     const domainCounts = bookmarksArray.reduce((acc, bookmark) => {
-      const domain = typeof bookmark.domain === 'string' ? bookmark.domain : 'unknown';
+      const bookmarkObj = bookmark as Record<string, any>;
+      const domain = typeof bookmarkObj.domain === 'string' ? bookmarkObj.domain : 'unknown';
       acc[domain] = (acc[domain] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -67,7 +66,8 @@ export async function fetchAnalyticsData(): Promise<AnalyticsData> {
       const date = subDays(today, i);
       const dateStr = format(date, 'yyyy-MM-dd');
       const count = bookmarksArray.filter(bookmark => {
-        const createdAt = typeof bookmark.created_at === 'string' ? bookmark.created_at : '';
+        const bookmarkObj = bookmark as Record<string, any>;
+        const createdAt = typeof bookmarkObj.created_at === 'string' ? bookmarkObj.created_at : '';
         return createdAt.startsWith(dateStr);
       }).length;
       trendData.push({ date: format(date, 'MMM dd'), count });
@@ -92,21 +92,55 @@ export async function fetchAnalyticsData(): Promise<AnalyticsData> {
   }
 }
 
+// Export this function for components that need analytics data
+export async function getAnalyticsData(): Promise<AnalyticsData> {
+  // Mock analytics data that follows the AnalyticsData interface
+  const productivityScore = 78;
+  const timeDistribution: TimeDistributionData[] = [
+    { category: 'Work', time: 25200000 },
+    { category: 'Learning', time: 10800000 },
+    { category: 'Entertainment', time: 7200000 },
+    { category: 'Social', time: 5400000 }
+  ];
+  
+  const domainStats: DomainStat[] = [
+    { domain: 'github.com', visits: 42, timeSpent: 7200000 },
+    { domain: 'docs.google.com', visits: 38, timeSpent: 5400000 },
+    { domain: 'mail.google.com', visits: 65, timeSpent: 3600000 },
+    { domain: 'youtube.com', visits: 27, timeSpent: 9000000 },
+    { domain: 'stackoverflow.com', visits: 19, timeSpent: 2700000 }
+  ];
+  
+  const productivityTrends: ProductivityTrend[] = [
+    { date: 'Mon', score: 82 },
+    { date: 'Tue', score: 75 },
+    { date: 'Wed', score: 68 },
+    { date: 'Thu', score: 71 },
+    { date: 'Fri', score: 85 },
+    { date: 'Sat', score: 63 },
+    { date: 'Sun', score: 72 }
+  ];
+
+  return {
+    productivityScore,
+    timeDistribution,
+    domainStats,
+    productivityTrends
+  };
+}
+
 export async function updateAnalyticsPreferences(preferences: any): Promise<void> {
   try {
-    const userId = (await localStorageClient.auth.getUser()).data.user?.id;
-    
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
+    // Mock user ID since we're using local storage
+    const userId = 'local-user';
     
     await localStorageClient
       .from('user_preferences')
-      .update({
+      .upsert({
         analytics_preferences: preferences,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        user_id: userId
       })
-      .eq('user_id', userId)
       .execute();
   } catch (error) {
     console.error('Error updating analytics preferences:', error);

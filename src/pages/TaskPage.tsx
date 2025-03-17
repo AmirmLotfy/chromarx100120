@@ -16,12 +16,10 @@ const TaskPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timerSessions, setTimerSessions] = useState<TimerSession[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchTasks();
-    fetchTimerSessions();
     
     // We've removed the Supabase realtime subscription
     // Instead, we'll just poll for changes every minute
@@ -53,36 +51,6 @@ const TaskPage = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchTimerSessions = async () => {
-    try {
-      const result = await localStorageClient
-        .from('timer_sessions')
-        .select()
-        .order('created_at', { ascending: false })
-        .execute();
-
-      if (result.data) {
-        setTimerSessions(result.data.map((session: any) => ({
-          id: session.id,
-          userId: session.user_id,
-          duration: session.duration,
-          mode: session.mode,
-          startTime: new Date(session.start_time),
-          endTime: session.end_time ? new Date(session.end_time) : undefined,
-          completed: session.completed,
-          taskContext: session.task_context,
-          productivityScore: session.productivity_score,
-          aiSuggested: session.ai_suggested,
-          feedbackRating: session.feedback_rating,
-          createdAt: new Date(session.created_at),
-          updatedAt: new Date(session.updated_at)
-        })));
-      }
-    } catch (error) {
-      console.error('Error fetching timer sessions:', error);
     }
   };
 
