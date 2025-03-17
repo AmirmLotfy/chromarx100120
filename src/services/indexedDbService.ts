@@ -12,6 +12,13 @@ interface IndexedDBOptions {
   }[];
 }
 
+interface QueryOptions {
+  index?: string;
+  order?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
 export class IndexedDBService {
   private static instance: IndexedDBService;
   private db: IDBDatabase | null = null;
@@ -19,6 +26,8 @@ export class IndexedDBService {
   private dbVersion: number;
   private stores: IndexedDBOptions['stores'];
   private dbOpenPromise: Promise<IDBDatabase> | null = null;
+  private openAttempts = 0;
+  private readonly MAX_OPEN_ATTEMPTS = 3;
 
   private constructor(options: IndexedDBOptions) {
     this.dbName = options.dbName;
@@ -40,6 +49,8 @@ export class IndexedDBService {
     if (this.db) return this.db;
     
     if (this.dbOpenPromise) return this.dbOpenPromise;
+    
+    this.openAttempts++;
     
     this.dbOpenPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
@@ -65,14 +76,37 @@ export class IndexedDBService {
       
       request.onsuccess = (event) => {
         this.db = (event.target as IDBOpenDBRequest).result;
+        this.openAttempts = 0;
+        
+        // Handle connection drops
+        this.db.onclose = () => {
+          console.log('IndexedDB connection closed unexpectedly');
+          this.db = null;
+        };
+        
+        // Handle version change (another tab changed the version)
+        this.db.onversionchange = () => {
+          this.db?.close();
+          this.db = null;
+          console.log('Database version changed, closing connection');
+        };
+        
         resolve(this.db);
         this.dbOpenPromise = null;
       };
       
       request.onerror = (event) => {
         console.error('Error opening IndexedDB:', event);
-        reject(new Error('Failed to open IndexedDB'));
         this.dbOpenPromise = null;
+        
+        if (this.openAttempts < this.MAX_OPEN_ATTEMPTS) {
+          console.log(`Retrying IndexedDB open (attempt ${this.openAttempts})`);
+          setTimeout(() => {
+            this.openDatabase().then(resolve).catch(reject);
+          }, 100 * this.openAttempts);
+        } else {
+          reject(new Error('Failed to open IndexedDB after multiple attempts'));
+        }
       };
     });
     
@@ -136,22 +170,77 @@ export class IndexedDBService {
     });
   }
 
-  async getAll<T>(storeName: string): Promise<T[]> {
+  async getAll<T>(
+    storeName: string, 
+    options: QueryOptions = {}
+  ): Promise<T[]> {
     const db = await this.openDatabase();
     
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readonly');
       const store = transaction.objectStore(storeName);
       
-      const request = store.getAll();
+      let objectStore: IDBObjectStore | IDBIndex = store;
+      if (options.index) {
+        objectStore = store.index(options.index);
+      }
       
-      request.onsuccess = () => {
-        resolve(request.result);
-      };
-      
-      request.onerror = () => {
-        reject(request.error);
-      };
+      // Use cursor for more control over results when options are specified
+      if (options.limit || options.offset || options.order) {
+        const results: T[] = [];
+        let cursorRequest: IDBRequest<IDBCursorWithValue | null>;
+        
+        // Open cursor in appropriate direction
+        if (options.order === 'desc') {
+          cursorRequest = objectStore.openCursor(null, 'prev');
+        } else {
+          cursorRequest = objectStore.openCursor();
+        }
+        
+        let skipped = 0;
+        const offset = options.offset || 0;
+        const limit = options.limit || Infinity;
+        
+        cursorRequest.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest).result;
+          
+          if (cursor) {
+            // Skip records for offset
+            if (skipped < offset) {
+              skipped++;
+              cursor.continue();
+              return;
+            }
+            
+            // Add record to results if we're within limit
+            if (results.length < limit) {
+              results.push(cursor.value);
+              cursor.continue();
+            } else {
+              // We've reached the limit
+              resolve(results);
+            }
+          } else {
+            // No more records
+            resolve(results);
+          }
+        };
+        
+        cursorRequest.onerror = () => {
+          reject(cursorRequest.error);
+        };
+      } else {
+        // If no options, use simpler getAll
+        const request = objectStore.getAll();
+        
+        request.onsuccess = () => {
+          resolve(request.result);
+        };
+        
+        request.onerror = () => {
+          reject(request.error);
+        };
+      }
     });
   }
 
@@ -213,21 +302,31 @@ export class IndexedDBService {
     });
   }
 
-  async count(storeName: string): Promise<number> {
+  async count(storeName: string, indexName?: string, key?: IDBValidKey): Promise<number> {
     const db = await this.openDatabase();
     
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readonly');
       const store = transaction.objectStore(storeName);
       
-      const request = store.count();
+      let countRequest: IDBRequest<number>;
       
-      request.onsuccess = () => {
-        resolve(request.result);
+      if (indexName && key !== undefined) {
+        const index = store.index(indexName);
+        countRequest = index.count(key);
+      } else if (indexName) {
+        const index = store.index(indexName);
+        countRequest = index.count();
+      } else {
+        countRequest = store.count();
+      }
+      
+      countRequest.onsuccess = () => {
+        resolve(countRequest.result);
       };
       
-      request.onerror = () => {
-        reject(request.error);
+      countRequest.onerror = () => {
+        reject(countRequest.error);
       };
     });
   }
@@ -245,14 +344,16 @@ export class IndexedDBService {
         const transaction = db.transaction(storeName, 'readwrite');
         const store = transaction.objectStore(storeName);
         
-        let completed = 0;
-        
         transaction.oncomplete = () => {
           resolve();
         };
         
         transaction.onerror = () => {
           reject(transaction.error);
+        };
+        
+        transaction.onabort = () => {
+          reject(new Error('Transaction was aborted'));
         };
         
         chunk.forEach(item => {
@@ -269,6 +370,8 @@ export class IndexedDBService {
     options?: { 
       batchSize?: number;
       onProgress?: (processed: number, total: number) => void;
+      index?: string;
+      direction?: IDBCursorDirection;
     }
   ): Promise<void> {
     const db = await this.openDatabase();
@@ -278,14 +381,25 @@ export class IndexedDBService {
       const transaction = db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
       
+      let objectStore: IDBObjectStore | IDBIndex = store;
+      if (options?.index) {
+        objectStore = store.index(options.index);
+      }
+      
       // Get total count for progress reporting
-      const countRequest = store.count();
+      const countRequest = objectStore.count();
       let total = 0;
       let processed = 0;
       
       countRequest.onsuccess = () => {
         total = countRequest.result;
-        const openCursorRequest = store.openCursor();
+        
+        // Open cursor in specified direction
+        const openCursorRequest = objectStore.openCursor(
+          null, 
+          options?.direction || 'next'
+        );
+        
         let batch: T[] = [];
         
         openCursorRequest.onsuccess = async (event) => {
@@ -348,9 +462,39 @@ export class IndexedDBService {
       };
     });
   }
+  
+  // Get database size estimate (helpful for monitoring storage usage)
+  async getDatabaseSize(): Promise<number> {
+    if (!navigator.storage || !navigator.storage.estimate) {
+      return 0;
+    }
+    
+    try {
+      const estimate = await navigator.storage.estimate();
+      return estimate.usage || 0;
+    } catch (error) {
+      console.error('Error estimating database size:', error);
+      return 0;
+    }
+  }
+  
+  // Get list of all object store names in the database
+  async getStoreNames(): Promise<string[]> {
+    const db = await this.openDatabase();
+    return Array.from(db.objectStoreNames);
+  }
+  
+  // Close the database connection explicitly
+  closeDatabase(): void {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+      console.log('Database connection closed explicitly');
+    }
+  }
 }
 
-// Initialize the bookmark database service
+// Initialize the bookmark database service with expanded stores
 const bookmarkDbService = IndexedDBService.getInstance({
   dbName: 'bookmark-manager-db',
   version: 1,
@@ -363,7 +507,19 @@ const bookmarkDbService = IndexedDBService.getInstance({
         { name: 'title', keyPath: 'title', unique: false },
         { name: 'category', keyPath: 'category', unique: false },
         { name: 'dateAdded', keyPath: 'dateAdded', unique: false },
+        { name: 'parentId', keyPath: 'parentId', unique: false },
         { name: 'syncStatus', keyPath: 'metadata.syncStatus', unique: false }
+      ]
+    },
+    {
+      name: 'bookmark_indices',
+      keyPath: 'id',
+      indices: [
+        { name: 'title', keyPath: 'title', unique: false },
+        { name: 'url', keyPath: 'url', unique: false },
+        { name: 'category', keyPath: 'category', unique: false },
+        { name: 'dateAdded', keyPath: 'dateAdded', unique: false },
+        { name: 'parentId', keyPath: 'parentId', unique: false }
       ]
     },
     {
@@ -374,10 +530,19 @@ const bookmarkDbService = IndexedDBService.getInstance({
       ]
     },
     {
-      name: 'syncQueue',
+      name: 'sync_queue',
       keyPath: 'id',
       indices: [
         { name: 'type', keyPath: 'type', unique: false },
+        { name: 'timestamp', keyPath: 'timestamp', unique: false },
+        { name: 'status', keyPath: 'status', unique: false }
+      ]
+    },
+    {
+      name: 'bookmark_metadata',
+      keyPath: 'id',
+      indices: [
+        { name: 'bookmarkId', keyPath: 'bookmarkId', unique: false },
         { name: 'timestamp', keyPath: 'timestamp', unique: false }
       ]
     }

@@ -1,24 +1,34 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { isChromeExtension } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface OfflineStatusHookResult {
   isOffline: boolean;
   isChecking: boolean;
   checkConnection: () => Promise<boolean>;
   lastChecked: Date | null;
+  setForceOffline: (offline: boolean) => void;
 }
 
 export function useOfflineStatus(): OfflineStatusHookResult {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isChecking, setIsChecking] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [forceOffline, setForceOffline] = useState(false);
 
   // Function to check connection status
   const checkConnection = useCallback(async () => {
     setIsChecking(true);
     
     try {
+      // If we're forcing offline mode, skip the actual check
+      if (forceOffline) {
+        setIsOffline(true);
+        setLastChecked(new Date());
+        return false;
+      }
+      
       // Try to fetch a small resource (favicon) to test connectivity
       const response = await fetch('/favicon.ico', {
         method: 'HEAD',
@@ -56,19 +66,23 @@ export function useOfflineStatus(): OfflineStatusHookResult {
     } finally {
       setIsChecking(false);
     }
-  }, []);
+  }, [forceOffline]);
 
   // Listen for online/offline events
   useEffect(() => {
     const handleOnline = () => {
-      setIsOffline(false);
-      setLastChecked(new Date());
-      
-      // Double-check with an actual network request
-      checkConnection();
+      if (!forceOffline) {
+        toast.info('Connection restored.');
+        setIsOffline(false);
+        setLastChecked(new Date());
+        
+        // Double-check with an actual network request
+        checkConnection();
+      }
     };
     
     const handleOffline = () => {
+      toast.warning('You are offline. Using local data.');
       setIsOffline(true);
       setLastChecked(new Date());
       
@@ -109,13 +123,24 @@ export function useOfflineStatus(): OfflineStatusHookResult {
         navigator.serviceWorker.removeEventListener('message', handleMessage);
       }
     };
-  }, [checkConnection]);
+  }, [checkConnection, forceOffline]);
+
+  // Override the online status when force offline is toggled
+  useEffect(() => {
+    if (forceOffline) {
+      setIsOffline(true);
+    } else if (navigator.onLine) {
+      // Only set to online if browser reports as online
+      checkConnection();
+    }
+  }, [forceOffline, checkConnection]);
 
   return {
-    isOffline,
+    isOffline: isOffline || forceOffline,
     isChecking,
     checkConnection,
-    lastChecked
+    lastChecked,
+    setForceOffline
   };
 }
 
