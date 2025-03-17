@@ -8,10 +8,10 @@ export const getNotes = async (): Promise<Note[]> => {
       .from('notes')
       .select('*')
       .eq('user_id', 'current-user') // In a real app, get from auth
-      .order('created_at', { ascending: false })
-      .execute();
+      .order('created_at', { ascending: false });
 
-    const { data, error } = result;
+    const data = result.data || [];
+    const error = result.error;
 
     if (error) {
       throw error;
@@ -44,10 +44,10 @@ export const getNote = async (id: string): Promise<Note | null> => {
       .from('notes')
       .select('*')
       .eq('id', id)
-      .eq('user_id', 'current-user') // In a real app, get from auth
-      .execute();
+      .eq('user_id', 'current-user'); // In a real app, get from auth
 
-    const { data, error } = result;
+    const data = result.data || [];
+    const error = result.error;
 
     if (error) {
       throw error;
@@ -101,10 +101,10 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
         category: noteData.category || 'General',
         sentiment: noteData.sentiment || 'neutral'
       })
-      .select()
-      .execute();
+      .select();
 
-    const { data, error } = result;
+    const data = result.data || [];
+    const error = result.error;
 
     if (error) {
       throw error;
@@ -156,10 +156,10 @@ export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' |
       })
       .eq('id', id)
       .eq('user_id', 'current-user') // In a real app, get from auth
-      .select()
-      .execute();
+      .select();
 
-    const { data, error } = result;
+    const data = result.data || [];
+    const error = result.error;
 
     if (error) {
       throw error;
@@ -197,10 +197,9 @@ export const deleteNote = async (id: string): Promise<boolean> => {
       .from('notes')
       .delete()
       .eq('id', id)
-      .eq('user_id', 'current-user') // In a real app, get from auth
-      .execute();
+      .eq('user_id', 'current-user'); // In a real app, get from auth
 
-    const { error } = result;
+    const error = result.error;
 
     if (error) {
       throw error;
@@ -221,20 +220,17 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
       .eq('user_id', 'current-user') // In a real app, get from auth
       .execute();
     
-    // Filter locally instead of using .single()
     const { data, error } = result;
     
     if (error) {
       throw error;
     }
     
-    // Filter based on query
     const filteredNotes = data.filter(note => 
       note.title.toLowerCase().includes(query.toLowerCase()) ||
       note.content.toLowerCase().includes(query.toLowerCase())
     );
     
-    // Map to the correct format
     return filteredNotes.map(note => ({
       id: note.id,
       title: note.title,
@@ -258,7 +254,6 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
 
 export const analyzeNoteSentiment = async (noteId: string): Promise<NoteSentiment> => {
   try {
-    // Placeholder logic - replace with actual sentiment analysis
     return 'neutral';
   } catch (error) {
     console.error('Error analyzing note sentiment:', error);
@@ -268,7 +263,6 @@ export const analyzeNoteSentiment = async (noteId: string): Promise<NoteSentimen
 
 export const categorizeNote = async (noteId: string): Promise<string> => {
   try {
-    // Placeholder logic - replace with actual categorization
     return 'General';
   } catch (error) {
     console.error('Error categorizing note:', error);

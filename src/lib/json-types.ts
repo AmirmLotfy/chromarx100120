@@ -22,21 +22,21 @@ export interface DbListResponse<T> {
 export interface DbQueryResult<T> {
   eq: (column: string, value: any) => DbQueryResult<T>;
   order: (column: string, options?: { ascending: boolean }) => DbQueryResult<T>;
-  single: () => Promise<DbResponse<T>>;
   execute: () => Promise<DbListResponse<T>>;
-  data?: T[];
-  error?: any;
+  data: T[];
+  error: any;
 }
 
 export interface DbSingleResult<T> {
   eq: (column: string, value: any) => DbSingleResult<T>;
-  single: () => Promise<DbResponse<T>>;
+  select: () => Promise<DbListResponse<T>>;
   execute: () => Promise<DbResponse<T>>;
-  error?: any;
+  error: any;
 }
 
 export interface DbInsertResult<T> {
   single: () => Promise<DbResponse<T>>;
   select: () => Promise<DbListResponse<T>>;
-  error?: any;
+  execute: () => Promise<DbListResponse<T>>;
+  error: any;
 }

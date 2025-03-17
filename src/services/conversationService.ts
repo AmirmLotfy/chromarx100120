@@ -1,3 +1,4 @@
+
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Conversation, Message, ConversationCategory } from "@/types/chat";
 import { v4 as uuidv4 } from 'uuid';
@@ -197,6 +198,7 @@ export const ConversationService = {
         .update({ archived: true })
         .eq('id', conversationId);
 
+      // Fixed error access by directly checking the result of execute() method
       const executeResult = await result.execute();
       if (executeResult.error) throw executeResult.error;
       
