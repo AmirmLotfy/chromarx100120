@@ -6,10 +6,14 @@ import FeatureGrid from "@/components/FeatureGrid";
 import AffiliateBannerCarousel from "@/components/services/AffiliateBannerCarousel";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import StreamProcessingDemo from "@/components/data-processing/StreamProcessingDemo";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const Index = () => {
   const { currentPlan } = useSubscription();
   const { user } = useAuth();
+  const [showDemo, setShowDemo] = useState(false);
 
   const handleElementSelected = (element: HTMLElement) => {
     console.log('Selected element:', element);
@@ -25,6 +29,17 @@ const Index = () => {
           <AffiliateBannerCarousel />
         </div>
       )}
+      
+      <div className="mb-8 flex justify-center">
+        <Button 
+          onClick={() => setShowDemo(!showDemo)}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        >
+          {showDemo ? "Hide Stream Processing Demo" : "Show Stream Processing Demo"}
+        </Button>
+      </div>
+      
+      {showDemo && <StreamProcessingDemo />}
       
       <FeatureGrid />
     </Layout>
