@@ -1,351 +1,145 @@
 
-import { AnalyticsData, VisitData, ProductivityTrend, TimeDistributionData, DomainStat, DomainCategory } from "@/types/analytics";
-import { extractDomain } from "@/utils/domainUtils";
-import { chromeDb } from "@/lib/chrome-storage";
-import { localStorageClient } from '@/lib/local-storage-client';
-import { Json } from "@/lib/json-types";
-import { toast } from "sonner";
+import { localStorageClient } from '@/lib/chrome-storage-client';
+import { format, subDays, startOfWeek, endOfWeek, addDays } from 'date-fns';
 
-const MAX_RETRIES = 3;
-const INITIAL_DELAY = 1000; // 1 second
+export interface DailyAnalytics {
+  date: string;
+  count: number;
+}
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export interface AnalyticsData {
+  totalBookmarks: number;
+  bookmarksThisWeek: number;
+  bookmarksToday: number;
+  topDomains: { domain: string; count: number }[];
+  trendData: DailyAnalytics[];
+}
 
-async function retryWithBackoff<T>(
-  operation: () => Promise<T>,
-  retries = MAX_RETRIES,
-  delay = INITIAL_DELAY
-): Promise<T> {
+export async function fetchAnalyticsData(): Promise<AnalyticsData> {
   try {
-    return await operation();
-  } catch (error) {
-    if (retries === 0) {
+    // Get all bookmarks
+    const { data: bookmarks, error } = await localStorageClient
+      .from('bookmarks')
+      .select()
+      .execute();
+
+    if (error) {
       throw error;
     }
-    console.log(`Retrying operation. Attempts remaining: ${retries}`);
-    await sleep(delay);
-    return retryWithBackoff(operation, retries - 1, delay * 2);
+
+    // Use an empty array if there are no bookmarks
+    const bookmarksArray = bookmarks || [];
+
+    // Calculate total bookmarks
+    const totalBookmarks = bookmarksArray.length;
+
+    // Calculate bookmarks added today
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const bookmarksToday = bookmarksArray.filter(bookmark => {
+      const createdAt = typeof bookmark.created_at === 'string' ? bookmark.created_at : '';
+      return createdAt.startsWith(todayStr);
+    }).length;
+
+    // Calculate bookmarks added this week
+    const weekStart = startOfWeek(today);
+    const weekEnd = endOfWeek(today);
+    const bookmarksThisWeek = bookmarksArray.filter(bookmark => {
+      const createdAt = typeof bookmark.created_at === 'string' ? new Date(bookmark.created_at) : null;
+      return createdAt && createdAt >= weekStart && createdAt <= weekEnd;
+    }).length;
+
+    // Calculate top domains
+    const domainCounts = bookmarksArray.reduce((acc, bookmark) => {
+      const domain = typeof bookmark.domain === 'string' ? bookmark.domain : 'unknown';
+      acc[domain] = (acc[domain] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const topDomains = Object.entries(domainCounts)
+      .map(([domain, count]) => ({ domain, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Generate trend data for the last 7 days
+    const trendData: DailyAnalytics[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(today, i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const count = bookmarksArray.filter(bookmark => {
+        const createdAt = typeof bookmark.created_at === 'string' ? bookmark.created_at : '';
+        return createdAt.startsWith(dateStr);
+      }).length;
+      trendData.push({ date: format(date, 'MMM dd'), count });
+    }
+
+    return {
+      totalBookmarks,
+      bookmarksThisWeek,
+      bookmarksToday,
+      topDomains,
+      trendData
+    };
+  } catch (error) {
+    console.error('Error fetching analytics data:', error);
+    return {
+      totalBookmarks: 0,
+      bookmarksThisWeek: 0,
+      bookmarksToday: 0,
+      topDomains: [],
+      trendData: []
+    };
   }
 }
 
-export const getAnalyticsData = async (): Promise<AnalyticsData> => {
+export async function updateAnalyticsPreferences(preferences: any): Promise<void> {
   try {
-    console.log("Fetching analytics data...");
+    const userId = (await localStorageClient.auth.getUser()).data.user?.id;
     
-    // Get browsing history and current tabs with retry mechanism
-    const [history, tabs] = await Promise.all([
-      retryWithBackoff(() => 
-        chrome.history.search({ 
-          text: "", 
-          maxResults: 10000, 
-          startTime: Date.now() - 30 * 24 * 60 * 60 * 1000 
-        })
-      ),
-      retryWithBackoff(() => 
-        chrome.tabs.query({})
-      )
-    ]);
-
-    // Get browsing time data
-    const visitTimeData = await Promise.all(
-      history.map(async item => {
-        if (!item.url) return null;
-        try {
-          const visits = await retryWithBackoff(() => 
-            chrome.history.getVisits({ url: item.url })
-          );
-          return {
-            url: item.url,
-            domain: extractDomain(item.url),
-            visitCount: visits.length,
-            timeSpent: calculateTimeSpent(visits),
-            lastVisitTime: item.lastVisitTime || 0
-          };
-        } catch (error) {
-          console.error(`Error processing visits for ${item.url}:`, error);
-          toast.error(`Failed to process some visit data`);
-          return null;
-        }
-      })
-    );
-
-    const visitData: VisitData[] = visitTimeData.filter((item): item is VisitData => item !== null);
-
-    // Get custom domain categories
-    const result = await localStorageClient
-      .from('domain_categories')
-      .select()
-      .execute();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     
-    const customCategories = (result.data || []).map(item => {
-      const categoryItem = item as any;
-      return {
-        domain: String(categoryItem?.domain || ''),
-        category: String(categoryItem?.category || '')
-      };
-    });
-
-    // Calculate time distribution before creating analytics data
-    const timeDistribution = await calculateTimeDistribution(visitData, customCategories);
-    const domainStats = calculateDomainStats(visitData);
-    const productivityScore = calculateProductivityScore(visitData, tabs);
-    const productivityTrends = await calculateProductivityTrends(visitData);
-
-    // Calculate analytics metrics
-    const analyticsData: AnalyticsData = {
-      productivityScore,
-      timeDistribution,
-      domainStats,
-      productivityTrends
-    };
-
-    // Get current user
-    const userData = await localStorageClient.auth.getUser();
-    const userId = userData.data?.user?.id || 'demo-user-id';
-
-    // Convert complex objects to JSON-compatible format
-    const jsonDomainStats = domainStats.map(stat => ({
-      domain: stat.domain,
-      visits: stat.visits,
-      timeSpent: stat.timeSpent
-    }));
-
-    const jsonTimeDistribution = timeDistribution.map(dist => ({
-      category: dist.category,
-      time: dist.time
-    }));
-
-    // Store daily analytics data
-    const analyticsStorage = {
-      user_id: userId,
-      date: new Date().toISOString().split('T')[0],
-      productivity_score: analyticsData.productivityScore || null,
-      total_time_spent: visitData.reduce((sum, visit) => sum + visit.timeSpent, 0) || null,
-      domain_stats: jsonDomainStats as any,
-      category_distribution: jsonTimeDistribution as any
-    };
-    
-    // Insert using our custom client
     await localStorageClient
-      .from('analytics_data')
-      .insert(analyticsStorage)
+      .from('user_preferences')
+      .update({
+        analytics_preferences: preferences,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
       .execute();
-
-    // Validate analytics data
-    validateAnalyticsData(analyticsData);
-
-    return analyticsData;
   } catch (error) {
-    console.error("Error getting analytics data:", error);
-    toast.error("Failed to load analytics data. Please try again.");
+    console.error('Error updating analytics preferences:', error);
     throw error;
   }
-};
+}
 
-const calculateTimeSpent = (visits: chrome.history.VisitItem[]): number => {
-  let totalTime = 0;
-  
-  for (let i = 0; i < visits.length - 1; i++) {
-    const timeDiff = visits[i + 1].visitTime - visits[i].visitTime;
-    if (timeDiff < 30 * 60 * 1000) { // Less than 30 minutes
-      totalTime += timeDiff;
-    }
-  }
-  
-  return totalTime;
-};
-
-const calculateDomainStats = (visitData: VisitData[]): DomainStat[] => {
-  const stats = new Map<string, { visits: number; timeSpent: number }>();
-  
-  visitData.forEach(visit => {
-    const current = stats.get(visit.domain) || { visits: 0, timeSpent: 0 };
-    stats.set(visit.domain, {
-      visits: current.visits + visit.visitCount,
-      timeSpent: current.timeSpent + visit.timeSpent
-    });
-  });
-
-  return Array.from(stats.entries())
-    .map(([domain, data]) => ({
-      domain,
-      visits: data.visits,
-      timeSpent: data.timeSpent
-    }))
-    .sort((a, b) => b.visits - a.visits)
-    .slice(0, 10);
-};
-
-const calculateTimeDistribution = (visitData: VisitData[], customCategories: DomainCategory[]): TimeDistributionData[] => {
-  const categories = new Map<string, number>();
-  
-  visitData.forEach(visit => {
-    const customCategory = customCategories.find(c => c.domain === visit.domain);
-    const category = customCategory?.category || determineCategory(visit.domain);
-    const current = categories.get(category) || 0;
-    categories.set(category, current + visit.timeSpent);
-  });
-
-  return Array.from(categories.entries())
-    .map(([category, time]) => ({ category, time }));
-};
-
-const calculateProductivityScore = (visitData: VisitData[], tabs: chrome.tabs.Tab[]): number => {
+export async function trackEvent(eventName: string, eventData: Record<string, any> = {}): Promise<void> {
   try {
-    const factors = {
-      tabEfficiency: calculateTabEfficiency(tabs),
-      browsingFocus: calculateBrowsingFocus(visitData),
-      timeManagement: calculateTimeManagement(visitData)
-    };
-
-    const score = Math.round(
-      (factors.tabEfficiency + factors.browsingFocus + factors.timeManagement) / 3 * 100
-    );
-
-    // Validate score
-    if (isNaN(score) || score < 0 || score > 100) {
-      throw new Error("Invalid productivity score calculation");
-    }
-
-    return score;
+    // Create new analytics event
+    await localStorageClient
+      .from('analytics_events')
+      .insert({
+        event_name: eventName,
+        event_data: eventData,
+        created_at: new Date().toISOString(),
+        user_id: 'anonymous' // Since we're using local storage, we'll use a default user ID
+      })
+      .execute();
   } catch (error) {
-    console.error("Error calculating productivity score:", error);
-    toast.error("Error calculating productivity score");
-    return 0;
+    console.error('Error tracking analytics event:', error);
   }
-};
+}
 
-const calculateProductivityTrends = async (visitData: VisitData[]): Promise<ProductivityTrend[]> => {
-  try {
-    const trends: ProductivityTrend[] = [];
-    const days = 7;
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dayStart = new Date(date.setHours(0, 0, 0, 0)).getTime();
-      const dayEnd = new Date(date.setHours(23, 59, 59, 999)).getTime();
-
-      const dayData = visitData.filter(
-        visit => visit.lastVisitTime >= dayStart && visit.lastVisitTime <= dayEnd
-      );
-
-      const score = calculateDailyProductivityScore(dayData);
-      
-      // Validate score
-      if (isNaN(score) || score < 0 || score > 100) {
-        throw new Error(`Invalid daily productivity score for ${date}`);
-      }
-
-      trends.push({
-        date: date.toISOString().split('T')[0],
-        score
-      });
-    }
-
-    return trends.reverse();
-  } catch (error) {
-    console.error("Error calculating productivity trends:", error);
-    toast.error("Error calculating productivity trends");
-    return [];
-  }
-};
-
-const determineCategory = (domain: string): string => {
-  const productivityDomains = [
-    'github.com', 'stackoverflow.com', 'docs.google.com', 'gitlab.com',
-    'bitbucket.org', 'atlassian.com', 'notion.so', 'trello.com',
-    'asana.com', 'monday.com', 'linear.app', 'figma.com'
-  ];
-
-  const learningDomains = [
-    'coursera.org', 'udemy.com', 'edx.org', 'khan-academy.org',
-    'pluralsight.com', 'egghead.io', 'frontendmasters.com'
-  ];
-
-  const socialDomains = [
-    'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com',
-    'reddit.com', 'tiktok.com', 'snapchat.com'
-  ];
-
-  const entertainmentDomains = [
-    'youtube.com', 'netflix.com', 'spotify.com', 'twitch.tv',
-    'disney.com', 'hulu.com', 'hbomax.com'
-  ];
-
-  const newsDomains = [
-    'news.google.com', 'reuters.com', 'bloomberg.com', 'bbc.com',
-    'cnn.com', 'nytimes.com', 'wsj.com'
-  ];
-
-  if (productivityDomains.some(d => domain.includes(d))) return 'Productivity';
-  if (learningDomains.some(d => domain.includes(d))) return 'Learning';
-  if (socialDomains.some(d => domain.includes(d))) return 'Social';
-  if (entertainmentDomains.some(d => domain.includes(d))) return 'Entertainment';
-  if (newsDomains.some(d => domain.includes(d))) return 'News';
-
-  return 'Other';
-};
-
-const calculateTabEfficiency = (tabs: chrome.tabs.Tab[]): number => {
-  const maxEfficient = 15;
-  return Math.min(1, maxEfficient / Math.max(tabs.length, 1));
-};
-
-const calculateBrowsingFocus = (visitData: VisitData[]): number => {
-  const uniqueDomains = new Set(visitData.map(v => v.domain)).size;
-  const maxFocused = 10;
-  return Math.min(1, maxFocused / Math.max(uniqueDomains, 1));
-};
-
-const calculateTimeManagement = (visitData: VisitData[]): number => {
-  const totalTime = visitData.reduce((sum, visit) => sum + visit.timeSpent, 0);
-  const maxProductiveTime = 8 * 60 * 60 * 1000; // 8 hours
-  return Math.min(1, totalTime / maxProductiveTime);
-};
-
-const calculateDailyProductivityScore = (dayData: VisitData[]): number => {
-  if (dayData.length === 0) return 0;
+export function generateWeeklyDateLabels(): string[] {
+  const today = new Date();
+  const startDay = startOfWeek(today);
+  const labels: string[] = [];
   
-  const productiveRatio = dayData.filter(visit => 
-    ['Productivity', 'Learning'].includes(determineCategory(visit.domain))
-  ).length / dayData.length;
-
-  return Math.round(productiveRatio * 100);
-};
-
-const validateAnalyticsData = (data: AnalyticsData): void => {
-  if (
-    !data.productivityScore ||
-    !Array.isArray(data.timeDistribution) ||
-    !Array.isArray(data.domainStats) ||
-    !Array.isArray(data.productivityTrends)
-  ) {
-    throw new Error("Invalid analytics data structure");
+  for (let i = 0; i < 7; i++) {
+    const day = addDays(startDay, i);
+    labels.push(format(day, 'EEE'));
   }
-
-  if (data.productivityScore < 0 || data.productivityScore > 100) {
-    throw new Error("Invalid productivity score");
-  }
-
-  // Validate time distribution
-  data.timeDistribution.forEach(item => {
-    if (!item.category || typeof item.time !== 'number') {
-      throw new Error("Invalid time distribution data");
-    }
-  });
-
-  // Validate domain stats
-  data.domainStats.forEach(item => {
-    if (!item.domain || typeof item.visits !== 'number' || typeof item.timeSpent !== 'number') {
-      throw new Error("Invalid domain stats data");
-    }
-  });
-
-  // Validate productivity trends
-  data.productivityTrends.forEach(item => {
-    if (!item.date || typeof item.score !== 'number') {
-      throw new Error("Invalid productivity trends data");
-    }
-  });
-};
+  
+  return labels;
+}

@@ -1,107 +1,62 @@
 
-import { useState, useEffect } from "react";
-import { Task, TaskPriority, TaskCategory } from "@/types/task";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { chromeStorage } from "@/services/chromeStorageService";
-import { Card } from "@/components/ui/card";
-import { Plus, Trash2 } from "lucide-react";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface TaskTemplate {
-  id: string;
-  title: string;
-  description: string;
-  priority: TaskPriority;
-  category: TaskCategory;
-  estimatedDuration: number;
-  color: string;
+export interface TaskTemplatesProps {
+  onUseTemplate: () => void;
 }
 
-interface TaskTemplatesProps {
-  onUseTemplate: (template: Omit<Task, "id" | "createdAt" | "updatedAt" | "progress" | "actualDuration" | "status" | "dueDate">) => void;
-}
-
-const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  const fetchTemplates = async () => {
-    try {
-      const result = await chromeStorage.get<TaskTemplate[]>('task_templates') || [];
-      setTemplates(result);
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      toast.error("Failed to load templates");
-    }
-  };
-
-  const handleDeleteTemplate = async (id: string) => {
-    try {
-      const updatedTemplates = templates.filter(template => template.id !== id);
-      await chromeStorage.set('task_templates', updatedTemplates);
-      setTemplates(updatedTemplates);
-      toast.success("Template deleted successfully");
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      toast.error("Failed to delete template");
-    }
-  };
-
-  const handleUseTemplate = (template: TaskTemplate) => {
-    onUseTemplate({
-      title: template.title,
-      description: template.description,
-      priority: template.priority,
-      category: template.category,
-      estimatedDuration: template.estimatedDuration,
-      color: template.color,
-    });
-  };
-
-  if (templates.length === 0) {
-    return null;
-  }
+const TaskTemplates: React.FC<TaskTemplatesProps> = ({ onUseTemplate }) => {
+  const templates = [
+    {
+      id: '1',
+      title: 'Daily Work Routine',
+      description: 'Standard daily work tasks for productivity',
+      tasks: [
+        { title: 'Check emails', priority: 'high', estimated_time: 30 },
+        { title: 'Team standup meeting', priority: 'high', estimated_time: 15 },
+        { title: 'Project planning', priority: 'medium', estimated_time: 45 },
+      ],
+    },
+    {
+      id: '2',
+      title: 'Weekly Review',
+      description: 'End of week review and planning tasks',
+      tasks: [
+        { title: 'Review completed tasks', priority: 'medium', estimated_time: 30 },
+        { title: 'Plan next week', priority: 'high', estimated_time: 60 },
+        { title: 'Send progress report', priority: 'high', estimated_time: 30 },
+      ],
+    },
+  ];
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium">Templates</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <CardHeader className="px-4 py-3">
+        <CardTitle className="text-lg">Task Templates</CardTitle>
+        <CardDescription>
+          Save time by using pre-defined task templates
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 py-0 space-y-2">
         {templates.map((template) => (
-          <Card key={template.id} className="p-4 space-y-2">
+          <Card key={template.id} className="p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">{template.title}</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteTemplate(template.id)}
-              >
-                <Trash2 className="h-4 w-4" />
+              <div>
+                <h3 className="font-medium text-sm">{template.title}</h3>
+                <p className="text-xs text-gray-500">{template.description}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {template.tasks.length} tasks · {template.tasks.reduce((acc, task) => acc + task.estimated_time, 0)} min
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={onUseTemplate}>
+                Use
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {template.description}
-            </p>
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: template.color }}
-              />
-              <span className="text-sm">{template.category}</span>
-            </div>
-            <Button 
-              onClick={() => handleUseTemplate(template)}
-              className="w-full mt-2"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Use Template
-            </Button>
           </Card>
         ))}
-      </div>
+      </CardContent>
     </div>
   );
 };

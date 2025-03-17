@@ -15,6 +15,8 @@ import {
   Cell
 } from "recharts";
 import { TaskPriority, TaskStatus } from "@/types/task";
+import { TimerSession } from "@/types/timer";
+import { localStorageClient } from "@/lib/chrome-storage-client";
 
 interface TaskAnalytics {
   totalTasks: number;
@@ -30,10 +32,43 @@ const COLORS = ['#10B981', '#6366F1', '#F59E0B', '#EF4444'];
 
 const TaskAnalytics = () => {
   const [analytics, setAnalytics] = useState<TaskAnalytics | null>(null);
+  const [timerSessions, setTimerSessions] = useState<TimerSession[]>([]);
 
   useEffect(() => {
     fetchAnalytics();
+    fetchTimerSessions();
   }, []);
+
+  const fetchTimerSessions = async () => {
+    try {
+      const result = await localStorageClient
+        .from('timer_sessions')
+        .select()
+        .order('created_at', { ascending: false })
+        .execute();
+
+      if (result.data) {
+        const sessions = result.data.map((session: any) => ({
+          id: session.id || '',
+          userId: session.user_id || '',
+          duration: typeof session.duration === 'number' ? session.duration : 0,
+          mode: session.mode === 'focus' ? 'focus' : 'break',
+          startTime: new Date(session.start_time || new Date()),
+          endTime: session.end_time ? new Date(session.end_time) : undefined,
+          completed: Boolean(session.completed),
+          taskContext: typeof session.task_context === 'string' ? session.task_context : undefined,
+          productivityScore: typeof session.productivity_score === 'number' ? session.productivity_score : undefined,
+          aiSuggested: Boolean(session.ai_suggested),
+          feedbackRating: typeof session.feedback_rating === 'number' ? session.feedback_rating : undefined,
+          createdAt: new Date(session.created_at || new Date()),
+          updatedAt: new Date(session.updated_at || new Date())
+        }));
+        setTimerSessions(sessions);
+      }
+    } catch (error) {
+      console.error('Error fetching timer sessions:', error);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {

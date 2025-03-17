@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { storage } from "@/services/storageService";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
-import { Json } from "@/lib/local-storage-client";
+import { Json } from "@/lib/chrome-storage-client";
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { v4 as uuidv4 } from 'uuid';
 

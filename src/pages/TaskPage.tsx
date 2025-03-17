@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import TaskList from '@/components/tasks/TaskList';
@@ -94,6 +95,11 @@ const TaskPage = () => {
     fetchTasks();
   };
 
+  const handleUseTemplate = () => {
+    // Implement template usage functionality
+    setShowAddForm(true);
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
@@ -107,7 +113,6 @@ const TaskPage = () => {
         <div>
           <TaskList
             tasks={tasks}
-            loading={loading}
             onTaskUpdate={handleTaskUpdate}
           />
         </div>
@@ -115,9 +120,9 @@ const TaskPage = () => {
         <div>
           <Card className="mb-6">
             <Card className="mb-6">
-              <TaskAnalytics timerSessions={timerSessions} />
+              <TaskAnalytics />
             </Card>
-            <TaskTemplates />
+            <TaskTemplates onUseTemplate={handleUseTemplate} />
           </Card>
         </div>
       </div>

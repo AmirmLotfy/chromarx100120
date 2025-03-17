@@ -1,244 +1,126 @@
 
-import { Task } from "@/types/task";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Check, Clock, Edit, MoreVertical, Trash2 } from "lucide-react";
-import { format, isPast, isToday } from "date-fns";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CheckCircle, Circle, Clock, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
 
-interface TaskListProps {
-  tasks: Task[];
-  onDelete: (id: string) => void;
-  onEdit: (task: Task) => void;
-  onStartTimer: (task: Task) => void;
-  onToggleStatus: (id: string) => void;
+export interface TaskListProps {
+  tasks: any[];
+  onTaskUpdate: () => void;
 }
 
-export const TaskList = ({
-  tasks,
-  onDelete,
-  onEdit,
-  onStartTimer,
-  onToggleStatus,
-}: TaskListProps) => {
-  const isMobile = useIsMobile();
+const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdate }) => {
+  const [loading, setLoading] = React.useState(false);
 
-  const handleStartTimer = (task: Task) => {
-    if (task.status === "completed") {
-      toast.error("Cannot start timer for completed task");
-      return;
-    }
-    onStartTimer(task);
-  };
-
-  const handleToggleStatus = (task: Task) => {
-    if (isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate))) {
-      if (task.status !== "completed") {
-        toast.error("Cannot update status of overdue task");
-        return;
-      }
-    }
-    onToggleStatus(task.id);
-  };
-
-  // Sort tasks by priority and due date
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    }
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-  });
-
-  const getPriorityColor = (priority: Task["priority"]) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
-        return "bg-red-500/80";
-      case "medium":
-        return "bg-amber-500/80";
-      case "low":
-        return "bg-emerald-500/80";
+      case 'high':
+        return 'text-red-500';
+      case 'medium':
+        return 'text-yellow-500';
+      case 'low':
+        return 'text-green-500';
       default:
-        return "bg-gray-500/80";
+        return 'text-gray-500';
     }
   };
 
-  const getStatusStyles = (task: Task) => {
-    const isOverdue = isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate));
-    
-    if (task.status === "completed") {
-      return "border-l-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/10";
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'in-progress':
+        return <Clock className="h-5 w-5 text-blue-500" />;
+      case 'pending':
+        return <Circle className="h-5 w-5 text-gray-400" />;
+      case 'overdue':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      default:
+        return <Circle className="h-5 w-5 text-gray-400" />;
     }
-    
-    if (isOverdue) {
-      return "border-l-red-500 bg-red-50/50 dark:bg-red-950/10";
-    }
-    
-    if (task.status === "in-progress") {
-      return "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/10";
-    }
-    
-    return "border-l-primary/50 bg-card";
   };
 
-  if (sortedTasks.length === 0) {
+  const handleMarkComplete = async (taskId: string) => {
+    setLoading(true);
+    try {
+      // Update task status to completed
+      await updateTaskStatus(taskId, 'completed');
+      onTaskUpdate();
+    } catch (error) {
+      console.error('Error completing task:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateTaskStatus = async (taskId: string, status: string) => {
+    try {
+      // Call to localStorageClient to update task status
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      throw error;
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center gap-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-          <Check className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-medium">No tasks yet</h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Create your first task to get started with your productivity journey
-        </p>
+      <div className="space-y-3">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-3 pb-20">
-      {sortedTasks.map((task) => {
-        const isOverdue = isPast(new Date(task.dueDate)) && !isToday(new Date(task.dueDate));
-        
-        return (
-          <div
-            key={task.id}
-            className={cn(
-              "rounded-xl border-l-4 shadow-sm overflow-hidden transition-all",
-              getStatusStyles(task)
-            )}
-            style={{ borderLeftColor: task.color }}
-          >
-            <div className="p-3 sm:p-4">
-              <div className="flex items-start gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "shrink-0 h-5 w-5 rounded-full border",
-                    task.status === "completed" 
-                      ? "bg-primary border-primary text-primary-foreground" 
-                      : "border-muted-foreground/30"
-                  )}
-                  onClick={() => handleToggleStatus(task)}
-                >
-                  {task.status === "completed" && <Check className="h-3 w-3" />}
-                </Button>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className={cn(
-                      "font-medium line-clamp-2 text-sm",
-                      task.status === "completed" && "line-through text-muted-foreground"
-                    )}>
+    <div className="space-y-3">
+      {tasks.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-gray-500">
+            No tasks found. Create a new task to get started.
+          </CardContent>
+        </Card>
+      ) : (
+        tasks.map((task) => (
+          <Card key={task.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3">
+                  <button
+                    onClick={() => handleMarkComplete(task.id)}
+                    disabled={task.status === 'completed'}
+                    className="mt-1 focus:outline-none"
+                  >
+                    {getStatusIcon(task.status)}
+                  </button>
+                  <div>
+                    <h3 className={`font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
                       {task.title}
                     </h3>
-                    
-                    {isMobile ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-background/95 backdrop-blur-sm">
-                          <DropdownMenuItem onClick={() => handleStartTimer(task)}>
-                            <Clock className="mr-2 h-4 w-4" />
-                            Start Timer
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onEdit(task)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => onDelete(task.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => handleStartTimer(task)}
-                          disabled={task.status === "completed"}
-                        >
-                          <Clock className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => onEdit(task)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => onDelete(task.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-1">
-                    {task.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                        {task.description}
+                    <p className="text-sm text-gray-500">{task.description}</p>
+                    {task.due_date && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Due: {format(new Date(task.due_date), 'PPP')}
                       </p>
                     )}
-                    
-                    <div className="flex flex-wrap items-center gap-2 mt-1 mb-2">
-                      <span className={`px-2 py-0.5 text-xs rounded-full text-white ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                      
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary-foreground/80">
-                        {task.category}
-                      </span>
-                      
-                      <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs",
-                        isOverdue && task.status !== "completed" 
-                          ? "bg-red-100 text-red-800 dark:bg-red-950/20 dark:text-red-300" 
-                          : "bg-muted text-muted-foreground"
-                      )}>
-                        {format(new Date(task.dueDate), "MMM d")}
-                      </span>
-                    </div>
-                    
-                    <Progress 
-                      value={task.progress} 
-                      className={cn(
-                        "h-1.5 mt-2",
-                        task.status === "completed" ? "bg-emerald-100 dark:bg-emerald-950/20" : "bg-muted"
-                      )}
-                      indicatorClassName={task.status === "completed" ? "bg-emerald-500" : undefined}
-                    />
                   </div>
                 </div>
+                <div className={`text-xs font-semibold ${getPriorityColor(task.priority)}`}>
+                  {task.priority.toUpperCase()}
+                </div>
               </div>
-            </div>
-          </div>
-        );
-      })}
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 };

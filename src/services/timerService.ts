@@ -119,31 +119,42 @@ class TimerService {
       };
 
       const focusSessions = sessions.filter(s => {
-        const sessionObj = s as any;
-        return typeof sessionObj.mode === 'string' && sessionObj.mode === 'focus';
+        return typeof s === 'object' && s !== null && 
+               typeof (s as any).mode === 'string' && 
+               (s as any).mode === 'focus';
       });
       
       const completedSessions = sessions.filter(s => {
-        const sessionObj = s as any;
-        return typeof sessionObj.completed === 'boolean' && sessionObj.completed === true;
+        return typeof s === 'object' && s !== null && 
+               typeof (s as any).completed === 'boolean' && 
+               (s as any).completed === true;
       });
       
       const totalSessions = sessions.length;
 
       // Safe accessing with type conversion
       const totalFocusTime = focusSessions.reduce((acc, s) => {
-        const sessionObj = s as any;
-        const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
-        return acc + duration;
+        if (typeof s === 'object' && s !== null) {
+          const duration = typeof (s as any).duration === 'number' ? (s as any).duration : 0;
+          return acc + duration;
+        }
+        return acc;
       }, 0);
 
-      const averageProductivity = totalSessions > 0 
-        ? completedSessions.reduce((acc, s) => {
-            const sessionObj = s as any;
-            const score = typeof sessionObj.productivity_score === 'number' ? sessionObj.productivity_score : 0;
-            return acc + score;
-          }, 0) / totalSessions 
-        : 0;
+      let sumProductivity = 0;
+      let countWithScores = 0;
+      
+      completedSessions.forEach(s => {
+        if (typeof s === 'object' && s !== null) {
+          const score = typeof (s as any).productivity_score === 'number' ? (s as any).productivity_score : 0;
+          if (score > 0) {
+            sumProductivity += score;
+            countWithScores++;
+          }
+        }
+      });
+      
+      const averageProductivity = countWithScores > 0 ? sumProductivity / countWithScores : 0;
 
       return {
         totalFocusTime,

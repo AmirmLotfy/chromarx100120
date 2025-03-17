@@ -1,6 +1,13 @@
-
 import { chromeStorage } from '@/services/chromeStorageService';
-import { Json } from '@/lib/json-types';
+
+// Define the Json type for export
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
 // Interface for query result
 interface QueryResult<T> {
@@ -165,6 +172,32 @@ class ChromeStorageClient {
     };
   }
 
+  // Add the execute method directly to ChromeStorageClient for proper type checking
+  async execute<T>(): Promise<QueryResult<T>> {
+    try {
+      switch (this.operation) {
+        case 'select':
+          return await this.executeSelect<T>();
+        case 'delete':
+          return await this.executeDelete<T>();
+        case 'insert':
+          return await this.executeInsert<T>();
+        case 'update':
+          return await this.executeUpdate<T>();
+        case 'upsert':
+          return await this.executeUpsert<T>();
+        default:
+          return { data: null, error: new Error('Invalid operation') };
+      }
+    } catch (error) {
+      console.error(`Error executing ${this.operation} on ${this.tableName}:`, error);
+      return { 
+        data: null, 
+        error: error instanceof Error ? error : new Error('Unknown error') 
+      };
+    }
+  }
+
   private async executeSelect<T>(): Promise<QueryResult<T>> {
     try {
       // Get all data for the table
@@ -217,7 +250,7 @@ class ChromeStorageClient {
       
       // Add new data (single item or array)
       const itemsToAdd = Array.isArray(this.dataToInsert) ? this.dataToInsert : [this.dataToInsert];
-      const updatedData = [...tableData, ...itemsToAdd as T[]]; // Fixed spread type issue with explicit casting
+      const updatedData = [...tableData, ...(itemsToAdd as T[])]; // Fixed spread type issue with explicit casting
       
       // Save the updated table
       await chromeStorage.set(`${this.tableName}`, updatedData);
@@ -333,4 +366,3 @@ class ChromeStorageClient {
 }
 
 export const localStorageClient = new ChromeStorageClient();
-export { Json };
