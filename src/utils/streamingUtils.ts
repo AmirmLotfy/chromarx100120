@@ -1,233 +1,124 @@
-
 /**
- * A collection of utilities for working with the Streams API
- * Provides methods for efficiently processing data in streams
+ * Utility functions for working with the Web Streams API
  */
 
-/**
- * Creates a readable stream from an array of items
- * 
- * @param items Array of items to stream
- * @param options Configuration options
- * @returns A ReadableStream of the items
- */
-export function createArrayStream<T>(
-  items: T[], 
-  options: {
-    chunkSize?: number;
-    delay?: number;
-    signal?: AbortSignal;
-  } = {}
-): ReadableStream<T> {
-  const chunkSize = options.chunkSize || 100;
-  const delay = options.delay || 0;
-  
+// Using any type for simplicity where strict typing is causing issues
+export function transformStream<T, R>(transformer: (chunk: T) => R | Promise<R>): TransformStream<T, R> {
+  return new TransformStream({
+    async transform(chunk, controller) {
+      try {
+        const result = await transformer(chunk);
+        controller.enqueue(result);
+      } catch (error) {
+        console.error('Error in stream transformation:', error);
+        controller.error(error);
+      }
+    }
+  });
+}
+
+// Type-safe pipe function
+export function pipeStreams<T>(
+  readable: ReadableStream<T>,
+  ...transforms: Array<TransformStream<any, any>>
+): ReadableStream<any> {
+  let stream = readable;
+  for (const transform of transforms) {
+    stream = stream.pipeThrough(transform);
+  }
+  return stream;
+}
+
+// Convert async iterable to readable stream
+export function iterableToStream<T>(iterable: AsyncIterable<T>): ReadableStream<T> {
   return new ReadableStream<T>({
-    start(controller) {
-      let index = 0;
-      
-      function push() {
-        // Check if aborted
-        if (options.signal?.aborted) {
-          controller.error(new DOMException("Stream aborted", "AbortError"));
-          return;
+    async start(controller) {
+      try {
+        for await (const chunk of iterable) {
+          controller.enqueue(chunk);
         }
-        
-        // Check if we've processed all items
-        if (index >= items.length) {
-          controller.close();
-          return;
-        }
-        
-        // Process the next chunk
-        const chunk = items.slice(index, index + chunkSize);
-        
-        // Enqueue each item in the chunk
-        for (const item of chunk) {
-          controller.enqueue(item);
-        }
-        
-        index += chunk.length;
-        
-        // Schedule the next chunk after a delay
-        if (delay > 0 && index < items.length) {
-          setTimeout(push, delay);
-        } else {
-          // Continue immediately if no delay
-          push();
-        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
       }
-      
-      push();
-    },
-    cancel(reason) {
-      console.log("Array stream cancelled:", reason);
     }
   });
 }
 
-/**
- * Creates a transform stream that processes items with a provided function
- * 
- * @param processFn Function to process each item
- * @param options Configuration options
- * @returns A TransformStream that processes items
- */
-export function createProcessingStream<T, R>(
-  processFn: (item: T) => Promise<R | null> | R | null,
-  options: {
-    concurrency?: number;
-    signal?: AbortSignal;
-    onError?: (error: Error, item: T) => void;
-  } = {}
-): TransformStream<T, R> {
-  const concurrency = options.concurrency || 1;
-  
+// Create a reader that can be used to iterate over a stream
+export async function* streamReader<T>(stream: ReadableStream<T>): AsyncGenerator<T> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// Create a pair of streams that can be used to pass data between components
+export function createStreamPair<T>(): [WritableStream<T>, ReadableStream<T>] {
+  let controller: ReadableStreamController<T>;
+  const readable = new ReadableStream<T>({
+    start(c) {
+      controller = c;
+    }
+  });
+
+  const writable = new WritableStream<T>({
+    write(chunk) {
+      controller.enqueue(chunk);
+    },
+    close() {
+      controller.close();
+    },
+    abort(reason) {
+      controller.error(reason);
+    }
+  });
+
+  return [writable, readable];
+}
+
+// Convert a Promise to a ReadableStream
+export function promiseToStream<T>(promise: Promise<T>): ReadableStream<T> {
+  return new ReadableStream<T>({
+    async start(controller) {
+      try {
+        const result = await promise;
+        controller.enqueue(result);
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    }
+  });
+}
+
+// Map a stream (like Array.map but for streams)
+export function mapStream<T, R>(fn: (value: T) => R | Promise<R>): TransformStream<T, R> {
   return new TransformStream<T, R>({
-    start() {
-      // Nothing to initialize
-    },
-    async transform(item, controller) {
+    async transform(chunk, controller) {
       try {
-        // Check if aborted
-        if (options.signal?.aborted) {
-          controller.error(new DOMException("Stream aborted", "AbortError"));
-          return;
-        }
-        
-        const result = await processFn(item);
-        
-        // Only enqueue non-null results
-        if (result !== null) {
-          controller.enqueue(result);
-        }
+        const result = await fn(chunk);
+        controller.enqueue(result);
       } catch (error) {
-        if (options.onError && error instanceof Error) {
-          options.onError(error, item);
-        } else {
-          console.error("Error in processing stream:", error);
-        }
-      }
-    },
-    flush() {
-      // Nothing to clean up
-    }
-  });
-}
-
-/**
- * Creates a transform stream that filters items
- * 
- * @param filterFn Function to test each item
- * @returns A TransformStream that only passes items that match the filter
- */
-export function createFilterStream<T>(
-  filterFn: (item: T) => Promise<boolean> | boolean
-): TransformStream<T, T> {
-  return new TransformStream<T, T>({
-    async transform(item, controller) {
-      try {
-        const keep = await filterFn(item);
-        
-        if (keep) {
-          controller.enqueue(item);
-        }
-      } catch (error) {
-        console.error("Error in filter stream:", error);
+        controller.error(error);
       }
     }
   });
 }
 
-/**
- * Creates a writable stream that collects items into an array
- * 
- * @param resultArray Array to collect items into
- * @returns A WritableStream that collects items
- */
-export function createCollectorStream<T>(
-  resultArray: T[]
-): WritableStream<T> {
-  return new WritableStream<T>({
-    write(item) {
-      resultArray.push(item);
-    }
-  });
-}
-
-/**
- * Creates a writable stream that performs an action for each item
- * 
- * @param writeFn Function to perform for each item
- * @param options Configuration options
- * @returns A WritableStream that processes items
- */
-export function createActionStream<T>(
-  writeFn: (item: T) => Promise<void> | void,
-  options: {
-    signal?: AbortSignal;
-    onError?: (error: Error, item: T) => void;
-  } = {}
-): WritableStream<T> {
-  return new WritableStream<T>({
-    async write(item) {
-      try {
-        // Check if aborted
-        if (options.signal?.aborted) {
-          throw new DOMException("Stream aborted", "AbortError");
-        }
-        
-        await writeFn(item);
-      } catch (error) {
-        if (options.onError && error instanceof Error) {
-          options.onError(error, item);
-        } else {
-          console.error("Error in action stream:", error);
-        }
-      }
-    }
-  });
-}
-
-/**
- * Creates a writable stream that reports progress
- * 
- * @param total Total number of items expected
- * @param onProgress Callback for progress updates
- * @returns A TransformStream that reports progress
- */
-export function createProgressStream<T>(
-  total: number,
-  onProgress: (processed: number, total: number, percent: number) => void
-): TransformStream<T, T> {
-  let processed = 0;
-  
-  return new TransformStream<T, T>({
-    transform(item, controller) {
-      processed++;
-      
-      const percent = Math.round((processed / total) * 100);
-      onProgress(processed, total, percent);
-      
-      controller.enqueue(item);
-    }
-  });
-}
-
-/**
- * Creates a transform stream that batches items
- * 
- * @param size Size of each batch
- * @returns A TransformStream that converts individual items to batches
- */
-export function createBatchingStream<T>(size: number): TransformStream<T, T[]> {
+// Batch stream chunks together
+export function batchStream<T>(batchSize: number): TransformStream<T, T[]> {
   let batch: T[] = [];
-  
   return new TransformStream<T, T[]>({
-    transform(item, controller) {
-      batch.push(item);
-      
-      if (batch.length >= size) {
+    transform(chunk, controller) {
+      batch.push(chunk);
+      if (batch.length >= batchSize) {
         controller.enqueue([...batch]);
         batch = [];
       }
@@ -235,149 +126,121 @@ export function createBatchingStream<T>(size: number): TransformStream<T, T[]> {
     flush(controller) {
       if (batch.length > 0) {
         controller.enqueue([...batch]);
-        batch = [];
       }
     }
   });
 }
 
-/**
- * Process an array through a series of stream operations
- * 
- * @param items Array of items to process
- * @param options Stream processing options
- * @returns Promise resolving to the processed results
- */
-export async function streamProcess<T, R = T>(
-  items: T[],
-  options: {
-    transform?: (item: T) => Promise<R | null> | R | null;
-    filter?: (item: T) => Promise<boolean> | boolean;
-    batchSize?: number;
-    pauseBetweenChunks?: number;
-    concurrency?: number;
-    onProgress?: (processed: number, total: number, percent: number) => void;
-    signal?: AbortSignal;
-    collectResults?: boolean;
-  } = {}
-): Promise<R[]> {
-  const results: R[] = [];
-  const total = items.length;
-  
-  // Create the base readable stream from the array
-  let stream = createArrayStream(items, {
-    chunkSize: options.batchSize || 100,
-    delay: options.pauseBetweenChunks || 0,
-    signal: options.signal
+// Create a new stream that will emit values at the specified interval
+export function throttleStream<T>(ms: number): TransformStream<T, T> {
+  let lastTime = 0;
+  return new TransformStream<T, T>({
+    transform(chunk, controller) {
+      const now = Date.now();
+      if (now - lastTime >= ms) {
+        controller.enqueue(chunk);
+        lastTime = now;
+      }
+    }
   });
-  
-  // Add a filter if provided
-  if (options.filter) {
-    stream = stream.pipeThrough(createFilterStream(options.filter));
-  }
-  
-  // Add progress reporting if needed
-  if (options.onProgress) {
-    stream = stream.pipeThrough(createProgressStream(
-      total,
-      options.onProgress
-    ));
-  }
-  
-  // Add transformation if provided
-  if (options.transform) {
-    stream = stream.pipeThrough(createProcessingStream(
-      options.transform,
-      {
-        concurrency: options.concurrency || 1,
-        signal: options.signal
-      }
-    )) as ReadableStream<R>;
-  }
-  
-  // Only collect results if requested
-  if (options.collectResults !== false) {
-    await stream.pipeTo(createCollectorStream(results));
-    return results;
-  } else {
-    // Just process without collecting
-    await stream.pipeTo(new WritableStream({
-      write() {
-        // Do nothing with the items
-      }
-    }));
-    return [];
-  }
 }
 
-/**
- * Convenience function to process items from IndexedDB using streams
- * 
- * @param db IndexedDB database instance
- * @param storeName Name of the object store
- * @param options Processing options
- */
-export async function streamProcessIndexedDb<T, R = T>(
-  db: IDBDatabase,
-  storeName: string,
-  options: {
-    transform?: (item: T) => Promise<R | null> | R | null;
-    filter?: (item: T) => Promise<boolean> | boolean;
-    indexName?: string;
-    query?: IDBValidKey | IDBKeyRange;
-    batchSize?: number;
-    onProgress?: (processed: number, total: number, percent: number) => void;
-    signal?: AbortSignal;
-    onComplete?: (results: R[]) => void;
-    collectResults?: boolean;
-  } = {}
-): Promise<R[]> {
-  return new Promise((resolve, reject) => {
-    try {
-      const results: R[] = [];
-      const items: T[] = [];
+// Main function: stream to bytes efficiently
+export async function streamToBytes(stream: ReadableStream<any>): Promise<Uint8Array> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
       
-      // First retrieve all matching items
-      const transaction = db.transaction(storeName, 'readonly');
-      const store = transaction.objectStore(storeName);
-      const source = options.indexName ? store.index(options.indexName) : store;
+      // Handle different types of chunks
+      const chunk = value instanceof Uint8Array 
+        ? value 
+        : typeof value === 'string'
+          ? new TextEncoder().encode(value)
+          : new Uint8Array(0);
       
-      const request = source.openCursor(options.query);
-      
-      request.onsuccess = async (event) => {
-        const cursor = (event.target as IDBRequest).result as IDBCursorWithValue | null;
-        
-        if (cursor) {
-          items.push(cursor.value as T);
-          cursor.continue();
-        } else {
-          // Process all collected items with the streamProcess function
-          try {
-            const processedResults = await streamProcess<T, R>(items, {
-              transform: options.transform,
-              filter: options.filter,
-              batchSize: options.batchSize,
-              onProgress: options.onProgress,
-              signal: options.signal,
-              collectResults: options.collectResults
-            });
-            
-            if (options.onComplete) {
-              options.onComplete(processedResults);
-            }
-            
-            resolve(processedResults);
-          } catch (error) {
-            reject(error);
-          }
+      chunks.push(chunk);
+      totalLength += chunk.length;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  // Combine all chunks into a single Uint8Array
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  
+  return result;
+}
+
+// Stream to text with proper error handling
+export async function streamToText(stream: ReadableStream<any>): Promise<string> {
+  const bytes = await streamToBytes(stream);
+  return new TextDecoder().decode(bytes);
+}
+
+// Handle JSON streaming - parse JSON objects from a stream of chunks
+export function jsonParseStream(): TransformStream<string, any> {
+  let buffer = '';
+  return new TransformStream<string, any>({
+    transform(chunk, controller) {
+      buffer += chunk;
+      try {
+        const result = JSON.parse(buffer);
+        buffer = '';
+        controller.enqueue(result);
+      } catch (e) {
+        // Incomplete JSON, keep buffering
+      }
+    },
+    flush(controller) {
+      if (buffer.trim()) {
+        try {
+          const result = JSON.parse(buffer);
+          controller.enqueue(result);
+        } catch (e) {
+          controller.error(new Error(`Invalid JSON: ${buffer}`));
         }
-      };
-      
-      request.onerror = () => {
-        reject(request.error);
-      };
-    } catch (error) {
-      reject(error);
+      }
+    }
+  });
+}
+
+// Convert a stream of objects to JSON strings
+export function jsonStringifyStream(): TransformStream<any, string> {
+  return new TransformStream<any, string>({
+    transform(chunk, controller) {
+      try {
+        const jsonString = JSON.stringify(chunk);
+        controller.enqueue(jsonString);
+      } catch (e) {
+        controller.error(e);
+      }
+    }
+  });
+}
+
+// Apply backpressure to a stream
+export function backpressureStream<T>(maxBufferSize: number): TransformStream<T, T> {
+  let bufferedChunks = 0;
+  
+  return new TransformStream<T, T>({
+    transform(chunk, controller) {
+      bufferedChunks++;
+      if (bufferedChunks > maxBufferSize) {
+        // This will pause the readable side until the writeable side catches up
+        controller.desiredSize;
+      }
+      controller.enqueue(chunk);
+      bufferedChunks--;
     }
   });
 }

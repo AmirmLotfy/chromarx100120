@@ -1,4 +1,3 @@
-
 import { WifiOff, CloudOff, RefreshCw, Download } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,9 +19,7 @@ const ChatOfflineNotice = ({
   onRetryConnection 
 }: ChatOfflineNoticeProps) => {
   const isMobile = useIsMobile();
-  const offlineStatus = useOfflineStatus({
-    showToasts: false
-  });
+  const offlineStatus = useOfflineStatus();
   const { isActive, updateAvailable, skipWaiting } = useServiceWorker({
     path: '/improved-service-worker.js',
     showToasts: false

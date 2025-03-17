@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,11 +25,9 @@ const TaskPage = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [channel, setChannel] = useState<any>(null);
 
-  // Fetch tasks
   useEffect(() => {
     fetchTasks();
 
-    // Set up realtime subscription
     const taskChannel = supabase.channel('task-changes');
     const subscription = taskChannel.on(
       'postgres_changes',
@@ -53,7 +50,6 @@ const TaskPage = () => {
     try {
       setIsLoading(true);
       
-      // Mock data for demonstration
       const mockTasks: Task[] = [
         {
           id: '1',
@@ -69,7 +65,6 @@ const TaskPage = () => {
           progress: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          userId: 'demo-user'
         },
         {
           id: '2',
@@ -85,7 +80,6 @@ const TaskPage = () => {
           progress: 50,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          userId: 'demo-user'
         }
       ];
       
@@ -98,9 +92,8 @@ const TaskPage = () => {
     }
   };
 
-  const handleAddTask = async (taskData: Omit<Task, "progress" | "id" | "createdAt" | "updatedAt" | "actualDuration">) => {
+  const handleAddTask = async (taskData: Omit<Task, "progress" | "id" | "createdAt" | "updatedAt" | "actualDuration">): Promise<void> => {
     try {
-      // Simulate adding a task
       const newTask: Task = {
         ...taskData,
         id: `task-${Date.now()}`,
@@ -108,43 +101,36 @@ const TaskPage = () => {
         actualDuration: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        userId: 'demo-user'
       };
       
       setTasks([...tasks, newTask]);
       toast.success('Task added successfully');
-      return true;
     } catch (error) {
       console.error('Error adding task:', error);
       toast.error('Failed to add task');
-      return false;
     }
   };
 
-  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>): Promise<void> => {
     try {
       const updatedTasks = tasks.map(task =>
         task.id === taskId ? { ...task, ...updates, updatedAt: new Date().toISOString() } : task
       );
       setTasks(updatedTasks);
       toast.success('Task updated successfully');
-      return true;
     } catch (error) {
       console.error('Error updating task:', error);
       toast.error('Failed to update task');
-      return false;
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = async (taskId: string): Promise<void> => {
     try {
       setTasks(tasks.filter(task => task.id !== taskId));
       toast.success('Task deleted successfully');
-      return true;
     } catch (error) {
       console.error('Error deleting task:', error);
       toast.error('Failed to delete task');
-      return false;
     }
   };
 
@@ -176,7 +162,6 @@ const TaskPage = () => {
         <TabsContent value={activeTab}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {isLoading ? (
-              // Loading state
               Array(3).fill(0).map((_, i) => (
                 <Card key={i} className="opacity-50">
                   <CardHeader className="pb-2">
@@ -282,7 +267,6 @@ const TaskPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add Task Dialog */}
       <Dialog open={isAddingTask} onOpenChange={setIsAddingTask}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -299,7 +283,6 @@ const TaskPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* View Task Dialog */}
       {selectedTask && (
         <Dialog open={isViewingTask} onOpenChange={setIsViewingTask}>
           <DialogContent className="sm:max-w-[600px]">
@@ -361,7 +344,6 @@ const TaskPage = () => {
         </Dialog>
       )}
 
-      {/* Edit Task Dialog */}
       {selectedTask && (
         <Dialog open={isEditingTask} onOpenChange={setIsEditingTask}>
           <DialogContent className="sm:max-w-[600px]">

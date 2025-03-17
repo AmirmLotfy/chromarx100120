@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { generateTaskSuggestions, suggestTimerDuration } from '@/utils/geminiUti
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Task } from '@/types/task';
+import { Task, TaskPriority } from '@/types/task';
 
 export interface TaskFormProps {
   onTaskAdded: () => void;
@@ -21,7 +22,7 @@ export interface TaskFormProps {
     title?: string;
     description?: string;
     dueDate?: Date;
-    priority?: string;
+    priority?: TaskPriority;
     category?: string;
     estimatedDuration?: number;
   };
@@ -36,7 +37,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [title, setTitle] = useState(initialValues?.title || '');
   const [description, setDescription] = useState(initialValues?.description || '');
   const [dueDate, setDueDate] = useState<Date | undefined>(initialValues?.dueDate || new Date());
-  const [priority, setPriority] = useState(initialValues?.priority || 'medium');
+  const [priority, setPriority] = useState<TaskPriority>(initialValues?.priority || 'medium');
   const [category, setCategory] = useState(initialValues?.category || 'Work');
   const [estimatedDuration, setEstimatedDuration] = useState(initialValues?.estimatedDuration || 60);
   const [categories, setCategories] = useState<{ name: string; color: string }[]>([]);
@@ -116,7 +117,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
           priority,
           category,
           color: categories.find(c => c.name === category)?.color || '#4f46e5',
-          estimatedDuration
+          estimatedDuration,
+          status: 'pending'
         });
       } else {
         const categoryColor = categories.find(c => c.name === category)?.color || '#4f46e5';

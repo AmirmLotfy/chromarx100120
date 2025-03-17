@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import TimerDisplay from '@/components/timer/TimerDisplay';
-import TimerControls from '@/components/timer/TimerControls';
-import TimerSettings from '@/components/timer/TimerSettings';
+import { TimerDisplay } from '@/components/timer/TimerDisplay';
+import { TimerControls } from '@/components/timer/TimerControls';
+import { TimerSettings } from '@/components/timer/TimerSettings';
 import TimerSuggestions from '@/components/timer/TimerSuggestions';
 import { timerService } from '@/services/timerService';
 import { TimerSession } from '@/types/timer';
-import { useState as useZustand } from 'zustand';
+import { create } from 'zustand';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { toast } from 'sonner';
@@ -146,7 +146,6 @@ function TimerPage() {
     setTaskContext(e.target.value);
   };
 
-  // Rest of the component
   return (
     <div className="container mx-auto py-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

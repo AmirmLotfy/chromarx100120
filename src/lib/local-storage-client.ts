@@ -1,4 +1,6 @@
 
+import { DbResponse, DbListResponse, DbQueryResult, DbSingleResult, DbInsertResult } from './json-types';
+
 // This is a mock implementation of Supabase client for local storage
 // It provides the necessary methods to mimic Supabase behavior
 
@@ -20,45 +22,20 @@ class LocalStorageClient {
 
   from(table: string) {
     return {
-      select: (fields?: string) => {
-        const result = {
-          data: [],
-          error: null,
-          
-          eq: (column: string, value: any) => {
-            return {
-              single: () => Promise.resolve({ data: {}, error: null }),
-              execute: () => Promise.resolve({ data: [], error: null }),
-              order: (orderColumn: string, options?: { ascending: boolean }) => {
-                return { 
-                  execute: () => Promise.resolve({ data: [], error: null }) 
-                };
-              }
-            };
-          },
-          
-          single: () => Promise.resolve({ data: {}, error: null }),
-          
+      select: (fields?: string): DbQueryResult<any> => {
+        return {
           execute: () => Promise.resolve({ data: [], error: null }),
-          
-          order: (column: string, options?: { ascending: boolean }) => {
-            return { 
-              execute: () => Promise.resolve({ data: [], error: null }) 
-            };
-          }
         };
-        
-        return result;
       },
       
-      insert: (data: any) => {
+      insert: (data: any): DbInsertResult<any> => {
         return {
           single: () => Promise.resolve({ data: {}, error: null }),
           select: () => Promise.resolve({ data: [{}], error: null })
         };
       },
       
-      update: (data: any) => {
+      update: (data: any): DbSingleResult<any> => {
         return {
           eq: (column: string, value: any) => {
             return {
@@ -66,7 +43,8 @@ class LocalStorageClient {
               execute: () => Promise.resolve({ data: {}, error: null })
             };
           },
-          single: () => Promise.resolve({ data: {}, error: null })
+          single: () => Promise.resolve({ data: {}, error: null }),
+          execute: () => Promise.resolve({ data: {}, error: null })
         };
       },
       
@@ -82,6 +60,24 @@ class LocalStorageClient {
       
       upsert: (data: any) => {
         return Promise.resolve({ data: {}, error: null });
+      },
+      
+      eq: (column: string, value: any) => {
+        return {
+          single: () => Promise.resolve({ data: {}, error: null }),
+          execute: () => Promise.resolve({ data: [], error: null }),
+          order: (orderColumn: string, options?: { ascending: boolean }) => {
+            return { 
+              execute: () => Promise.resolve({ data: [], error: null }) 
+            };
+          }
+        };
+      },
+      
+      order: (column: string, options?: { ascending: boolean }) => {
+        return { 
+          execute: () => Promise.resolve({ data: [], error: null }) 
+        };
       }
     };
   }
