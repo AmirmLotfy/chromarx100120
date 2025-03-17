@@ -29,7 +29,7 @@ const TimerSuggestions: React.FC<TimerSuggestionProps> = ({
         
         // Get task data if context exists
         if (taskContext) {
-          const suggestedDuration = await suggestTimerDuration(taskContext, mode);
+          const suggestedDuration = await suggestTimerDuration(taskContext);
           setPersonalSuggestion(suggestedDuration);
         }
         

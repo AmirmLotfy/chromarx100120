@@ -98,12 +98,10 @@ export const ConversationService = {
           category,
           created_at: new Date(now).toISOString(),
           updated_at: new Date(now).toISOString()
-        })
-        .select();
+        });
 
       if (result.error) throw result.error;
-      const newConversation = result.data?.[0];
-
+      
       if (messages.length > 0) {
         const dbMessages = messages.map(msg => mapMessageToDb(msg, conversationId));
         const messagesResult = await localStorageClient
@@ -198,9 +196,7 @@ export const ConversationService = {
         .update({ archived: true })
         .eq('id', conversationId);
 
-      // Fixed error access by directly checking the result of execute() method
-      const executeResult = await result.execute();
-      if (executeResult.error) throw executeResult.error;
+      if (result.error) throw result.error;
       
       return true;
     } catch (error) {

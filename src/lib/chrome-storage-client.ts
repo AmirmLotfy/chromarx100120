@@ -1,404 +1,195 @@
-
 import { chromeStorage } from '@/services/chromeStorageService';
-import { v4 as uuidv4 } from 'uuid';
 
-// Types to mimic Supabase types
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
-
-interface FromOptions {
-  count?: 'exact' | 'planned' | 'estimated';
-  head?: boolean;
-}
-
+// Interface for query result
 interface QueryResult<T> {
   data: T[] | null;
   error: Error | null;
-  count: number | null;
-  status: number;
-  statusText: string;
 }
 
-interface SingleQueryResult<T> {
-  data: T | null;
-  error: Error | null;
-  status: number;
-  statusText: string;
+// Interface for the builder pattern for building queries
+interface QueryBuilder<T> {
+  select(): Promise<QueryResult<T>>;
+  eq(column: string, value: any): QueryBuilder<T>;
+  order(column: string, options?: { ascending: boolean }): QueryBuilder<T>;
+  delete(): Promise<QueryResult<T>>;
+  insert(data: T | T[]): Promise<QueryResult<T>>;
+  update(data: Partial<T>): Promise<QueryResult<T>>;
+  from: (table: string) => QueryBuilder<T>;
 }
 
-interface ExecuteResult {
-  error: Error | null;
-}
+// Implements a Supabase-like client for Chrome storage
+class ChromeStorageClient {
+  private tableName: string = '';
+  private filters: Array<{ column: string; value: any }> = [];
+  private orderByColumn: string | null = null;
+  private ascending: boolean = true;
 
-class QueryBuilder<T> {
-  private collection: string;
-  private filters: Array<(item: any) => boolean> = [];
-  private sortField: string | null = null;
-  private sortDirection: 'asc' | 'desc' = 'asc';
-  private limitCount: number | null = null;
-  private client: ChromeStorageClient;
-
-  constructor(collection: string, client: ChromeStorageClient) {
-    this.collection = collection;
-    this.client = client;
+  async get<T>(key: string): Promise<T | null> {
+    return await chromeStorage.get<T>(key);
   }
 
-  // Filter methods
-  eq(field: string, value: any): QueryBuilder<T> {
-    this.filters.push((item) => item[field] === value);
-    return this;
+  async set<T>(key: string, value: T): Promise<boolean> {
+    return await chromeStorage.set(key, value);
   }
 
-  neq(field: string, value: any): QueryBuilder<T> {
-    this.filters.push((item) => item[field] !== value);
-    return this;
+  async remove(key: string): Promise<boolean> {
+    return await chromeStorage.remove(key);
   }
 
-  gt(field: string, value: any): QueryBuilder<T> {
-    this.filters.push((item) => item[field] > value);
-    return this;
+  from<T>(tableName: string): QueryBuilder<T> {
+    this.tableName = tableName;
+    this.filters = [];
+    this.orderByColumn = null;
+    this.ascending = true;
+    
+    return this.createQueryBuilder<T>();
   }
 
-  gte(field: string, value: any): QueryBuilder<T> {
-    this.filters.push((item) => item[field] >= value);
-    return this;
-  }
-
-  lt(field: string, value: any): QueryBuilder<T> {
-    this.filters.push((item) => item[field] < value);
-    return this;
-  }
-
-  lte(field: string, value: any): QueryBuilder<T> {
-    this.filters.push((item) => item[field] <= value);
-    return this;
-  }
-
-  // Order method
-  order(field: string, { ascending }: { ascending: boolean } = { ascending: true }): QueryBuilder<T> {
-    this.sortField = field;
-    this.sortDirection = ascending ? 'asc' : 'desc';
-    return this;
-  }
-
-  // Limit method
-  limit(count: number): QueryBuilder<T> {
-    this.limitCount = count;
-    return this;
-  }
-
-  // Execute methods
-  async select(options?: FromOptions): Promise<QueryResult<T>> {
-    try {
-      // Get data from collection
-      let data = await chromeStorage.get<T[]>(this.collection) || [];
-      
-      // Apply filters
-      if (this.filters.length > 0) {
-        data = data.filter(item => this.filters.every(filter => filter(item)));
-      }
-      
-      // Apply sorting
-      if (this.sortField) {
-        data.sort((a: any, b: any) => {
-          const aValue = a[this.sortField as string];
-          const bValue = b[this.sortField as string];
-          
-          if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
-          if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
-          return 0;
-        });
-      }
-      
-      // Apply limit
-      if (this.limitCount !== null && data.length > this.limitCount) {
-        data = data.slice(0, this.limitCount);
-      }
-      
-      // Return count only if head is true
-      if (options?.head) {
-        return {
-          data: [],
-          error: null,
-          count: data.length,
-          status: 200,
-          statusText: 'OK'
-        };
-      }
-      
-      return {
-        data,
-        error: null,
-        count: options?.count ? data.length : null,
-        status: 200,
-        statusText: 'OK'
-      };
-    } catch (error) {
-      console.error(`Error executing select on ${this.collection}:`, error);
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error(String(error)),
-        count: null,
-        status: 500,
-        statusText: 'Internal Error'
-      };
-    }
-  }
-
-  async execute(): Promise<ExecuteResult> {
-    try {
-      await this.select();
-      return { error: null };
-    } catch (error) {
-      console.error(`Error executing operation on ${this.collection}:`, error);
-      return { 
-        error: error instanceof Error ? error : new Error(String(error))
-      };
-    }
-  }
-
-  async maybeSingle(): Promise<SingleQueryResult<T>> {
-    try {
-      const result = await this.select();
-      
-      if (result.error) {
-        throw result.error;
-      }
-      
-      const data = result.data;
-      
-      if (!data || data.length === 0) {
-        return {
-          data: null,
-          error: null,
-          status: 200,
-          statusText: 'OK'
-        };
-      }
-      
-      return {
-        data: data[0],
-        error: null,
-        status: 200,
-        statusText: 'OK'
-      };
-    } catch (error) {
-      console.error(`Error executing maybeSingle on ${this.collection}:`, error);
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error(String(error)),
-        status: 500,
-        statusText: 'Internal Error'
-      };
-    }
-  }
-
-  async single(): Promise<SingleQueryResult<T>> {
-    try {
-      const result = await this.select();
-      
-      if (result.error) {
-        throw result.error;
-      }
-      
-      const data = result.data;
-      
-      if (!data || data.length === 0) {
-        throw new Error('No rows found');
-      }
-      
-      if (data.length > 1) {
-        throw new Error('More than one row found');
-      }
-      
-      return {
-        data: data[0],
-        error: null,
-        status: 200,
-        statusText: 'OK'
-      };
-    } catch (error) {
-      console.error(`Error executing single on ${this.collection}:`, error);
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error(String(error)),
-        status: 500,
-        statusText: 'Internal Error'
-      };
-    }
-  }
-
-  // Insert method
-  async insert(data: Partial<T> | Partial<T>[]): Promise<QueryResult<T>> {
-    try {
-      const items = Array.isArray(data) ? data : [data];
-      const timestamp = new Date().toISOString();
-      
-      // Get existing data
-      const existingData = await chromeStorage.get<T[]>(this.collection) || [];
-      
-      // Prepare items to insert with IDs and timestamps
-      const itemsToInsert = items.map(item => ({
-        ...item,
-        id: (item as any).id || uuidv4(),
-        created_at: timestamp,
-        updated_at: timestamp
-      })) as T[];
-      
-      // Add new items to collection
-      const updatedData = [...existingData, ...itemsToInsert];
-      
-      // Save to storage
-      await chromeStorage.set(this.collection, updatedData);
-      
-      return {
-        data: itemsToInsert,
-        error: null,
-        count: itemsToInsert.length,
-        status: 201,
-        statusText: 'Created'
-      };
-    } catch (error) {
-      console.error(`Error executing insert on ${this.collection}:`, error);
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error(String(error)),
-        count: null,
-        status: 500,
-        statusText: 'Internal Error'
-      };
-    }
-  }
-
-  // Update method
-  async update(data: Partial<T>): Promise<QueryResult<T>> {
-    try {
-      // Get existing data
-      let existingData = await chromeStorage.get<T[]>(this.collection) || [];
-      
-      // Find items to update based on filters
-      if (this.filters.length === 0) {
-        throw new Error('Update operation requires at least one filter');
-      }
-      
-      // Apply filters
-      const itemsToUpdate = existingData.filter(item => this.filters.every(filter => filter(item)));
-      
-      if (itemsToUpdate.length === 0) {
-        return {
-          data: [],
-          error: null,
-          count: 0,
-          status: 200,
-          statusText: 'No items matched the filters'
-        };
-      }
-      
-      // Update items
-      const timestamp = new Date().toISOString();
-      const updatedItems: T[] = [];
-      
-      existingData = existingData.map(item => {
-        if (this.filters.every(filter => filter(item))) {
-          const updatedItem = {
-            ...item,
-            ...data,
-            updated_at: timestamp
-          } as T;
-          
-          updatedItems.push(updatedItem);
-          return updatedItem;
-        }
-        return item;
-      });
-      
-      // Save to storage
-      await chromeStorage.set(this.collection, existingData);
-      
-      return {
-        data: updatedItems,
-        error: null,
-        count: updatedItems.length,
-        status: 200,
-        statusText: 'OK'
-      };
-    } catch (error) {
-      console.error(`Error executing update on ${this.collection}:`, error);
-      return {
-        data: null,
-        error: error instanceof Error ? error : new Error(String(error)),
-        count: null,
-        status: 500,
-        statusText: 'Internal Error'
-      };
-    }
-  }
-
-  // Delete method
-  async delete(): Promise<ExecuteResult> {
-    try {
-      // Get existing data
-      const existingData = await chromeStorage.get<T[]>(this.collection) || [];
-      
-      // Find items to delete based on filters
-      if (this.filters.length === 0) {
-        throw new Error('Delete operation requires at least one filter');
-      }
-      
-      // Filter out items to delete
-      const updatedData = existingData.filter(item => !this.filters.every(filter => filter(item)));
-      
-      // Save to storage
-      await chromeStorage.set(this.collection, updatedData);
-      
-      return { error: null };
-    } catch (error) {
-      console.error(`Error executing delete on ${this.collection}:`, error);
-      return { 
-        error: error instanceof Error ? error : new Error(String(error))
-      };
-    }
-  }
-}
-
-class AuthAPI {
-  async getUser() {
-    // Simplified auth that uses chrome storage
-    const userData = await chromeStorage.get('user_data');
+  private createQueryBuilder<T>(): QueryBuilder<T> {
     return {
-      data: {
-        user: userData
+      select: async (): Promise<QueryResult<T>> => {
+        try {
+          // Get all data for the table
+          const tableData = await this.getTable<T>();
+          
+          // Apply filters
+          let filteredData = this.applyFilters(tableData);
+          
+          // Apply ordering if specified
+          if (this.orderByColumn) {
+            filteredData = this.applyOrdering(filteredData);
+          }
+          
+          return { data: filteredData, error: null };
+        } catch (error) {
+          console.error(`Error selecting from ${this.tableName}:`, error);
+          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+        }
       },
-      error: null
+      
+      eq: (column: string, value: any): QueryBuilder<T> => {
+        this.filters.push({ column, value });
+        return this.createQueryBuilder<T>();
+      },
+      
+      order: (column: string, options?: { ascending: boolean }): QueryBuilder<T> => {
+        this.orderByColumn = column;
+        this.ascending = options?.ascending ?? true;
+        return this.createQueryBuilder<T>();
+      },
+      
+      delete: async (): Promise<QueryResult<T>> => {
+        try {
+          // Get all data for the table
+          const tableData = await this.getTable<T>();
+          
+          // Apply filters to find items to delete
+          const filteredData = this.applyFilters(tableData);
+          
+          // Get items to keep
+          const itemsToKeep = tableData.filter(item => 
+            !filteredData.some(filteredItem => 
+              this.compareItems(item, filteredItem)
+            )
+          );
+          
+          // Save the updated table
+          await chromeStorage.set(`${this.tableName}`, itemsToKeep);
+          
+          return { data: filteredData, error: null };
+        } catch (error) {
+          console.error(`Error deleting from ${this.tableName}:`, error);
+          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+        }
+      },
+      
+      insert: async (data: T | T[]): Promise<QueryResult<T>> => {
+        try {
+          // Get existing data for the table
+          const tableData = await this.getTable<T>();
+          
+          // Add new data (single item or array)
+          const itemsToAdd = Array.isArray(data) ? data : [data];
+          const updatedData = [...tableData, ...itemsToAdd];
+          
+          // Save the updated table
+          await chromeStorage.set(`${this.tableName}`, updatedData);
+          
+          return { data: itemsToAdd, error: null };
+        } catch (error) {
+          console.error(`Error inserting into ${this.tableName}:`, error);
+          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+        }
+      },
+      
+      update: async (updatedData: Partial<T>): Promise<QueryResult<T>> => {
+        try {
+          // Get all data for the table
+          const tableData = await this.getTable<T>();
+          
+          // Apply filters to find items to update
+          const itemsToUpdate = this.applyFilters(tableData);
+          
+          // Update the items
+          const updatedItems: T[] = [];
+          const newTableData = tableData.map(item => {
+            if (itemsToUpdate.some(updateItem => this.compareItems(item, updateItem))) {
+              const updated = { ...item, ...updatedData };
+              updatedItems.push(updated);
+              return updated;
+            }
+            return item;
+          });
+          
+          // Save the updated table
+          await chromeStorage.set(`${this.tableName}`, newTableData);
+          
+          return { data: updatedItems, error: null };
+        } catch (error) {
+          console.error(`Error updating ${this.tableName}:`, error);
+          return { data: null, error: error instanceof Error ? error : new Error('Unknown error') };
+        }
+      },
+      
+      from: this.from.bind(this)
     };
   }
 
-  async signOut() {
-    try {
-      await chromeStorage.remove('user_data');
-      return { error: null };
-    } catch (error) {
-      return { error };
+  private async getTable<T>(): Promise<T[]> {
+    const tableData = await chromeStorage.get<T[]>(`${this.tableName}`);
+    return tableData || [];
+  }
+
+  private applyFilters<T>(data: T[]): T[] {
+    return data.filter(item => 
+      this.filters.every(filter => 
+        (item as any)[filter.column] === filter.value
+      )
+    );
+  }
+
+  private applyOrdering<T>(data: T[]): T[] {
+    if (!this.orderByColumn) return data;
+    
+    return [...data].sort((a, b) => {
+      const valueA = (a as any)[this.orderByColumn as string];
+      const valueB = (b as any)[this.orderByColumn as string];
+      
+      if (valueA < valueB) return this.ascending ? -1 : 1;
+      if (valueA > valueB) return this.ascending ? 1 : -1;
+      return 0;
+    });
+  }
+
+  private compareItems<T>(item1: T, item2: T): boolean {
+    // For simplicity, we'll compare IDs if they exist
+    if ('id' in (item1 as any) && 'id' in (item2 as any)) {
+      return (item1 as any).id === (item2 as any).id;
     }
+    
+    // Otherwise, compare the whole object as JSON
+    return JSON.stringify(item1) === JSON.stringify(item2);
   }
 }
 
-class ChromeStorageClient {
-  auth: AuthAPI;
-
-  constructor() {
-    this.auth = new AuthAPI();
-  }
-
-  from<T = any>(collection: string): QueryBuilder<T> {
-    return new QueryBuilder<T>(collection, this);
-  }
-}
-
-// Create a singleton instance
 export const localStorageClient = new ChromeStorageClient();

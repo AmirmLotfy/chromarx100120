@@ -2,6 +2,8 @@
 import { geminiService } from '@/services/geminiService';
 import { getGeminiResponse } from './geminiUtils';
 
+export const streamingAnimationFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
 export const processStreamingData = async (text: string): Promise<string> => {
   try {
     const prompt = `Summarize this text in 3 concise bullet points: ${text}`;

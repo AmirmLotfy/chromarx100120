@@ -9,6 +9,13 @@ export interface FeatureAccessHook {
   error: Error | null;
 }
 
+// Define subscription type
+interface Subscription {
+  planId?: string;
+  status?: string;
+  expiresAt?: string;
+}
+
 // For compatibility with existing code
 export const useFeaturesEnabled = () => {
   return {
@@ -27,7 +34,7 @@ export const useFeatureAccess = (): FeatureAccessHook => {
     const fetchFeatureAccess = async () => {
       try {
         // Get subscription to determine feature access
-        const subscription = await chromeStorage.get('subscription');
+        const subscription = await chromeStorage.get<Subscription>('subscription');
         
         // Default features everyone has access to
         const defaultFeatures = {

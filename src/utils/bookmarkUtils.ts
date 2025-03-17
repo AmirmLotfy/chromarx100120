@@ -1,6 +1,7 @@
 
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { getGeminiResponse } from './geminiUtils';
+import { ChromeBookmark } from '@/types/bookmark';
 
 export const getBookmarksByDomain = async (domain: string) => {
   try {
@@ -44,5 +45,20 @@ Return only the category name, nothing else.`;
   } catch (error) {
     console.error('Error categorizing bookmark:', error);
     return 'Uncategorized';
+  }
+};
+
+export const findBookmarksByContent = async (query: string, bookmarks: ChromeBookmark[]): Promise<ChromeBookmark[]> => {
+  try {
+    // Simple content-based filtering
+    return bookmarks.filter(bookmark => {
+      if (!bookmark.content) return false;
+      
+      // Check if the content contains the query (case insensitive)
+      return bookmark.content.toLowerCase().includes(query.toLowerCase());
+    });
+  } catch (error) {
+    console.error('Error finding bookmarks by content:', error);
+    return [];
   }
 };
