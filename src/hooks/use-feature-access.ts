@@ -34,7 +34,8 @@ export const useFeatureAccess = (): FeatureAccessHook => {
     const fetchFeatureAccess = async () => {
       try {
         // Get subscription to determine feature access
-        const subscription = await chromeStorage.get<Subscription>('subscription');
+        const subscriptionData = await chromeStorage.get<Subscription>('subscription');
+        const subscription = subscriptionData || {}; 
         
         // Default features everyone has access to
         const defaultFeatures = {

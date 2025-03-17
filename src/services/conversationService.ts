@@ -64,7 +64,7 @@ export const ConversationService = {
         
         const messagesResult = await localStorageClient
           .from('messages')
-          .eq('conversation_id', dbConvo.id)
+          .eq('conversation_id', dbConvo.id || '')
           .order('timestamp', { ascending: true })
           .select();
         
@@ -130,7 +130,7 @@ export const ConversationService = {
 
   async updateConversation(conversation: Conversation): Promise<boolean> {
     try {
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('conversations')
         .update({
           name: conversation.name,
@@ -142,7 +142,7 @@ export const ConversationService = {
         })
         .eq('id', conversation.id);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       return true;
     } catch (error) {
       console.error('Error updating conversation:', error);
@@ -153,11 +153,11 @@ export const ConversationService = {
 
   async addMessage(conversationId: string, message: Message): Promise<Message | null> {
     try {
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('messages')
         .insert(mapMessageToDb(message, conversationId));
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       await localStorageClient
         .from('conversations')
@@ -174,14 +174,14 @@ export const ConversationService = {
 
   async markMessagesAsRead(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('messages')
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
         .eq('sender', 'assistant')
         .eq('is_read', false);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       return true;
     } catch (error) {
       console.error('Error marking messages as read:', error);
@@ -208,12 +208,12 @@ export const ConversationService = {
 
   async restoreConversation(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('conversations')
         .update({ archived: false })
         .eq('id', conversationId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       return true;
     } catch (error) {
       console.error('Error restoring conversation:', error);
@@ -229,12 +229,12 @@ export const ConversationService = {
         .delete()
         .eq('conversation_id', conversationId);
 
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('conversations')
         .delete()
         .eq('id', conversationId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       return true;
     } catch (error) {
       console.error('Error deleting conversation:', error);
@@ -245,12 +245,12 @@ export const ConversationService = {
 
   async updateCategory(conversationId: string, category: ConversationCategory): Promise<boolean> {
     try {
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('conversations')
         .update({ category })
         .eq('id', conversationId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       return true;
     } catch (error) {
       console.error('Error updating category:', error);
@@ -261,12 +261,12 @@ export const ConversationService = {
 
   async togglePinned(conversationId: string, isPinned: boolean): Promise<boolean> {
     try {
-      const { error } = await localStorageClient
+      const result = await localStorageClient
         .from('conversations')
         .update({ pinned: isPinned })
         .eq('id', conversationId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       return true;
     } catch (error) {
       console.error('Error toggling pinned status:', error);

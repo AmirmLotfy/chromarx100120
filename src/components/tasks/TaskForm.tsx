@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,7 +96,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const suggestDuration = async () => {
     try {
       const context = `Task: ${title}. ${description}`;
-      const suggestedDuration = await suggestTimerDuration(context, 'focus');
+      const suggestedDuration = await suggestTimerDuration(context);
       setEstimatedDuration(suggestedDuration * 60); // Convert minutes to seconds
     } catch (error) {
       console.error('Error suggesting duration:', error);
