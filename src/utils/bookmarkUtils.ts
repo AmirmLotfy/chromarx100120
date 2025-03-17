@@ -1,3 +1,4 @@
+
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { getGeminiResponse } from './geminiUtils';
 import { ChromeBookmark } from '@/types/bookmark';

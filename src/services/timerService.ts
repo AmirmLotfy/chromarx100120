@@ -1,5 +1,5 @@
 
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
+import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
 
@@ -26,23 +26,27 @@ class TimerService {
 
   async startSession(session: Omit<TimerSession, 'id' | 'userId' | 'completed' | 'createdAt' | 'updatedAt'>): Promise<TimerSession> {
     try {
-      const userData = await supabase.auth.getUser();
-      const user = userData.data.user;
-      if (!user) throw new Error('User not authenticated');
-
-      const result = await supabase
+      // Generate a simple UUID-like ID since we're not using Supabase anymore
+      const id = 'timer-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+      const userId = 'local-user';
+      
+      const result = await localStorageClient
         .from('timer_sessions')
-        .insert([{
-          user_id: user.id,
+        .insert({
+          id,
+          user_id: userId,
           duration: session.duration,
           mode: session.mode,
           start_time: session.startTime.toISOString(),
           task_context: session.taskContext,
           ai_suggested: session.aiSuggested,
-        }])
-        .select();
+          completed: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .execute();
 
-      // Manually check for error and data
       if (result.error) throw result.error;
       const data = result.data?.[0];
       if (!data) throw new Error('Failed to insert timer session');
@@ -57,16 +61,17 @@ class TimerService {
 
   async completeSession(sessionId: string, productivityScore?: number): Promise<void> {
     try {
-      const result = await supabase
+      const result = await localStorageClient
         .from('timer_sessions')
         .update({
           completed: true,
           end_time: new Date().toISOString(),
-          productivity_score: productivityScore
+          productivity_score: productivityScore,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .execute();
 
-      // Manually check for error
       if (result.error) throw result.error;
       
       await this.playCompletionSound();
@@ -80,11 +85,11 @@ class TimerService {
 
   async getStats(): Promise<TimerStats> {
     try {
-      const result = await supabase
+      const result = await localStorageClient
         .from('timer_sessions')
-        .select('*');
+        .select('*')
+        .execute();
 
-      // Manually check for error and data
       if (result.error) throw result.error;
       const sessions = result.data || [];
 
@@ -118,12 +123,16 @@ class TimerService {
 
   async provideFeedback(sessionId: string, rating: number): Promise<void> {
     try {
-      const { error } = await supabase
+      const result = await localStorageClient
         .from('timer_sessions')
-        .update({ feedback_rating: rating })
-        .eq('id', sessionId);
+        .update({ 
+          feedback_rating: rating,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+        .execute();
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       toast.success('Thank you for your feedback!');
     } catch (error) {
       console.error('Error saving feedback:', error);

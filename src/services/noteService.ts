@@ -1,23 +1,23 @@
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
+
+import { localStorageClient } from '@/lib/chrome-storage-client';
 import { Note, NoteSentiment } from "@/types/note";
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from "sonner";
 
 export const getNotes = async (): Promise<Note[]> => {
   try {
-    const result = await supabase
+    const result = await localStorageClient
       .from('notes')
       .select('*')
-      .eq('user_id', 'current-user') // In a real app, get from auth
-      .order('created_at', { ascending: false });
+      .eq('user_id', 'current-user')
+      .order('created_at', { ascending: false })
+      .execute();
 
-    const data = result.data || [];
-    const error = result.error;
-
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
 
-    return data.map(note => ({
+    return (result.data || []).map(note => ({
       id: note.id,
       title: note.title,
       content: note.content,
@@ -34,27 +34,26 @@ export const getNotes = async (): Promise<Note[]> => {
     }));
   } catch (error) {
     console.error('Error fetching notes:', error);
+    toast.error('Failed to fetch notes');
     return [];
   }
 };
 
 export const getNote = async (id: string): Promise<Note | null> => {
   try {
-    const result = await supabase
+    const result = await localStorageClient
       .from('notes')
       .select('*')
       .eq('id', id)
-      .eq('user_id', 'current-user'); // In a real app, get from auth
+      .eq('user_id', 'current-user')
+      .execute();
 
-    const data = result.data || [];
-    const error = result.error;
-
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
 
-    if (data && data.length > 0) {
-      const note = data[0];
+    if (result.data && result.data.length > 0) {
+      const note = result.data[0];
       return {
         id: note.id,
         title: note.title,
@@ -75,6 +74,7 @@ export const getNote = async (id: string): Promise<Note | null> => {
     return null;
   } catch (error) {
     console.error('Error fetching note:', error);
+    toast.error('Failed to fetch note');
     return null;
   }
 };
@@ -84,13 +84,13 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
     const newNoteId = uuidv4();
     const now = new Date().toISOString();
 
-    const result = await supabase
+    const result = await localStorageClient
       .from('notes')
       .insert({
         id: newNoteId,
         title: noteData.title,
         content: noteData.content,
-        user_id: 'current-user', // In a real app, get from auth
+        user_id: 'current-user',
         created_at: now,
         updated_at: now,
         color: noteData.color || '#fef08a',
@@ -101,17 +101,16 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
         category: noteData.category || 'General',
         sentiment: noteData.sentiment || 'neutral'
       })
-      .select();
+      .select()
+      .execute();
 
-    const data = result.data || [];
-    const error = result.error;
-
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
 
-    if (data && data.length > 0) {
-      const newNote = data[0];
+    if (result.data && result.data.length > 0) {
+      const newNote = result.data[0];
+      toast.success('Note created successfully');
       return {
         id: newNote.id,
         title: newNote.title,
@@ -132,6 +131,7 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
     return null;
   } catch (error) {
     console.error('Error creating note:', error);
+    toast.error('Failed to create note');
     return null;
   }
 };
@@ -139,34 +139,26 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
 export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'userId'>>): Promise<Note | null> => {
   try {
     const now = new Date().toISOString();
+    const updateData = {
+      ...noteData,
+      updated_at: now
+    };
 
-    const result = await supabase
+    const result = await localStorageClient
       .from('notes')
-      .update({
-        title: noteData.title,
-        content: noteData.content,
-        color: noteData.color,
-        pinned: noteData.pinned,
-        folder_id: noteData.folder,
-        bookmark_ids: noteData.bookmarkIds,
-        updated_at: now,
-        tags: noteData.tags,
-        category: noteData.category,
-        sentiment: noteData.sentiment
-      })
+      .update(updateData)
       .eq('id', id)
-      .eq('user_id', 'current-user') // In a real app, get from auth
-      .select();
+      .eq('user_id', 'current-user')
+      .select()
+      .execute();
 
-    const data = result.data || [];
-    const error = result.error;
-
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
 
-    if (data && data.length > 0) {
-      const updatedNote = data[0];
+    if (result.data && result.data.length > 0) {
+      const updatedNote = result.data[0];
+      toast.success('Note updated successfully');
       return {
         id: updatedNote.id,
         title: updatedNote.title,
@@ -187,46 +179,46 @@ export const updateNote = async (id: string, noteData: Partial<Omit<Note, 'id' |
     return null;
   } catch (error) {
     console.error('Error updating note:', error);
+    toast.error('Failed to update note');
     return null;
   }
 };
 
 export const deleteNote = async (id: string): Promise<boolean> => {
   try {
-    const result = await supabase
+    const result = await localStorageClient
       .from('notes')
       .delete()
       .eq('id', id)
-      .eq('user_id', 'current-user'); // In a real app, get from auth
+      .eq('user_id', 'current-user')
+      .execute();
 
-    const error = result.error;
-
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
 
+    toast.success('Note deleted successfully');
     return true;
   } catch (error) {
     console.error('Error deleting note:', error);
+    toast.error('Failed to delete note');
     return false;
   }
 };
 
 export const searchNotes = async (query: string): Promise<Note[]> => {
   try {
-    const result = await supabase
+    const result = await localStorageClient
       .from('notes')
       .select('*')
-      .eq('user_id', 'current-user') // In a real app, get from auth
+      .eq('user_id', 'current-user')
       .execute();
     
-    const { data, error } = result;
-    
-    if (error) {
-      throw error;
+    if (result.error) {
+      throw result.error;
     }
     
-    const filteredNotes = data.filter(note => 
+    const filteredNotes = (result.data || []).filter(note => 
       note.title.toLowerCase().includes(query.toLowerCase()) ||
       note.content.toLowerCase().includes(query.toLowerCase())
     );
@@ -248,12 +240,15 @@ export const searchNotes = async (query: string): Promise<Note[]> => {
     }));
   } catch (error) {
     console.error('Error searching notes:', error);
+    toast.error('Failed to search notes');
     return [];
   }
 };
 
 export const analyzeNoteSentiment = async (noteId: string): Promise<NoteSentiment> => {
   try {
+    // Just returning 'neutral' since we no longer have access to Supabase functions
+    // In a real app, you'd implement sentiment analysis in the client
     return 'neutral';
   } catch (error) {
     console.error('Error analyzing note sentiment:', error);
@@ -263,6 +258,8 @@ export const analyzeNoteSentiment = async (noteId: string): Promise<NoteSentimen
 
 export const categorizeNote = async (noteId: string): Promise<string> => {
   try {
+    // Just returning 'General' since we no longer have access to Supabase functions
+    // In a real app, you'd implement categorization in the client
     return 'General';
   } catch (error) {
     console.error('Error categorizing note:', error);

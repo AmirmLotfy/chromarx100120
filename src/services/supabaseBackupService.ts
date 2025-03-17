@@ -205,6 +205,7 @@ class LocalBackupService {
       this.consecutiveErrors = 0;
       
       console.log('Sync completed successfully');
+      toast.success('Backup completed successfully');
     } catch (error) {
       console.error('Error during sync:', error);
       this.consecutiveErrors++;
