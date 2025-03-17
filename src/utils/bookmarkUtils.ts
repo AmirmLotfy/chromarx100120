@@ -1,4 +1,3 @@
-
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { getGeminiResponse } from './geminiUtils';
 import { ChromeBookmark } from '@/types/bookmark';
@@ -8,7 +7,8 @@ export const getBookmarksByDomain = async (domain: string) => {
     const result = await localStorageClient
       .from('bookmarks')
       .eq('domain', domain)
-      .select();
+      .select()
+      .execute();
     
     return result.data || [];
   } catch (error) {
