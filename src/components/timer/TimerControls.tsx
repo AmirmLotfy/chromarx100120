@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TimerControlsProps {
@@ -8,6 +8,8 @@ interface TimerControlsProps {
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
+  onModeToggle?: () => void;
+  mode?: "focus" | "break";
 }
 
 export const TimerControls = ({
@@ -15,6 +17,8 @@ export const TimerControls = ({
   onStart,
   onPause,
   onReset,
+  onModeToggle,
+  mode = "focus",
 }: TimerControlsProps) => {
   return (
     <div className="flex justify-center items-center gap-6">
@@ -42,6 +46,17 @@ export const TimerControls = ({
       >
         <RotateCcw className="w-5 h-5" />
       </Button>
+      
+      {onModeToggle && (
+        <Button
+          size="icon"
+          variant="outline"
+          className="w-12 h-12 rounded-full border-2 hover:bg-accent/50"
+          onClick={onModeToggle}
+        >
+          <RefreshCw className="w-5 h-5" />
+        </Button>
+      )}
     </div>
   );
 };

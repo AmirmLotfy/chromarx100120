@@ -20,10 +20,13 @@ export interface DbListResponse<T> {
 }
 
 export interface DbQueryResult<T> {
+  eq: (column: string, value: any) => DbQueryResult<T>;
+  order: (column: string, options?: { ascending: boolean }) => DbQueryResult<T>;
   execute: () => Promise<DbListResponse<T>>;
 }
 
 export interface DbSingleResult<T> {
+  eq: (column: string, value: any) => DbSingleResult<T>;
   single: () => Promise<DbResponse<T>>;
   execute: () => Promise<DbResponse<T>>;
 }
@@ -31,4 +34,5 @@ export interface DbSingleResult<T> {
 export interface DbInsertResult<T> {
   single: () => Promise<DbResponse<T>>;
   select: () => Promise<DbListResponse<T>>;
+  error?: any;
 }

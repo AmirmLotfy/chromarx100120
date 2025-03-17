@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for working with the Web Streams API
  */
@@ -215,8 +216,8 @@ export function jsonParseStream(): TransformStream<string, any> {
 }
 
 // Convert a stream of objects to JSON strings
-export function jsonStringifyStream(): TransformStream<any, string> {
-  return new TransformStream<any, string>({
+export function jsonStringifyStream<T>(): TransformStream<T, string> {
+  return new TransformStream<T, string>({
     transform(chunk, controller) {
       try {
         const jsonString = JSON.stringify(chunk);

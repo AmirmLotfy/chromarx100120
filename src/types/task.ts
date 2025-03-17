@@ -1,6 +1,7 @@
 
 export type TaskPriority = "low" | "medium" | "high";
 export type TaskStatus = "pending" | "in-progress" | "completed" | "canceled";
+export type TaskCategory = string;
 
 export interface Task {
   id: string;

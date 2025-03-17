@@ -1,66 +1,74 @@
 
-import { CircularProgress } from "@/components/ui/progress";
+import React from 'react';
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
-interface TimerDisplayProps {
+export interface TimerDisplayProps {
   timeLeft: number;
   mode: "focus" | "break";
-  maxTime: number;
+  maxTime?: number;
 }
 
-export const TimerDisplay = ({ timeLeft, mode, maxTime }: TimerDisplayProps) => {
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const isMobile = useIsMobile();
+export const TimerDisplay: React.FC<TimerDisplayProps> = ({ 
+  timeLeft, 
+  mode,
+  maxTime,
+}) => {
+  // Format the time as mm:ss
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
-  // Calculate the correct percentage for the progress ring
-  const percentage = maxTime > 0 ? (timeLeft / maxTime) * 100 : 0;
-  
-  // Determine the appropriate size for different screen sizes
-  const size = isMobile ? 240 : 280;
+  // Calculate progress percentage if maxTime is provided
+  const progressPercentage = maxTime ? (timeLeft / maxTime) * 100 : 100;
 
   return (
-    <div className={`relative w-full max-w-[${size}px] mx-auto aspect-square`}>
-      <div className="absolute inset-0 flex items-center justify-center z-10">
-        <div className="text-center">
-          <div 
-            className={cn(
-              "font-bold font-mono tracking-tight",
-              isMobile ? "text-5xl" : "text-6xl md:text-7xl",
-              "bg-clip-text text-transparent bg-gradient-to-r",
-              mode === "focus" 
-                ? "from-primary to-purple-500" 
-                : "from-blue-400 to-cyan-500"
-            )}
-          >
-            {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-          </div>
-          <div 
-            className={cn(
-              isMobile ? "text-xs mt-1 py-0.5 px-2" : "text-sm mt-2 py-1 px-3",
-              "text-muted-foreground rounded-full",
-              "inline-block",
-              mode === "focus" 
-                ? "bg-primary/10 text-primary" 
-                : "bg-blue-500/10 text-blue-500"
-            )}
-          >
-            {mode} Mode
-          </div>
-        </div>
+    <div className="flex flex-col items-center justify-center w-full py-8">
+      <div 
+        className={cn(
+          "text-7xl font-mono font-bold",
+          mode === "focus" ? "text-primary" : "text-amber-500"
+        )}
+      >
+        {formatTime(timeLeft)}
       </div>
       
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-[92%] h-[92%] rounded-full bg-accent/30 animate-pulse opacity-20"></div>
+      {/* Radial progress indicator */}
+      <div className="relative w-64 h-64 my-4">
+        <svg className="w-full h-full" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            fill="none"
+            strokeWidth="5"
+            stroke="rgba(0,0,0,0.1)"
+          />
+          
+          {/* Progress circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r="45"
+            fill="none"
+            strokeWidth="5"
+            stroke={mode === "focus" ? "hsl(var(--primary))" : "hsl(var(--warning))"}
+            strokeDasharray="283"
+            strokeDashoffset={283 - (283 * progressPercentage) / 100}
+            strokeLinecap="round"
+            transform="rotate(-90 50 50)"
+          />
+        </svg>
       </div>
       
-      <CircularProgress
-        value={percentage}
-        className="w-full h-full -rotate-90"
-        size={size}
-        strokeWidth={isMobile ? 10 : 12}
-      />
+      <div className={cn(
+        "text-xl font-medium",
+        mode === "focus" ? "text-primary" : "text-amber-500"
+      )}>
+        {mode === "focus" ? "Focus Time" : "Break Time"}
+      </div>
     </div>
   );
 };
