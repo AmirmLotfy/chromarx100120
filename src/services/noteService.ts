@@ -118,11 +118,13 @@ export const createNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'upda
       throw result.error;
     }
 
-    // Fix the type issue with result.data
-    const resultData = result.data as any[];
-    if (resultData && Array.isArray(resultData) && resultData.length > 0) {
-      toast.success('Note created successfully');
-      return mapNoteFromDb(resultData[0]);
+    // Fix the type issue with result.data by properly asserting it as an array
+    if (result.data && Array.isArray(result.data)) {
+      const resultData = result.data;
+      if (resultData.length > 0) {
+        toast.success('Note created successfully');
+        return mapNoteFromDb(resultData[0]);
+      }
     }
 
     return null;

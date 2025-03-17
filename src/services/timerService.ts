@@ -1,4 +1,3 @@
-
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
@@ -107,7 +106,8 @@ class TimerService {
         .execute();
 
       if (result.error) throw result.error;
-      const sessions = result.data || [];
+      
+      const sessions = Array.isArray(result.data) ? result.data : [];
 
       if (sessions.length === 0) return {
         totalFocusTime: 0,
@@ -130,7 +130,6 @@ class TimerService {
 
       const totalFocusTime = focusSessions.reduce((acc, s) => {
         const sessionObj = s as Record<string, any>;
-        // Fix the type error here by ensuring we have a number
         const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
         return acc + duration;
       }, 0);
@@ -140,7 +139,6 @@ class TimerService {
       
       completedSessions.forEach(s => {
         const sessionObj = s as Record<string, any>;
-        // Fix the type error here by ensuring we have a number
         const score = typeof sessionObj.productivity_score === 'number' ? sessionObj.productivity_score : 0;
         if (score > 0) {
           sumProductivity += score;
@@ -148,7 +146,7 @@ class TimerService {
         }
       });
       
-      const averageProductivity = countWithScores > 0 ? sumProductivity / countWithScores : 0;
+      const averageProductivity: number = countWithScores > 0 ? sumProductivity / countWithScores : 0;
 
       return {
         totalFocusTime,
