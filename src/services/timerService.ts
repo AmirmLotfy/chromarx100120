@@ -130,6 +130,7 @@ class TimerService {
 
       const totalFocusTime = focusSessions.reduce((acc, s) => {
         const sessionObj = s as Record<string, any>;
+        // Fix the type error here by ensuring we have a number
         const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
         return acc + duration;
       }, 0);
@@ -139,6 +140,7 @@ class TimerService {
       
       completedSessions.forEach(s => {
         const sessionObj = s as Record<string, any>;
+        // Fix the type error here by ensuring we have a number
         const score = typeof sessionObj.productivity_score === 'number' ? sessionObj.productivity_score : 0;
         if (score > 0) {
           sumProductivity += score;
