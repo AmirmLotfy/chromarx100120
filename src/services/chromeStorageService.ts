@@ -1,4 +1,3 @@
-
 /**
  * Chrome Storage Service
  * Provides a consistent API for storing and retrieving data in Chrome's storage
@@ -115,7 +114,7 @@ export const chromeStorage = {
       await chrome.storage[storageArea].clear();
       return true;
     } catch (error) {
-      console.error(`Error clearing ${storageArea} storage:`, error);
+      console.error(`Error clearing ${options.area} storage:`, error);
       return false;
     }
   },

@@ -6,9 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { configurationService } from "@/services/configurationService";
 
+// Define a proper type for the PayPal config
+interface PayPalConfig {
+  clientId: string;
+  mode: 'sandbox' | 'live';
+}
+
 const PayPalConfigForm = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [config, setConfig] = useState<{ clientId: string; mode: 'sandbox' | 'live' }>({
+  const [config, setConfig] = useState<PayPalConfig>({
     clientId: '',
     mode: 'sandbox'
   });
@@ -16,10 +22,10 @@ const PayPalConfigForm = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const paypalConfig = await configurationService.getPayPalConfig();
-        // Type assertion to ensure we have the correct type
+        const paypalConfig = await configurationService.getPayPalConfig() as PayPalConfig;
+        // Now the type is properly asserted
         setConfig({
-          clientId: typeof paypalConfig.clientId === 'string' ? paypalConfig.clientId : '',
+          clientId: paypalConfig.clientId || '',
           mode: paypalConfig.mode === 'live' ? 'live' : 'sandbox'
         });
         setIsLoading(false);
