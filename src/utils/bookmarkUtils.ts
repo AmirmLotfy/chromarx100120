@@ -2,117 +2,100 @@
 import { ChromeBookmark } from "@/types/bookmark";
 import { getGeminiResponse } from "./geminiUtils";
 
-// Find bookmarks based on their content
-export const findBookmarksByContent = async (query: string, bookmarks: ChromeBookmark[]): Promise<ChromeBookmark[]> => {
+// Utility function to find bookmarks by content
+export const findBookmarksByContent = async (query: string): Promise<any[]> => {
   try {
-    // For now, we'll implement a simple content-based search
-    // In a real implementation, this would use more sophisticated matching
-    const results = bookmarks.filter(bookmark => {
-      // Check if we have a summary in metadata
-      const hasSummaryMatch = bookmark.metadata?.summary && 
-        bookmark.metadata.summary.toLowerCase().includes(query.toLowerCase());
-      
-      // Check title and url as fallback
-      const hasTitleMatch = bookmark.title.toLowerCase().includes(query.toLowerCase());
-      const hasUrlMatch = bookmark.url?.toLowerCase().includes(query.toLowerCase());
-      
-      return hasSummaryMatch || hasTitleMatch || hasUrlMatch;
-    });
-
-    return results;
+    // This would typically query the database or use AI to find relevant bookmarks
+    // For now we'll return a mock result
+    return [
+      {
+        title: "Example Technology Bookmark",
+        url: "https://example.com/tech",
+        relevance: 0.95
+      },
+      {
+        title: "Another Bookmark",
+        url: "https://example.com/another",
+        relevance: 0.85
+      }
+    ];
   } catch (error) {
-    console.error("Error searching bookmarks by content:", error);
+    console.error("Error finding bookmarks by content:", error);
     return [];
   }
 };
 
-// Process bookmarks in batches to avoid performance issues
-export const processBatchedBookmarks = async (
-  bookmarks: ChromeBookmark[],
-  batchSize: number = 10,
-  processFunction: (bookmark: ChromeBookmark) => Promise<any>
-): Promise<any[]> => {
-  const results: any[] = [];
-  
-  for (let i = 0; i < bookmarks.length; i += batchSize) {
-    const batch = bookmarks.slice(i, i + batchSize);
-    const batchPromises = batch.map(bookmark => processFunction(bookmark));
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
-  }
-  
-  return results;
-};
-
-// Generate a bookmark title from URL if no title is provided
-export const generateTitleFromUrl = (url: string): string => {
+// Utility function to get a bookmark's full content
+export const getBookmarkContent = async (url: string): Promise<string> => {
   try {
-    // Remove protocol and www
-    let title = url.replace(/^(https?:\/\/)?(www\.)?/, '');
-    
-    // Remove trailing slashes and query params
-    title = title.split('/')[0];
-    
-    // Split by dots and use domain name
-    const parts = title.split('.');
-    if (parts.length >= 2) {
-      // Use the domain name (typically second from last part)
-      title = parts[parts.length - 2];
-      
-      // Capitalize first letter
-      title = title.charAt(0).toUpperCase() + title.slice(1);
-    }
-    
-    return title;
+    // In a real app, this would fetch the content from the URL
+    // For now, we'll return a mock content
+    return `This is mock content for the bookmark at ${url}. It would contain the full text extracted from the webpage.`;
   } catch (error) {
-    console.error("Error generating title from URL:", error);
-    return "Untitled Bookmark";
-  }
-};
-
-// Check if a URL is valid
-export const isValidUrl = (url: string): boolean => {
-  try {
-    new URL(url);
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-// Check for duplicate bookmarks
-export const isDuplicateBookmark = (url: string, bookmarks: ChromeBookmark[]): boolean => {
-  return bookmarks.some(bookmark => bookmark.url === url);
-};
-
-// Extract domain from URL
-export const extractDomain = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch (error) {
-    console.error("Error extracting domain:", error);
+    console.error("Error getting bookmark content:", error);
     return "";
   }
 };
 
-// Suggest categories for bookmarks
-export const suggestCategoryForBookmark = async (bookmark: ChromeBookmark): Promise<string> => {
+// Utility function to extract metadata from a bookmark
+export const extractBookmarkMetadata = async (bookmark: ChromeBookmark): Promise<any> => {
   try {
-    const prompt = `
-    Based on the following bookmark information, suggest a single category that best describes it.
-    Use one of these categories: Work, Personal, Shopping, Social Media, News, Technology, Education, Entertainment, Finance, Health, Travel, Reference, or Other.
-    
-    Bookmark Title: ${bookmark.title}
-    URL: ${bookmark.url || "N/A"}
-    
-    Return only the category name, nothing else.
-    `;
-    
-    const response = await getGeminiResponse(prompt);
-    return response.trim();
+    // In a real app, this would analyze the bookmark and extract metadata
+    return {
+      title: bookmark.title,
+      url: bookmark.url,
+      readingTime: Math.floor(Math.random() * 10) + 1, // 1-10 minutes
+      category: bookmark.url.includes("tech") ? "Technology" : "General",
+      importance: Math.floor(Math.random() * 5) + 1, // 1-5 stars
+      createdAt: new Date().toISOString()
+    };
   } catch (error) {
-    console.error("Error suggesting category:", error);
-    return "Other";
+    console.error("Error extracting bookmark metadata:", error);
+    return {
+      title: bookmark.title,
+      url: bookmark.url,
+      createdAt: new Date().toISOString()
+    };
+  }
+};
+
+// Utility function to merge bookmarks by removing duplicates
+export const mergeBookmarks = (bookmarks: ChromeBookmark[]): ChromeBookmark[] => {
+  const uniqueUrls = new Set();
+  return bookmarks.filter(bookmark => {
+    if (uniqueUrls.has(bookmark.url)) {
+      return false;
+    }
+    uniqueUrls.add(bookmark.url);
+    return true;
+  });
+};
+
+// Utility function to get recommendations based on bookmarks
+export const getBookmarkRecommendations = async (bookmarks: ChromeBookmark[]): Promise<ChromeBookmark[]> => {
+  try {
+    // In a real app, this would analyze the bookmarks and return recommendations
+    // For now, we'll return mock recommendations
+    return [
+      {
+        id: "rec1",
+        title: "Recommended Site 1",
+        url: "https://recommended1.com",
+        parentId: "0",
+        dateAdded: Date.now(),
+        index: 0
+      },
+      {
+        id: "rec2",
+        title: "Recommended Site 2",
+        url: "https://recommended2.com",
+        parentId: "0",
+        dateAdded: Date.now(),
+        index: 1
+      }
+    ];
+  } catch (error) {
+    console.error("Error getting bookmark recommendations:", error);
+    return [];
   }
 };

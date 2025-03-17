@@ -7,19 +7,23 @@ import NoteGrid from "@/components/notes/NoteGrid";
 import NoteActions from "@/components/notes/NoteActions";
 import { useToast } from "@/hooks/use-toast";
 import { NoteService } from "@/services/noteService";
-import { Note } from "@/types/note";
+import { Note, NoteSentiment } from "@/types/note";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, FilePlus, Search, ArrowDownAZ } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
+interface ExtendedNote extends Note {
+  isSelected?: boolean;
+}
+
 const NotesPage = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<ExtendedNote[]>([]);
+  const [filteredNotes, setFilteredNotes] = useState<ExtendedNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [currentNote, setCurrentNote] = useState<ExtendedNote | null>(null);
   const [sortBy, setSortBy] = useState<"updatedAt" | "createdAt" | "title">("updatedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
@@ -36,15 +40,17 @@ const NotesPage = () => {
     try {
       setLoading(true);
       const fetchedNotes = await NoteService.getAllNotes();
-      // Map to ensure notes have the required category property
-      const notesWithCategory = fetchedNotes.map(note => ({
+      // Map to ensure notes have the required properties
+      const notesWithRequiredProps = fetchedNotes.map(note => ({
         ...note,
         category: note.category || "",
         tags: note.tags || [],
         createdAt: typeof note.createdAt === 'string' ? note.createdAt : new Date(note.createdAt).toISOString(),
-        updatedAt: typeof note.updatedAt === 'string' ? note.updatedAt : new Date(note.updatedAt).toISOString()
+        updatedAt: typeof note.updatedAt === 'string' ? note.updatedAt : new Date(note.updatedAt).toISOString(),
+        sentiment: (note.sentiment as NoteSentiment) || "neutral",
+        isSelected: false
       }));
-      setNotes(notesWithCategory);
+      setNotes(notesWithRequiredProps);
     } catch (error) {
       console.error("Error fetching notes:", error);
       toast({
@@ -95,7 +101,7 @@ const NotesPage = () => {
     setIsEditing(true);
   };
 
-  const handleEditNote = (note: Note) => {
+  const handleEditNote = (note: ExtendedNote) => {
     setCurrentNote(note);
     setIsEditing(true);
   };
@@ -106,13 +112,15 @@ const NotesPage = () => {
         // Editing existing note
         const updatedNote = await NoteService.updateNote(currentNote.id, noteData);
         if (updatedNote) {
-          // Ensure the note has the required category property
-          const completeNote: Note = {
+          // Ensure the note has the required properties
+          const completeNote: ExtendedNote = {
             ...updatedNote,
             category: updatedNote.category || "",
             tags: updatedNote.tags || [],
             createdAt: typeof updatedNote.createdAt === 'string' ? updatedNote.createdAt : new Date(updatedNote.createdAt).toISOString(),
-            updatedAt: typeof updatedNote.updatedAt === 'string' ? updatedNote.updatedAt : new Date(updatedNote.updatedAt).toISOString()
+            updatedAt: typeof updatedNote.updatedAt === 'string' ? updatedNote.updatedAt : new Date(updatedNote.updatedAt).toISOString(),
+            sentiment: (updatedNote.sentiment as NoteSentiment) || "neutral",
+            isSelected: false
           };
           
           setNotes((prevNotes) =>
@@ -133,13 +141,15 @@ const NotesPage = () => {
           userId: "current-user", // This would come from auth context in a real app
         });
         if (newNote) {
-          // Ensure the note has the required category property
-          const completeNote: Note = {
+          // Ensure the note has the required properties
+          const completeNote: ExtendedNote = {
             ...newNote,
             category: newNote.category || "",
             tags: newNote.tags || [],
             createdAt: typeof newNote.createdAt === 'string' ? newNote.createdAt : new Date(newNote.createdAt).toISOString(),
-            updatedAt: typeof newNote.updatedAt === 'string' ? newNote.updatedAt : new Date(newNote.updatedAt).toISOString()
+            updatedAt: typeof newNote.updatedAt === 'string' ? newNote.updatedAt : new Date(newNote.updatedAt).toISOString(),
+            sentiment: (newNote.sentiment as NoteSentiment) || "neutral",
+            isSelected: false
           };
           
           setNotes((prevNotes) => [completeNote, ...prevNotes]);
@@ -182,6 +192,12 @@ const NotesPage = () => {
   const toggleSortDirection = () => {
     setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   };
+
+  // Stub methods for NoteCard/NoteGrid components
+  const handleAnalyze = () => console.log("Analyze note");
+  const handleSelect = () => console.log("Select note");
+  const handleConvertToTask = () => console.log("Convert to task");
+  const handleLinkBookmark = () => console.log("Link bookmark");
 
   if (loading) {
     return (
@@ -236,7 +252,16 @@ const NotesPage = () => {
 
           <TabsContent value="grid" className="space-y-4">
             {filteredNotes.length > 0 ? (
-              <NoteGrid notes={filteredNotes} onEdit={handleEditNote} onDelete={handleDeleteNote} />
+              <NoteGrid 
+                notes={filteredNotes} 
+                onEdit={handleEditNote} 
+                onDelete={handleDeleteNote}
+                isSelected={() => false}
+                onSelect={handleSelect}
+                onAnalyze={handleAnalyze}
+                onConvertToTask={handleConvertToTask}
+                onLinkBookmark={handleLinkBookmark}
+              />
             ) : (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No notes found</p>
@@ -254,7 +279,12 @@ const NotesPage = () => {
                   key={note.id} 
                   note={note} 
                   onEdit={() => handleEditNote(note)} 
-                  onDelete={() => handleDeleteNote(note.id)} 
+                  onDelete={() => handleDeleteNote(note.id)}
+                  isSelected={false}
+                  onSelect={handleSelect}
+                  onAnalyze={handleAnalyze}
+                  onConvertToTask={handleConvertToTask}
+                  onLinkBookmark={handleLinkBookmark}
                 />
               ))
             ) : (

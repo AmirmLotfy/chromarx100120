@@ -1,478 +1,536 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
-import { Input } from "@/components/ui/input";
+import { useChat } from "@/hooks/useChat";
+import { Message } from "@/types/chat";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Search, 
-  Send, 
-  Bookmark, 
-  Sparkles, 
-  ChevronDown, 
-  MessageCircle, 
-  Library,
-  Mic,
-  MicOff
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Bot,
+  User,
+  Send,
+  Loader2,
+  Bookmark,
+  History,
+  MoreVertical,
+  Link2,
+  Save,
+  Trash,
+  RefreshCcw,
+  Wifi,
+  WifiOff,
+  Search,
+  MessageSquare,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { ChromeBookmark } from "@/types/bookmark";
-import { aiRequestManager } from "@/utils/aiRequestManager";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { getGeminiResponse } from "@/utils/geminiUtils";
-import { extractPageContent } from "@/utils/contentExtractor";
-import { toast } from "sonner";
-import { VoiceRecorder, convertBlobToBase64 } from "@/utils/voiceUtils";
-import { performGoogleSearch, processSearchResults } from "@/utils/searchApiUtils";
+import ChatHistory from "@/components/chat/ChatHistory";
+import ConversationManager from "@/components/chat/ConversationManager";
+import BookmarkSearchView from "@/components/chat/BookmarkSearchView";
+import ChatOfflineNotice from "@/components/chat/ChatOfflineNotice";
+import ChatError from "@/components/chat/ChatError";
+import { useFeaturesEnabled } from "@/hooks/use-feature-access";
 
-// Define types for our chat functionality
-type MessageType = 'user' | 'assistant' | 'error' | 'loading';
+const ChatPage: React.FC = () => {
+  const [inputValue, setInputValue] = useState("");
+  const {
+    messages,
+    isProcessing,
+    error,
+    isOffline,
+    isAIAvailable,
+    suggestions,
+    isHistoryOpen,
+    isConversationManagerOpen,
+    setIsHistoryOpen,
+    setConversationManagerOpen,
+    handleSendMessage,
+    clearChat,
+    retryLastMessage,
+    checkConnection,
+    saveConversation,
+    isBookmarkSearchMode,
+    toggleBookmarkSearchMode,
+  } = useChat();
+  const { toast } = useToast();
+  const { isOffline: globalOfflineStatus } = useOfflineStatus();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [savingConversation, setSavingConversation] = useState(false);
+  const [conversationName, setConversationName] = useState("");
+  const [conversationCategory, setConversationCategory] = useState("General");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const { isFeatureEnabled } = useFeaturesEnabled();
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  type: MessageType;
-  timestamp: Date;
-  bookmarks?: ChromeBookmark[];
-}
-
-type ChatMode = 'chat' | 'bookmarks' | 'search';
-
-const ChatPage = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [chatMode, setChatMode] = useState<ChatMode>('chat');
-  const [selectedBookmarks, setSelectedBookmarks] = useState<ChromeBookmark[]>([]);
-  const [searchResults, setSearchResults] = useState<ChromeBookmark[]>([]);
-  const [showModeSelector, setShowModeSelector] = useState(false);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
-  const voiceRecorderRef = useRef<VoiceRecorder | null>(null);
-  
-  // Initialize voice recorder
+  // Auto scroll to bottom of chat when new messages come in
   useEffect(() => {
-    voiceRecorderRef.current = new VoiceRecorder(
-      // onStart
-      () => {
-        setIsRecording(true);
-        toast("Recording started...", {
-          duration: 2000,
-        });
-      },
-      // onStop
-      async (audioBlob) => {
-        setIsRecording(false);
-        toast("Processing your voice...", {
-          duration: 2000,
-        });
-        
-        try {
-          // Convert audio to base64
-          const base64Audio = await convertBlobToBase64(audioBlob);
-          
-          // Here you would typically send the audio to a transcription service
-          // For now, we'll just add a placeholder message
-          const transcriptionMessage = "Voice input would be transcribed here. You'll need to connect this to a voice-to-text service like Whisper API.";
-          
-          setInputValue(transcriptionMessage);
-        } catch (error) {
-          console.error("Error processing voice input:", error);
-          toast.error("Could not process your voice input");
-        }
-      },
-      // onError
-      (error) => {
-        console.error("Voice recording error:", error);
-        setIsRecording(false);
-        toast.error("Error accessing microphone: " + error.message);
-      }
-    );
-    
-    return () => {
-      if (voiceRecorderRef.current?.isCurrentlyRecording()) {
-        voiceRecorderRef.current.stopRecording();
-      }
-    };
-  }, []);
-  
-  // Scroll to bottom of chat when new messages are added
-  useEffect(() => {
-    scrollToBottom();
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
   }, [messages]);
-  
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isProcessing) return;
+
+    await handleSendMessage(inputValue);
+    setInputValue("");
   };
 
-  // Generate a unique ID for each message
-  const generateId = () => {
-    return Math.random().toString(36).substring(2, 9);
+  // Handle suggestion click
+  const handleSuggestionClick = async (suggestion: string) => {
+    setInputValue(suggestion);
+    await handleSendMessage(suggestion);
+    setInputValue("");
   };
 
-  // Toggle voice recording
-  const toggleVoiceRecording = () => {
-    if (isRecording) {
-      voiceRecorderRef.current?.stopRecording();
-    } else {
-      voiceRecorderRef.current?.startRecording();
+  // Handle saving a conversation
+  const handleSaveConversation = async () => {
+    if (!conversationName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a name for this conversation",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  // Handle sending a message
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-    
-    const userMessage: ChatMessage = {
-      id: generateId(),
-      content: inputValue,
-      type: 'user',
-      timestamp: new Date(),
-      bookmarks: selectedBookmarks.length > 0 ? selectedBookmarks : undefined,
-    };
-    
-    // Add user message to chat
-    setMessages(prev => [...prev, userMessage]);
-    
-    // Add loading message
-    const loadingId = generateId();
-    setMessages(prev => [
-      ...prev, 
-      { 
-        id: loadingId, 
-        content: 'Thinking...', 
-        type: 'loading', 
-        timestamp: new Date() 
-      }
-    ]);
-    
-    setInputValue('');
-    setIsLoading(true);
-    
+    setSavingConversation(true);
     try {
-      let response;
-      
-      if (chatMode === 'chat') {
-        response = await handleChatWithAI(inputValue, selectedBookmarks);
-      } else if (chatMode === 'bookmarks') {
-        response = await handleBookmarkSearch(inputValue);
-      } else if (chatMode === 'search') {
-        response = await handleWebSearch(inputValue);
-      }
-      
-      // Remove loading message and add assistant response
-      setMessages(prev => 
-        prev.filter(msg => msg.id !== loadingId).concat({
-          id: generateId(),
-          content: response || "I couldn't find an answer to that.",
-          type: 'assistant',
-          timestamp: new Date()
-        })
-      );
+      await saveConversation(conversationName, conversationCategory);
+      toast({
+        title: "Success",
+        description: "Conversation saved successfully",
+      });
+      setSaveDialogOpen(false);
+      setConversationName("");
     } catch (error) {
-      console.error('Error processing message:', error);
-      
-      // Remove loading message and add error message
-      setMessages(prev => 
-        prev.filter(msg => msg.id !== loadingId).concat({
-          id: generateId(),
-          content: "Sorry, I encountered an error processing your request.",
-          type: 'error',
-          timestamp: new Date()
-        })
-      );
-      
-      toast.error("Failed to process your message");
+      toast({
+        title: "Error",
+        description: "Failed to save conversation",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false);
-      setSelectedBookmarks([]);
+      setSavingConversation(false);
     }
   };
 
-  // Handle chatting with AI using the Gemini API
-  const handleChatWithAI = async (message: string, bookmarks: ChromeBookmark[]) => {
+  // Handle testing the AI model
+  const testAI = async () => {
     try {
-      // Extract content from bookmarks if they exist
-      let bookmarkContent = "";
-      
-      if (bookmarks.length > 0) {
-        const bookmarkInfos = bookmarks.map(b => `Title: ${b.title}\nURL: ${b.url || "Unknown"}`).join("\n\n");
-        bookmarkContent = `\n\nRelevant bookmarks:\n${bookmarkInfos}`;
-        
-        // If bookmarks have URLs, try to fetch their content
-        for (const bookmark of bookmarks) {
-          if (bookmark.url) {
-            try {
-              const content = await extractPageContent(bookmark.url);
-              if (content) {
-                bookmarkContent += `\n\nContent from ${bookmark.title}:\n${content.substring(0, 1000)}...`;
-              }
-            } catch (error) {
-              console.error(`Error fetching content for ${bookmark.url}:`, error);
-            }
-          }
-        }
-      }
-
-      // Create prompt with context
-      const prompt = `User question: ${message}${bookmarkContent}`;
-      
-      // Use Gemini API through the request manager
-      const response = await aiRequestManager.makeRequest(
-        async () => {
-          const result = await getGeminiResponse({
-            prompt,
-            type: 'summarize',
-            language: 'en',
-            maxRetries: 1
-          });
-          return result.result;
-        },
-        `chat_${message.substring(0, 20)}_${Date.now()}`,
-        "I'm sorry, I couldn't generate a response at this time."
-      );
-      
-      return response;
+      const response = await getGeminiResponse("Hello, can you hear me?");
+      console.log("AI response:", response);
+      toast({
+        title: "AI Test",
+        description: "Connection to AI model successful",
+      });
     } catch (error) {
-      console.error('Error in chat with AI:', error);
-      throw error;
+      console.error("AI test failed:", error);
+      toast({
+        title: "AI Test Failed",
+        description: "Could not connect to AI model",
+        variant: "destructive",
+      });
     }
   };
 
-  // Handle searching bookmarks
-  const handleBookmarkSearch = async (query: string) => {
-    try {
-      // This would be connected to your actual bookmark search logic
-      // For now, we'll just return a placeholder
-      return `Here are the bookmark search results for: "${query}"\n\nThis feature will be connected to your bookmarks database.`;
-    } catch (error) {
-      console.error('Error searching bookmarks:', error);
-      throw error;
-    }
-  };
-
-  // Handle web search
-  const handleWebSearch = async (query: string) => {
-    try {
-      // Perform the Google search
-      const searchResults = await performGoogleSearch(query);
-      
-      // Process the search results
-      const processedResponse = await processSearchResults(searchResults, query);
-      
-      return processedResponse;
-    } catch (error) {
-      console.error('Error performing web search:', error);
-      throw error;
-    }
-  };
-
-  // Handle mode selection
-  const handleSelectMode = (mode: ChatMode) => {
-    setChatMode(mode);
-    setShowModeSelector(false);
-  };
+  // Check if conversation can be saved (at least 2 messages)
+  const canSaveConversation = messages.length >= 2;
 
   return (
     <Layout>
-      <div className="flex flex-col h-[calc(100vh-8rem)] max-w-md mx-auto p-2">
-        {/* Chat Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-lg font-medium text-primary"
-              onClick={() => setShowModeSelector(!showModeSelector)}
-            >
-              {chatMode === 'chat' ? 'AI Chat' : chatMode === 'bookmarks' ? 'Bookmark Search' : 'Web Search'}
-              <ChevronDown className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {selectedBookmarks.length > 0 && (
-              <div className="text-xs text-muted-foreground">
-                {selectedBookmarks.length} bookmark{selectedBookmarks.length !== 1 ? 's' : ''} selected
-              </div>
+      <div className="container mx-auto px-4 py-6 max-w-6xl flex flex-col h-[calc(100vh-4rem)]">
+        <div className="flex flex-row items-center justify-between mb-4">
+          <div className="flex items-center">
+            <h1 className="text-2xl font-bold">AI Assistant</h1>
+            {isAIAvailable ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={checkConnection}
+                className="ml-2"
+              >
+                <Wifi className="h-4 w-4 text-green-500" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={checkConnection}
+                className="ml-2"
+              >
+                <WifiOff className="h-4 w-4 text-red-500" />
+              </Button>
             )}
           </div>
-        </div>
-        
-        {/* Mode Selector Dropdown */}
-        <AnimatePresence>
-          {showModeSelector && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-background border rounded-lg shadow-lg mb-4 overflow-hidden"
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleBookmarkSearchMode}
             >
-              <div className="p-1">
-                <Button
-                  variant={chatMode === 'chat' ? "default" : "ghost"}
-                  size="sm"
-                  className="w-full justify-start mb-1"
-                  onClick={() => handleSelectMode('chat')}
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  AI Chat
-                </Button>
-                <Button
-                  variant={chatMode === 'bookmarks' ? "default" : "ghost"}
-                  size="sm"
-                  className="w-full justify-start mb-1"
-                  onClick={() => handleSelectMode('bookmarks')}
-                >
-                  <Bookmark className="mr-2 h-4 w-4" />
-                  Bookmark Search
-                </Button>
-                <Button
-                  variant={chatMode === 'search' ? "default" : "ghost"}
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleSelectMode('search')}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  Web Search
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {isBookmarkSearchMode ? (
+                <>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Chat Mode
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search Bookmarks
+                </>
+              )}
+            </Button>
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-1 pb-2">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-4">
-              <div className="rounded-full bg-primary/10 p-3 mb-4">
-                <Sparkles className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Welcome to ChroMarx Chat</h3>
-              <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-                Ask questions about your bookmarks, search the web, or just chat with AI
-              </p>
-              <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
-                <Button 
-                  variant="outline" 
-                  className="justify-start" 
-                  onClick={() => setInputValue("Recommend articles based on my bookmarks")}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Recommend based on my bookmarks
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="justify-start" 
-                  onClick={() => setInputValue("Summarize my bookmarks about technology")}
-                >
-                  <Library className="mr-2 h-4 w-4" />
-                  Summarize technology bookmarks
-                </Button>
-              </div>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex w-full px-2 py-3 rounded-lg",
-                  message.type === 'user' 
-                    ? "bg-primary text-primary-foreground ml-auto justify-end" 
-                    : "bg-muted",
-                  message.type === 'loading' && "bg-muted/50",
-                  message.type === 'error' && "bg-destructive/10 text-destructive dark:text-destructive-foreground"
-                )}
-              >
-                <div className="max-w-[80%]">
-                  {message.type === 'loading' ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="h-3 w-3 rounded-full bg-primary/20 animate-pulse"></div>
-                      <div className="h-3 w-3 rounded-full bg-primary/40 animate-pulse delay-150"></div>
-                      <div className="h-3 w-3 rounded-full bg-primary/60 animate-pulse delay-300"></div>
-                      <span className="ml-2 text-sm">Processing your request...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="whitespace-pre-wrap text-sm">
-                        {message.content}
-                      </div>
-                      
-                      {message.bookmarks && message.bookmarks.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {message.bookmarks.map((bookmark) => (
-                            <div 
-                              key={bookmark.id} 
-                              className="text-xs bg-background/30 px-2 py-1 rounded-full"
-                            >
-                              {bookmark.title.substring(0, 15)}
-                              {bookmark.title.length > 15 ? '...' : ''}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="mt-1 text-[10px] opacity-70">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsHistoryOpen(true)}
+            >
+              <History className="h-4 w-4 mr-2" />
+              History
+            </Button>
 
-        {/* Chat Input - More Compact Version */}
-        <div className="relative bg-background rounded-lg border shadow-sm">
-          <div className="flex items-center">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={
-                chatMode === 'chat' 
-                  ? "Ask anything..." 
-                  : chatMode === 'bookmarks'
-                  ? "Search your bookmarks..." 
-                  : "Search the web..."
-              }
-              className="border-0 shadow-none focus-visible:ring-0 px-3 py-2 h-9 text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-            />
-            
-            <div className="flex items-center pr-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
-                onClick={toggleVoiceRecording}
-                disabled={isLoading}
-                title={isRecording ? "Stop recording" : "Start voice input"}
-              >
-                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleSendMessage}
-                disabled={isLoading || !inputValue.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={clearChat}>
+                  <Trash className="h-4 w-4 mr-2" />
+                  Clear Chat
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSaveDialogOpen(true)}
+                  disabled={!canSaveConversation}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Conversation
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setConversationManagerOpen(true)}
+                >
+                  <Bookmark className="h-4 w-4 mr-2" />
+                  Saved Conversations
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={testAI}>
+                  <Bot className="h-4 w-4 mr-2" />
+                  Test AI Connection
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        <Tabs defaultValue="chat" className="flex-grow flex flex-col">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="chat">Chat</TabsTrigger>
+            <TabsTrigger value="bookmarks">Bookmarks</TabsTrigger>
+          </TabsList>
+
+          <TabsContent
+            value="chat"
+            className="flex-grow flex flex-col h-[calc(100vh-12rem)]"
+          >
+            {isBookmarkSearchMode ? (
+              <BookmarkSearchView />
+            ) : (
+              <>
+                {/* Chat Container */}
+                <div
+                  ref={chatContainerRef}
+                  className="flex-grow overflow-y-auto p-4 rounded-md border bg-background mb-4"
+                >
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <Bot className="h-16 w-16 text-muted-foreground mb-4" />
+                      <h3 className="text-xl font-medium mb-2">
+                        How can I assist you today?
+                      </h3>
+                      <p className="text-muted-foreground max-w-md mb-8">
+                        Ask me anything about your bookmarks, productivity, or
+                        general questions. I can help you find information and
+                        accomplish tasks.
+                      </p>
+                    </div>
+                  ) : (
+                    messages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex mb-4 ${
+                          message.sender === "user" ? "justify-end" : ""
+                        }`}
+                      >
+                        <div
+                          className={`flex gap-3 max-w-[80%] ${
+                            message.sender === "user" ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          <div
+                            className={`flex items-center justify-center h-10 w-10 rounded-full shrink-0 ${
+                              message.sender === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            }`}
+                          >
+                            {message.sender === "user" ? (
+                              <User className="h-5 w-5" />
+                            ) : (
+                              <Bot className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div
+                            className={`p-3 rounded-lg ${
+                              message.sender === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">
+                              {message.content}
+                            </p>
+                            {message.bookmarks &&
+                              message.bookmarks.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-gray-300">
+                                  <p className="text-xs font-semibold mb-1">
+                                    Relevant Bookmarks:
+                                  </p>
+                                  <ul className="text-xs space-y-1">
+                                    {message.bookmarks.map((bookmark, idx) => (
+                                      <li key={idx}>
+                                        <a
+                                          href={bookmark.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center hover:underline"
+                                        >
+                                          <Link2 className="h-3 w-3 mr-1" />
+                                          {bookmark.title}
+                                        </a>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {isProcessing && (
+                    <div className="flex mb-4">
+                      <div className="flex gap-3 max-w-[80%]">
+                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-muted shrink-0">
+                          <Bot className="h-5 w-5" />
+                        </div>
+                        <div className="p-4 rounded-lg bg-muted">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {error && <ChatError error={error} onRetry={retryLastMessage} />}
+                  {isOffline && <ChatOfflineNotice />}
+                </div>
+
+                {/* Input Form */}
+                <form
+                  onSubmit={handleSubmit}
+                  className="flex items-center gap-2"
+                >
+                  <Input
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Type your message..."
+                    disabled={isProcessing || isOffline || !isAIAvailable}
+                    className="flex-grow"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={
+                      !inputValue.trim() ||
+                      isProcessing ||
+                      isOffline ||
+                      !isAIAvailable
+                    }
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                  </Button>
+                </form>
+
+                {/* Suggestions */}
+                {suggestions.length > 0 && messages.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Suggested questions:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((suggestion, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          disabled={isProcessing || isOffline || !isAIAvailable}
+                        >
+                          {suggestion}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="bookmarks" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bookmark Integration</CardTitle>
+                <CardDescription>
+                  Connect your bookmarks with the AI chat
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  The AI can help you find, organize, and get insights from your
+                  bookmarks. You can:
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>Search your bookmarks with natural language</li>
+                  <li>Ask for summaries of bookmarked pages</li>
+                  <li>Get recommendations based on your interests</li>
+                  <li>Organize bookmarks into collections</li>
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  onClick={toggleBookmarkSearchMode}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isBookmarkSearchMode ? "Switch to Chat Mode" : "Search Bookmarks"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Save Conversation Dialog */}
+        <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Save Conversation</DialogTitle>
+              <DialogDescription>
+                Give your conversation a name to save it for later reference.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid gap-2">
+                <label
+                  htmlFor="name"
+                  className="text-sm font-medium leading-none"
+                >
+                  Conversation Name
+                </label>
+                <Input
+                  id="name"
+                  value={conversationName}
+                  onChange={(e) => setConversationName(e.target.value)}
+                  placeholder="e.g., Research on AI Technologies"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label
+                  htmlFor="category"
+                  className="text-sm font-medium leading-none"
+                >
+                  Category
+                </label>
+                <select
+                  id="category"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  value={conversationCategory}
+                  onChange={(e) => setConversationCategory(e.target.value)}
+                >
+                  <option value="General">General</option>
+                  <option value="Work">Work</option>
+                  <option value="Research">Research</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Bookmarks">Bookmarks</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setSaveDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveConversation}
+                disabled={!conversationName.trim() || savingConversation}
+              >
+                {savingConversation ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Chat History Sidebar */}
+        <ChatHistory
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+        />
+
+        {/* Conversation Manager */}
+        <ConversationManager
+          isOpen={isConversationManagerOpen}
+          onClose={() => setConversationManagerOpen(false)}
+        />
       </div>
     </Layout>
   );

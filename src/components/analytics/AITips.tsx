@@ -31,7 +31,7 @@ const AITips = () => {
         // Get last 7 days of analytics data
         const analyticsResult = await supabase
           .from('analytics_data')
-          .select('*')
+          .select()
           .order('date', { ascending: false })
           .limit(7)
           .execute();
@@ -40,7 +40,7 @@ const AITips = () => {
         const user = await supabase.auth.getUser();
         const goalsResult = await supabase
           .from('analytics_goals')
-          .select('*')
+          .select()
           .eq('user_id', user.data.user?.id)
           .execute();
 

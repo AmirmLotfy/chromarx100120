@@ -20,90 +20,7 @@ export class LocalStorageClient {
     signOut: async () => ({ error: null })
   };
 
-  from(tableName: string) {
-    return {
-      select: (columns?: string | string[]) => {
-        return {
-          eq: (column: string, value: any) => {
-            return {
-              order: (orderColumn: string, options?: { ascending?: boolean }) => {
-                return {
-                  execute: () => this.executeQuery(tableName, { column, value, orderBy: orderColumn, ...options }),
-                  single: () => this.executeSingleQuery(tableName, { column, value })
-                }
-              },
-              single: () => this.executeSingleQuery(tableName, { column, value }),
-              execute: () => this.executeQuery(tableName, { column, value })
-            }
-          },
-          neq: (column: string, value: any) => {
-            return {
-              execute: () => this.executeQuery(tableName, { column, value, operator: 'neq' })
-            }
-          },
-          order: (orderColumn: string, options?: { ascending?: boolean }) => {
-            return {
-              execute: () => this.executeQuery(tableName, { orderBy: orderColumn, ...options })
-            }
-          },
-          limit: (count: number) => {
-            return {
-              execute: () => this.executeQuery(tableName, { limit: count })
-            }
-          },
-          execute: () => this.executeQuery(tableName),
-          single: () => this.executeSingleQuery(tableName)
-        }
-      },
-      insert: (data: any) => {
-        return {
-          select: () => {
-            this.insertData(tableName, data);
-            return {
-              single: () => Promise.resolve({ data, error: null })
-            }
-          },
-          single: () => this.insertData(tableName, data)
-        }
-      },
-      update: (data: any) => {
-        return {
-          eq: (column: string, value: any) => {
-            return {
-              select: () => {
-                this.updateData(tableName, column, value, data);
-                return {
-                  single: () => Promise.resolve({ data, error: null })
-                }
-              },
-              single: () => this.updateData(tableName, column, value, data),
-              execute: () => this.updateData(tableName, column, value, data)
-            }
-          },
-          select: () => {
-            return {
-              single: () => Promise.resolve({ data, error: null })
-            }
-          },
-          execute: () => Promise.resolve({ data: { success: true }, error: null })
-        }
-      },
-      delete: () => {
-        return {
-          eq: (column: string, value: any) => {
-            return {
-              execute: () => this.deleteData(tableName, column, value)
-            }
-          },
-          execute: () => Promise.resolve({ data: { success: true }, error: null })
-        }
-      },
-      upsert: (data: any) => {
-        return this.upsertData(tableName, data);
-      }
-    }
-  }
-
+  // Channel methods for realtime subscriptions
   channel(channelName: string) {
     return {
       on: (event: string, table: string, callback: Function) => {
@@ -123,12 +40,160 @@ export class LocalStorageClient {
     return Promise.resolve();
   }
 
+  // Functions API
   functions = {
     invoke: (functionName: string, options?: any) => {
       console.log(`Invoking function ${functionName} with options:`, options);
+      
+      // For AITips component which expects specific data structure
+      if (functionName === 'analyze-productivity') {
+        return Promise.resolve({
+          data: {
+            insights: {
+              summary: "Based on your activity, you seem to be most productive in the morning.",
+              patterns: ["High focus sessions between 9-11 AM", "Productivity drops after lunch"],
+              recommendations: ["Schedule important tasks in the morning", "Take longer breaks"],
+              alerts: ["Frequent context switching detected"],
+              domainSpecificTips: { "example.com": "This site is consuming a lot of your time" },
+              productivityByDomain: [{ domain: "work-tool.com", score: 85 }],
+              goalProgress: [{ category: "Development", current: 10, target: 20 }]
+            }
+          },
+          error: null
+        });
+      }
+      
       return Promise.resolve({ data: { result: 'mock-result' }, error: null });
     }
   };
+
+  from(tableName: string) {
+    return {
+      select: (columns?: string | string[]) => {
+        const builder = {
+          eq: (column: string, value: any) => {
+            return {
+              order: (orderColumn: string, options?: { ascending?: boolean }) => {
+                return {
+                  limit: (count: number) => {
+                    return {
+                      execute: () => this.executeQuery(tableName, { column, value, orderBy: orderColumn, limit: count, ...options }),
+                      data: null,
+                      error: null
+                    }
+                  },
+                  execute: () => this.executeQuery(tableName, { column, value, orderBy: orderColumn, ...options }),
+                  single: () => this.executeSingleQuery(tableName, { column, value }),
+                  data: null,
+                  error: null
+                }
+              },
+              single: () => this.executeSingleQuery(tableName, { column, value }),
+              execute: () => this.executeQuery(tableName, { column, value }),
+              data: null,
+              error: null
+            }
+          },
+          neq: (column: string, value: any) => {
+            return {
+              execute: () => this.executeQuery(tableName, { column, value, operator: 'neq' }),
+              data: null,
+              error: null
+            }
+          },
+          order: (orderColumn: string, options?: { ascending?: boolean }) => {
+            return {
+              limit: (count: number) => {
+                return {
+                  execute: () => this.executeQuery(tableName, { orderBy: orderColumn, limit: count, ...options }),
+                  data: null,
+                  error: null
+                }
+              },
+              execute: () => this.executeQuery(tableName, { orderBy: orderColumn, ...options }),
+              data: null,
+              error: null
+            }
+          },
+          limit: (count: number) => {
+            return {
+              execute: () => this.executeQuery(tableName, { limit: count }),
+              data: null,
+              error: null
+            }
+          },
+          execute: () => this.executeQuery(tableName),
+          single: () => this.executeSingleQuery(tableName),
+          data: null,
+          error: null
+        };
+        
+        return builder;
+      },
+      insert: (data: any) => {
+        return {
+          select: () => {
+            const result = this.insertData(tableName, data);
+            return {
+              single: () => result,
+              data: null,
+              error: null
+            }
+          },
+          single: () => this.insertData(tableName, data),
+          data: null,
+          error: null
+        }
+      },
+      update: (data: any) => {
+        return {
+          eq: (column: string, value: any) => {
+            return {
+              select: () => {
+                const result = this.updateData(tableName, column, value, data);
+                return {
+                  single: () => result,
+                  data: null,
+                  error: null
+                }
+              },
+              single: () => this.updateData(tableName, column, value, data),
+              execute: () => this.updateData(tableName, column, value, data),
+              data: null,
+              error: null
+            }
+          },
+          select: () => {
+            return {
+              single: () => Promise.resolve({ data, error: null }),
+              data: null,
+              error: null
+            }
+          },
+          execute: () => Promise.resolve({ data: { success: true }, error: null }),
+          data: null,
+          error: null
+        }
+      },
+      delete: () => {
+        return {
+          eq: (column: string, value: any) => {
+            return {
+              execute: () => this.deleteData(tableName, column, value),
+              data: null,
+              error: null
+            }
+          },
+          execute: () => Promise.resolve({ data: { success: true }, error: null }),
+          data: null,
+          error: null
+        }
+      },
+      upsert: (data: any) => {
+        return this.upsertData(tableName, data);
+      }
+    }
+  }
 
   private executeQuery(tableName: string, options?: any) {
     const storageKey = `${tableName}_data`;
@@ -216,6 +281,13 @@ export class LocalStorageClient {
   private upsertData(tableName: string, data: any) {
     // This is a simplified implementation
     return this.insertData(tableName, data);
+  }
+
+  // Add subscribe method to mimic Supabase's realtime features
+  subscribe(channel: string, callback?: Function) {
+    console.log(`Subscribed to ${channel}`);
+    if (callback) callback();
+    return Promise.resolve();
   }
 }
 

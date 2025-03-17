@@ -63,13 +63,25 @@ export const getGeminiResponse = async (
   }
 };
 
+// Overloaded function for analyzeSentiment to handle all calls from the application
+export function analyzeSentiment(text: string): Promise<{ sentiment: string; confidence: number }>;
+export function analyzeSentiment(text: string, includeDetails: boolean): Promise<{ sentiment: string; confidence: number; details: string }>;
+
 // Analyze sentiment of text
-export const analyzeSentiment = async (text: string): Promise<{ sentiment: string; confidence: number }> => {
+export async function analyzeSentiment(text: string, includeDetails?: boolean): Promise<any> {
   try {
     // For now, simulate a sentiment analysis result
     const sentiments: NoteSentiment[] = ['positive', 'negative', 'neutral'];
     const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
     const randomScore = parseFloat(Math.random().toFixed(2));
+    
+    if (includeDetails) {
+      return {
+        sentiment: randomSentiment,
+        confidence: randomScore,
+        details: "Additional sentiment details would be here"
+      };
+    }
     
     return {
       sentiment: randomSentiment,
@@ -82,15 +94,14 @@ export const analyzeSentiment = async (text: string): Promise<{ sentiment: strin
       confidence: 0.5
     };
   }
-};
+}
 
-// Summarize content
-export const summarizeContent = async (
-  content: string,
-  language?: string,
-  maxLength?: number,
-  format?: string
-): Promise<string> => {
+// Overloaded function signatures for summarizeContent
+export function summarizeContent(content: string): Promise<string>;
+export function summarizeContent(content: string, language: string, maxLength?: number, format?: string): Promise<string>;
+
+// Summarize content implementation
+export async function summarizeContent(content: string, language?: string, maxLength?: number, format?: string): Promise<string> {
   try {
     // For now, return a simple summary based on content length
     if (content.length <= 30) {
@@ -105,13 +116,14 @@ export const summarizeContent = async (
     console.error('Error summarizing content:', error);
     return content.substring(0, Math.min(100, content.length));
   }
-};
+}
 
-// Summarize a bookmark
-export const summarizeBookmark = async (
-  bookmark: ChromeBookmark,
-  language?: string
-): Promise<string> => {
+// Overloaded function signatures for summarizeBookmark
+export function summarizeBookmark(bookmark: ChromeBookmark): Promise<string>;
+export function summarizeBookmark(bookmark: ChromeBookmark, language: string): Promise<string>;
+
+// Summarize a bookmark implementation
+export async function summarizeBookmark(bookmark: ChromeBookmark, language?: string): Promise<string> {
   try {
     // In a real implementation, this would extract content from the URL
     // For now, we're creating a summary from the bookmark data
@@ -121,15 +133,19 @@ export const summarizeBookmark = async (
     console.error('Error summarizing bookmark:', error);
     return `Summary unavailable for "${bookmark.title}"`;
   }
-};
+}
 
-// Suggest a category for a bookmark
-export const suggestBookmarkCategory = async (
+// Overloaded function signatures for suggestBookmarkCategory
+export function suggestBookmarkCategory(bookmarkOrTitle: ChromeBookmark | string): Promise<string>;
+export function suggestBookmarkCategory(bookmarkOrTitle: ChromeBookmark | string, url?: string, content?: string, language?: string): Promise<string>;
+
+// Suggest a category for a bookmark implementation
+export async function suggestBookmarkCategory(
   bookmarkOrTitle: ChromeBookmark | string,
   url?: string,
   content?: string,
   language?: string
-): Promise<string> => {
+): Promise<string> {
   try {
     // Pre-defined categories
     const categories = [
@@ -169,7 +185,7 @@ export const suggestBookmarkCategory = async (
     console.error('Error suggesting bookmark category:', error);
     return 'Other';
   }
-};
+}
 
 // Generate suggestions for tasks
 export const generateTaskSuggestions = async (context: string): Promise<any[]> => {
@@ -204,8 +220,12 @@ export const generateTaskSuggestions = async (context: string): Promise<any[]> =
   }
 };
 
+// Overloaded function signatures for suggestTimerDuration
+export function suggestTimerDuration(context: string): Promise<number>;
+export function suggestTimerDuration(context: string, mode: 'focus' | 'break'): Promise<number>;
+
 // Suggest task duration based on context
-export const suggestTimerDuration = async (context: string, mode: 'focus' | 'break' = 'focus'): Promise<number> => {
+export async function suggestTimerDuration(context: string, mode: 'focus' | 'break' = 'focus'): Promise<number> {
   try {
     // In a real implementation, this would use AI to suggest a duration
     // For now, we're using some heuristics
@@ -221,7 +241,7 @@ export const suggestTimerDuration = async (context: string, mode: 'focus' | 'bre
     console.error('Error suggesting timer duration:', error);
     return mode === 'focus' ? 25 : 5; // Default pomodoro values
   }
-};
+}
 
 // Process productivity insights
 export const processProductivityInsights = async (data: any): Promise<any> => {
@@ -253,7 +273,9 @@ export const processProductivityInsights = async (data: any): Promise<any> => {
           { domain: "social-media.com", score: 35 }
         ],
         goalProgress: [
-          { goal: "Reduce meeting time", progress: 75, status: "On track" }
+          { category: "Development", current: 10, target: 20 },
+          { category: "Reading", current: 5, target: 10 },
+          { category: "Exercise", current: 3, target: 7 }
         ]
       }
     };
@@ -270,5 +292,22 @@ export const processProductivityInsights = async (data: any): Promise<any> => {
         goalProgress: []
       }
     };
+  }
+};
+
+// Add a utility function for finding bookmarks by content
+export const findBookmarksByContent = async (query: string): Promise<any[]> => {
+  try {
+    // Simulated bookmark search
+    return [
+      {
+        title: "Example Bookmark",
+        url: "https://example.com",
+        relevance: 0.95
+      }
+    ];
+  } catch (error) {
+    console.error('Error finding bookmarks by content:', error);
+    return [];
   }
 };
