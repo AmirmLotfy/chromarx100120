@@ -3,22 +3,19 @@ import { ChromeBookmark } from "@/types/bookmark";
 import { getGeminiResponse } from "./geminiUtils";
 
 // Utility function to find bookmarks by content
-export const findBookmarksByContent = async (query: string): Promise<any[]> => {
+export const findBookmarksByContent = async (query: string, bookmarks: ChromeBookmark[] = []): Promise<ChromeBookmark[]> => {
   try {
     // This would typically query the database or use AI to find relevant bookmarks
-    // For now we'll return a mock result
-    return [
-      {
-        title: "Example Technology Bookmark",
-        url: "https://example.com/tech",
-        relevance: 0.95
-      },
-      {
-        title: "Another Bookmark",
-        url: "https://example.com/another",
-        relevance: 0.85
-      }
-    ];
+    // For now we'll return filtered bookmarks based on simple text matching
+    return bookmarks.filter(bookmark => {
+      const titleMatch = bookmark.title?.toLowerCase().includes(query.toLowerCase());
+      const urlMatch = bookmark.url?.toLowerCase().includes(query.toLowerCase());
+      const contentMatch = bookmark.content?.toLowerCase().includes(query.toLowerCase());
+      const categoryMatch = bookmark.category?.toLowerCase().includes(query.toLowerCase());
+      const tagsMatch = bookmark.tags?.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
+      
+      return titleMatch || urlMatch || contentMatch || categoryMatch || tagsMatch;
+    });
   } catch (error) {
     console.error("Error finding bookmarks by content:", error);
     return [];
@@ -45,7 +42,7 @@ export const extractBookmarkMetadata = async (bookmark: ChromeBookmark): Promise
       title: bookmark.title,
       url: bookmark.url,
       readingTime: Math.floor(Math.random() * 10) + 1, // 1-10 minutes
-      category: bookmark.url.includes("tech") ? "Technology" : "General",
+      category: bookmark.url?.includes("tech") ? "Technology" : "General",
       importance: Math.floor(Math.random() * 5) + 1, // 1-5 stars
       createdAt: new Date().toISOString()
     };
@@ -63,7 +60,7 @@ export const extractBookmarkMetadata = async (bookmark: ChromeBookmark): Promise
 export const mergeBookmarks = (bookmarks: ChromeBookmark[]): ChromeBookmark[] => {
   const uniqueUrls = new Set();
   return bookmarks.filter(bookmark => {
-    if (uniqueUrls.has(bookmark.url)) {
+    if (!bookmark.url || uniqueUrls.has(bookmark.url)) {
       return false;
     }
     uniqueUrls.add(bookmark.url);

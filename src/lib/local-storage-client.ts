@@ -67,6 +67,12 @@ export class LocalStorageClient {
     }
   };
 
+  // This method should be used directly for subscribing to channels
+  subscribe(callback?: Function) {
+    if (callback) callback();
+    return this;
+  }
+
   from(tableName: string) {
     return {
       select: (columns?: string | string[]) => {
@@ -84,6 +90,13 @@ export class LocalStorageClient {
                   },
                   execute: () => this.executeQuery(tableName, { column, value, orderBy: orderColumn, ...options }),
                   single: () => this.executeSingleQuery(tableName, { column, value }),
+                  data: null,
+                  error: null
+                }
+              },
+              limit: (count: number) => {
+                return {
+                  execute: () => this.executeQuery(tableName, { column, value, limit: count }),
                   data: null,
                   error: null
                 }
@@ -134,11 +147,7 @@ export class LocalStorageClient {
         return {
           select: () => {
             const result = this.insertData(tableName, data);
-            return {
-              single: () => result,
-              data: null,
-              error: null
-            }
+            return result;
           },
           single: () => this.insertData(tableName, data),
           data: null,
@@ -151,11 +160,7 @@ export class LocalStorageClient {
             return {
               select: () => {
                 const result = this.updateData(tableName, column, value, data);
-                return {
-                  single: () => result,
-                  data: null,
-                  error: null
-                }
+                return result;
               },
               single: () => this.updateData(tableName, column, value, data),
               execute: () => this.updateData(tableName, column, value, data),
@@ -280,14 +285,7 @@ export class LocalStorageClient {
 
   private upsertData(tableName: string, data: any) {
     // This is a simplified implementation
-    return this.insertData(tableName, data);
-  }
-
-  // Add subscribe method to mimic Supabase's realtime features
-  subscribe(channel: string, callback?: Function) {
-    console.log(`Subscribed to ${channel}`);
-    if (callback) callback();
-    return Promise.resolve();
+    return Promise.resolve({ data, error: null });
   }
 }
 

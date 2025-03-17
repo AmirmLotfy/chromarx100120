@@ -33,7 +33,6 @@ const AITips = () => {
           .from('analytics_data')
           .select()
           .order('date', { ascending: false })
-          .limit(7)
           .execute();
 
         // Get user's goals
@@ -58,7 +57,19 @@ const AITips = () => {
 
         if (insightData.error) throw insightData.error;
         
-        setInsights(insightData.data.insights);
+        // Handle both possible response formats - for local-storage-client mock and real Supabase
+        if ('insights' in insightData.data) {
+          setInsights(insightData.data.insights);
+        } else if ('result' in insightData.data) {
+          // Parse the result string as JSON if it's in string format
+          try {
+            const parsed = JSON.parse(insightData.data.result);
+            setInsights(parsed.insights || parsed);
+          } catch (e) {
+            console.error('Error parsing insights result:', e);
+            setInsights(null);
+          }
+        }
       } catch (error) {
         console.error('Error fetching insights:', error);
         toast.error('Failed to load insights');

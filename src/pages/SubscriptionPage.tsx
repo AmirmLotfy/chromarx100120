@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PageTitle } from "@/components/PageTitle";
+import PageTitle from "@/components/PageTitle";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,22 @@ import PayPalConfigForm from "@/components/settings/PayPalConfigForm";
 import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { useAuth } from "@/hooks/useAuth";
 
+// Mock subscription data for the demo
+const mockSubscriptionData = {
+  id: 'sub_123456',
+  status: 'active',
+  amount: 9.99,
+  renewalDate: '2023-12-01',
+  billingCycle: 'monthly',
+  paymentMethod: {
+    type: 'card',
+    brand: 'visa',
+    last4: '4242',
+    expMonth: 12,
+    expYear: 2025
+  }
+};
+
 export default function SubscriptionPage() {
   const subscriptionHook = useSubscription();
   const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
@@ -30,14 +45,22 @@ export default function SubscriptionPage() {
   const [paypalEnvironment, setPaypalEnvironment] = useState<"sandbox" | "live">("sandbox");
   const { user } = useAuth();
   
-  // Destructure subscription hook properties for easier access
-  const { 
-    subscription, 
-    loading, 
-    error, 
-    cancelSubscription, 
-    updatePaymentMethod 
-  } = subscriptionHook;
+  // Use mock data for demo
+  const subscription = mockSubscriptionData;
+  const loading = false;
+  const error = null;
+  
+  const cancelSubscription = async () => {
+    // Mock implementation
+    toast.success("Your subscription has been canceled");
+    return Promise.resolve();
+  };
+  
+  const updatePaymentMethod = async (data: any) => {
+    // Mock implementation
+    toast.success("Payment method updated successfully");
+    return Promise.resolve();
+  };
 
   const formatCardNumber = (value: string) => {
     const val = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");

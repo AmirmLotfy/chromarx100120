@@ -1,311 +1,359 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from 'react';
 import Layout from "@/components/Layout";
 import NoteEditor from "@/components/notes/NoteEditor";
 import NoteCard from "@/components/notes/NoteCard";
 import NoteGrid from "@/components/notes/NoteGrid";
 import NoteActions from "@/components/notes/NoteActions";
-import { useToast } from "@/hooks/use-toast";
-import { NoteService } from "@/services/noteService";
-import { Note, NoteSentiment } from "@/types/note";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, FilePlus, Search, ArrowDownAZ } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Search, ArrowDownAZ, ArrowUpZA, Filter, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { createNote, getNotes, updateNote, deleteNote } from '@/services/noteService';
+import { Note } from '@/types/note';
 
+// Extended note type to ensure it has all required properties from the type definition
 interface ExtendedNote extends Note {
-  isSelected?: boolean;
+  category: string;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  tags: string[];
 }
 
 const NotesPage = () => {
   const [notes, setNotes] = useState<ExtendedNote[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<ExtendedNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentNote, setCurrentNote] = useState<ExtendedNote | null>(null);
-  const [sortBy, setSortBy] = useState<"updatedAt" | "createdAt" | "title">("updatedAt");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const { toast } = useToast();
+  const [searchText, setSearchText] = useState('');
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<ExtendedNote | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterSentiment, setFilterSentiment] = useState<string>('all');
 
   useEffect(() => {
-    fetchNotes();
+    loadNotes();
   }, []);
 
-  useEffect(() => {
-    filterAndSortNotes();
-  }, [notes, searchQuery, sortBy, sortDirection]);
-
-  const fetchNotes = async () => {
+  const loadNotes = async () => {
     try {
-      setLoading(true);
-      const fetchedNotes = await NoteService.getAllNotes();
-      // Map to ensure notes have the required properties
-      const notesWithRequiredProps = fetchedNotes.map(note => ({
+      const fetchedNotes = await getNotes();
+      // Make sure all notes have the required properties
+      const extendedNotes: ExtendedNote[] = fetchedNotes.map(note => ({
         ...note,
-        category: note.category || "",
-        tags: note.tags || [],
-        createdAt: typeof note.createdAt === 'string' ? note.createdAt : new Date(note.createdAt).toISOString(),
-        updatedAt: typeof note.updatedAt === 'string' ? note.updatedAt : new Date(note.updatedAt).toISOString(),
-        sentiment: (note.sentiment as NoteSentiment) || "neutral",
-        isSelected: false
+        category: note.category || 'General',
+        sentiment: note.sentiment || 'neutral',
+        tags: note.tags || []
       }));
-      setNotes(notesWithRequiredProps);
+      setNotes(extendedNotes);
     } catch (error) {
-      console.error("Error fetching notes:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load notes",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error loading notes:', error);
+      toast.error('Failed to load notes');
     }
   };
 
-  const filterAndSortNotes = () => {
-    let filtered = [...notes];
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (note) =>
-          note.title.toLowerCase().includes(query) ||
-          note.content.toLowerCase().includes(query)
-      );
-    }
-
-    // Sort notes
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === "updatedAt") {
-        const timeA = new Date(a.updatedAt).getTime();
-        const timeB = new Date(b.updatedAt).getTime();
-        comparison = timeA - timeB;
-      } else if (sortBy === "createdAt") {
-        const timeA = new Date(a.createdAt).getTime();
-        const timeB = new Date(b.createdAt).getTime();
-        comparison = timeA - timeB;
-      } else if (sortBy === "title") {
-        comparison = a.title.localeCompare(b.title);
-      }
-      return sortDirection === "desc" ? -comparison : comparison;
+  const filteredNotes = useMemo(() => {
+    return notes.filter(note => {
+      const matchesSearch = note.title.toLowerCase().includes(searchText.toLowerCase()) || 
+                            note.content.toLowerCase().includes(searchText.toLowerCase()) ||
+                            note.tags.some(tag => tag.toLowerCase().includes(searchText.toLowerCase()));
+      
+      const matchesCategory = filterCategory === 'all' || note.category === filterCategory;
+      const matchesSentiment = filterSentiment === 'all' || note.sentiment === filterSentiment;
+      
+      return matchesSearch && matchesCategory && matchesSentiment;
     });
+  }, [notes, searchText, filterCategory, filterSentiment]);
 
-    setFilteredNotes(filtered);
-  };
-
-  const handleCreateNote = () => {
-    setCurrentNote(null);
-    setIsEditing(true);
-  };
-
-  const handleEditNote = (note: ExtendedNote) => {
-    setCurrentNote(note);
-    setIsEditing(true);
-  };
-
-  const handleSaveNote = async (noteData: Partial<Note>) => {
-    try {
-      if (currentNote) {
-        // Editing existing note
-        const updatedNote = await NoteService.updateNote(currentNote.id, noteData);
-        if (updatedNote) {
-          // Ensure the note has the required properties
-          const completeNote: ExtendedNote = {
-            ...updatedNote,
-            category: updatedNote.category || "",
-            tags: updatedNote.tags || [],
-            createdAt: typeof updatedNote.createdAt === 'string' ? updatedNote.createdAt : new Date(updatedNote.createdAt).toISOString(),
-            updatedAt: typeof updatedNote.updatedAt === 'string' ? updatedNote.updatedAt : new Date(updatedNote.updatedAt).toISOString(),
-            sentiment: (updatedNote.sentiment as NoteSentiment) || "neutral",
-            isSelected: false
-          };
-          
-          setNotes((prevNotes) =>
-            prevNotes.map((note) =>
-              note.id === completeNote.id ? completeNote : note
-            )
-          );
-          toast({
-            title: "Success",
-            description: "Note updated successfully",
-          });
-        }
+  const sortedNotes = useMemo(() => {
+    return [...filteredNotes].sort((a, b) => {
+      if (sortOrder === 'newest') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      } else if (sortOrder === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       } else {
-        // Creating new note
-        const newNote = await NoteService.createNote({
-          title: noteData.title || "",
-          content: noteData.content || "",
-          userId: "current-user", // This would come from auth context in a real app
-        });
-        if (newNote) {
-          // Ensure the note has the required properties
-          const completeNote: ExtendedNote = {
-            ...newNote,
-            category: newNote.category || "",
-            tags: newNote.tags || [],
-            createdAt: typeof newNote.createdAt === 'string' ? newNote.createdAt : new Date(newNote.createdAt).toISOString(),
-            updatedAt: typeof newNote.updatedAt === 'string' ? newNote.updatedAt : new Date(newNote.updatedAt).toISOString(),
-            sentiment: (newNote.sentiment as NoteSentiment) || "neutral",
-            isSelected: false
-          };
-          
-          setNotes((prevNotes) => [completeNote, ...prevNotes]);
-          toast({
-            title: "Success",
-            description: "Note created successfully",
-          });
-        }
+        return a.title.localeCompare(b.title);
       }
+    });
+  }, [filteredNotes, sortOrder]);
+
+  const uniqueCategories = useMemo(() => {
+    const categories = notes.map(note => note.category);
+    return ['all', ...new Set(categories)];
+  }, [notes]);
+
+  const handleCreateNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const newNote = await createNote(noteData);
+      
+      // Ensure the new note has all required properties
+      const extendedNote: ExtendedNote = {
+        ...newNote,
+        category: newNote.category || 'General',
+        sentiment: newNote.sentiment || 'neutral',
+        tags: newNote.tags || []
+      };
+      
+      setNotes(prevNotes => [extendedNote, ...prevNotes]);
+      setIsEditorOpen(false);
+      toast.success('Note created successfully');
     } catch (error) {
-      console.error("Error saving note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save note",
-        variant: "destructive",
-      });
+      console.error('Error creating note:', error);
+      toast.error('Failed to create note');
+    }
+  };
+
+  const handleUpdateNote = async (updatedNote: Note) => {
+    try {
+      await updateNote(updatedNote);
+      
+      // Ensure the updated note has all required properties
+      const extendedNote: ExtendedNote = {
+        ...updatedNote,
+        category: updatedNote.category || 'General', 
+        sentiment: updatedNote.sentiment || 'neutral',
+        tags: updatedNote.tags || []
+      };
+      
+      setNotes(prevNotes => prevNotes.map(note => 
+        note.id === extendedNote.id ? extendedNote : note
+      ));
+      setEditingNote(null);
+      setIsEditorOpen(false);
+      toast.success('Note updated successfully');
+    } catch (error) {
+      console.error('Error updating note:', error);
+      toast.error('Failed to update note');
     }
   };
 
   const handleDeleteNote = async (noteId: string) => {
     try {
-      const success = await NoteService.deleteNote(noteId);
-      if (success) {
-        setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
-        toast({
-          title: "Success",
-          description: "Note deleted successfully",
-        });
-      }
+      await deleteNote(noteId);
+      setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
+      toast.success('Note deleted successfully');
     } catch (error) {
-      console.error("Error deleting note:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete note",
-        variant: "destructive",
-      });
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
     }
   };
 
-  const toggleSortDirection = () => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+  const handleEdit = (note: ExtendedNote) => {
+    setEditingNote(note);
+    setIsEditorOpen(true);
   };
 
-  // Stub methods for NoteCard/NoteGrid components
-  const handleAnalyze = () => console.log("Analyze note");
-  const handleSelect = () => console.log("Select note");
-  const handleConvertToTask = () => console.log("Convert to task");
-  const handleLinkBookmark = () => console.log("Link bookmark");
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[80vh]">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground text-sm">Loading your notes...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const getCategoryCount = (category: string) => {
+    if (category === 'all') return notes.length;
+    return notes.filter(note => note.category === category).length;
+  };
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Notes</h1>
-          <Button onClick={handleCreateNote}>
-            <FilePlus className="h-5 w-5 mr-2" />
+      <div className="container py-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Notes</h1>
+            <p className="text-muted-foreground">Organize your thoughts and ideas</p>
+          </div>
+          <Button onClick={() => setIsEditorOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
             New Note
           </Button>
         </div>
 
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+        <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search notes..." 
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="pl-9"
             />
           </div>
-          <Button
-            variant="outline"
-            onClick={toggleSortDirection}
-            className="flex items-center gap-2"
-          >
-            <ArrowDownAZ className={`h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''} transition-transform`} />
-            {sortBy === "updatedAt" ? "Last Updated" : 
-             sortBy === "createdAt" ? "Date Created" : "Title"}
-          </Button>
+          
+          <div className="flex space-x-2">
+            <Select value={sortOrder} onValueChange={(value: 'newest' | 'oldest' | 'alphabetical') => setSortOrder(value)}>
+              <SelectTrigger className="w-[180px]">
+                <div className="flex items-center">
+                  {sortOrder === 'newest' && <Calendar className="h-4 w-4 mr-2" />}
+                  {sortOrder === 'oldest' && <Calendar className="h-4 w-4 mr-2" />}
+                  {sortOrder === 'alphabetical' && <ArrowDownAZ className="h-4 w-4 mr-2" />}
+                  <span>Sort by</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="alphabetical">Alphabetical</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-[180px]">
+                <div className="flex items-center">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <span>Category</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueCategories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)} ({getCategoryCount(category)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-
-        <Tabs defaultValue="grid" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="grid">Grid</TabsTrigger>
-            <TabsTrigger value="list">List</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="grid" className="space-y-4">
-            {filteredNotes.length > 0 ? (
-              <NoteGrid 
-                notes={filteredNotes} 
-                onEdit={handleEditNote} 
-                onDelete={handleDeleteNote}
-                isSelected={() => false}
-                onSelect={handleSelect}
-                onAnalyze={handleAnalyze}
-                onConvertToTask={handleConvertToTask}
-                onLinkBookmark={handleLinkBookmark}
-              />
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No notes found</p>
-                <Button variant="outline" onClick={handleCreateNote} className="mt-4">
-                  Create your first note
-                </Button>
-              </div>
+        
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {searchText && (
+              <Badge variant="outline" className="bg-primary/10">
+                Search: {searchText}
+                <button 
+                  className="ml-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearchText('')}
+                >
+                  ✕
+                </button>
+              </Badge>
             )}
-          </TabsContent>
-
-          <TabsContent value="list" className="space-y-4">
-            {filteredNotes.length > 0 ? (
-              filteredNotes.map(note => (
-                <NoteCard 
-                  key={note.id} 
-                  note={note} 
-                  onEdit={() => handleEditNote(note)} 
-                  onDelete={() => handleDeleteNote(note.id)}
-                  isSelected={false}
-                  onSelect={handleSelect}
-                  onAnalyze={handleAnalyze}
-                  onConvertToTask={handleConvertToTask}
-                  onLinkBookmark={handleLinkBookmark}
-                />
-              ))
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No notes found</p>
-                <Button variant="outline" onClick={handleCreateNote} className="mt-4">
-                  Create your first note
-                </Button>
-              </div>
+            {filterCategory !== 'all' && (
+              <Badge variant="outline" className="bg-primary/10">
+                Category: {filterCategory}
+                <button 
+                  className="ml-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setFilterCategory('all')}
+                >
+                  ✕
+                </button>
+              </Badge>
             )}
-          </TabsContent>
-        </Tabs>
-
-        {isEditing && (
-          <NoteEditor
-            note={currentNote}
-            onSave={handleSaveNote}
-            onClose={() => setIsEditing(false)}
-          />
-        )}
+            {filterSentiment !== 'all' && (
+              <Badge variant="outline" className="bg-primary/10">
+                Sentiment: {filterSentiment}
+                <button 
+                  className="ml-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setFilterSentiment('all')}
+                >
+                  ✕
+                </button>
+              </Badge>
+            )}
+          </div>
+          
+          <Tabs defaultValue="grid">
+            <TabsList className="mb-4">
+              <TabsTrigger value="grid">Grid View</TabsTrigger>
+              <TabsTrigger value="list">List View</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="grid">
+              {sortedNotes.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sortedNotes.map(note => (
+                    <NoteCard 
+                      key={note.id} 
+                      note={note} 
+                      onEdit={() => handleEdit(note)} 
+                      onDelete={() => handleDeleteNote(note.id)}
+                      isSelected={false}
+                      onSelect={() => {}}
+                      onAnalyze={() => {}}
+                      onConvertToTask={() => {}}
+                      onLinkBookmark={() => {}}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No notes found.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => {
+                      setSearchText('');
+                      setFilterCategory('all');
+                      setFilterSentiment('all');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="list">
+              {sortedNotes.length > 0 ? (
+                <div className="space-y-2">
+                  {sortedNotes.map(note => (
+                    <div key={note.id} className="border rounded-lg p-4 hover:bg-accent transition-colors">
+                      <div className="flex justify-between">
+                        <h3 className="font-medium">{note.title}</h3>
+                        <NoteActions 
+                          note={note} 
+                          onEdit={() => handleEdit(note)} 
+                          onDelete={() => handleDeleteNote(note.id)}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{note.content}</p>
+                      <div className="flex justify-between items-center mt-2">
+                        <div className="flex space-x-1">
+                          {note.tags.map(tag => (
+                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(note.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No notes found.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => {
+                      setSearchText('');
+                      setFilterCategory('all');
+                      setFilterSentiment('all');
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
+    
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingNote ? 'Edit Note' : 'Create New Note'}</DialogTitle>
+            <DialogDescription>
+              {editingNote ? 'Make changes to your note' : 'Add a new note to your collection'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <NoteEditor 
+            note={editingNote} 
+            onSave={editingNote ? handleUpdateNote : handleCreateNote}
+            onCancel={() => {
+              setIsEditorOpen(false);
+              setEditingNote(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

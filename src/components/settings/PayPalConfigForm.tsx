@@ -34,8 +34,7 @@ const PayPalConfigForm = () => {
             client_secret: clientSecret,
             mode: mode
           }
-        })
-        .select();
+        });
         
       if (result.error) {
         throw result.error;

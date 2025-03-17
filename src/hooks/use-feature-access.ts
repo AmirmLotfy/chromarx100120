@@ -1,91 +1,86 @@
 
-import { useSubscription } from './use-subscription';
-import { toast } from 'sonner';
-import { useCallback } from 'react';
-import { subscriptionPlans } from '@/config/subscriptionPlans';
+import { useState, useEffect } from 'react';
+import { localStorageClient as supabase } from '@/lib/local-storage-client';
 
-export const useFeatureAccess = () => {
-  const { 
-    checkFeatureAccess, 
-    hasReachedLimit, 
-    currentPlan, 
-    getRemainingQuota,
-    getPlanDetails
-  } = useSubscription();
+interface FeatureFlags {
+  aiSuggestions: boolean;
+  bookmarkSearch: boolean;
+  contentSummary: boolean;
+  advancedAnalytics: boolean;
+  syncFeature: boolean;
+  premiumThemes: boolean;
+  webSearch: boolean;
+}
 
-  const checkAccess = useCallback(async (feature: string, redirectOnFail: boolean = true) => {
-    const hasAccess = await checkFeatureAccess(feature);
-    
-    if (!hasAccess) {
-      const planInfo = subscriptionPlanWithFeature(feature);
-      const message = planInfo 
-        ? `This feature requires the ${planInfo} plan` 
-        : `This feature requires a higher subscription plan`;
+// Default values for feature flags
+const defaultFeatures: FeatureFlags = {
+  aiSuggestions: true,
+  bookmarkSearch: true,
+  contentSummary: true,
+  advancedAnalytics: false,
+  syncFeature: false,
+  premiumThemes: false,
+  webSearch: true
+};
+
+export const useFeaturesEnabled = () => {
+  const [features, setFeatures] = useState<FeatureFlags>(defaultFeatures);
+  const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    const fetchFeatureFlags = async () => {
+      try {
+        // Check if user is premium
+        const { data: user } = await supabase.auth.getUser();
         
-      toast.error(message, {
-        action: redirectOnFail ? {
-          label: "Upgrade",
-          onClick: () => window.location.href = "/subscription"
-        } : undefined
-      });
-      return false;
-    }
-    return true;
-  }, [checkFeatureAccess]);
-
-  const checkUsageLimit = useCallback((type: 'bookmarks' | 'tasks' | 'notes' | 'aiRequests', redirectOnFail: boolean = true) => {
-    const reachedLimit = hasReachedLimit(type);
-    const planDetails = getPlanDetails();
-    
-    if (reachedLimit) {
-      const message = `You've reached your ${type} limit for the ${planDetails?.name || currentPlan} plan`;
-      
-      toast.error(message, {
-        action: redirectOnFail ? {
-          label: "Upgrade",
-          onClick: () => window.location.href = "/subscription"
-        } : undefined
-      });
-      return false;
-    }
-    return true;
-  }, [hasReachedLimit, currentPlan, getPlanDetails]);
-
-  const getUsageInfo = useCallback((type: 'bookmarks' | 'tasks' | 'notes' | 'aiRequests') => {
-    const remaining = getRemainingQuota(type);
-    const planDetails = getPlanDetails();
-    const limit = planDetails?.limits[type] || 0;
-    
-    return {
-      remaining,
-      limit,
-      isUnlimited: remaining === -1,
-      usagePercentage: limit > 0 ? ((limit - remaining) / limit) * 100 : 0,
-      planName: planDetails?.name || currentPlan
-    };
-  }, [getRemainingQuota, getPlanDetails, currentPlan]);
-
-  // Helper function to find which plan has a specific feature
-  const subscriptionPlanWithFeature = (feature: string) => {
-    // Find the lowest tier plan that includes this feature
-    const featureLowerCase = feature.toLowerCase();
-    
-    for (const plan of subscriptionPlans) {
-      const hasFeature = plan.features.some(f => 
-        f.included && f.name.toLowerCase().includes(featureLowerCase)
-      );
-      
-      if (hasFeature) {
-        return plan.id === 'basic' ? 'Pro' : plan.name;
+        const subscriptionResult = await supabase
+          .from('user_subscriptions')
+          .select()
+          .eq('user_id', user.user?.id)
+          .single();
+        
+        const hasPremium = !!subscriptionResult.data && subscriptionResult.data.status === 'active';
+        setIsPremium(hasPremium);
+        
+        // Get feature flags from settings
+        const featureFlagsResult = await supabase
+          .from('feature_flags')
+          .select()
+          .execute();
+        
+        if (featureFlagsResult.data?.length > 0) {
+          const flags = featureFlagsResult.data.reduce((acc: Partial<FeatureFlags>, flag: any) => {
+            // Only enable premium features if user has premium subscription
+            if (flag.premium && !hasPremium) {
+              acc[flag.name as keyof FeatureFlags] = false;
+            } else {
+              acc[flag.name as keyof FeatureFlags] = flag.enabled;
+            }
+            return acc;
+          }, {});
+          
+          setFeatures(prev => ({ ...prev, ...flags }));
+        }
+      } catch (error) {
+        console.error('Error fetching feature flags:', error);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
     
-    return subscriptionPlans[subscriptionPlans.length - 1].name; // Highest tier
+    fetchFeatureFlags();
+  }, []);
+  
+  // Check if a specific feature is enabled
+  const isFeatureEnabled = (featureName: keyof FeatureFlags) => {
+    return features[featureName];
   };
-
-  return {
-    checkAccess,
-    checkUsageLimit,
-    getUsageInfo,
+  
+  return { 
+    features, 
+    loading, 
+    isPremium, 
+    isFeatureEnabled 
   };
 };
