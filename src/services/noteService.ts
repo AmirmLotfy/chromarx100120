@@ -1,22 +1,8 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { toast } from 'sonner';
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: number;
-  updatedAt: number;
-  userId: string;
-  tags?: string[];
-  color?: string;
-  pinned?: boolean;
-  folder?: string;
-  bookmarkIds?: string[];
-  category?: string;
-  sentiment?: 'positive' | 'negative' | 'neutral';
-}
+import { Note } from '@/types/note';
 
 class NoteServiceClass {
   async getAllNotes(): Promise<Note[]> {
@@ -35,8 +21,8 @@ class NoteServiceClass {
         id: note.id,
         title: note.title,
         content: note.content,
-        createdAt: new Date(note.created_at).getTime(),
-        updatedAt: new Date(note.updated_at).getTime(),
+        createdAt: note.created_at,
+        updatedAt: note.updated_at,
         userId: note.user_id,
         tags: note.tags,
         color: note.color,
@@ -59,7 +45,7 @@ class NoteServiceClass {
         .from('notes')
         .select('*')
         .eq('id', id)
-        .singlePromise();
+        .single();
       
       if (result.error) throw result.error;
       
@@ -68,8 +54,8 @@ class NoteServiceClass {
         id: note.id,
         title: note.title,
         content: note.content,
-        createdAt: new Date(note.created_at).getTime(),
-        updatedAt: new Date(note.updated_at).getTime(),
+        createdAt: note.created_at,
+        updatedAt: note.updated_at,
         userId: note.user_id,
         tags: note.tags,
         color: note.color,
@@ -108,7 +94,7 @@ class NoteServiceClass {
           category: noteData.category || 'General',
           sentiment: noteData.sentiment || 'neutral',
         })
-        .singlePromise();
+        .single();
       
       if (result.error) throw result.error;
       
@@ -117,8 +103,8 @@ class NoteServiceClass {
         id: note.id,
         title: note.title,
         content: note.content,
-        createdAt: new Date(note.created_at).getTime(),
-        updatedAt: new Date(note.updated_at).getTime(),
+        createdAt: note.created_at,
+        updatedAt: note.updated_at,
         userId: note.user_id,
         tags: note.tags,
         color: note.color,
@@ -146,7 +132,7 @@ class NoteServiceClass {
           bookmark_ids: noteData.bookmarkIds
         })
         .eq('id', id)
-        .singlePromise();
+        .single();
       
       if (result.error) throw result.error;
       
@@ -155,8 +141,8 @@ class NoteServiceClass {
         id: note.id,
         title: note.title,
         content: note.content,
-        createdAt: new Date(note.created_at).getTime(),
-        updatedAt: new Date(note.updated_at).getTime(),
+        createdAt: note.created_at,
+        updatedAt: note.updated_at,
         userId: note.user_id,
         tags: note.tags,
         color: note.color,
@@ -240,7 +226,7 @@ class NoteServiceClass {
 // Create an instance of the service
 const NoteService = new NoteServiceClass();
 
-// Export both the class and its methods for compatibility
+// Export both the class and its instance methods for compatibility
 export default NoteService;
 export const {
   getAllNotes: getNotes,

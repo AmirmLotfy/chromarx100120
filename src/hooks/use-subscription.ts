@@ -1,12 +1,13 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { localStorageClient as supabase } from "@/lib/local-storage-client";
 import { toast } from 'sonner';
 
-// Fixed issue with setAutoRenew to take only one argument
 export const useSubscription = () => {
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
+  const [currentPlan, setCurrentPlan] = useState<string>("free"); // Added for compatibility
 
   // Define methods to match what the UI is expecting
   const setAutoRenew = async (autoRenew: boolean) => {
@@ -42,6 +43,7 @@ export const useSubscription = () => {
 
   return {
     subscription,
+    currentPlan, // Added for compatibility
     loading,
     error,
     cancelSubscription,

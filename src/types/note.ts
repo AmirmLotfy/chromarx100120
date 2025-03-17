@@ -23,3 +23,6 @@ export interface SentimentDetails {
 }
 
 export type ExtendedNote = Note;
+
+// For backward compatibility with existing code
+export type NoteSentiment = 'positive' | 'negative' | 'neutral';

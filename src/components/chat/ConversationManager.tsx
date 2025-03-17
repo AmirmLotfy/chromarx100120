@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConversationCategory } from "@/types/chat";
 
 export interface ConversationManagerProps {
   isOpen: boolean;
@@ -96,6 +97,7 @@ const ConversationManager: React.FC<ConversationManagerProps> = ({
                     <SelectItem value="Work">Work</SelectItem>
                     <SelectItem value="Personal">Personal</SelectItem>
                     <SelectItem value="Research">Research</SelectItem>
+                    <SelectItem value="Bookmarks">Bookmarks</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

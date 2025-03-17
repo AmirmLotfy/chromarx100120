@@ -4,17 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Trash2, MessageSquare } from "lucide-react";
+import { Conversation } from "@/types/chat";
 
 export interface ChatHistoryProps {
   isOpen: boolean;
   onClose: () => void;
-  conversations: Array<{
-    id: string;
-    title: string;
-    lastMessage?: string;
-    createdAt: string;
-    category?: string;
-  }>;
+  conversations: Conversation[];
   loadConversation: (conversationId: string) => void;
 }
 
@@ -52,7 +47,7 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4 text-primary" />
-                      <h3 className="font-medium">{conversation.title || 'Untitled Conversation'}</h3>
+                      <h3 className="font-medium">{conversation.name || 'Untitled Conversation'}</h3>
                     </div>
                     <Button 
                       variant="ghost" 
@@ -66,9 +61,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
                       <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                     </Button>
                   </div>
-                  {conversation.lastMessage && (
+                  {conversation.messages.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                      {conversation.lastMessage}
+                      {conversation.messages[conversation.messages.length - 1]?.content}
                     </p>
                   )}
                   <div className="text-xs text-muted-foreground mt-2">

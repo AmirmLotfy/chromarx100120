@@ -1,5 +1,7 @@
 
 // Mock Supabase client using localStorage
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
 class LocalStorageClient {
   private getStorageKey(table: string, id?: string) {
     return id ? `${table}_${id}` : table;
@@ -20,6 +22,27 @@ class LocalStorageClient {
       return { error: null };
     }
   };
+
+  // Add channel methods for realtime functionality
+  channel(name: string) {
+    return {
+      on: (event: string, callback: Function) => {
+        console.log(`Channel ${name} listening for ${event}`);
+        // Return a subscription object
+        return { 
+          subscribe: () => {
+            console.log(`Subscribed to ${event} on ${name}`);
+            return { data: {}, error: null };
+          } 
+        };
+      }
+    };
+  }
+
+  removeChannel(name: string) {
+    console.log(`Removed channel ${name}`);
+    return { error: null };
+  }
 
   from(table: string) {
     return {
@@ -85,7 +108,12 @@ class LocalStorageClient {
         const newItem = Array.isArray(data) ? data : [data];
         const updatedItems = [...items, ...newItem];
         localStorage.setItem(this.getStorageKey(table), JSON.stringify(updatedItems));
-        return Promise.resolve({ data: newItem, error: null });
+        return {
+          select: () => Promise.resolve({ data: newItem, error: null }),
+          single: () => Promise.resolve({ data: newItem[0], error: null }),
+          data: newItem,
+          error: null
+        };
       },
       update: (data: any) => {
         return {
@@ -95,10 +123,12 @@ class LocalStorageClient {
               item[column] === value ? { ...item, ...data } : item
             );
             localStorage.setItem(this.getStorageKey(table), JSON.stringify(updatedItems));
-            return Promise.resolve({ 
+            return {
               data: updatedItems.filter((item: any) => item[column] === value), 
-              error: null 
-            });
+              error: null,
+              select: () => Promise.resolve({ data: updatedItems, error: null }),
+              execute: () => Promise.resolve({ data: updatedItems, error: null })
+            };
           },
           match: (criteria: any) => {
             const items = JSON.parse(localStorage.getItem(this.getStorageKey(table)) || '[]');
@@ -113,7 +143,11 @@ class LocalStorageClient {
               return matches ? { ...item, ...data } : item;
             });
             localStorage.setItem(this.getStorageKey(table), JSON.stringify(updatedItems));
-            return Promise.resolve({ data: updatedItems, error: null });
+            return {
+              data: updatedItems, 
+              error: null,
+              execute: () => Promise.resolve({ data: updatedItems, error: null })
+            };
           }
         };
       },
@@ -123,7 +157,11 @@ class LocalStorageClient {
             const items = JSON.parse(localStorage.getItem(this.getStorageKey(table)) || '[]');
             const remainingItems = items.filter((item: any) => item[column] !== value);
             localStorage.setItem(this.getStorageKey(table), JSON.stringify(remainingItems));
-            return Promise.resolve({ data: null, error: null });
+            return {
+              data: null, 
+              error: null,
+              execute: () => Promise.resolve({ data: null, error: null })
+            };
           },
           match: (criteria: any) => {
             const items = JSON.parse(localStorage.getItem(this.getStorageKey(table)) || '[]');
@@ -138,8 +176,26 @@ class LocalStorageClient {
               return !matches;
             });
             localStorage.setItem(this.getStorageKey(table), JSON.stringify(remainingItems));
-            return Promise.resolve({ data: null, error: null });
+            return {
+              data: null, 
+              error: null,
+              execute: () => Promise.resolve({ data: null, error: null })
+            };
           }
+        };
+      },
+      // Add upsert method for compatibility
+      upsert: (data: any) => {
+        const items = JSON.parse(localStorage.getItem(this.getStorageKey(table)) || '[]');
+        // For simplicity, we'll just append the data for now
+        const newItems = Array.isArray(data) ? data : [data];
+        const updatedItems = [...items, ...newItems];
+        localStorage.setItem(this.getStorageKey(table), JSON.stringify(updatedItems));
+        return {
+          data: newItems,
+          error: null,
+          select: () => Promise.resolve({ data: newItems, error: null }),
+          execute: () => Promise.resolve({ data: newItems, error: null })
         };
       }
     };
@@ -166,7 +222,8 @@ class LocalStorageClient {
               { category: "Development", current: 12, target: 15 },
               { category: "Learning", current: 5, target: 10 }
             ]
-          }
+          },
+          error: null
         };
       }
       

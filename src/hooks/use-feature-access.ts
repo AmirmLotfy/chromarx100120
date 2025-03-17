@@ -4,6 +4,7 @@ import { localStorageClient as supabase } from "@/lib/local-storage-client";
 
 export interface FeatureAccessHook {
   hasAccess: (featureName: string) => boolean;
+  checkAccess: (featureName: string) => boolean; // Alias for hasAccess for compatibility
   isLoading: boolean;
   error: Error | null;
 }
@@ -12,6 +13,7 @@ export interface FeatureAccessHook {
 export const useFeaturesEnabled = () => {
   return {
     isEnabled: (feature: string) => true,
+    isFeatureEnabled: (feature: string) => true, // Added for backward compatibility
     loading: false
   };
 };
@@ -51,6 +53,7 @@ export const useFeatureAccess = (): FeatureAccessHook => {
 
   return {
     hasAccess,
+    checkAccess: hasAccess, // Alias for hasAccess for compatibility
     isLoading,
     error
   };
