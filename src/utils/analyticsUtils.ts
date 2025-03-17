@@ -1,12 +1,13 @@
 
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { format, subDays, startOfWeek, endOfWeek, addDays } from 'date-fns';
-import { AnalyticsData, DailyAnalytics, DomainStat, ProductivityTrend, TimeDistributionData } from '@/types/analytics';
-
-export interface DailyAnalyticsData {
-  date: string;
-  count: number;
-}
+import { 
+  AnalyticsData, 
+  DailyAnalytics, 
+  DomainStat, 
+  ProductivityTrend, 
+  TimeDistributionData 
+} from '@/types/analytics';
 
 // Export the type from lib/json-types.ts to help with usage across the app
 export type { Json } from '@/lib/json-types';
@@ -73,7 +74,13 @@ export async function fetchAnalyticsData(): Promise<AnalyticsData> {
       trendData.push({ date: format(date, 'MMM dd'), count });
     }
 
+    // Return data in the format expected by AnalyticsData interface
+    // with the additional fields needed for backward compatibility
     return {
+      productivityScore: 78, // Default value
+      timeDistribution: [],
+      domainStats: [],
+      productivityTrends: [],
       totalBookmarks,
       bookmarksThisWeek,
       bookmarksToday,
@@ -83,6 +90,10 @@ export async function fetchAnalyticsData(): Promise<AnalyticsData> {
   } catch (error) {
     console.error('Error fetching analytics data:', error);
     return {
+      productivityScore: 0,
+      timeDistribution: [],
+      domainStats: [],
+      productivityTrends: [],
       totalBookmarks: 0,
       bookmarksThisWeek: 0,
       bookmarksToday: 0,
@@ -134,14 +145,19 @@ export async function updateAnalyticsPreferences(preferences: any): Promise<void
     // Mock user ID since we're using local storage
     const userId = 'local-user';
     
-    await localStorageClient
+    const result = await localStorageClient
       .from('user_preferences')
       .upsert({
         analytics_preferences: preferences,
         updated_at: new Date().toISOString(),
         user_id: userId
       })
+      .eq('user_id', userId)
       .execute();
+      
+    if (result.error) {
+      throw result.error;
+    }
   } catch (error) {
     console.error('Error updating analytics preferences:', error);
     throw error;
@@ -151,7 +167,7 @@ export async function updateAnalyticsPreferences(preferences: any): Promise<void
 export async function trackEvent(eventName: string, eventData: Record<string, any> = {}): Promise<void> {
   try {
     // Create new analytics event
-    await localStorageClient
+    const result = await localStorageClient
       .from('analytics_events')
       .insert({
         event_name: eventName,
@@ -160,6 +176,10 @@ export async function trackEvent(eventName: string, eventData: Record<string, an
         user_id: 'anonymous' // Since we're using local storage, we'll use a default user ID
       })
       .execute();
+      
+    if (result.error) {
+      throw result.error;
+    }
   } catch (error) {
     console.error('Error tracking analytics event:', error);
   }

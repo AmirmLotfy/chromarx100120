@@ -1,8 +1,15 @@
+
 export interface AnalyticsData {
   productivityScore: number;
   timeDistribution: TimeDistributionData[];
   domainStats: DomainStat[];
   productivityTrends: ProductivityTrend[];
+  // For legacy compatibility with fetchAnalyticsData
+  totalBookmarks?: number;
+  bookmarksThisWeek?: number;
+  bookmarksToday?: number;
+  topDomains?: { domain: string; count: number }[];
+  trendData?: DailyAnalytics[];
 }
 
 export interface TimeDistributionData {

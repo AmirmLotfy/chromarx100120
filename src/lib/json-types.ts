@@ -18,7 +18,7 @@ export interface DbListResponse<T> {
   error: any;
 }
 
-// Update DbQueryResult to support proper chaining
+// DbQueryResult interface for proper method chaining
 export interface DbQueryResult<T> {
   eq: (column: string, value: any) => DbQueryResult<T>;
   order: (column: string, options?: { ascending: boolean }) => DbQueryResult<T>;
@@ -27,7 +27,7 @@ export interface DbQueryResult<T> {
   error: any;
 }
 
-// Fixed DbSingleResult to make eq a method only, not a union type
+// DbSingleResult interface
 export interface DbSingleResult<T> {
   eq: (column: string, value: any) => DbSingleResult<T>;
   select: () => Promise<DbListResponse<T>>;
@@ -35,6 +35,7 @@ export interface DbSingleResult<T> {
   error: any;
 }
 
+// DbInsertResult interface
 export interface DbInsertResult<T> {
   single: () => Promise<DbResponse<T>>;
   select: () => Promise<DbListResponse<T>>;
