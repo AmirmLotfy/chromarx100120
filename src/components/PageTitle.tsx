@@ -6,7 +6,7 @@ interface PageTitleProps {
   description?: string;
 }
 
-export const PageTitle = ({ title, description }: PageTitleProps) => {
+const PageTitle = ({ title, description }: PageTitleProps) => {
   return (
     <div className="mb-6">
       <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

@@ -1,549 +1,221 @@
 
-// This is a simplified implementation of Supabase client using localStorage
-// to be used as a fallback when Supabase is not available
+// This is a mock implementation of Supabase client for local development
+// It uses localStorage to simulate a database
 
-type StorageData = Record<string, any[]>;
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
-class LocalStorageClient {
-  private storage: StorageData = {};
-  private channelListeners: Record<string, Function[]> = {};
-  private prefix = 'app_data_';
+export class LocalStorageClient {
+  auth = {
+    getUser: async () => ({
+      data: {
+        user: { id: 'mock-user-id', email: 'mock@example.com' }
+      }
+    }),
+    signIn: async () => ({
+      data: {
+        user: { id: 'mock-user-id', email: 'mock@example.com' }
+      },
+      error: null
+    }),
+    signOut: async () => ({ error: null })
+  };
 
-  constructor() {
-    // Load data from localStorage on initialization
-    this.loadData();
-  }
-
-  private loadData() {
-    try {
-      // Get all localStorage keys that match our prefix
-      Object.keys(localStorage)
-        .filter(key => key.startsWith(this.prefix))
-        .forEach(key => {
-          const tableName = key.replace(this.prefix, '');
-          const data = JSON.parse(localStorage.getItem(key) || '[]');
-          this.storage[tableName] = Array.isArray(data) ? data : [];
-        });
-    } catch (error) {
-      console.error('Error loading data from localStorage:', error);
-    }
-  }
-
-  private saveTable(tableName: string) {
-    try {
-      localStorage.setItem(
-        `${this.prefix}${tableName}`,
-        JSON.stringify(this.storage[tableName] || [])
-      );
-    } catch (error) {
-      console.error(`Error saving table ${tableName} to localStorage:`, error);
-    }
-  }
-
-  private ensureTable(tableName: string) {
-    if (!this.storage[tableName]) {
-      this.storage[tableName] = [];
-    }
-    return this.storage[tableName];
-  }
-
-  private uuid() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
-  public from(tableName: string) {
-    const client = this;
-    
+  from(tableName: string) {
     return {
-      select: function(columns?: string | string[]) {
+      select: (columns?: string | string[]) => {
         return {
-          eq: function(column: string, value: any) {
+          eq: (column: string, value: any) => {
             return {
-              order: function(orderColumn: string, options?: { ascending?: boolean }) {
+              order: (orderColumn: string, options?: { ascending?: boolean }) => {
                 return {
-                  execute: function() {
-                    try {
-                      const tableData = client.ensureTable(tableName);
-                      let filteredData = tableData.filter(item => item[column] === value);
-                      
-                      // Sort the data
-                      const isAscending = options?.ascending !== false;
-                      filteredData.sort((a, b) => {
-                        return isAscending 
-                          ? (a[orderColumn] > b[orderColumn] ? 1 : -1)
-                          : (a[orderColumn] < b[orderColumn] ? 1 : -1);
-                      });
-                      
-                      return Promise.resolve({
-                        data: filteredData,
-                        error: null
-                      });
-                    } catch (error) {
-                      return Promise.resolve({
-                        data: [],
-                        error: error
-                      });
-                    }
-                  },
-                  single: function() {
-                    try {
-                      const tableData = client.ensureTable(tableName);
-                      const item = tableData.find(item => item[column] === value);
-                      
-                      return Promise.resolve({
-                        data: item || null,
-                        error: item ? null : "No record found"
-                      });
-                    } catch (error) {
-                      return Promise.resolve({
-                        data: null,
-                        error: error
-                      });
-                    }
-                  }
-                };
-              },
-              single: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  const item = tableData.find(item => item[column] === value);
-                  
-                  return Promise.resolve({
-                    data: item || null,
-                    error: item ? null : "No record found"
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: null,
-                    error: error
-                  });
+                  execute: () => this.executeQuery(tableName, { column, value, orderBy: orderColumn, ...options }),
+                  single: () => this.executeSingleQuery(tableName, { column, value })
                 }
               },
-              execute: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  const filteredData = tableData.filter(item => item[column] === value);
-                  
-                  return Promise.resolve({
-                    data: filteredData,
-                    error: null
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: [],
-                    error: error
-                  });
-                }
-              }
-            };
+              single: () => this.executeSingleQuery(tableName, { column, value }),
+              execute: () => this.executeQuery(tableName, { column, value })
+            }
           },
-          neq: function(column: string, value: any) {
+          neq: (column: string, value: any) => {
             return {
-              execute: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  const filteredData = tableData.filter(item => item[column] !== value);
-                  
-                  return Promise.resolve({
-                    data: filteredData,
-                    error: null
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: [],
-                    error: error
-                  });
-                }
-              }
-            };
+              execute: () => this.executeQuery(tableName, { column, value, operator: 'neq' })
+            }
           },
-          order: function(column: string, options?: { ascending?: boolean }) {
+          order: (orderColumn: string, options?: { ascending?: boolean }) => {
             return {
-              execute: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  const isAscending = options?.ascending !== false;
-                  
-                  // Clone and sort the data
-                  const sortedData = [...tableData].sort((a, b) => {
-                    return isAscending 
-                      ? (a[column] > b[column] ? 1 : -1)
-                      : (a[column] < b[column] ? 1 : -1);
-                  });
-                  
-                  return Promise.resolve({
-                    data: sortedData,
-                    error: null
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: [],
-                    error: error
-                  });
-                }
-              }
-            };
-          },
-          single: function() {
-            try {
-              const tableData = client.ensureTable(tableName);
-              const item = tableData.length > 0 ? tableData[0] : null;
-              
-              return Promise.resolve({
-                data: item,
-                error: item ? null : "No record found"
-              });
-            } catch (error) {
-              return Promise.resolve({
-                data: null,
-                error: error
-              });
+              execute: () => this.executeQuery(tableName, { orderBy: orderColumn, ...options })
             }
           },
-          execute: function() {
-            try {
-              const tableData = client.ensureTable(tableName);
-              
-              return Promise.resolve({
-                data: tableData,
-                error: null
-              });
-            } catch (error) {
-              return Promise.resolve({
-                data: [],
-                error: error
-              });
-            }
-          }
-        };
-      },
-      insert: function(data: any) {
-        return {
-          select: function() {
-            try {
-              const tableData = client.ensureTable(tableName);
-              
-              // If data is an array, insert all items
-              const items = Array.isArray(data) ? data : [data];
-              items.forEach(item => {
-                if (!item.id) {
-                  item.id = client.uuid();
-                }
-                tableData.push(item);
-              });
-              
-              client.saveTable(tableName);
-              
-              // Notify listeners about the changes
-              client.notifyChannelListeners(tableName, 'INSERT', items);
-              
-              return Promise.resolve({
-                data: items,
-                error: null
-              });
-            } catch (error) {
-              return Promise.resolve({
-                data: null,
-                error: error
-              });
-            }
-          },
-          single: function() {
-            try {
-              const tableData = client.ensureTable(tableName);
-              
-              // Ensure it's a single item
-              const item = Array.isArray(data) ? data[0] : data;
-              
-              if (!item.id) {
-                item.id = client.uuid();
-              }
-              
-              tableData.push(item);
-              client.saveTable(tableName);
-              
-              // Notify listeners about the change
-              client.notifyChannelListeners(tableName, 'INSERT', [item]);
-              
-              return Promise.resolve({
-                data: item,
-                error: null
-              });
-            } catch (error) {
-              return Promise.resolve({
-                data: null,
-                error: error
-              });
-            }
-          }
-        };
-      },
-      update: function(data: any) {
-        return {
-          eq: function(column: string, value: any) {
+          limit: (count: number) => {
             return {
-              select: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  const updatedItems = [];
-                  
-                  tableData.forEach((item, index) => {
-                    if (item[column] === value) {
-                      tableData[index] = { ...item, ...data };
-                      updatedItems.push(tableData[index]);
-                    }
-                  });
-                  
-                  client.saveTable(tableName);
-                  
-                  // Notify listeners about the changes
-                  client.notifyChannelListeners(tableName, 'UPDATE', updatedItems);
-                  
-                  return Promise.resolve({
-                    data: updatedItems,
-                    error: null
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: null,
-                    error: error
-                  });
-                }
-              },
-              single: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  let updatedItem = null;
-                  
-                  tableData.forEach((item, index) => {
-                    if (item[column] === value) {
-                      tableData[index] = { ...item, ...data };
-                      updatedItem = tableData[index];
-                      return false; // Break the loop
-                    }
-                  });
-                  
-                  client.saveTable(tableName);
-                  
-                  if (updatedItem) {
-                    // Notify listeners about the change
-                    client.notifyChannelListeners(tableName, 'UPDATE', [updatedItem]);
-                  }
-                  
-                  return Promise.resolve({
-                    data: updatedItem,
-                    error: updatedItem ? null : "No record found"
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: null,
-                    error: error
-                  });
-                }
-              }
-            };
-          }
-        };
-      },
-      delete: function() {
-        return {
-          eq: function(column: string, value: any) {
-            return {
-              execute: function() {
-                try {
-                  const tableData = client.ensureTable(tableName);
-                  const deletedItems = [];
-                  
-                  client.storage[tableName] = tableData.filter(item => {
-                    if (item[column] === value) {
-                      deletedItems.push(item);
-                      return false;
-                    }
-                    return true;
-                  });
-                  
-                  client.saveTable(tableName);
-                  
-                  // Notify listeners about the changes
-                  client.notifyChannelListeners(tableName, 'DELETE', deletedItems);
-                  
-                  return Promise.resolve({
-                    data: { success: true },
-                    error: null
-                  });
-                } catch (error) {
-                  return Promise.resolve({
-                    data: { success: false },
-                    error: error
-                  });
-                }
-              }
-            };
-          }
-        };
-      },
-      upsert: function(data: any, options?: { onConflict?: string }) {
-        try {
-          const tableData = client.ensureTable(tableName);
-          const items = Array.isArray(data) ? data : [data];
-          const upsertedItems = [];
-          
-          items.forEach(item => {
-            const conflictColumn = options?.onConflict || 'id';
-            const existingIndex = tableData.findIndex(existing => existing[conflictColumn] === item[conflictColumn]);
-            
-            if (existingIndex >= 0) {
-              // Update existing item
-              tableData[existingIndex] = { ...tableData[existingIndex], ...item };
-              upsertedItems.push(tableData[existingIndex]);
-              client.notifyChannelListeners(tableName, 'UPDATE', [tableData[existingIndex]]);
-            } else {
-              // Insert new item
-              if (!item.id) {
-                item.id = client.uuid();
-              }
-              tableData.push(item);
-              upsertedItems.push(item);
-              client.notifyChannelListeners(tableName, 'INSERT', [item]);
+              execute: () => this.executeQuery(tableName, { limit: count })
             }
-          });
-          
-          client.saveTable(tableName);
-          
-          return Promise.resolve({
-            data: upsertedItems,
-            error: null
-          });
-        } catch (error) {
-          return Promise.resolve({
-            data: null,
-            error: error
-          });
+          },
+          execute: () => this.executeQuery(tableName),
+          single: () => this.executeSingleQuery(tableName)
         }
+      },
+      insert: (data: any) => {
+        return {
+          select: () => {
+            this.insertData(tableName, data);
+            return {
+              single: () => Promise.resolve({ data, error: null })
+            }
+          },
+          single: () => this.insertData(tableName, data)
+        }
+      },
+      update: (data: any) => {
+        return {
+          eq: (column: string, value: any) => {
+            return {
+              select: () => {
+                this.updateData(tableName, column, value, data);
+                return {
+                  single: () => Promise.resolve({ data, error: null })
+                }
+              },
+              single: () => this.updateData(tableName, column, value, data),
+              execute: () => this.updateData(tableName, column, value, data)
+            }
+          },
+          select: () => {
+            return {
+              single: () => Promise.resolve({ data, error: null })
+            }
+          },
+          execute: () => Promise.resolve({ data: { success: true }, error: null })
+        }
+      },
+      delete: () => {
+        return {
+          eq: (column: string, value: any) => {
+            return {
+              execute: () => this.deleteData(tableName, column, value)
+            }
+          },
+          execute: () => Promise.resolve({ data: { success: true }, error: null })
+        }
+      },
+      upsert: (data: any) => {
+        return this.upsertData(tableName, data);
       }
-    };
+    }
   }
 
-  public auth = {
-    getUser: async () => {
-      try {
-        const userData = localStorage.getItem(`${this.prefix}user`);
-        if (userData) {
-          return {
-            data: { user: JSON.parse(userData) },
-            error: null
-          };
-        }
-        return {
-          data: { user: null },
-          error: null
-        };
-      } catch (error) {
-        return {
-          data: { user: null },
-          error: error
-        };
-      }
-    },
-    signIn: async (credentials: { email: string; password: string }) => {
-      try {
-        // Simulate a successful sign-in
-        const user = {
-          id: this.uuid(),
-          email: credentials.email,
-          created_at: new Date().toISOString()
-        };
-        
-        localStorage.setItem(`${this.prefix}user`, JSON.stringify(user));
-        
-        return {
-          data: { user },
-          error: null
-        };
-      } catch (error) {
-        return {
-          data: { user: null },
-          error: error
-        };
-      }
-    },
-    signOut: async () => {
-      try {
-        localStorage.removeItem(`${this.prefix}user`);
-        return {
-          error: null
-        };
-      } catch (error) {
-        return {
-          error: error
-        };
-      }
-    }
-  };
-
-  public functions = {
-    invoke: async (functionName: string, payload: any = {}) => {
-      try {
-        // Simulate function call
-        console.log(`Invoking function: ${functionName} with payload:`, payload);
-        
-        return {
-          data: { success: true, message: "Function executed in mock mode" },
-          error: null
-        };
-      } catch (error) {
-        return {
-          data: null,
-          error: error
-        };
-      }
-    }
-  };
-
-  public channel(name: string) {
+  channel(channelName: string) {
     return {
-      on: (event: string, schema: string, table: string, callback: Function) => {
-        const channelId = `${name}-${event}-${schema}-${table}`;
-        if (!this.channelListeners[channelId]) {
-          this.channelListeners[channelId] = [];
-        }
-        this.channelListeners[channelId].push(callback);
+      on: (event: string, table: string, callback: Function) => {
+        console.log(`Subscribed to ${event} on ${table} in channel ${channelName}`);
         return this;
       },
-      subscribe: () => {
-        console.log(`Subscribed to channel: ${name}`);
-        return this;
+      subscribe: (callback?: Function) => {
+        console.log(`Subscribed to channel ${channelName}`);
+        if (callback) callback();
+        return Promise.resolve(this);
       }
-    };
+    }
   }
 
-  public removeChannel(channel: any) {
-    // Simulate removing a channel
-    console.log('Removing channel:', channel);
-    return true;
+  removeChannel(channelName: string) {
+    console.log(`Removed channel ${channelName}`);
+    return Promise.resolve();
   }
 
-  private notifyChannelListeners(tableName: string, event: 'INSERT' | 'UPDATE' | 'DELETE', items: any[]) {
-    // Find all listeners for this table and event
-    Object.keys(this.channelListeners).forEach(channelId => {
-      if (channelId.includes(tableName) && channelId.includes(event)) {
-        items.forEach(item => {
-          this.channelListeners[channelId].forEach(callback => {
-            callback({
-              eventType: event,
-              table: tableName,
-              schema: 'public',
-              new: event !== 'DELETE' ? item : null,
-              old: event !== 'INSERT' ? item : null
-            });
-          });
-        });
+  functions = {
+    invoke: (functionName: string, options?: any) => {
+      console.log(`Invoking function ${functionName} with options:`, options);
+      return Promise.resolve({ data: { result: 'mock-result' }, error: null });
+    }
+  };
+
+  private executeQuery(tableName: string, options?: any) {
+    const storageKey = `${tableName}_data`;
+    const data = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    let filteredData = [...data];
+    
+    if (options?.column && options?.value) {
+      if (options?.operator === 'neq') {
+        filteredData = filteredData.filter(item => item[options.column] !== options.value);
+      } else {
+        filteredData = filteredData.filter(item => item[options.column] === options.value);
       }
+    }
+    
+    if (options?.orderBy) {
+      filteredData.sort((a, b) => {
+        if (options?.ascending) {
+          return a[options.orderBy] > b[options.orderBy] ? 1 : -1;
+        } else {
+          return a[options.orderBy] < b[options.orderBy] ? 1 : -1;
+        }
+      });
+    }
+    
+    if (options?.limit) {
+      filteredData = filteredData.slice(0, options.limit);
+    }
+    
+    return Promise.resolve({ data: filteredData, error: null });
+  }
+
+  private executeSingleQuery(tableName: string, options?: any) {
+    return this.executeQuery(tableName, options)
+      .then(result => {
+        if (result.data.length > 0) {
+          return { data: result.data[0], error: null };
+        } else {
+          return { data: null, error: 'No records found' };
+        }
+      });
+  }
+
+  private insertData(tableName: string, data: any) {
+    const storageKey = `${tableName}_data`;
+    const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    // If it's an array, add all items
+    if (Array.isArray(data)) {
+      existingData.push(...data);
+    } else {
+      existingData.push(data);
+    }
+    
+    localStorage.setItem(storageKey, JSON.stringify(existingData));
+    return Promise.resolve({ data, error: null });
+  }
+
+  private updateData(tableName: string, column: string, value: any, newData: any) {
+    const storageKey = `${tableName}_data`;
+    const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    const updatedData = existingData.map((item: any) => {
+      if (item[column] === value) {
+        return { ...item, ...newData };
+      }
+      return item;
     });
+    
+    localStorage.setItem(storageKey, JSON.stringify(updatedData));
+    const updated = updatedData.find((item: any) => item[column] === value);
+    return Promise.resolve({ data: updated, error: null });
+  }
+
+  private deleteData(tableName: string, column: string, value: any) {
+    const storageKey = `${tableName}_data`;
+    const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    
+    const filteredData = existingData.filter((item: any) => item[column] !== value);
+    
+    localStorage.setItem(storageKey, JSON.stringify(filteredData));
+    return Promise.resolve({ data: { success: true }, error: null });
+  }
+
+  private upsertData(tableName: string, data: any) {
+    // This is a simplified implementation
+    return this.insertData(tableName, data);
   }
 }
 

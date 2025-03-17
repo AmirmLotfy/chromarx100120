@@ -28,10 +28,19 @@ export const testAIReliability = async (): Promise<boolean> => {
 };
 
 // Basic function to get responses from Gemini API
-export const getGeminiResponse = async (prompt: string, language: string = 'en'): Promise<string> => {
+export const getGeminiResponse = async (
+  promptOrConfig: string | { prompt: string; type: string; language: string; maxRetries: number }
+): Promise<string> => {
   try {
     // Simulate AI thinking delay
     await new Promise(resolve => setTimeout(resolve, 500));
+    
+    let prompt: string;
+    if (typeof promptOrConfig === 'string') {
+      prompt = promptOrConfig;
+    } else {
+      prompt = promptOrConfig.prompt;
+    }
     
     // For testing purposes, we'll return a mock response based on the prompt
     if (prompt.includes('sentiment') || prompt.includes('emotion')) {
@@ -55,34 +64,42 @@ export const getGeminiResponse = async (prompt: string, language: string = 'en')
 };
 
 // Analyze sentiment of text
-export const analyzeSentiment = async (text: string): Promise<string> => {
+export const analyzeSentiment = async (text: string): Promise<{ sentiment: string; confidence: number }> => {
   try {
     // For now, simulate a sentiment analysis result
     const sentiments: NoteSentiment[] = ['positive', 'negative', 'neutral'];
     const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
-    const randomScore = Math.random().toFixed(2);
-    const randomConfidence = Math.random().toFixed(2);
-    const emotions = ['happiness', 'sadness', 'anger', 'fear', 'surprise'];
-    const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+    const randomScore = parseFloat(Math.random().toFixed(2));
     
-    // Return in pipe-separated format for easy parsing
-    return `${randomSentiment}|${randomScore}|${randomConfidence}|${randomEmotion}`;
+    return {
+      sentiment: randomSentiment,
+      confidence: randomScore
+    };
   } catch (error) {
     console.error('Error analyzing sentiment:', error);
-    return 'neutral|0.5|0.5|none';
+    return {
+      sentiment: 'neutral',
+      confidence: 0.5
+    };
   }
 };
 
 // Summarize content
-export const summarizeContent = async (content: string, language: string = 'en'): Promise<string> => {
+export const summarizeContent = async (
+  content: string,
+  language?: string,
+  maxLength?: number,
+  format?: string
+): Promise<string> => {
   try {
     // For now, return a simple summary based on content length
     if (content.length <= 30) {
       return content;
     }
     
-    return content.length > 200 
-      ? `${content.substring(0, 200)}...` 
+    const summaryLength = maxLength || 200;
+    return content.length > summaryLength 
+      ? `${content.substring(0, summaryLength)}...` 
       : content;
   } catch (error) {
     console.error('Error summarizing content:', error);
@@ -91,7 +108,10 @@ export const summarizeContent = async (content: string, language: string = 'en')
 };
 
 // Summarize a bookmark
-export const summarizeBookmark = async (bookmark: ChromeBookmark): Promise<string> => {
+export const summarizeBookmark = async (
+  bookmark: ChromeBookmark,
+  language?: string
+): Promise<string> => {
   try {
     // In a real implementation, this would extract content from the URL
     // For now, we're creating a summary from the bookmark data
@@ -104,7 +124,12 @@ export const summarizeBookmark = async (bookmark: ChromeBookmark): Promise<strin
 };
 
 // Suggest a category for a bookmark
-export const suggestBookmarkCategory = async (bookmark: ChromeBookmark): Promise<string> => {
+export const suggestBookmarkCategory = async (
+  bookmarkOrTitle: ChromeBookmark | string,
+  url?: string,
+  content?: string,
+  language?: string
+): Promise<string> => {
   try {
     // Pre-defined categories
     const categories = [
@@ -113,9 +138,20 @@ export const suggestBookmarkCategory = async (bookmark: ChromeBookmark): Promise
       'Travel', 'Food', 'Sports', 'Reference'
     ];
     
+    let title: string;
+    let bookmarkUrl: string | undefined;
+    
+    if (typeof bookmarkOrTitle === 'string') {
+      title = bookmarkOrTitle;
+      bookmarkUrl = url;
+    } else {
+      title = bookmarkOrTitle.title;
+      bookmarkUrl = bookmarkOrTitle.url;
+    }
+    
     // In a real implementation, this would use AI to analyze the bookmark
     // For now, assign a semi-random category based on the title
-    const titleLower = bookmark.title.toLowerCase();
+    const titleLower = title.toLowerCase();
     
     if (titleLower.includes('tech') || titleLower.includes('code') || titleLower.includes('dev')) {
       return 'Technology';
@@ -136,7 +172,7 @@ export const suggestBookmarkCategory = async (bookmark: ChromeBookmark): Promise
 };
 
 // Generate suggestions for tasks
-export const generateTaskSuggestions = async (context: string, userPreferences: any = {}): Promise<any[]> => {
+export const generateTaskSuggestions = async (context: string): Promise<any[]> => {
   try {
     // In a real implementation, this would use AI to generate task suggestions
     // For now, we're providing some generic tasks
@@ -169,7 +205,7 @@ export const generateTaskSuggestions = async (context: string, userPreferences: 
 };
 
 // Suggest task duration based on context
-export const suggestTimerDuration = async (context: string, mode: 'focus' | 'break'): Promise<number> => {
+export const suggestTimerDuration = async (context: string, mode: 'focus' | 'break' = 'focus'): Promise<number> => {
   try {
     // In a real implementation, this would use AI to suggest a duration
     // For now, we're using some heuristics

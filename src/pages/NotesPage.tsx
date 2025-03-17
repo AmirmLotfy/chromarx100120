@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
-import { NoteEditor } from "@/components/notes/NoteEditor";
-import { NoteCard } from "@/components/notes/NoteCard";
-import { NoteGrid } from "@/components/notes/NoteGrid";
-import { NoteActions } from "@/components/notes/NoteActions";
+import NoteEditor from "@/components/notes/NoteEditor";
+import NoteCard from "@/components/notes/NoteCard";
+import NoteGrid from "@/components/notes/NoteGrid";
+import NoteActions from "@/components/notes/NoteActions";
 import { useToast } from "@/hooks/use-toast";
 import { NoteService } from "@/services/noteService";
 import { Note } from "@/types/note";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, FilePlus, Search, SortAscending } from "lucide-react";
+import { Loader2, FilePlus, Search, ArrowDownAZ } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const NotesPage = () => {
@@ -36,7 +36,15 @@ const NotesPage = () => {
     try {
       setLoading(true);
       const fetchedNotes = await NoteService.getAllNotes();
-      setNotes(fetchedNotes);
+      // Map to ensure notes have the required category property
+      const notesWithCategory = fetchedNotes.map(note => ({
+        ...note,
+        category: note.category || "",
+        tags: note.tags || [],
+        createdAt: typeof note.createdAt === 'string' ? note.createdAt : new Date(note.createdAt).toISOString(),
+        updatedAt: typeof note.updatedAt === 'string' ? note.updatedAt : new Date(note.updatedAt).toISOString()
+      }));
+      setNotes(notesWithCategory);
     } catch (error) {
       console.error("Error fetching notes:", error);
       toast({
@@ -66,9 +74,13 @@ const NotesPage = () => {
     filtered.sort((a, b) => {
       let comparison = 0;
       if (sortBy === "updatedAt") {
-        comparison = a.updatedAt - b.updatedAt;
+        const timeA = new Date(a.updatedAt).getTime();
+        const timeB = new Date(b.updatedAt).getTime();
+        comparison = timeA - timeB;
       } else if (sortBy === "createdAt") {
-        comparison = a.createdAt - b.createdAt;
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        comparison = timeA - timeB;
       } else if (sortBy === "title") {
         comparison = a.title.localeCompare(b.title);
       }
@@ -94,9 +106,18 @@ const NotesPage = () => {
         // Editing existing note
         const updatedNote = await NoteService.updateNote(currentNote.id, noteData);
         if (updatedNote) {
+          // Ensure the note has the required category property
+          const completeNote: Note = {
+            ...updatedNote,
+            category: updatedNote.category || "",
+            tags: updatedNote.tags || [],
+            createdAt: typeof updatedNote.createdAt === 'string' ? updatedNote.createdAt : new Date(updatedNote.createdAt).toISOString(),
+            updatedAt: typeof updatedNote.updatedAt === 'string' ? updatedNote.updatedAt : new Date(updatedNote.updatedAt).toISOString()
+          };
+          
           setNotes((prevNotes) =>
             prevNotes.map((note) =>
-              note.id === updatedNote.id ? updatedNote : note
+              note.id === completeNote.id ? completeNote : note
             )
           );
           toast({
@@ -112,7 +133,16 @@ const NotesPage = () => {
           userId: "current-user", // This would come from auth context in a real app
         });
         if (newNote) {
-          setNotes((prevNotes) => [newNote, ...prevNotes]);
+          // Ensure the note has the required category property
+          const completeNote: Note = {
+            ...newNote,
+            category: newNote.category || "",
+            tags: newNote.tags || [],
+            createdAt: typeof newNote.createdAt === 'string' ? newNote.createdAt : new Date(newNote.createdAt).toISOString(),
+            updatedAt: typeof newNote.updatedAt === 'string' ? newNote.updatedAt : new Date(newNote.updatedAt).toISOString()
+          };
+          
+          setNotes((prevNotes) => [completeNote, ...prevNotes]);
           toast({
             title: "Success",
             description: "Note created successfully",
@@ -192,7 +222,7 @@ const NotesPage = () => {
             onClick={toggleSortDirection}
             className="flex items-center gap-2"
           >
-            <SortAscending className={`h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''} transition-transform`} />
+            <ArrowDownAZ className={`h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''} transition-transform`} />
             {sortBy === "updatedAt" ? "Last Updated" : 
              sortBy === "createdAt" ? "Date Created" : "Title"}
           </Button>
