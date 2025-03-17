@@ -5,12 +5,12 @@ import { toast } from "sonner";
 export type DataProcessorFn<T, R> = (data: T, index: number) => Promise<R> | R;
 
 // Options for data stream processing
-export interface DataStreamOptions<T> {
+export interface DataStreamOptions<T, R = T> {
   batchSize?: number;
   pauseBetweenBatches?: number;
   onProgress?: (progress: number) => void;
   onBatchComplete?: (processedItems: number, totalItems: number, batch: T[]) => void;
-  onComplete?: (result: T[]) => void;
+  onComplete?: (result: R[]) => void;
   onError?: (error: Error, item: T, index: number) => void;
   abortSignal?: AbortSignal;
   preserveOrder?: boolean;
@@ -38,7 +38,7 @@ export class DataStreamProcessor<T, R = T> {
   async process(
     items: T[],
     processFn: DataProcessorFn<T, R>,
-    options: DataStreamOptions<T> = {}
+    options: DataStreamOptions<T, R> = {}
   ): Promise<R[]> {
     const {
       batchSize = 10,
@@ -322,7 +322,7 @@ export function createStreamPipeline<T, R>(
   steps: Array<(stream: ReadableStream<any>) => ReadableStream<any>>,
   initialData?: T[]
 ): {
-  stream: ReadableStream<R>;
+  stream: ReadableStream<any>;
   controller: ReadableStreamDefaultController<T>;
   write: (chunk: T) => void;
   end: () => void;
@@ -360,7 +360,7 @@ export function createStreamPipeline<T, R>(
   };
   
   return {
-    stream: currentStream as ReadableStream<R>,
+    stream: currentStream,
     controller,
     write,
     end
@@ -459,7 +459,7 @@ export function useDataProcessing<T, R>() {
   const processor = new DataStreamProcessor<T, R>();
   
   return {
-    processItems: (items: T[], processFn: DataProcessorFn<T, R>, options?: DataStreamOptions<T>) => {
+    processItems: (items: T[], processFn: DataProcessorFn<T, R>, options?: DataStreamOptions<T, R>) => {
       return processor.process(items, processFn, options);
     },
     
@@ -468,7 +468,7 @@ export function useDataProcessing<T, R>() {
     isProcessing: () => !processor.isAborted(),
     
     createPipeline: (steps: Array<(stream: ReadableStream<any>) => ReadableStream<any>>) => {
-      return createStreamPipeline(steps);
+      return createStreamPipeline<T, any>(steps);
     }
   };
 }

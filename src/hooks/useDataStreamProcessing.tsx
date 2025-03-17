@@ -54,7 +54,7 @@ export function useDataStreamProcessing<T, R = T>() {
   const processItems = useCallback(async (
     items: T[],
     processFn: DataProcessorFn<T, R>,
-    options: DataStreamOptions<T> & {
+    options: DataStreamOptions<T, R> & {
       stepLabels?: string[];
     } = {}
   ) => {
@@ -85,7 +85,7 @@ export function useDataStreamProcessing<T, R = T>() {
     
     try {
       // Set up progress tracking
-      const enhancedOptions: DataStreamOptions<T> = {
+      const enhancedOptions: DataStreamOptions<T, R> = {
         ...streamOptions,
         abortSignal: abortController.signal,
         onProgress: (progress) => {
@@ -126,10 +126,6 @@ export function useDataStreamProcessing<T, R = T>() {
       const results = await processorRef.current.process(items, processFn, enhancedOptions);
       
       if (!abortController.signal.aborted) {
-        if (streamOptions.onComplete) {
-          streamOptions.onComplete(results as unknown as T[]);
-        }
-        
         return { success: true, results };
       } else {
         return { success: false, results: [] as R[], canceled: true };
