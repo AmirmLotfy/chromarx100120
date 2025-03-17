@@ -1,4 +1,3 @@
-
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
@@ -152,8 +151,8 @@ class TimerService {
         }
       });
       
-      // Fix for line 158 error: Explicitly cast the calculation result to number
-      const averageProductivity = countWithScores > 0 ? (sumProductivity / countWithScores) as number : 0;
+      // Fix for line 159 error: Use Number() to ensure the result is a number
+      const averageProductivity = Number(countWithScores > 0 ? sumProductivity / countWithScores : 0);
 
       return {
         totalFocusTime,
