@@ -1,3 +1,4 @@
+
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { TimerSession, TimerStats } from "@/types/timer";
 import { toast } from "sonner";
@@ -132,10 +133,9 @@ class TimerService {
       
       const totalSessions = sessions.length;
 
-      // Fix for error TS2365: Ensure duration is a number before adding
-      const totalFocusTime: number = focusSessions.reduce((acc: number, s) => {
+      // Fix for error TS2322: Properly type the initial accumulator value and return value
+      const totalFocusTime = focusSessions.reduce((acc: number, s) => {
         const sessionObj = s as Record<string, any>;
-        // Fix for error TS2365: Ensure duration is a number before adding
         const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
         return acc + duration;
       }, 0);
