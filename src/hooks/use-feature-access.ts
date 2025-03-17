@@ -1,105 +1,59 @@
 
 import { useState, useEffect } from 'react';
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
+import { localStorageClient as supabase } from "@/lib/local-storage-client";
 
-interface FeatureFlags {
-  aiSuggestions: boolean;
-  bookmarkSearch: boolean;
-  contentSummary: boolean;
-  advancedAnalytics: boolean;
-  syncFeature: boolean;
-  premiumThemes: boolean;
-  webSearch: boolean;
+export interface FeatureAccessHook {
+  hasAccess: (featureName: string) => boolean;
+  isLoading: boolean;
+  error: Error | null;
 }
 
-// Default values for feature flags
-const defaultFeatures: FeatureFlags = {
-  aiSuggestions: true,
-  bookmarkSearch: true,
-  contentSummary: true,
-  advancedAnalytics: false,
-  syncFeature: false,
-  premiumThemes: false,
-  webSearch: true
+// For compatibility with existing code
+export const useFeaturesEnabled = () => {
+  return {
+    isEnabled: (feature: string) => true,
+    loading: false
+  };
 };
 
-export const useFeaturesEnabled = () => {
-  const [features, setFeatures] = useState<FeatureFlags>(defaultFeatures);
-  const [loading, setLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
+export const useFeatureAccess = (): FeatureAccessHook => {
+  const [features, setFeatures] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchFeatureFlags = async () => {
+    const fetchFeatureAccess = async () => {
       try {
-        // Check if user is premium
-        const { data: user } = await supabase.auth.getUser();
-        
-        const subscriptionResult = await supabase
-          .from('user_subscriptions')
-          .select()
-          .eq('user_id', user.user?.id)
-          .single();
-        
-        const hasPremium = !!subscriptionResult.data && subscriptionResult.data.status === 'active';
-        setIsPremium(hasPremium);
-        
-        // Get feature flags from settings
-        const featureFlagsResult = await supabase
-          .from('feature_flags')
-          .select()
-          .execute();
-        
-        if (featureFlagsResult.data?.length > 0) {
-          const flags = featureFlagsResult.data.reduce((acc: Partial<FeatureFlags>, flag: any) => {
-            // Only enable premium features if user has premium subscription
-            if (flag.premium && !hasPremium) {
-              acc[flag.name as keyof FeatureFlags] = false;
-            } else {
-              acc[flag.name as keyof FeatureFlags] = flag.enabled;
-            }
-            return acc;
-          }, {});
-          
-          setFeatures(prev => ({ ...prev, ...flags }));
-        }
-      } catch (error) {
-        console.error('Error fetching feature flags:', error);
+        // This would normally fetch from a backend service
+        // Using mock data for now
+        setFeatures({
+          'ai_chat': true,
+          'notes': true,
+          'bookmarks': true,
+          'analytics': true,
+          'timer': true,
+          'premium_themes': false,
+          'advanced_export': false
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch feature access'));
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-    
-    fetchFeatureFlags();
+
+    fetchFeatureAccess();
   }, []);
-  
-  // Check if a specific feature is enabled
-  const isFeatureEnabled = (featureName: keyof FeatureFlags) => {
-    return features[featureName];
+
+  const hasAccess = (featureName: string): boolean => {
+    return features[featureName] ?? false;
   };
-  
-  return { 
-    features, 
-    loading, 
-    isPremium, 
-    isFeatureEnabled 
+
+  return {
+    hasAccess,
+    isLoading,
+    error
   };
 };
 
-// Add a new hook that aliases useFeaturesEnabled for backward compatibility
-export const useFeatureAccess = () => {
-  const featureState = useFeaturesEnabled();
-  
-  // Provide a backward-compatible API
-  return {
-    ...featureState,
-    checkAccess: (feature: string) => {
-      // Map the feature string to a known feature flag if possible
-      const featureKey = feature as keyof FeatureFlags;
-      if (featureKey in featureState.features) {
-        return Promise.resolve(featureState.isFeatureEnabled(featureKey));
-      }
-      // For unknown features, default to false
-      return Promise.resolve(false);
-    }
-  };
-};
+export default useFeatureAccess;

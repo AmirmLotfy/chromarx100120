@@ -7,20 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Note } from '@/types/note';
 
 interface NoteEditorProps {
-  note?: Note & { category?: string; sentiment?: 'positive' | 'negative' | 'neutral'; tags?: string[] };
-  onSave: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'> & { 
-    category?: string; 
-    sentiment?: 'positive' | 'negative' | 'neutral';
-    tags?: string[];
-  }) => Promise<void>;
+  note?: Note;
+  onSave: (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onCancel: () => void;
 }
 
 const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
-  const [category, setCategory] = useState(note?.category || 'General');
-  const [sentiment, setSentiment] = useState(note?.sentiment || 'neutral');
+  const [category, setCategory] = useState<string>(note?.category || 'General');
+  const [sentiment, setSentiment] = useState<'positive' | 'negative' | 'neutral'>(note?.sentiment || 'neutral');
   const [tags, setTags] = useState(note?.tags?.join(', ') || '');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,7 +45,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
         title,
         content,
         category,
-        sentiment: sentiment as 'positive' | 'negative' | 'neutral',
+        sentiment,
         tags: tagArray,
         userId: note?.userId || 'demo-user-id',
         color: note?.color,
@@ -62,6 +58,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSentimentChange = (value: string) => {
+    setSentiment(value as 'positive' | 'negative' | 'neutral');
   };
 
   return (
@@ -93,7 +93,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ note, onSave, onCancel }) => {
         </div>
 
         <div>
-          <Select value={sentiment} onValueChange={setSentiment}>
+          <Select value={sentiment} onValueChange={handleSentimentChange}>
             <SelectTrigger>
               <SelectValue placeholder="Sentiment" />
             </SelectTrigger>

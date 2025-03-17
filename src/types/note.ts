@@ -1,25 +1,25 @@
 
-export type NoteSentiment = 'positive' | 'negative' | 'neutral';
-
-export interface SentimentDetails {
-  score: number;
-  confidence: number;
-  dominantEmotion?: string;
-  language: string;
-}
-
 export interface Note {
   id: string;
   title: string;
   content: string;
-  tags: string[];
-  category: string;
   createdAt: string;
   updatedAt: string;
-  version?: number;
-  sentiment?: NoteSentiment;
-  sentimentDetails?: SentimentDetails;
-  summary?: string;
-  taskId?: string;
+  userId: string;
+  color?: string;
+  pinned?: boolean;
+  folder?: string;
   bookmarkIds?: string[];
+  tags?: string[];
+  category?: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
 }
+
+export interface SentimentDetails {
+  score: number;
+  magnitude: number;
+  mainEmotion: string;
+  emotions: Record<string, number>;
+}
+
+export type ExtendedNote = Note;

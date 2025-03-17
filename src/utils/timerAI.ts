@@ -32,6 +32,19 @@ export const getTimerSuggestion = async (context: SuggestionContext): Promise<nu
   }
 };
 
+// For backward compatibility with existing code
+export const generateTimerSuggestion = async (data: any): Promise<any[]> => {
+  console.log("Generating timer suggestions based on data:", data);
+  
+  // Generate some dummy suggestions
+  return [
+    { duration: 25, reason: "Standard pomodoro session", mode: "focus" },
+    { duration: 5, reason: "Quick break", mode: "break" },
+    { duration: 50, reason: "Deep work session", mode: "focus" },
+    { duration: 15, reason: "Recovery break", mode: "break" }
+  ];
+};
+
 const buildSuggestionPrompt = (context: SuggestionContext): string => {
   let prompt = `Suggest an optimal timer duration in minutes for this task: ${context.taskContext}\n`;
   
@@ -53,14 +66,9 @@ const buildSuggestionPrompt = (context: SuggestionContext): string => {
 const suggestDuration = async (prompt: string): Promise<string> => {
   const response = await aiRequestManager.makeRequest(
     async () => {
-      const result = await fetch('/api/suggest-timer-duration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      
-      if (!result.ok) throw new Error('Failed to get AI suggestion');
-      return result.json();
+      // Mock API call for timer suggestion
+      console.log("Suggesting duration for prompt:", prompt);
+      return "25"; // Mock response
     },
     `timer_${prompt}`,
     '25'

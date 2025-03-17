@@ -1,5 +1,6 @@
 
 import { useChatState } from "./useChat/useChatState";
 
-// Export the hook as useChat to be imported in ChatPage
-export const useChat = useChatState;
+// Export both named and default exports for compatibility
+export { useChatState as useChat };
+export default useChatState;

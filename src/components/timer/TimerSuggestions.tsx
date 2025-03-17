@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { BrainCircuit, Clock, Pencil } from 'lucide-react';
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
-import { generateTimerSuggestion } from '@/utils/timerAI';
+import { getTimerSuggestion } from '@/utils/timerAI';
 
 type TimerMode = 'focus' | 'break';
 
@@ -29,23 +29,30 @@ const TimerSuggestions: React.FC<TimerSuggestionsProps> = ({ onSelectDuration })
       // Get user's tasks to inform suggestions
       const { data: tasks } = await supabase
         .from('tasks')
-        .select()
-        .execute();
+        .select('*');
 
       // Get user's recent timer history
       const { data: timerHistory } = await supabase
         .from('timer_history')
-        .select()
-        .execute();
+        .select('*');
 
       // Either use the AI utility or create default suggestions
       let generatedSuggestions;
       try {
         // Try to generate suggestions with AI
-        generatedSuggestions = await generateTimerSuggestion({
-          tasks: tasks || [],
-          timerHistory: timerHistory || [],
+        const taskContext = (tasks || []).map(task => task.title).join(', ');
+        const suggestion = await getTimerSuggestion({
+          taskContext,
+          previousSessions: timerHistory || []
         });
+        
+        // Create suggestions based on AI response
+        generatedSuggestions = [
+          { duration: suggestion || 25, reason: 'AI recommended focus session', mode: 'focus' as TimerMode },
+          { duration: Math.max(5, Math.floor((suggestion || 25) / 5)), reason: 'Quick break', mode: 'break' as TimerMode },
+          { duration: 50, reason: 'Deep work session', mode: 'focus' as TimerMode },
+          { duration: 15, reason: 'Recovery break', mode: 'break' as TimerMode },
+        ];
       } catch (e) {
         console.error('Error generating AI suggestions:', e);
         // Fallback to default suggestions
