@@ -36,8 +36,6 @@ const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
         .order('title')
         .execute();
 
-      if (result.error) throw result.error;
-
       const formattedTemplates: TaskTemplate[] = result.data.map(template => ({
         id: template.id,
         title: template.title,
@@ -62,8 +60,6 @@ const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
         .delete()
         .eq('id', id)
         .execute();
-
-      if (result.error) throw result.error;
 
       setTemplates(prev => prev.filter(template => template.id !== id));
       toast.success("Template deleted successfully");

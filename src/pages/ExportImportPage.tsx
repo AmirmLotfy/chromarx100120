@@ -26,6 +26,11 @@ type BackupEntry = {
   conflicts?: number;
 };
 
+export const fetchConflicts = async () => {
+  // Implementation for fetching conflicts
+  return [];
+};
+
 const ConflictResolutionDialog = ({ 
   open, 
   onOpenChange,

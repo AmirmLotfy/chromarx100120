@@ -12,6 +12,19 @@ type LocalDatabase = {
   [tableName: string]: Table;
 };
 
+// Define types for compatibility with Supabase
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+export interface StorageBackup {
+  id: string;
+  key: string;
+  value: Json;
+  user_id: string;
+  storage_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // In-memory database simulation
 const localDb: LocalDatabase = {};
 
@@ -144,14 +157,7 @@ const createQueryBuilder = (tableName: string) => {
       return builder;
     },
     
-    single: async () => {
-      const result = await builder.execute();
-      return {
-        data: result.data.length > 0 ? result.data[0] : null,
-        error: null
-      };
-    },
-    
+    // Add execute method for compatibility
     execute: async () => {
       try {
         // Get data from the current table or return empty array
@@ -199,6 +205,15 @@ const createQueryBuilder = (tableName: string) => {
         console.error('Error executing query:', error);
         return { data: [], error: 'Query execution error' };
       }
+    },
+    
+    // Add single method for compatibility
+    single: async () => {
+      const result = await builder.execute();
+      return {
+        data: result.data.length > 0 ? result.data[0] : null,
+        error: result.error
+      };
     },
     
     insert: (data: any | any[]) => {
@@ -266,6 +281,46 @@ const createQueryBuilder = (tableName: string) => {
             console.error('Error updating data:', error);
             return { data: null, error: 'Update error' };
           }
+        },
+        // Add select method for compatibility with Supabase return
+        select: async () => {
+          try {
+            // Similar to update but return updated items
+            let updatedItems: any[] = [];
+            
+            Object.keys(localDb[currentTable]).forEach(key => {
+              localDb[currentTable][key] = localDb[currentTable][key].map(item => {
+                if (whereConditions.every(condition => 
+                  condition.operator === 'eq' ? item[condition.column] === condition.value : 
+                  item[condition.column] !== condition.value)) {
+                  const updatedItem = { ...item, ...data };
+                  updatedItems.push(updatedItem);
+                  return updatedItem;
+                }
+                return item;
+              });
+            });
+            
+            persistDb();
+            
+            return { data: updatedItems, error: null };
+          } catch (error) {
+            console.error('Error updating data:', error);
+            return { data: null, error: 'Update error' };
+          }
+        },
+        // Add single method for select with single result
+        single: async () => {
+          try {
+            const result = await builder.update(data).select();
+            return {
+              data: Array.isArray(result.data) && result.data.length > 0 ? result.data[0] : null,
+              error: result.error
+            };
+          } catch (error) {
+            console.error('Error updating single item:', error);
+            return { data: null, error: 'Update error' };
+          }
         }
       };
     },
@@ -289,6 +344,29 @@ const createQueryBuilder = (tableName: string) => {
             return { data: deleted ? { success: true } : null, error: null };
           } catch (error) {
             console.error('Error deleting data:', error);
+            return { data: null, error: 'Delete error' };
+          }
+        },
+        // Add execute method for compatibility
+        execute: async () => {
+          try {
+            let deletedCount = 0;
+            
+            Object.keys(localDb[currentTable]).forEach(key => {
+              const initialLength = localDb[currentTable][key].length;
+              localDb[currentTable][key] = localDb[currentTable][key].filter(item => 
+                !whereConditions.every(condition => 
+                  condition.operator === 'eq' ? item[condition.column] === condition.value : 
+                  item[condition.column] !== condition.value)
+              );
+              deletedCount += initialLength - localDb[currentTable][key].length;
+            });
+            
+            persistDb();
+            
+            return { data: { success: true, count: deletedCount }, error: null };
+          } catch (error) {
+            console.error('Error executing delete:', error);
             return { data: null, error: 'Delete error' };
           }
         }
@@ -339,6 +417,19 @@ const createQueryBuilder = (tableName: string) => {
             console.error('Error in upsert operation:', error);
             return { data: null, error: 'Upsert error' };
           }
+        },
+        // Add single method for compatibility
+        single: async () => {
+          try {
+            const result = await builder.upsert(data, options).select();
+            return {
+              data: Array.isArray(result.data) && result.data.length > 0 ? result.data[0] : null,
+              error: result.error
+            };
+          } catch (error) {
+            console.error('Error in upsert single operation:', error);
+            return { data: null, error: 'Upsert error' };
+          }
         }
       };
     }
@@ -364,28 +455,8 @@ export const localStorageClient = {
   auth,
   functions,
   channel: (channelName: string) => createChannel(channelName),
-  removeChannel: () => {}
+  removeChannel: (channelName?: string) => { console.log(`Removed channel: ${channelName || 'all'}`); }
 };
 
-// Export types for TypeScript compatibility
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
-
-export interface StorageBackup {
-  id: string;
-  key: string;
-  value: Json;
-  user_id: string;
-  storage_type: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// Mock implementation of Supabase
-export const supabase = {
-  from: (tableName: string) => createQueryBuilder(tableName),
-  auth,
-  functions,
-  channel: (channelName: string) => createChannel(channelName),
-  removeChannel: () => {}
-};
-
+// Export for backward compatibility
+export const supabase = localStorageClient;

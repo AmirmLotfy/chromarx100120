@@ -30,12 +30,22 @@ const getApiInstance = async () => {
   }
 };
 
-export async function getBookmarkSummary(content: string, options: SummaryOptions = {}): Promise<string | null> {
+export async function checkGeminiAvailability(): Promise<boolean> {
+  try {
+    const genAI = await getApiInstance();
+    return !!genAI;
+  } catch (error) {
+    console.error('Error checking Gemini availability:', error);
+    return false;
+  }
+}
+
+export async function summarizeContent(content: string, language = 'en'): Promise<string> {
   try {
     const genAI = await getApiInstance();
     if (!genAI) {
       toast.error('Please set your Gemini API key in settings');
-      return null;
+      return "API key not set";
     }
     
     // Configure the model
@@ -49,19 +59,11 @@ export async function getBookmarkSummary(content: string, options: SummaryOption
       ],
     });
     
-    // Build the prompt based on options
+    // Build the prompt
     let prompt = `Summarize the following content concisely`;
     
-    if (options.maxWords) {
-      prompt += ` in about ${options.maxWords} words`;
-    }
-    
-    if (options.focusKeywords && options.focusKeywords.length > 0) {
-      prompt += `, focusing on these keywords: ${options.focusKeywords.join(', ')}`;
-    }
-    
-    if (options.language && options.language !== 'en') {
-      prompt += `. Please provide the summary in ${options.language} language`;
+    if (language && language !== 'en') {
+      prompt += `. Please provide the summary in ${language} language`;
     }
     
     prompt += `:\n\n${content}`;
@@ -73,7 +75,61 @@ export async function getBookmarkSummary(content: string, options: SummaryOption
   } catch (error) {
     console.error('Error generating summary with Gemini:', error);
     toast.error('Failed to generate summary');
-    return null;
+    return "Error generating summary";
+  }
+}
+
+export async function summarizeBookmark(bookmark: ChromeBookmark, language = 'en'): Promise<string> {
+  try {
+    let content = bookmark.content || "";
+    
+    if (!content && bookmark.url) {
+      // If there's no content but there's a URL, try to use the title and URL as fallback
+      content = `Title: ${bookmark.title}\nURL: ${bookmark.url}`;
+    }
+    
+    return summarizeContent(content, language);
+  } catch (error) {
+    console.error('Error summarizing bookmark:', error);
+    toast.error('Failed to summarize bookmark');
+    return "Error generating summary";
+  }
+}
+
+export async function suggestBookmarkCategory(title: string, url: string, content: string = "", language = 'en'): Promise<string> {
+  try {
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      return "general";
+    }
+    
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
+    
+    const prompt = `Given this bookmark information, suggest a single category name that best describes it (one word only):
+    Title: ${title}
+    URL: ${url}
+    ${content ? `Content snippet: ${content.substring(0, 500)}...` : ''}
+    
+    Reply with just the category name in lowercase, for example: "productivity", "development", "news", "shopping", etc.`;
+    
+    const result = await model.generateContent(prompt);
+    const categoryText = result.response.text().trim().toLowerCase();
+    
+    // Extract just the first word if it returns multiple
+    const category = categoryText.split(/[^a-zA-Z0-9-]/)[0];
+    
+    return category || "general";
+  } catch (error) {
+    console.error('Error suggesting category:', error);
+    return "general";
   }
 }
 
@@ -81,15 +137,11 @@ export async function analyzeProductivity(analyticsData: any[], goalsData: any[]
   try {
     // First try to use the Supabase edge function
     try {
-      const result = await supabase.functions.invoke('analyze-productivity', {
+      const { data } = await supabase.functions.invoke('analyze-productivity', {
         body: { analyticsData, goalsData, timeframe: '7days' }
       });
       
-      if (result.error) {
-        throw new Error('Failed to use cloud function, falling back to local analysis');
-      }
-      
-      return result.data;
+      return data;
     } catch (cloudError) {
       console.warn('Cloud function failed, using local analysis:', cloudError);
       
@@ -229,5 +281,128 @@ export async function suggestBookmarkOrganization(bookmarks: ChromeBookmark[]): 
         "Regularly clean up unused bookmarks"
       ]
     };
+  }
+}
+
+// Add additional required functions
+export async function generateTaskSuggestions(taskInfo: string, language = 'en'): Promise<string> {
+  try {
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      return "";
+    }
+    
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+    });
+    
+    const prompt = `Based on this task information, provide 3-5 concise suggestions to help complete it effectively:
+    ${taskInfo}
+    
+    Reply with bullet points only.`;
+    
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error('Error generating task suggestions:', error);
+    return "";
+  }
+}
+
+export async function suggestTimerDuration(taskInfo: string, language = 'en'): Promise<number> {
+  try {
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      return 25; // Default Pomodoro duration
+    }
+    
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+    });
+    
+    const prompt = `Based on this task information, suggest an optimal focus session duration in minutes (between 5 and 120):
+    ${taskInfo}
+    
+    Reply with just the number of minutes.`;
+    
+    const result = await model.generateContent(prompt);
+    const durationText = result.response.text().trim();
+    const duration = parseInt(durationText, 10);
+    
+    if (isNaN(duration) || duration < 5 || duration > 120) {
+      return 25; // Default if response is invalid
+    }
+    
+    return duration;
+  } catch (error) {
+    console.error('Error suggesting timer duration:', error);
+    return 25;
+  }
+}
+
+export async function getGeminiResponse(prompt: string, language = 'en'): Promise<string> {
+  try {
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      toast.error('Please set your Gemini API key in settings');
+      return "API key not set";
+    }
+    
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+    });
+    
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (error) {
+    console.error('Error getting Gemini response:', error);
+    return "Error generating response";
+  }
+}
+
+export async function analyzeSentiment(text: string): Promise<{sentiment: string, confidence: number}> {
+  try {
+    const genAI = await getApiInstance();
+    if (!genAI) {
+      return { sentiment: "neutral", confidence: 0 };
+    }
+    
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro",
+    });
+    
+    const prompt = `Analyze the sentiment of this text. Reply with a JSON object containing 'sentiment' (positive, negative, or neutral) and 'confidence' (a number between 0 and 1):
+    
+    "${text}"`;
+    
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        return {
+          sentiment: data.sentiment || "neutral",
+          confidence: data.confidence || 0.5
+        };
+      }
+    } catch (parseError) {
+      console.error('Error parsing sentiment analysis response:', parseError);
+    }
+    
+    return { sentiment: "neutral", confidence: 0.5 };
+  } catch (error) {
+    console.error('Error analyzing sentiment:', error);
+    return { sentiment: "neutral", confidence: 0 };
+  }
+}
+
+export async function testAIReliability(): Promise<boolean> {
+  try {
+    const genAI = await getApiInstance();
+    return !!genAI;
+  } catch (error) {
+    return false;
   }
 }

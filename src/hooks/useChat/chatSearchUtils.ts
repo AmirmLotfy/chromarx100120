@@ -1,4 +1,5 @@
 
+// Fix type issues for summarizeContent function calls
 import { ChromeBookmark } from "@/types/bookmark";
 import { findBookmarksByContent } from "@/utils/bookmarkUtils";
 import { summarizeContent } from "@/utils/geminiUtils";
@@ -104,8 +105,11 @@ Based on the user's query and the bookmarks found, please:
       "I couldn't find any bookmarks matching your query. Try using different keywords or a more specific description."
     );
 
+    // Fix type issue: Ensure response is a string
+    const responseStr = response as string;
+
     return {
-      response,
+      response: responseStr,
       bookmarks: combinedBookmarks.slice(0, 5).map((b) => ({
         title: b.title,
         url: b.url || "",
@@ -175,8 +179,11 @@ export const processQuery = async (
       "I'm sorry, I couldn't process your request. Please try again later."
     );
 
+    // Fix type issue: Ensure response is a string
+    const responseStr = response as string;
+
     return {
-      response,
+      response: responseStr,
       bookmarks: relevantBookmarks.slice(0, 5).map((b) => ({
         title: b.title,
         url: b.url || "",
