@@ -1,11 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useCallback } from 'react';
 import { storage } from "@/services/storageService";
 import { toast } from "sonner";
 import { useSettings } from "@/stores/settingsStore";
-import { Database } from "@/integrations/supabase/types";
-
-type Json = Database["public"]["Tables"]["storage_backups"]["Row"]["value"];
-type StorageBackup = Database["public"]["Tables"]["storage_backups"]["Row"];
 
 class SupabaseBackupService {
   private static instance: SupabaseBackupService;

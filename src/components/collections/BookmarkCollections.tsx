@@ -1,16 +1,21 @@
 
 import { useState, useEffect } from "react";
-import { BookmarkCollection } from "@/types/bookmark-metadata";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Folder, FolderPlus, MoreVertical, Loader2 } from "lucide-react";
+import { Folder, FolderPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
+
+interface BookmarkCollection {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+}
 
 interface BookmarkCollectionsProps {
   userId: string;
@@ -41,14 +46,10 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
   const loadCollections = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('bookmark_collections')
-        .select('*')
-        .eq('user_id', userId)
-        .order('name');
-
-      if (error) throw error;
-      setCollections(data || []);
+      // Get collections from localStorage
+      const storedCollections = JSON.parse(localStorage.getItem('bookmarkCollections') || '[]');
+      const userCollections = storedCollections.filter((col: BookmarkCollection) => col.user_id === userId);
+      setCollections(userCollections);
     } catch (error) {
       console.error('Error loading collections:', error);
       toast.error('Failed to load collections');
@@ -64,20 +65,20 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
     }
 
     try {
-      const { data, error } = await supabase
-        .from('bookmark_collections')
-        .insert({
-          name: newCollectionName.trim(),
-          description: newCollectionDescription.trim() || null,
-          user_id: userId,
-          is_public: false
-        })
-        .select()
-        .single();
+      const newCollection = {
+        id: `col_${Date.now()}`,
+        user_id: userId,
+        name: newCollectionName.trim(),
+        description: newCollectionDescription.trim() || undefined,
+        is_public: false
+      };
+      
+      // Save to localStorage
+      const allCollections = JSON.parse(localStorage.getItem('bookmarkCollections') || '[]');
+      allCollections.push(newCollection);
+      localStorage.setItem('bookmarkCollections', JSON.stringify(allCollections));
 
-      if (error) throw error;
-
-      setCollections([...collections, data]);
+      setCollections([...collections, newCollection]);
       setIsCreating(false);
       setNewCollectionName("");
       setNewCollectionDescription("");
@@ -105,14 +106,11 @@ const BookmarkCollections = ({ userId, onSelectCollection, selectedCollectionId 
 
       // Update the local state
       setCollections(updatedCollections);
-
-      // For now, we'll just update the collection without modifying the order
-      // Since the order field is not available in the database schema
-      await supabase.from('bookmark_collections')
-        .update({
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', String(active.id));
+      
+      // Save to localStorage
+      const allCollections = JSON.parse(localStorage.getItem('bookmarkCollections') || '[]');
+      const nonUserCollections = allCollections.filter((col: BookmarkCollection) => col.user_id !== userId);
+      localStorage.setItem('bookmarkCollections', JSON.stringify([...nonUserCollections, ...updatedCollections]));
 
       toast.success('Collection order updated');
     } catch (error) {

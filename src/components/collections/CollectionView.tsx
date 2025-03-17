@@ -1,11 +1,16 @@
 
 import { useState, useEffect } from "react";
-import { BookmarkCollection } from "@/types/bookmark-metadata";
 import { ChromeBookmark } from "@/types/bookmark";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+
+interface BookmarkCollection {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+}
 
 interface CollectionViewProps {
   collection: BookmarkCollection;
@@ -22,15 +27,13 @@ const CollectionView = ({ collection, bookmarks, onBookmarkSelect }: CollectionV
 
   const loadCollectionBookmarks = async () => {
     try {
-      const { data, error } = await supabase
-        .from('bookmark_collection_items')
-        .select('bookmark_id')
-        .eq('collection_id', collection.id);
-
-      if (error) throw error;
-
-      const bookmarkIds = new Set(data.map(item => item.bookmark_id));
-      const filteredBookmarks = bookmarks.filter(bookmark => bookmarkIds.has(bookmark.id));
+      // Get collection items from localStorage
+      const collectionItems = JSON.parse(localStorage.getItem('bookmarkCollectionItems') || '[]');
+      const bookmarkIds = collectionItems
+        .filter((item: any) => item.collection_id === collection.id)
+        .map((item: any) => item.bookmark_id);
+      
+      const filteredBookmarks = bookmarks.filter(bookmark => bookmarkIds.includes(bookmark.id));
       setCollectionBookmarks(filteredBookmarks);
     } catch (error) {
       console.error('Error loading collection bookmarks:', error);

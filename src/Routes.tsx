@@ -19,7 +19,6 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import CollectionsPage from "@/pages/CollectionsPage";
 import ExportImportPage from "@/pages/ExportImportPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
-import PayPalConfigPage from "./pages/PayPalConfigPage";
 
 const Routes = () => {
   return (
@@ -42,7 +41,6 @@ const Routes = () => {
       <Route path="/collections" element={<CollectionsPage />} />
       <Route path="/export-import" element={<ExportImportPage />} />
       <Route path="/integrations" element={<IntegrationsPage />} />
-      <Route path="/paypal-config" element={<PayPalConfigPage />} />
       <Route path="*" element={<NotFound />} />
     </RouterRoutes>
   );

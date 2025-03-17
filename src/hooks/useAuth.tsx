@@ -1,5 +1,4 @@
-
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useState } from 'react';
 
 interface User {
   id: string;
@@ -22,27 +21,45 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // Provide a dummy user for development
-  const dummyUser = {
+  const [user, setUser] = useState<User | null>({
     id: 'demo-user-id',
     email: 'demo@example.com'
-  };
+  });
+  const [loading, setLoading] = useState(false);
 
   const signInWithGoogle = async () => {
-    console.log('Sign in with Google called (dummy implementation)');
-    // No actual implementation needed
+    setLoading(true);
+    try {
+      console.log('Sign in with Google called (dummy implementation)');
+      // Set default user
+      setUser({
+        id: 'demo-user-id',
+        email: 'demo@example.com'
+      });
+    } catch (error) {
+      console.error('Error signing in:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signOut = async () => {
-    console.log('Sign out called (dummy implementation)');
-    // No actual implementation needed
+    setLoading(true);
+    try {
+      console.log('Sign out called (dummy implementation)');
+      // Keep user logged in for demo purposes
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <AuthContext.Provider 
       value={{ 
-        user: dummyUser, // Always provide the dummy user
-        loading: false,
+        user,
+        loading,
         signInWithGoogle,
         signOut
       }}
