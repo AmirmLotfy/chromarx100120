@@ -71,7 +71,7 @@ class LocalStorageClient {
             return {
               eq: (col: string, val: any): DbSingleResult<any> => {
                 return {
-                  eq: (column: string, value: any): DbSingleResult<any> => {
+                  eq: (column2: string, value2: any): DbSingleResult<any> => {
                     return {
                       eq: (col2: string, val2: any): DbSingleResult<any> => {
                         return {
@@ -110,33 +110,15 @@ class LocalStorageClient {
                   eq: (column2: string, value2: any) => {
                     return {
                       execute: () => Promise.resolve({ data: null, error: null }),
-                      error: null,
-                      eq: (c: string, v: any) => {
-                        return {
-                          execute: () => Promise.resolve({ data: null, error: null }),
-                          error: null
-                        };
-                      }
+                      error: null
                     };
                   },
                   execute: () => Promise.resolve({ data: null, error: null }),
-                  error: null,
-                  eq: (c: string, v: any) => {
-                    return {
-                      execute: () => Promise.resolve({ data: null, error: null }),
-                      error: null
-                    };
-                  }
+                  error: null
                 };
               },
               execute: () => Promise.resolve({ data: null, error: null }),
-              error: null,
-              eq: (c: string, v: any) => {
-                return {
-                  execute: () => Promise.resolve({ data: null, error: null }),
-                  error: null
-                };
-              }
+              error: null
             };
           }
         };
