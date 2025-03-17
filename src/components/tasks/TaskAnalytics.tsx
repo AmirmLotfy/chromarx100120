@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { localStorageClient as supabase } from "@/lib/local-storage-client";
+import { chromeStorage } from "@/services/chromeStorageService";
 import { Card } from "@/components/ui/card";
 import {
   BarChart,
@@ -37,14 +37,7 @@ const TaskAnalytics = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const result = await supabase
-        .from('tasks')
-        .select('*')
-        .execute();
-
-      if (result.error) throw result.error;
-
-      const tasks = result.data;
+      const tasks = await chromeStorage.get<any[]>('tasks') || [];
 
       const analytics: TaskAnalytics = {
         totalTasks: tasks.length,

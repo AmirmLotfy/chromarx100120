@@ -1,3 +1,4 @@
+
 /**
  * Chrome Storage Service
  * Provides a consistent API for storing and retrieving data in Chrome's storage

@@ -1,147 +1,190 @@
 
-import { toast } from "sonner";
-import { configurationService } from "@/services/configurationService";
-import { chromeStorage } from "@/services/chromeStorageService";
-
-// Subscription types
-export interface SubscriptionStatus {
-  subscription: {
-    plan_id: string;
-    status: string;
-    current_period_end?: string;
-    current_period_start?: string;
-    cancel_at_period_end?: boolean;
-  };
-  renewalNeeded: boolean;
-  usageLimits: {
-    aiRequests: UsageLimit;
-    bookmarks: UsageLimit;
-    tasks: UsageLimit;
-    notes: UsageLimit;
-  };
-  needsUpgrade: boolean;
-}
-
-interface UsageLimit {
-  limit: number;
-  used: number;
-  percentage: number;
-}
+import { chromeStorage } from '@/services/chromeStorageService';
 
 interface PayPalConfig {
   clientId: string;
   mode: 'sandbox' | 'live';
 }
 
-interface PaymentRecord {
+interface PaymentData {
+  orderId: string;
+  planId: string;
+  autoRenew?: boolean;
+}
+
+interface SubscriptionData {
   id?: string;
-  order_id: string;
-  plan_id: string;
-  amount: number;
+  planId: string;
   status: string;
-  provider: string;
-  auto_renew: boolean;
-  user_id: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  userId: string;
 }
 
-interface SubscriptionRecord {
-  id?: string;
-  plan_id: string;
-  status: string;
-  current_period_start: string;
-  current_period_end: string;
-  cancel_at_period_end: boolean;
-  user_id: string;
+interface UsageStatistics {
+  apiCalls: number;
+  summariesUsed: number;
+  storageUsed: number;
+  lastReset: string;
 }
 
-interface UsageStats {
-  api_calls: number;
-}
-
-// Get PayPal configuration
-export const checkPayPalConfiguration = async () => {
-  const config = await configurationService.getPayPalConfig() as PayPalConfig;
-  return {
-    clientId: config.clientId,
-    mode: config.mode,
-    configured: true
-  };
-};
-
-export const getPayPalClientId = async (): Promise<string> => {
-  const config = await configurationService.getPayPalConfig() as PayPalConfig;
-  return config.clientId;
-};
-
-export const getPayPalMode = async (): Promise<'sandbox' | 'live'> => {
-  const config = await configurationService.getPayPalConfig() as PayPalConfig;
-  return config.mode;
-};
-
-// Payment verification
-export const verifyPayPalPayment = async (
-  orderId: string, 
-  planId: string, 
-  autoRenew: boolean = true
-): Promise<boolean> => {
+/**
+ * Check if PayPal is configured
+ */
+export const checkPayPalConfig = async (): Promise<{
+  configured: boolean;
+  clientId: string;
+  mode: string;
+}> => {
   try {
-    console.log('Verifying payment:', { orderId, planId, autoRenew });
+    const config = await chromeStorage.get<PayPalConfig>('paypal_config');
     
-    // Get PayPal configuration
-    const config = await configurationService.getPayPalConfig() as PayPalConfig;
+    if (!config) {
+      return {
+        configured: false,
+        clientId: '',
+        mode: 'sandbox'
+      };
+    }
     
-    // In a real implementation, you would verify the payment with PayPal's API here
-    // For now, we'll simulate a successful verification
+    const hasClientId = config.clientId && config.clientId.length > 10;
     
-    // Store the payment in our local database
-    await chromeStorage.db.insert<PaymentRecord>('payment_history', {
-      order_id: orderId,
-      plan_id: planId,
-      amount: planId === 'premium' ? 9.99 : 4.99,
-      status: 'completed',
-      provider: 'paypal',
-      auto_renew: autoRenew,
-      user_id: 'current-user' // In a real implementation, get the actual user ID
-    });
-    
-    // Update subscription status
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1); // One month subscription
-    
-    await chromeStorage.db.insert<SubscriptionRecord>('subscriptions', {
-      plan_id: planId,
-      status: 'active',
-      current_period_start: startDate.toISOString(),
-      current_period_end: endDate.toISOString(),
-      cancel_at_period_end: !autoRenew,
-      user_id: 'current-user' // In a real implementation, get the actual user ID
-    });
-    
-    toast.success('Payment verified successfully');
-    return true;
+    return {
+      configured: hasClientId,
+      clientId: config.clientId || '',
+      mode: config.mode || 'sandbox'
+    };
   } catch (error) {
-    console.error('Error verifying payment:', error);
-    toast.error('Failed to verify payment');
-    return false;
+    console.error('Error checking PayPal config:', error);
+    return {
+      configured: false,
+      clientId: '',
+      mode: 'sandbox'
+    };
   }
 };
 
-// Check subscription status
-export const checkSubscriptionStatus = async (userId: string): Promise<SubscriptionStatus | null> => {
+/**
+ * Process a payment
+ */
+export const processPayment = async (paymentData: PaymentData): Promise<{
+  success: boolean;
+  subscription?: SubscriptionData;
+  message?: string;
+  error?: string;
+}> => {
   try {
-    // Get subscription from storage
-    const subscriptions = await chromeStorage.db.query('subscriptions', 
-      (sub: any) => sub.user_id === userId && sub.status === 'active'
-    );
+    // In local storage mode, we simulate a successful payment
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setMonth(endDate.getMonth() + 1);  // 1 month subscription
     
-    const subscription = subscriptions[0] || {
-      plan_id: 'free',
+    const subscriptionData: SubscriptionData = {
+      id: `sub_${Date.now()}`,
+      planId: paymentData.planId,
       status: 'active',
-      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      current_period_start: new Date().toISOString(),
-      cancel_at_period_end: false
+      currentPeriodStart: now.toISOString(),
+      currentPeriodEnd: endDate.toISOString(),
+      cancelAtPeriodEnd: !paymentData.autoRenew,
+      userId: 'local-user',
     };
+    
+    // Store the subscription
+    await chromeStorage.set('subscription', subscriptionData);
+    
+    // Also log the payment in payment history
+    const paymentHistory = await chromeStorage.get<any[]>('payment_history') || [];
+    
+    paymentHistory.push({
+      id: `payment_${Date.now()}`,
+      orderId: paymentData.orderId,
+      planId: paymentData.planId,
+      amount: paymentData.planId === 'premium' ? 9.99 : 4.99,
+      status: 'completed',
+      provider: 'paypal',
+      autoRenew: paymentData.autoRenew ?? true,
+      createdAt: now.toISOString(),
+    });
+    
+    await chromeStorage.set('payment_history', paymentHistory);
+    
+    // Reset usage statistics
+    await resetUsageStatistics();
+    
+    return {
+      success: true,
+      subscription: subscriptionData,
+      message: 'Payment processed successfully'
+    };
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+};
+
+/**
+ * Check subscription status
+ */
+export const checkSubscription = async (): Promise<{
+  subscription: SubscriptionData;
+  renewalNeeded: boolean;
+  usageLimits: {
+    aiRequests: { limit: number; used: number; percentage: number };
+    bookmarks: { limit: number; used: number; percentage: number };
+    tasks: { limit: number; used: number; percentage: number };
+    notes: { limit: number; used: number; percentage: number };
+  };
+  needsUpgrade: boolean;
+}> => {
+  try {
+    // Get the subscription data
+    const subscription = await chromeStorage.get<SubscriptionData>('subscription');
+    
+    // Default to free plan if no subscription found
+    const defaultSubscription: SubscriptionData = {
+      planId: 'free',
+      status: 'active',
+      currentPeriodStart: new Date().toISOString(),
+      currentPeriodEnd: new Date().toISOString(),
+      cancelAtPeriodEnd: false,
+      userId: 'local-user'
+    };
+    
+    const sub = subscription || defaultSubscription;
+    
+    // Check if renewal is needed (within 3 days of expiration)
+    let renewalNeeded = false;
+    if (sub.status === 'active') {
+      const currentPeriodEnd = new Date(sub.currentPeriodEnd);
+      const now = new Date();
+      const daysUntilExpiration = Math.floor((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      renewalNeeded = daysUntilExpiration <= 3 && !sub.cancelAtPeriodEnd;
+      
+      // If subscription is expired, downgrade to free
+      if (currentPeriodEnd < now) {
+        sub.status = 'expired';
+        sub.planId = 'free';
+        await chromeStorage.set('subscription', sub);
+      }
+    }
+    
+    // Get usage statistics
+    const usageStats = await chromeStorage.get<UsageStatistics>('usage_statistics') || {
+      apiCalls: 0,
+      summariesUsed: 0,
+      storageUsed: 0,
+      lastReset: new Date().toISOString()
+    };
+    
+    // Get counts from various tables
+    const bookmarks = await chromeStorage.get<any[]>('bookmarks') || [];
+    const tasks = await chromeStorage.get<any[]>('tasks') || [];
+    const notes = await chromeStorage.get<any[]>('notes') || [];
     
     // Define limits based on plan
     const limits = {
@@ -150,44 +193,38 @@ export const checkSubscriptionStatus = async (userId: string): Promise<Subscript
       premium: { bookmarks: -1, tasks: -1, notes: -1, aiRequests: -1 }, // -1 means unlimited
     };
     
-    const planId = subscription.plan_id || 'free';
+    const planId = sub.planId || 'free';
     const planLimits = limits[planId as keyof typeof limits] || limits.free;
-    
-    // Get usage statistics
-    const bookmarkCount = await getBookmarkCount(userId);
-    const taskCount = await getTaskCount(userId);
-    const noteCount = await getNoteCount(userId);
-    const apiCalls = await getApiCallCount(userId);
     
     // Calculate percentages
     const usageLimits = {
       aiRequests: {
         limit: planLimits.aiRequests,
-        used: apiCalls,
+        used: usageStats.apiCalls || 0,
         percentage: planLimits.aiRequests > 0 ? 
-          Math.min(100, Math.round(apiCalls / planLimits.aiRequests * 100)) : 0
+          Math.min(100, Math.round((usageStats.apiCalls || 0) / planLimits.aiRequests * 100)) : 0
       },
       bookmarks: {
         limit: planLimits.bookmarks,
-        used: bookmarkCount,
+        used: bookmarks.length || 0,
         percentage: planLimits.bookmarks > 0 ? 
-          Math.min(100, Math.round(bookmarkCount / planLimits.bookmarks * 100)) : 0
+          Math.min(100, Math.round((bookmarks.length || 0) / planLimits.bookmarks * 100)) : 0
       },
       tasks: {
         limit: planLimits.tasks,
-        used: taskCount,
+        used: tasks.length || 0,
         percentage: planLimits.tasks > 0 ? 
-          Math.min(100, Math.round(taskCount / planLimits.tasks * 100)) : 0
+          Math.min(100, Math.round((tasks.length || 0) / planLimits.tasks * 100)) : 0
       },
       notes: {
         limit: planLimits.notes,
-        used: noteCount,
+        used: notes.length || 0,
         percentage: planLimits.notes > 0 ? 
-          Math.min(100, Math.round(noteCount / planLimits.notes * 100)) : 0
+          Math.min(100, Math.round((notes.length || 0) / planLimits.notes * 100)) : 0
       }
     };
     
-    // Check if user needs to upgrade
+    // Check if user needs to upgrade (if using >80% of any limit)
     const needsUpgrade = planId === 'free' && (
       usageLimits.aiRequests.percentage >= 80 ||
       usageLimits.bookmarks.percentage >= 80 ||
@@ -195,127 +232,69 @@ export const checkSubscriptionStatus = async (userId: string): Promise<Subscript
       usageLimits.notes.percentage >= 80
     );
     
-    // Check if subscription needs renewal
-    let renewalNeeded = false;
-    if (subscription.status === 'active' && subscription.current_period_end) {
-      const currentPeriodEnd = new Date(subscription.current_period_end);
-      const now = new Date();
-      const daysUntilExpiration = Math.floor((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      renewalNeeded = daysUntilExpiration <= 3 && !subscription.cancel_at_period_end;
-    }
-    
     return {
-      subscription,
+      subscription: sub,
       renewalNeeded,
       usageLimits,
       needsUpgrade
     };
   } catch (error) {
-    console.error('Error checking subscription status:', error);
-    return null;
-  }
-};
-
-// Helper functions for getting counts
-async function getBookmarkCount(userId: string): Promise<number> {
-  try {
-    const bookmarks = await chromeStorage.db.query('bookmark_metadata', 
-      (bookmark: any) => bookmark.user_id === userId
-    );
-    return bookmarks.length;
-  } catch (error) {
-    console.error('Error getting bookmark count:', error);
-    return 0;
-  }
-}
-
-async function getTaskCount(userId: string): Promise<number> {
-  try {
-    const tasks = await chromeStorage.db.query('tasks', 
-      (task: any) => task.user_id === userId
-    );
-    return tasks.length;
-  } catch (error) {
-    console.error('Error getting task count:', error);
-    return 0;
-  }
-}
-
-async function getNoteCount(userId: string): Promise<number> {
-  try {
-    const notes = await chromeStorage.db.query('notes', 
-      (note: any) => note.user_id === userId
-    );
-    return notes.length;
-  } catch (error) {
-    console.error('Error getting note count:', error);
-    return 0;
-  }
-}
-
-async function getApiCallCount(userId: string): Promise<number> {
-  try {
-    const stats = await chromeStorage.get<UsageStats>(`usage_stats_${userId}`);
-    return stats?.api_calls || 0;
-  } catch (error) {
-    console.error('Error getting API call count:', error);
-    return 0;
-  }
-}
-
-// Show upgrade notification if needed
-export const checkAndShowUpgradeNotification = async (userId: string): Promise<void> => {
-  try {
-    const status = await checkSubscriptionStatus(userId);
+    console.error('Error checking subscription:', error);
     
-    if (status?.needsUpgrade) {
-      toast.info("You're approaching your usage limits. Consider upgrading for more features!", {
-        duration: 8000,
-        action: {
-          label: 'Upgrade',
-          onClick: () => window.location.href = '/subscription'
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error showing upgrade notification:', error);
-  }
-};
-
-// PayPal order creation
-export const createPayPalOrder = async (planId: string, amount: number): Promise<any> => {
-  try {
-    console.log('Creating order:', { planId, amount });
-    
-    // In a real implementation, you would create an order with PayPal's API
-    // For now, we'll simulate creating an order
+    // Return default values on error
     return {
-      id: `TEST-${Date.now()}`,
-      status: "CREATED",
-      amount: amount
+      subscription: {
+        planId: 'free',
+        status: 'active',
+        currentPeriodStart: new Date().toISOString(),
+        currentPeriodEnd: new Date().toISOString(),
+        cancelAtPeriodEnd: false,
+        userId: 'local-user'
+      },
+      renewalNeeded: false,
+      usageLimits: {
+        aiRequests: { limit: 10, used: 0, percentage: 0 },
+        bookmarks: { limit: 50, used: 0, percentage: 0 },
+        tasks: { limit: 30, used: 0, percentage: 0 },
+        notes: { limit: 30, used: 0, percentage: 0 }
+      },
+      needsUpgrade: false
     };
-  } catch (error) {
-    console.error('Error creating order:', error);
-    throw error;
   }
 };
 
-// PayPal order capture
-export const capturePayPalOrder = async (orderId: string): Promise<any> => {
+/**
+ * Reset usage statistics
+ */
+const resetUsageStatistics = async (): Promise<void> => {
   try {
-    console.log('Capturing order:', orderId);
-    
-    // In a real implementation, you would capture the order with PayPal's API
-    // For now, we'll simulate capturing an order
-    return {
-      id: orderId,
-      status: "COMPLETED",
-      payer: {
-        email_address: "test@example.com"
-      }
-    };
+    await chromeStorage.set('usage_statistics', {
+      apiCalls: 0,
+      summariesUsed: 0,
+      storageUsed: 0,
+      lastReset: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error capturing order:', error);
-    throw error;
+    console.error('Error resetting usage statistics:', error);
+  }
+};
+
+/**
+ * Increment API call count
+ */
+export const trackApiCall = async (): Promise<void> => {
+  try {
+    const stats = await chromeStorage.get<UsageStatistics>('usage_statistics') || {
+      apiCalls: 0,
+      summariesUsed: 0,
+      storageUsed: 0,
+      lastReset: new Date().toISOString()
+    };
+    
+    stats.apiCalls = (stats.apiCalls || 0) + 1;
+    
+    await chromeStorage.set('usage_statistics', stats);
+  } catch (error) {
+    console.error('Error tracking API call:', error);
   }
 };

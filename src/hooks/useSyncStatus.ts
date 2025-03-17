@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
+import { toast } from 'sonner';
 
 export function useSyncStatus() {
   const [status, setStatus] = useState<'idle' | 'syncing' | 'error' | 'success'>('idle');
@@ -52,10 +53,3 @@ export function useSyncStatus() {
     }
   };
 }
-
-// Simple toast implementation since we're removing Supabase
-const toast = {
-  success: (message: string) => console.log(`Success: ${message}`),
-  error: (message: string) => console.error(`Error: ${message}`),
-  warning: (message: string) => console.warn(`Warning: ${message}`)
-};

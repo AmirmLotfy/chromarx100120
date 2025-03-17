@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Task, TaskPriority, TaskCategory } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { localStorageClient as supabase } from "@/lib/local-storage-client";
+import { chromeStorage } from "@/services/chromeStorageService";
 import { Card } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -30,23 +30,8 @@ const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
 
   const fetchTemplates = async () => {
     try {
-      const result = await supabase
-        .from('task_templates')
-        .select('*')
-        .order('title')
-        .execute();
-
-      const formattedTemplates: TaskTemplate[] = result.data.map(template => ({
-        id: template.id,
-        title: template.title,
-        description: template.description,
-        priority: template.priority as TaskPriority,
-        category: template.category as TaskCategory,
-        estimatedDuration: template.estimated_duration,
-        color: template.color
-      }));
-
-      setTemplates(formattedTemplates);
+      const result = await chromeStorage.get<TaskTemplate[]>('task_templates') || [];
+      setTemplates(result);
     } catch (error) {
       console.error('Error fetching templates:', error);
       toast.error("Failed to load templates");
@@ -55,13 +40,9 @@ const TaskTemplates = ({ onUseTemplate }: TaskTemplatesProps) => {
 
   const handleDeleteTemplate = async (id: string) => {
     try {
-      const result = await supabase
-        .from('task_templates')
-        .delete()
-        .eq('id', id)
-        .execute();
-
-      setTemplates(prev => prev.filter(template => template.id !== id));
+      const updatedTemplates = templates.filter(template => template.id !== id);
+      await chromeStorage.set('task_templates', updatedTemplates);
+      setTemplates(updatedTemplates);
       toast.success("Template deleted successfully");
     } catch (error) {
       console.error('Error deleting template:', error);

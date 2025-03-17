@@ -1,5 +1,5 @@
 
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
+import { localStorageClient } from '@/lib/chrome-storage-client';
 import { Conversation, Message, ConversationCategory } from "@/types/chat";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";
@@ -47,11 +47,11 @@ const mapDbMessage = (dbMessage: any): Message => {
 export const ConversationService = {
   async getConversations(archived: boolean = false): Promise<Conversation[]> {
     try {
-      const result = await supabase
+      const result = await localStorageClient
         .from('conversations')
-        .select('*')
         .eq('archived', archived)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .select();
 
       const dbConversations = result.data || [];
       const error = result.error;
@@ -62,11 +62,11 @@ export const ConversationService = {
       for (const dbConvo of dbConversations) {
         const conversation = mapDbConversation(dbConvo);
         
-        const messagesResult = await supabase
+        const messagesResult = await localStorageClient
           .from('messages')
-          .select('*')
           .eq('conversation_id', dbConvo.id)
-          .order('timestamp', { ascending: true });
+          .order('timestamp', { ascending: true })
+          .select();
         
         const dbMessages = messagesResult.data || [];
         const messagesError = messagesResult.error;
@@ -90,7 +90,7 @@ export const ConversationService = {
       const conversationId = uuidv4();
       const now = Date.now();
 
-      const result = await supabase
+      const result = await localStorageClient
         .from('conversations')
         .insert({
           id: conversationId,
@@ -106,7 +106,7 @@ export const ConversationService = {
 
       if (messages.length > 0) {
         const dbMessages = messages.map(msg => mapMessageToDb(msg, conversationId));
-        const messagesResult = await supabase
+        const messagesResult = await localStorageClient
           .from('messages')
           .insert(dbMessages);
 
@@ -132,7 +132,7 @@ export const ConversationService = {
 
   async updateConversation(conversation: Conversation): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('conversations')
         .update({
           name: conversation.name,
@@ -155,13 +155,13 @@ export const ConversationService = {
 
   async addMessage(conversationId: string, message: Message): Promise<Message | null> {
     try {
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('messages')
         .insert(mapMessageToDb(message, conversationId));
 
       if (error) throw error;
 
-      await supabase
+      await localStorageClient
         .from('conversations')
         .update({ updated_at: new Date(Date.now()).toISOString() }) // Convert to ISO string
         .eq('id', conversationId);
@@ -176,7 +176,7 @@ export const ConversationService = {
 
   async markMessagesAsRead(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('messages')
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
@@ -193,7 +193,7 @@ export const ConversationService = {
 
   async archiveConversation(conversationId: string): Promise<boolean> {
     try {
-      const result = await supabase
+      const result = await localStorageClient
         .from('conversations')
         .update({ archived: true })
         .eq('id', conversationId);
@@ -212,7 +212,7 @@ export const ConversationService = {
 
   async restoreConversation(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('conversations')
         .update({ archived: false })
         .eq('id', conversationId);
@@ -228,12 +228,12 @@ export const ConversationService = {
 
   async deleteConversation(conversationId: string): Promise<boolean> {
     try {
-      await supabase
+      await localStorageClient
         .from('messages')
         .delete()
         .eq('conversation_id', conversationId);
 
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('conversations')
         .delete()
         .eq('id', conversationId);
@@ -249,7 +249,7 @@ export const ConversationService = {
 
   async updateCategory(conversationId: string, category: ConversationCategory): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('conversations')
         .update({ category })
         .eq('id', conversationId);
@@ -265,7 +265,7 @@ export const ConversationService = {
 
   async togglePinned(conversationId: string, isPinned: boolean): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await localStorageClient
         .from('conversations')
         .update({ pinned: isPinned })
         .eq('id', conversationId);
