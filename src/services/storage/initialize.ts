@@ -2,6 +2,7 @@
 import storage from './unifiedStorage';
 import { isExtensionEnvironment } from '@/utils/environmentUtils';
 import { chromeDb } from './compat';
+import serviceWorkerController from '@/services/serviceWorkerController';
 
 /**
  * Initialize the storage system at application startup
@@ -15,6 +16,9 @@ export async function initializeStorage(): Promise<void> {
     if (isExtensionEnvironment()) {
       chromeDb.listenToChanges();
     }
+    
+    // Initialize the service worker controller
+    await serviceWorkerController.initialize();
     
     console.log('Storage system successfully initialized');
   } catch (error) {

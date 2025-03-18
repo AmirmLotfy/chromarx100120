@@ -1,167 +1,245 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { isChromeExtension } from '@/lib/utils';
+import serviceWorkerController from '@/services/serviceWorkerController';
 
-interface ServiceWorkerOptions {
-  path?: string;
-  scope?: string;
-  onSuccess?: () => void;
-  onUpdate?: (registration: ServiceWorkerRegistration) => void;
-  onError?: (error: Error) => void;
+interface UseServiceWorkerOptions {
   showToasts?: boolean;
+  onStatusChange?: (status: string) => void;
+  onMessage?: (type: string, data: any) => void;
 }
 
-export function useServiceWorker({
-  path,
-  scope = '/',
-  onSuccess,
-  onUpdate,
-  onError,
-  showToasts = true
-}: ServiceWorkerOptions = {}) {
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+/**
+ * Hook for interacting with the service worker controller
+ */
+export function useServiceWorker(options: UseServiceWorkerOptions = {}) {
+  const { showToasts = true, onStatusChange, onMessage } = options;
+  
   const [isActive, setIsActive] = useState(false);
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [status, setStatus] = useState(serviceWorkerController.getStatus());
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [cacheInfo, setCacheInfo] = useState<any>(null);
 
+  // Initialize and get status
   useEffect(() => {
-    // Determine which service worker to use based on environment
-    const defaultPath = isChromeExtension() 
-      ? '/service-worker.js'
-      : '/improved-service-worker.js';
+    let mounted = true;
     
-    const swPath = path || defaultPath;
-    
-    // Check if service workers are supported
-    if ('serviceWorker' in navigator) {
-      const registerServiceWorker = async () => {
-        try {
-          console.log(`Registering service worker from: ${swPath}`);
-          const reg = await navigator.serviceWorker.register(swPath, { scope });
+    const initServiceWorker = async () => {
+      setIsLoading(true);
+      
+      // Check status
+      const currentStatus = serviceWorkerController.getStatus();
+      
+      if (currentStatus === 'unregistered') {
+        // Try to initialize
+        const success = await serviceWorkerController.initialize();
+        
+        if (mounted) {
+          setIsActive(success);
+          setStatus(serviceWorkerController.getStatus());
           
-          setRegistration(reg);
-          setIsActive(!!reg.active);
-          
-          if (showToasts) {
-            toast.success('Offline mode activated');
+          if (success && showToasts) {
+            toast.success('Service worker activated');
+          } else if (!success && showToasts) {
+            toast.error('Failed to activate service worker');
           }
-          
-          if (onSuccess) {
-            onSuccess();
-          }
-          
-          // Check for updates
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  setUpdateAvailable(true);
-                  
-                  if (showToasts) {
-                    toast.info('Update available! Refresh to apply.', {
-                      action: {
-                        label: 'Refresh',
-                        onClick: () => window.location.reload()
-                      }
-                    });
-                  }
-                  
-                  if (onUpdate) {
-                    onUpdate(reg);
-                  }
-                }
-              });
-            }
-          });
-          
-          // Handle controller changes (when an update is activated)
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('Service worker controller changed');
-          });
-          
-        } catch (error) {
-          console.error('Error during service worker registration:', error);
-          
-          if (showToasts) {
-            toast.error('Failed to enable offline mode');
-          }
-          
-          if (onError && error instanceof Error) {
-            onError(error);
-          }
-        } finally {
-          setIsInitializing(false);
         }
-      };
-      
-      registerServiceWorker();
-      
-      return () => {
-        // Nothing to clean up for service worker registrations as they persist
-      };
-    } else {
-      if (showToasts) {
-        toast.warning('Offline mode not supported in this browser');
+      } else {
+        if (mounted) {
+          setIsActive(currentStatus === 'active');
+          setStatus(currentStatus);
+        }
       }
-      setIsInitializing(false);
-    }
-  }, [path, scope, onSuccess, onUpdate, onError, showToasts]);
-
-  const update = async () => {
-    if (!registration) return false;
+      
+      // Get pending tasks
+      refreshTasks();
+      
+      // Get cache info
+      refreshCacheInfo();
+      
+      if (mounted) {
+        setIsLoading(false);
+      }
+    };
     
-    try {
-      await registration.update();
-      return true;
-    } catch (error) {
-      console.error('Error updating service worker:', error);
-      return false;
-    }
-  };
-
-  const unregister = async () => {
-    if (!registration) return false;
+    initServiceWorker();
     
-    try {
-      const success = await registration.unregister();
-      if (success) {
-        setRegistration(null);
-        setIsActive(false);
-        setUpdateAvailable(false);
+    // Set up listeners for task status updates
+    const unsubscribeTaskUpdate = serviceWorkerController.subscribe('TASK_STATUS_UPDATE', (data) => {
+      if (mounted) {
+        refreshTasks();
+      }
+    });
+    
+    const unsubscribeTaskCompleted = serviceWorkerController.subscribe('TASK_COMPLETED', (data) => {
+      if (mounted) {
+        refreshTasks();
         
         if (showToasts) {
-          toast.success('Offline mode deactivated');
+          toast.success('Background task completed');
         }
       }
-      return success;
-    } catch (error) {
-      console.error('Error unregistering service worker:', error);
-      return false;
-    }
-  };
-
-  const skipWaiting = async () => {
-    if (!registration || !registration.waiting) return false;
+    });
     
-    try {
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      return true;
-    } catch (error) {
-      console.error('Error skipping waiting:', error);
+    const unsubscribeTaskFailed = serviceWorkerController.subscribe('TASK_FAILED', (data) => {
+      if (mounted) {
+        refreshTasks();
+        
+        if (showToasts) {
+          toast.error(`Background task failed: ${data.error || 'Unknown error'}`);
+        }
+      }
+    });
+    
+    // Set up a general message handler
+    const unsubscribeMessage = serviceWorkerController.subscribe('*', (data) => {
+      if (mounted && onMessage) {
+        onMessage(data.type, data);
+      }
+    });
+    
+    return () => {
+      mounted = false;
+      unsubscribeTaskUpdate();
+      unsubscribeTaskCompleted();
+      unsubscribeTaskFailed();
+      unsubscribeMessage();
+    };
+  }, [showToasts, onStatusChange, onMessage]);
+
+  // Update status when it changes
+  useEffect(() => {
+    if (onStatusChange) {
+      onStatusChange(status);
+    }
+  }, [status, onStatusChange]);
+
+  // Refresh the list of pending tasks
+  const refreshTasks = useCallback(async () => {
+    if (serviceWorkerController.isReady()) {
+      const tasks = await serviceWorkerController.getPendingTasks();
+      setPendingTasks(tasks);
+    } else {
+      setPendingTasks([]);
+    }
+  }, []);
+
+  // Refresh cache information
+  const refreshCacheInfo = useCallback(async () => {
+    if (serviceWorkerController.isReady()) {
+      const info = await serviceWorkerController.getCacheStatus();
+      setCacheInfo(info);
+    } else {
+      setCacheInfo(null);
+    }
+  }, []);
+
+  // Schedule a background task
+  const scheduleTask = useCallback(async (
+    taskType: string, 
+    taskData: any, 
+    priority: 'high' | 'normal' | 'low' = 'normal'
+  ) => {
+    if (!serviceWorkerController.isReady()) {
+      if (showToasts) {
+        toast.error('Service worker is not active');
+      }
+      return null;
+    }
+    
+    const taskId = await serviceWorkerController.scheduleTask(taskType, taskData, priority);
+    
+    if (taskId && showToasts) {
+      toast.success('Background task scheduled');
+    }
+    
+    refreshTasks();
+    return taskId;
+  }, [showToasts, refreshTasks]);
+
+  // Process all pending tasks
+  const processTasks = useCallback(async () => {
+    if (!serviceWorkerController.isReady()) {
+      if (showToasts) {
+        toast.error('Service worker is not active');
+      }
       return false;
     }
-  };
+    
+    const success = await serviceWorkerController.processTasks();
+    
+    if (success && showToasts) {
+      toast.success('Processing background tasks');
+    }
+    
+    return success;
+  }, [showToasts]);
+
+  // Clear the service worker cache
+  const clearCache = useCallback(async () => {
+    if (!serviceWorkerController.isReady()) {
+      if (showToasts) {
+        toast.error('Service worker is not active');
+      }
+      return false;
+    }
+    
+    const success = await serviceWorkerController.clearCache();
+    
+    if (success && showToasts) {
+      toast.success('Cache cleared successfully');
+    }
+    
+    refreshCacheInfo();
+    return success;
+  }, [showToasts, refreshCacheInfo]);
+
+  // Unregister the service worker
+  const unregister = useCallback(async () => {
+    const success = await serviceWorkerController.unregister();
+    
+    if (success) {
+      setIsActive(false);
+      setStatus('unregistered');
+      
+      if (showToasts) {
+        toast.success('Service worker deactivated');
+      }
+    }
+    
+    return success;
+  }, [showToasts]);
+
+  // Update the service worker
+  const update = useCallback(async () => {
+    if (!serviceWorkerController.isReady()) {
+      return false;
+    }
+    
+    const success = await serviceWorkerController.update();
+    
+    if (success && showToasts) {
+      toast.success('Service worker updated');
+    }
+    
+    return success;
+  }, [showToasts]);
 
   return {
-    registration,
     isActive,
-    updateAvailable,
-    isInitializing,
-    update,
+    status,
+    isLoading,
+    pendingTasks,
+    cacheInfo,
+    scheduleTask,
+    processTasks,
+    refreshTasks,
+    refreshCacheInfo,
+    clearCache,
     unregister,
-    skipWaiting
+    update
   };
 }
+
+export default useServiceWorker;
