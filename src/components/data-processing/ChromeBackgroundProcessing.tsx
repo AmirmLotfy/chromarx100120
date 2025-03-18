@@ -54,7 +54,7 @@ const ChromeBackgroundProcessing = () => {
           await new Promise(resolve => setTimeout(resolve, 200));
           return `Processed: ${item}`;
         },
-        onComplete: () => {
+        onComplete: (results) => {
           toast.success("Foreground processing completed!");
         },
         onError: (error, item) => {
@@ -78,12 +78,13 @@ const ChromeBackgroundProcessing = () => {
           await new Promise(resolve => setTimeout(resolve, 200));
           return `Processed: ${item}`;
         },
-        onComplete: () => {
+        onComplete: (results) => {
           toast.success("Background processing completed!");
         },
         onError: (error, item) => {
           toast.error(`Error processing ${item}: ${error.message}`);
-        }
+        },
+        stepLabels: ["Starting background process", "Processing items", "Finalizing results"]
       });
       
       if (taskId) {
