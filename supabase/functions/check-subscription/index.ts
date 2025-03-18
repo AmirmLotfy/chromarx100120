@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const userId = await req.json();
+    const { userId, checkRenewal } = await req.json();
     
     if (!userId) {
       return new Response(
@@ -23,12 +23,20 @@ serve(async (req) => {
       );
     }
 
-    // In a production environment, we would retrieve subscription data from localStorage
+    // In a production environment, we would retrieve subscription data from database
     // For demonstration purposes, we'll continue returning mock data
     
+    // If checkRenewal is true, we need to check if the subscription needs renewal
+    // and process the renewal if needed
+    let renewalProcessed = false;
+    if (checkRenewal) {
+      renewalProcessed = await checkAndProcessRenewal(userId);
+    }
+
     const response = {
       subscription: { plan_id: 'free', status: 'active' },
       renewalNeeded: false,
+      renewalProcessed,
       usageLimits: {
         aiRequests: { limit: 10, used: 0, percentage: 0 },
         bookmarks: { limit: 50, used: 0, percentage: 0 },
@@ -51,3 +59,20 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Check if a subscription needs renewal and process it if needed
+ * This is a mock implementation, in a real system this would check the database
+ * and process payment through PayPal API
+ */
+async function checkAndProcessRenewal(userId: string): Promise<boolean> {
+  // In a real implementation, this would:
+  // 1. Get the subscription from the database
+  // 2. Check if it's due for renewal (within next 24 hours)
+  // 3. Check if autoRenew is true
+  // 4. Process the renewal payment using saved payment method
+  // 5. Update subscription period
+  
+  // For now we'll simulate success
+  return true;
+}

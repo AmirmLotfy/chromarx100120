@@ -11,3 +11,5 @@ verify_jwt = false
 [functions.check-subscription]
 verify_jwt = false
 
+[functions.process-renewal]
+verify_jwt = false
