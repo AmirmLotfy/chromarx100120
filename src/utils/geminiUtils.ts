@@ -1,8 +1,7 @@
-
 import { ChromeBookmark } from '@/types/bookmark';
 import { geminiService } from '@/services/geminiService';
 
-// Use geminiService for all AI interactions to leverage the default API key
+// Use geminiService for all AI interactions with the built-in API key
 export const getGeminiResponse = async (
   prompt: string,
   systemPrompt?: string,

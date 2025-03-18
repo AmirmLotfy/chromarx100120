@@ -38,26 +38,5 @@ export const configurationService = {
       console.error('Error saving PayPal config:', error);
       return false;
     }
-  },
-  
-  async getGeminiApiKey(): Promise<string> {
-    try {
-      const config = await storage.get('gemini_config') as {apiKey: string} | null;
-      return config?.apiKey || '';
-    } catch (error) {
-      console.error('Error getting Gemini API key:', error);
-      return '';
-    }
-  },
-  
-  async saveGeminiApiKey(apiKey: string): Promise<boolean> {
-    try {
-      const existingConfig = await storage.get('gemini_config') as {apiKey: string} | null || {};
-      await storage.set('gemini_config', { ...existingConfig, apiKey });
-      return true;
-    } catch (error) {
-      console.error('Error saving Gemini API key:', error);
-      return false;
-    }
   }
 };
