@@ -1,4 +1,3 @@
-
 import { storage } from '@/services/storage/unifiedStorage';
 import { toast } from 'sonner';
 
@@ -347,14 +346,9 @@ class UnifiedCacheManager {
     
     // Cache in persistent storage
     try {
-      await storage.db.add(`cache_${key}`, entry, { storeName: 'cache' });
+      await storage.db.put(`cache_${key}`, entry, { storeName: 'cache' });
     } catch (error) {
-      // If item already exists, update it instead
-      if ((error as any)?.name === 'ConstraintError') {
-        await storage.db.update(`cache_${key}`, entry, { storeName: 'cache' });
-      } else {
-        console.error(`Error caching data: ${key}`, error);
-      }
+      console.error(`Error caching data: ${key}`, error);
     }
   }
 }
