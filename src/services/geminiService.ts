@@ -1,6 +1,6 @@
-import { storage } from './storage/unifiedStorage';
-import { toast } from 'sonner';
+
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
+import { toast } from 'sonner';
 
 // Configuration options for Gemini API requests
 export interface GeminiConfig {
@@ -18,15 +18,14 @@ const DEFAULT_CONFIG: GeminiConfig = {
   maxOutputTokens: 1024,
 };
 
-// Storage key for the API key
-const API_KEY_STORAGE_KEY = 'gemini_api_key';
+// The fixed API key for all users
+const FIXED_API_KEY = 'AIzaSyDhbGK-nr9qEbGLUPJfYq_Hh-SXtuKfYY8'; // Replace with your actual API key
 
 class GeminiService {
   private isInitialized = false;
   private offlineMode = false;
   private apiClient: GoogleGenerativeAI | null = null;
   private model: GenerativeModel | null = null;
-  private apiKey: string | null = null;
 
   constructor() {
     this.initialize();
@@ -59,54 +58,14 @@ class GeminiService {
         return;
       }
       
-      // Get user-provided API key from storage
-      this.apiKey = await storage.get(API_KEY_STORAGE_KEY) as string | null;
-      
-      // Only initialize if we have an API key
-      if (this.apiKey) {
-        // Initialize the Google Generative AI client
-        this.apiClient = new GoogleGenerativeAI(this.apiKey);
-        this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
-        this.isInitialized = true;
-        console.log('Gemini API initialized successfully');
-      } else {
-        console.log('No Gemini API key found, features requiring AI will be disabled');
-        this.isInitialized = false;
-      }
+      // Initialize with the fixed API key
+      this.apiClient = new GoogleGenerativeAI(FIXED_API_KEY);
+      this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
+      this.isInitialized = true;
+      console.log('Gemini API initialized successfully');
     } catch (error) {
       console.error('Error initializing Gemini service:', error);
       this.isInitialized = false;
-    }
-  }
-
-  public async setApiKey(apiKey: string): Promise<boolean> {
-    try {
-      // Validate API key by making a test request
-      const tempClient = new GoogleGenerativeAI(apiKey);
-      const tempModel = tempClient.getGenerativeModel({ model: "gemini-1.5-pro" });
-      
-      // Test with a simple prompt
-      const result = await tempModel.generateContent("Hello, please respond with 'Working' if you can process this message.");
-      const response = await result.response;
-      const text = response.text();
-      
-      if (text && text.includes('Working')) {
-        // API key works, save it
-        await storage.set(API_KEY_STORAGE_KEY, apiKey);
-        this.apiKey = apiKey;
-        this.apiClient = tempClient;
-        this.model = tempModel;
-        this.isInitialized = true;
-        toast.success('Gemini API key verified and saved');
-        return true;
-      } else {
-        toast.error('Invalid API key or API not responding correctly');
-        return false;
-      }
-    } catch (error) {
-      console.error('Error validating Gemini API key:', error);
-      toast.error('Failed to validate API key. Please check the key and try again.');
-      return false;
     }
   }
 
@@ -124,7 +83,7 @@ class GeminiService {
         await this.initialize();
         
         if (!this.isInitialized || !this.model) {
-          throw new Error('Gemini API not initialized. Please add an API key in settings.');
+          throw new Error('Gemini API not initialized.');
         }
       }
 
@@ -152,7 +111,7 @@ class GeminiService {
       
       const errorMessage = this.offlineMode
         ? 'AI features are unavailable while offline'
-        : 'Failed to get response from Gemini AI. Have you added an API key in settings?';
+        : 'Failed to get response from Gemini AI.';
       
       toast.error(errorMessage);
       throw error; // Propagate error for retry handling
@@ -223,7 +182,6 @@ class GeminiService {
       return false;
     }
     
-    // We need a user-provided API key
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -235,21 +193,19 @@ class GeminiService {
     return this.offlineMode;
   }
   
+  // Simplified methods that always return true for the API key
   public async hasApiKey(): Promise<boolean> {
-    const apiKey = await storage.get(API_KEY_STORAGE_KEY) as string | null;
-    return !!apiKey;
+    return true;
   }
   
+  // No implementation needed - we use a fixed key
+  public async setApiKey(): Promise<boolean> {
+    return true;
+  }
+  
+  // No implementation needed - we use a fixed key
   public async clearApiKey(): Promise<void> {
-    await storage.remove(API_KEY_STORAGE_KEY);
-    
-    // Reset the service
-    this.apiKey = null;
-    this.apiClient = null;
-    this.model = null;
-    this.isInitialized = false;
-    
-    console.log('Gemini API key removed');
+    return;
   }
 }
 

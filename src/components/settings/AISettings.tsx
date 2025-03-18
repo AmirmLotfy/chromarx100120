@@ -1,9 +1,8 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import GeminiSettings from "./GeminiSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Brain, Info, CheckCircle } from "lucide-react";
 
 export default function AISettings() {
   return (
@@ -13,23 +12,18 @@ export default function AISettings() {
         <h2 className="text-2xl font-bold">AI Settings</h2>
       </div>
       
-      <Alert className="bg-yellow-50 border-yellow-200 text-yellow-800">
-        <Info className="h-4 w-4" />
-        <AlertTitle>API Key Required</AlertTitle>
+      <Alert className="bg-green-50 border-green-200 text-green-800">
+        <CheckCircle className="h-4 w-4" />
+        <AlertTitle>AI Ready</AlertTitle>
         <AlertDescription>
-          To use AI features, you need to add your own Google Gemini API key. You can get one from the Google AI Studio.
+          AI features are ready to use. Your extension includes a built-in API key for Google Gemini.
         </AlertDescription>
       </Alert>
       
-      <Tabs defaultValue="apikey" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="apikey">API Key</TabsTrigger>
+      <Tabs defaultValue="preferences" className="w-full">
+        <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="preferences">AI Preferences</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="apikey" className="mt-4">
-          <GeminiSettings />
-        </TabsContent>
         
         <TabsContent value="preferences" className="mt-4">
           <Card>
@@ -43,6 +37,15 @@ export default function AISettings() {
               <p className="text-muted-foreground">
                 AI preference settings will be available in a future update.
               </p>
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Available AI Features</h3>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Content summarization</li>
+                  <li>Bookmark categorization</li>
+                  <li>Smart timer suggestions</li>
+                  <li>AI-powered productivity insights</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

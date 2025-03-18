@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Hardcoded API key - Same as in the client-side service
+const FIXED_API_KEY = 'AIzaSyDhbGK-nr9qEbGLUPJfYq_Hh-SXtuKfYY8'; // Replace with your actual API key
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,8 +19,8 @@ serve(async (req) => {
   try {
     const { operation, content, language = 'en', url, title } = await req.json()
 
-    // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') ?? '')
+    // Initialize Gemini with the fixed API key
+    const genAI = new GoogleGenerativeAI(FIXED_API_KEY)
     const model = genAI.getGenerativeModel({ model: "gemini-pro" })
 
     let result
