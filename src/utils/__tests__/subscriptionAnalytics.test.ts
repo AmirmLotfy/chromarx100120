@@ -122,13 +122,13 @@ describe('subscriptionAnalytics', () => {
         }
       };
       
-      vi.mocked(chromeStorage.get)
-        .mockImplementation((key) => {
-          if (key === 'payment_history') return mockPaymentHistory;
-          if (key === 'subscription_events') return mockEvents;
-          if (key === 'user') return mockUserData;
-          return null;
-        });
+      // Properly mock the chromeStorage.get function to return promises
+      vi.mocked(chromeStorage.get).mockImplementation((key: string) => {
+        if (key === 'payment_history') return Promise.resolve(mockPaymentHistory);
+        if (key === 'subscription_events') return Promise.resolve(mockEvents);
+        if (key === 'user') return Promise.resolve(mockUserData);
+        return Promise.resolve(null);
+      });
       
       vi.mocked(chromeStorage.set).mockResolvedValue(undefined);
       
@@ -176,12 +176,11 @@ describe('subscriptionAnalytics', () => {
         }
       };
       
-      vi.mocked(chromeStorage.get)
-        .mockImplementation((key) => {
-          if (key === 'user') return mockUserData;
-          if (key === 'subscription_events') return [];
-          return null;
-        });
+      vi.mocked(chromeStorage.get).mockImplementation((key: string) => {
+        if (key === 'user') return Promise.resolve(mockUserData);
+        if (key === 'subscription_events') return Promise.resolve([]);
+        return Promise.resolve(null);
+      });
       
       // Execute
       const risk = await predictChurnRisk();
@@ -202,11 +201,10 @@ describe('subscriptionAnalytics', () => {
         }
       };
       
-      vi.mocked(chromeStorage.get)
-        .mockImplementation((key) => {
-          if (key === 'user') return mockUserData;
-          return null;
-        });
+      vi.mocked(chromeStorage.get).mockImplementation((key: string) => {
+        if (key === 'user') return Promise.resolve(mockUserData);
+        return Promise.resolve(null);
+      });
       
       // Execute
       const risk = await predictChurnRisk();

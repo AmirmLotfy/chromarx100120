@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Badge } from "@/components/ui/badge";

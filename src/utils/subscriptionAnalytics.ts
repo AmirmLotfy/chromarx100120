@@ -1,4 +1,3 @@
-
 import { chromeStorage } from "@/services/chromeStorageService";
 import { createNamespacedLogger } from "@/utils/loggerUtils";
 import { toast } from "sonner";
@@ -35,7 +34,8 @@ export type SubscriptionEvent =
   | 'trial_started'
   | 'trial_converted'
   | 'viewed_pricing_page'
-  | 'changed_billing_cycle';
+  | 'changed_billing_cycle'
+  | 'viewed_recommendations';
 
 /**
  * Track a subscription-related event
