@@ -1,8 +1,8 @@
 
 import { ChromeBookmark } from '@/types/bookmark';
 import { geminiService } from '@/services/geminiService';
-import { aiRequestManager } from './aiRequestManager';
 import { toast } from 'sonner';
+import { unifiedCache } from './unifiedCacheManager';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000; // 1 second delay between retries
@@ -36,11 +36,15 @@ export const getGeminiResponse = async (
   const cacheKey = `gemini_${prompt.substring(0, 100)}_${systemPrompt?.substring(0, 50) || ''}`;
   
   try {
-    // Use AIRequestManager to handle quota and caching
-    return await aiRequestManager.makeRequest(
-      () => withRetry(() => geminiService.getResponse(prompt, systemPrompt, config)),
+    // Use unified cache system for better offline support and consistency
+    return await unifiedCache.getData(
       cacheKey,
-      "Sorry, I encountered an error while processing your request."
+      () => withRetry(() => geminiService.getResponse(prompt, systemPrompt, config)),
+      {
+        ttl: 60, // Cache for 1 hour
+        priority: 'normal',
+        cacheInMemory: true
+      }
     );
   } catch (error) {
     console.error("Error getting Gemini response:", error);
@@ -53,10 +57,14 @@ export const summarizeContent = async (text: string, language: string = 'en'): P
   const cacheKey = `summary_${text.substring(0, 100)}_${language}`;
   
   try {
-    return await aiRequestManager.makeRequest(
-      () => withRetry(() => geminiService.summarize(text, language)),
+    return await unifiedCache.getData(
       cacheKey,
-      "Failed to summarize content"
+      () => withRetry(() => geminiService.summarize(text, language)),
+      {
+        ttl: 1440, // Cache for 24 hours
+        priority: 'high',
+        preferredSource: 'indexedDb'
+      }
     );
   } catch (error) {
     console.error("Error summarizing content:", error);
@@ -72,7 +80,8 @@ export const summarizeBookmark = async (bookmark: ChromeBookmark, language: stri
   const cacheKey = `bookmark_summary_${bookmark.id}_${language}`;
   
   try {
-    return await aiRequestManager.makeRequest(
+    return await unifiedCache.getData(
+      cacheKey,
       async () => {
         const content = `URL: ${bookmark.url}
 Title: ${bookmark.title}
@@ -80,8 +89,10 @@ Content: ${bookmark.content?.substring(0, 1500) || 'No content available'}...`;
         
         return await withRetry(() => geminiService.summarize(content, language));
       },
-      cacheKey,
-      'Failed to generate summary.'
+      {
+        ttl: 10080, // Cache for 1 week
+        priority: 'high'
+      }
     );
   } catch (error) {
     console.error('Error summarizing bookmark:', error);
@@ -93,7 +104,8 @@ export const suggestBookmarkCategory = async (title: string, url: string, conten
   const cacheKey = `category_${url.substring(0, 100)}_${language}`;
   
   try {
-    return await aiRequestManager.makeRequest(
+    return await unifiedCache.getData(
+      cacheKey,
       async () => {
         const fullContent = `Title: ${title}
 URL: ${url}
@@ -101,8 +113,10 @@ Content: ${content ? content.substring(0, 1000) : 'No content available'}`;
         
         return await withRetry(() => geminiService.categorize(fullContent, language));
       },
-      cacheKey,
-      'Uncategorized'
+      {
+        ttl: 10080, // Cache for 1 week
+        priority: 'normal'
+      }
     );
   } catch (error) {
     console.error('Error categorizing bookmark:', error);
@@ -114,7 +128,8 @@ export const generateTaskSuggestions = async (userContext: string, count: number
   const cacheKey = `tasks_${userContext.substring(0, 100)}_${count}`;
   
   try {
-    return await aiRequestManager.makeRequest(
+    return await unifiedCache.getData(
+      cacheKey,
       async () => {
         const prompt = `Based on this context: "${userContext}", suggest ${count} tasks that would be appropriate. Return ONLY the task names as a numbered list, nothing else.`;
         
@@ -128,8 +143,10 @@ export const generateTaskSuggestions = async (userContext: string, count: number
         
         return tasks.slice(0, count);
       },
-      cacheKey,
-      []
+      {
+        ttl: 1440, // Cache for 24 hours
+        priority: 'normal'
+      }
     );
   } catch (error) {
     console.error("Error generating task suggestions:", error);
@@ -141,10 +158,13 @@ export const suggestTimerDuration = async (taskDescription: string): Promise<num
   const cacheKey = `timer_${taskDescription.substring(0, 100)}`;
   
   try {
-    return await aiRequestManager.makeRequest(
-      () => withRetry(() => geminiService.suggestTimer(taskDescription)),
+    return await unifiedCache.getData(
       cacheKey,
-      25 // Default Pomodoro duration
+      () => withRetry(() => geminiService.suggestTimer(taskDescription)),
+      {
+        ttl: 4320, // Cache for 3 days
+        priority: 'low'
+      }
     );
   } catch (error) {
     console.error("Error suggesting timer duration:", error);
