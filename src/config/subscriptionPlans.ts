@@ -1,3 +1,4 @@
+
 import { chromeDb } from '@/lib/chrome-storage';
 import { toast } from 'sonner';
 
@@ -14,8 +15,14 @@ export interface PlanPricing {
 
 export interface PlanLimits {
   bookmarks: number;
+  bookmarkImports: number;
+  bookmarkCategorization: number;
+  bookmarkSummaries: number;
+  keywordExtraction: number;
   tasks: number;
+  taskEstimation: number;
   notes: number;
+  noteSentimentAnalysis: number;
   aiRequests: number;
 }
 
@@ -51,8 +58,14 @@ export interface UserSubscription {
   lastRenewalAttempt?: string;
   usage: {
     bookmarks: number;
+    bookmarkImports: number;
+    bookmarkCategorization: number;
+    bookmarkSummaries: number;
+    keywordExtraction: number;
     tasks: number;
+    taskEstimation: number;
     notes: number;
+    noteSentimentAnalysis: number;
     aiRequests: number;
   };
 }
@@ -96,8 +109,14 @@ export const subscriptionPlans: Plan[] = [
     ],
     limits: {
       bookmarks: 50,
+      bookmarkImports: 50,
+      bookmarkCategorization: 20,
+      bookmarkSummaries: 10,
+      keywordExtraction: 15,
       tasks: 30,
-      notes: 30,
+      taskEstimation: 5,
+      notes: 20,
+      noteSentimentAnalysis: 5,
       aiRequests: 10
     }
   },
@@ -126,8 +145,14 @@ export const subscriptionPlans: Plan[] = [
     isPopular: true,
     limits: {
       bookmarks: -1, // Unlimited
+      bookmarkImports: -1, // Unlimited
+      bookmarkCategorization: -1, // Unlimited
+      bookmarkSummaries: -1, // Unlimited
+      keywordExtraction: -1, // Unlimited
       tasks: -1, // Unlimited
+      taskEstimation: -1, // Unlimited
       notes: -1, // Unlimited
+      noteSentimentAnalysis: -1, // Unlimited
       aiRequests: -1 // Unlimited
     }
   }
