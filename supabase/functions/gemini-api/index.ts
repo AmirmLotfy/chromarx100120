@@ -99,13 +99,36 @@ async function getGeminiResponse(operation: string, content: string, language = 
         throw new Error("Unknown operation");
     }
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: params,
-    });
-
-    const text = result.response.text();
-    return text;
+    try {
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: params,
+      });
+      
+      const text = result.response.text();
+      return text;
+    } catch (genError) {
+      console.error("Gemini API error:", genError);
+      
+      // Retry once with lower parameters
+      if (params.temperature > 0.2) {
+        console.log("Retrying with lower parameters");
+        const fallbackParams = {
+          ...params,
+          temperature: 0.2,
+          maxOutputTokens: Math.floor(params.maxOutputTokens * 0.75)
+        };
+        
+        const fallbackResult = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: fallbackParams,
+        });
+        
+        return fallbackResult.response.text();
+      }
+      
+      throw genError;
+    }
   } catch (err) {
     console.error("Error in Gemini API:", err);
     throw err;
@@ -169,11 +192,19 @@ serve(async (req) => {
             status = 403;
           } else if (message.includes("rate") && message.includes("limit")) {
             status = 429;
+          } else if (message.includes("safety") || message.includes("blocked")) {
+            status = 400;
+            message = "Content filtered by safety settings";
           }
         }
         
         return new Response(
-          JSON.stringify({ error: message }),
+          JSON.stringify({ 
+            error: message,
+            operation,
+            timestamp: new Date().toISOString(),
+            requestId: crypto.randomUUID().substring(0, 8)
+          }),
           { 
             status, 
             headers: { ...corsHeaders, "Content-Type": "application/json" } 
@@ -192,7 +223,11 @@ serve(async (req) => {
   } catch (error) {
     console.error("Unhandled error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ 
+        error: "Internal server error",
+        timestamp: new Date().toISOString(),
+        requestId: crypto.randomUUID().substring(0, 8)
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 

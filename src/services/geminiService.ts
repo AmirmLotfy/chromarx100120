@@ -21,13 +21,39 @@ const DEFAULT_CONFIG: GeminiConfig = {
 class GeminiService {
   private isInitialized = false;
   private supabaseUrl = 'https://yhxjzjyqlnizccswcpwq.supabase.co/functions/v1/gemini-api';
+  private offlineMode = false;
 
   constructor() {
     this.initialize();
+    
+    // Listen for online/offline events
+    window.addEventListener('online', this.handleOnline);
+    window.addEventListener('offline', this.handleOffline);
+    
+    // Set initial offline status
+    this.offlineMode = !navigator.onLine;
   }
+  
+  private handleOnline = () => {
+    console.log('App is online, enabling Gemini API');
+    this.offlineMode = false;
+    
+    // Re-initialize the service when coming back online
+    this.initialize();
+  };
+  
+  private handleOffline = () => {
+    console.log('App is offline, disabling Gemini API');
+    this.offlineMode = true;
+  };
 
   private async initialize() {
     try {
+      if (this.offlineMode) {
+        console.log('Skipping Gemini initialization - device is offline');
+        return;
+      }
+      
       this.isInitialized = true;
       // Verify API availability
       await this.checkApiAvailability();
@@ -37,6 +63,10 @@ class GeminiService {
   }
 
   private async checkApiAvailability(): Promise<boolean> {
+    if (this.offlineMode) {
+      return false;
+    }
+    
     try {
       const response = await fetch(this.supabaseUrl, {
         method: 'POST',
@@ -62,6 +92,10 @@ class GeminiService {
     config?: Partial<GeminiConfig>
   ): Promise<string> {
     try {
+      if (this.offlineMode) {
+        throw new Error('Cannot use AI features while offline');
+      }
+      
       if (!this.isInitialized) {
         await this.initialize();
       }
@@ -95,14 +129,23 @@ class GeminiService {
       return data.result;
     } catch (error) {
       console.error('Error getting Gemini response:', error);
-      toast.error('Failed to get response from Gemini AI');
-      return 'Sorry, I encountered an error processing your request.';
+      
+      const errorMessage = this.offlineMode
+        ? 'AI features are unavailable while offline'
+        : 'Failed to get response from Gemini AI';
+      
+      toast.error(errorMessage);
+      throw error; // Propagate error for retry handling
     }
   }
 
   // Specialized methods for different AI operations
   public async summarize(content: string, language: string = 'en'): Promise<string> {
     try {
+      if (this.offlineMode) {
+        throw new Error('Cannot summarize content while offline');
+      }
+      
       const response = await fetch(this.supabaseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,12 +164,16 @@ class GeminiService {
       return data.result;
     } catch (error) {
       console.error('Error summarizing content:', error);
-      return 'Failed to summarize content';
+      throw error; // Propagate error for retry handling
     }
   }
 
   public async categorize(content: string, language: string = 'en'): Promise<string> {
     try {
+      if (this.offlineMode) {
+        throw new Error('Cannot categorize content while offline');
+      }
+      
       const response = await fetch(this.supabaseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -145,12 +192,16 @@ class GeminiService {
       return data.result;
     } catch (error) {
       console.error('Error categorizing content:', error);
-      return 'Uncategorized';
+      throw error; // Propagate error for retry handling
     }
   }
 
   public async suggestTimer(taskDescription: string, language: string = 'en'): Promise<number> {
     try {
+      if (this.offlineMode) {
+        throw new Error('Cannot suggest timer duration while offline');
+      }
+      
       const response = await fetch(this.supabaseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,18 +230,27 @@ class GeminiService {
       return minutes;
     } catch (error) {
       console.error('Error suggesting timer duration:', error);
-      return 25; // Default to standard Pomodoro duration
+      throw error; // Propagate error for retry handling
     }
   }
 
   // Method to check if service is available
   public async isAvailable(): Promise<boolean> {
+    if (this.offlineMode) {
+      return false;
+    }
+    
     try {
       return await this.checkApiAvailability();
     } catch (error) {
       console.error('Error checking Gemini availability:', error);
       return false;
     }
+  }
+  
+  // Public method to get offline status
+  public isOffline(): boolean {
+    return this.offlineMode;
   }
 }
 
