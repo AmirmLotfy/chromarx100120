@@ -43,4 +43,3 @@ jobs:
         run: |
           echo "Extension built and packaged successfully"
           echo "Ready for Chrome Web Store submission"
-
