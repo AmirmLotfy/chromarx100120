@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
-import { chromeStorage } from "@/services/chromeStorageService";
-import { toast } from "sonner";
-import { subscriptionPlans, PlanLimits } from "@/config/subscriptionPlans";
 import { useSubscription } from "./use-subscription";
+import { useFeatureLimits } from "./use-feature-limits";
+import { PlanLimits } from "@/config/subscriptionPlans";
 
 export interface FeatureAccessHook {
   hasAccess: (featureName: string) => boolean;
@@ -33,35 +33,22 @@ export const useFeatureAccess = (): FeatureAccessHook => {
   const [features, setFeatures] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [remainingUsage, setRemainingUsage] = useState<Record<string, number> | null>(null);
-  const [usagePercentage, setUsagePercentage] = useState<Record<string, number> | null>(null);
+  
   const { subscription, isSubscriptionActive, isProPlan } = useSubscription();
+  const { 
+    remainingUsage, 
+    usagePercentage, 
+    getFeatureLimit, 
+    checkLimit, 
+    incrementUsage, 
+    showUpgradePrompt,
+    error: limitsError
+  } = useFeatureLimits();
 
   useEffect(() => {
-    const fetchFeatureAccess = async () => {
+    const determineFeatureAccess = async () => {
       try {
         setIsLoading(true);
-        
-        // Get user data including subscription
-        const userData = await chromeStorage.get('user') || {};
-        
-        // Use the subscription from the hook or fallback to storage
-        const sub = subscription || ((userData as any)?.subscription) || {
-          planId: 'free',
-          status: 'active',
-          usage: {
-            bookmarks: 0,
-            bookmarkImports: 0,
-            bookmarkCategorization: 0,
-            bookmarkSummaries: 0,
-            keywordExtraction: 0,
-            tasks: 0,
-            taskEstimation: 0,
-            notes: 0,
-            noteSentimentAnalysis: 0,
-            aiRequests: 0
-          }
-        };
         
         // Default features everyone has access to
         const defaultFeatures = {
@@ -115,8 +102,7 @@ export const useFeatureAccess = (): FeatureAccessHook => {
         };
         
         // Determine feature access based on subscription
-        const isPro = isProPlan() || (sub.planId === 'pro' && 
-                     (sub.status === 'active' || sub.status === 'grace_period'));
+        const isPro = isProPlan();
                      
         if (isPro) {
           // Pro users get all features
@@ -128,26 +114,6 @@ export const useFeatureAccess = (): FeatureAccessHook => {
           // Free users get only default features
           setFeatures(defaultFeatures);
         }
-        
-        // Calculate remaining usage
-        const planLimits = subscriptionPlans.find(p => p.id === sub.planId)?.limits;
-        
-        if (planLimits) {
-          const remaining: Record<string, number> = {};
-          const percentages: Record<string, number> = {};
-          
-          Object.keys(planLimits).forEach(key => {
-            const limitKey = key as keyof typeof planLimits;
-            const limit = planLimits[limitKey];
-            const used = sub.usage[limitKey] || 0;
-            
-            remaining[key] = limit === -1 ? -1 : Math.max(0, limit - used);
-            percentages[key] = limit === -1 ? 0 : Math.min(100, Math.round((used / limit) * 100));
-          });
-          
-          setRemainingUsage(remaining);
-          setUsagePercentage(percentages);
-        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch feature access'));
         console.error('Error fetching feature access:', err);
@@ -156,129 +122,18 @@ export const useFeatureAccess = (): FeatureAccessHook => {
       }
     };
 
-    fetchFeatureAccess();
-    
-    // Set up a subscription change listener
-    const checkForSubscriptionChanges = () => {
-      fetchFeatureAccess();
-    };
-    
-    // Check for subscription changes every 5 minutes
-    const interval = setInterval(checkForSubscriptionChanges, 5 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [subscription, isProPlan]); // Refresh when subscription changes
+    determineFeatureAccess();
+  }, [subscription, isProPlan]);
+
+  // Merge errors from dependencies
+  useEffect(() => {
+    if (limitsError) {
+      setError(limitsError);
+    }
+  }, [limitsError]);
 
   const hasAccess = (featureName: string): boolean => {
     return features[featureName] ?? false;
-  };
-  
-  // Get the limit for a specific feature type
-  const getFeatureLimit = (featureType: keyof PlanLimits): number => {
-    if (!subscription) return 0;
-    
-    const planLimits = subscriptionPlans.find(p => p.id === subscription.planId)?.limits;
-    if (!planLimits) return 0;
-    
-    return planLimits[featureType];
-  };
-  
-  // Check if user is within limit for a specific feature
-  const checkLimit = (limitType: keyof PlanLimits): boolean => {
-    if (!subscription) return false;
-    
-    const planLimits = subscriptionPlans.find(p => p.id === subscription.planId)?.limits;
-    if (!planLimits) return false;
-    
-    const limit = planLimits[limitType];
-    if (limit === -1) return true; // Unlimited
-    
-    const usage = subscription.usage[limitType] || 0;
-    return usage < limit;
-  };
-  
-  // Increment usage counter for a specific feature
-  const incrementUsage = async (limitType: keyof PlanLimits): Promise<boolean> => {
-    try {
-      if (!subscription) return false;
-      
-      const planLimits = subscriptionPlans.find(p => p.id === subscription.planId)?.limits;
-      if (!planLimits) return false;
-      
-      const limit = planLimits[limitType];
-      if (limit === -1) return true; // Unlimited
-      
-      const usage = subscription.usage[limitType] || 0;
-      
-      if (usage >= limit) {
-        showUpgradePrompt(limitTypeToFeatureName(limitType));
-        return false;
-      }
-      
-      // Update the usage counter
-      const userData = await chromeStorage.get('user') || {};
-      if (!((userData as any)?.subscription)) return false;
-      
-      // Create a properly typed usage object
-      const updatedUsage = {
-        ...(userData as any).subscription.usage || {},
-        [limitType]: usage + 1
-      };
-      
-      await chromeStorage.set('user', {
-        ...(userData as Record<string, any>),
-        subscription: {
-          ...((userData as any).subscription),
-          usage: updatedUsage
-        }
-      });
-      
-      // If approaching limit (80% or more), show a warning
-      if (limit > 0 && (usage + 1) >= limit * 0.8) {
-        const percentUsed = Math.round(((usage + 1) / limit) * 100);
-        toast.warning(`You've used ${percentUsed}% of your monthly ${limitTypeToFeatureName(limitType)} limit.`, {
-          action: {
-            label: 'Upgrade',
-            onClick: () => window.location.href = '/plans'
-          },
-          duration: 8000
-        });
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error incrementing usage:', error);
-      return false;
-    }
-  };
-  
-  // Show upgrade prompt for a specific feature
-  const showUpgradePrompt = (feature: string): void => {
-    toast.error(`You've reached your ${feature} limit. Upgrade to Pro for unlimited access.`, {
-      action: {
-        label: 'Upgrade',
-        onClick: () => window.location.href = '/plans'
-      },
-      duration: 10000
-    });
-  };
-  
-  // Map limit type to user-friendly feature name
-  const limitTypeToFeatureName = (limitType: keyof PlanLimits): string => {
-    const nameMap: Record<string, string> = {
-      bookmarks: 'bookmark storage',
-      bookmarkImports: 'bookmark import',
-      bookmarkCategorization: 'bookmark categorization',
-      bookmarkSummaries: 'page summary',
-      keywordExtraction: 'keyword extraction',
-      tasks: 'task',
-      taskEstimation: 'task estimation',
-      notes: 'note',
-      noteSentimentAnalysis: 'sentiment analysis',
-      aiRequests: 'AI request'
-    };
-    
-    return nameMap[limitType] || limitType;
   };
 
   return {

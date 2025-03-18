@@ -5,11 +5,22 @@ import { toast } from 'sonner';
 import { 
   UserSubscription,
   subscriptionPlans,
-  updatePaymentMethod as updatePaymentMethodUtils,
-  setAutoRenew as setAutoRenewUtils,
-  cancelSubscription as cancelSubscriptionUtils,
   getPlanById
 } from "@/config/subscriptionPlans";
+import { withErrorHandling } from "@/utils/errorUtils";
+import { createNamespacedLogger } from "@/utils/loggerUtils";
+import { 
+  setAutoRenew as setAutoRenewUtils,
+  cancelSubscription as cancelSubscriptionUtils,
+  updatePaymentMethod as updatePaymentMethodUtils,
+  changeBillingCycle as changeBillingCycleUtils,
+  resetMonthlyUsage,
+  createDefaultUsage
+} from "@/utils/subscriptionUtils";
+import { processRenewal, retryFailedRenewals } from "@/utils/subscriptionRenewal";
+
+// Set up a namespaced logger
+const logger = createNamespacedLogger("useSubscription");
 
 interface UseSubscriptionReturn {
   subscription: UserSubscription | null;
@@ -39,90 +50,6 @@ interface UseSubscriptionReturn {
   refreshSubscription: () => Promise<void>;
 }
 
-// Function to change billing cycle (implementation)
-const changeBillingCycleUtils = async (cycle: 'monthly' | 'yearly'): Promise<boolean> => {
-  try {
-    const userData = await chromeStorage.get('user') || {};
-    if (!((userData as any)?.subscription)) return false;
-    
-    const updatedSub = {
-      ...((userData as any).subscription),
-      billingCycle: cycle
-    };
-    
-    await chromeStorage.set('user', {
-      ...(userData as Record<string, any>),
-      subscription: updatedSub
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Error changing billing cycle:', error);
-    return false;
-  }
-};
-
-// Function to reset monthly usage
-const resetMonthlyUsageUtils = async (): Promise<boolean> => {
-  try {
-    const userData = await chromeStorage.get('user') || {};
-    if (!((userData as any)?.subscription)) return false;
-    
-    const updatedSub = {
-      ...((userData as any).subscription),
-      usage: {
-        bookmarks: 0,
-        bookmarkImports: 0,
-        bookmarkCategorization: 0,
-        bookmarkSummaries: 0,
-        keywordExtraction: 0,
-        tasks: 0,
-        taskEstimation: 0,
-        notes: 0,
-        noteSentimentAnalysis: 0,
-        aiRequests: 0
-      }
-    };
-    
-    await chromeStorage.set('user', {
-      ...(userData as Record<string, any>),
-      subscription: updatedSub
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Error resetting monthly usage:', error);
-    return false;
-  }
-};
-
-// Function to check if subscription needs renewal
-const checkNeedsRenewalUtils = async (): Promise<boolean> => {
-  try {
-    const userData = await chromeStorage.get('user') || {};
-    if (!((userData as any)?.subscription)) return false;
-    
-    const sub = (userData as any).subscription;
-    const now = new Date();
-    const currentPeriodEnd = new Date(sub.currentPeriodEnd);
-    
-    // Needs renewal if:
-    // 1. Subscription is expired
-    // 2. Subscription is in grace period
-    // 3. Within 24 hours of expiration and auto-renew is on
-    return (
-      (currentPeriodEnd < now) ||
-      (sub.status === 'grace_period') ||
-      (sub.autoRenew && 
-      !sub.cancelAtPeriodEnd && 
-      currentPeriodEnd.getTime() - now.getTime() < 24 * 60 * 60 * 1000)
-    );
-  } catch (error) {
-    console.error('Error checking if renewal needed:', error);
-    return false;
-  }
-};
-
 export const useSubscription = (): UseSubscriptionReturn => {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,6 +74,9 @@ export const useSubscription = (): UseSubscriptionReturn => {
           
           // Check if we need to reset monthly usage (first day of month)
           await checkMonthlyReset(sub as UserSubscription);
+          
+          // Try to retry any failed renewals
+          await retryFailedRenewals();
         } else {
           // Default to free plan if no subscription found
           const defaultSub: UserSubscription = {
@@ -159,18 +89,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
             cancelAtPeriodEnd: false,
             autoRenew: false,
             billingCycle: 'monthly',
-            usage: {
-              bookmarks: 0,
-              bookmarkImports: 0,
-              bookmarkCategorization: 0,
-              bookmarkSummaries: 0,
-              keywordExtraction: 0,
-              tasks: 0,
-              taskEstimation: 0,
-              notes: 0,
-              noteSentimentAnalysis: 0,
-              aiRequests: 0
-            }
+            usage: createDefaultUsage()
           };
           
           // Save the default subscription
@@ -215,16 +134,16 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       // If no last reset or it was a different month, reset the counters
       if (!lastReset || new Date(lastReset).getMonth() !== now.getMonth()) {
-        await resetMonthlyUsageUtils();
+        await resetMonthlyUsage();
         await chromeStorage.set('last_monthly_reset', now.toISOString());
         
         // Refresh the subscription to get updated usage values
         await refreshSubscription();
         
-        console.log('Monthly usage counters reset');
+        logger.info('Monthly usage counters reset');
       }
     } catch (error) {
-      console.error('Error checking monthly reset:', error);
+      logger.error('Error checking monthly reset:', error);
     }
   };
 
@@ -242,55 +161,20 @@ export const useSubscription = (): UseSubscriptionReturn => {
     if (currentPeriodEnd < now) {
       if (sub.autoRenew && !sub.cancelAtPeriodEnd) {
         // Try to renew the subscription
-        try {
-          await processRenewal(sub);
-        } catch (error) {
-          console.error('Failed to renew subscription:', error);
-          
-          // If renewal failed, put subscription in grace period
-          const gracePeriod = new Date(now);
-          gracePeriod.setDate(gracePeriod.getDate() + 7); // 7-day grace period
-          
-          const updatedSub = {
-            ...sub,
-            status: 'grace_period' as const,
-            gracePeriodEndDate: gracePeriod.toISOString(),
-            renewalAttempts: (sub.renewalAttempts || 0) + 1,
-            lastRenewalAttempt: now.toISOString()
-          };
-          
-          const userData = await chromeStorage.get('user') || {};
-          await chromeStorage.set('user', {
-            ...(userData as Record<string, any>),
-            subscription: updatedSub
-          });
-          
+        const { success, subscription: updatedSub } = await processRenewal(sub);
+        
+        if (success && updatedSub) {
           setSubscription(updatedSub);
-          
-          // Notify user
-          toast.error('We were unable to renew your subscription. Please update your payment method.', {
-            duration: 10000,
-            action: {
-              label: 'Update Payment',
-              onClick: () => window.location.href = '/subscription'
-            }
-          });
         }
       } else if (sub.cancelAtPeriodEnd) {
         // If auto-renew is off and subscription is expired, downgrade to free
-        const defaultUsage = {
+        const defaultUsage = createDefaultUsage({
           bookmarks: sub.usage?.bookmarks || 0,
-          bookmarkImports: 0,
-          bookmarkCategorization: 0,
-          bookmarkSummaries: 0,
-          keywordExtraction: 0,
           tasks: sub.usage?.tasks || 0,
-          taskEstimation: 0,
-          notes: sub.usage?.notes || 0,
-          noteSentimentAnalysis: 0,
-          aiRequests: 0
-        };
+          notes: sub.usage?.notes || 0
+        });
         
+        // Create a properly typed object for the expired subscription
         const updatedSub: UserSubscription = {
           ...sub,
           planId: 'free',
@@ -323,18 +207,11 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       if (gracePeriodEnd < now) {
         // Grace period over, downgrade to free
-        const defaultUsage = {
+        const defaultUsage = createDefaultUsage({
           bookmarks: sub.usage?.bookmarks || 0,
-          bookmarkImports: 0,
-          bookmarkCategorization: 0,
-          bookmarkSummaries: 0,
-          keywordExtraction: 0,
           tasks: sub.usage?.tasks || 0,
-          taskEstimation: 0,
-          notes: sub.usage?.notes || 0,
-          noteSentimentAnalysis: 0,
-          aiRequests: 0
-        };
+          notes: sub.usage?.notes || 0
+        });
         
         const updatedSub: UserSubscription = {
           ...sub,
@@ -363,24 +240,9 @@ export const useSubscription = (): UseSubscriptionReturn => {
       } else {
         // Still in grace period, try renewal again if we haven't tried too many times
         if ((sub.renewalAttempts || 0) < 3) {
-          try {
-            await processRenewal(sub);
-          } catch (error) {
-            console.error('Failed to renew subscription in grace period:', error);
-            
-            // Update renewal attempts
-            const updatedSub = {
-              ...sub,
-              renewalAttempts: (sub.renewalAttempts || 0) + 1,
-              lastRenewalAttempt: now.toISOString()
-            };
-            
-            const userData = await chromeStorage.get('user') || {};
-            await chromeStorage.set('user', {
-              ...(userData as Record<string, any>),
-              subscription: updatedSub
-            });
-            
+          const { success, subscription: updatedSub } = await processRenewal(sub);
+          
+          if (success && updatedSub) {
             setSubscription(updatedSub);
           }
         }
@@ -411,11 +273,10 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       // If within 24 hours of expiration, process the renewal
       if (currentPeriodEnd.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
-        try {
-          await processRenewal(sub);
-        } catch (error) {
-          console.error('Failed to renew subscription proactively:', error);
-          // We'll try again later, no need to change status yet
+        const { success, subscription: updatedSub } = await processRenewal(sub);
+        
+        if (success && updatedSub) {
+          setSubscription(updatedSub);
         }
       }
     }
@@ -423,163 +284,20 @@ export const useSubscription = (): UseSubscriptionReturn => {
   
   // Refresh subscription data from storage
   const refreshSubscription = async () => {
-    try {
-      const userData = await chromeStorage.get('user');
-      if ((userData as any)?.subscription) {
-        setSubscription((userData as any).subscription);
-        setCurrentPlan((userData as any).subscription.planId);
-      }
-    } catch (error) {
-      console.error('Error refreshing subscription:', error);
-    }
-  };
-  
-  // Process subscription renewal
-  const processRenewal = async (sub: UserSubscription) => {
-    try {
-      // Check if a renewal is actually needed
-      const needsRenewal = await checkNeedsRenewalUtils();
-      if (!needsRenewal) {
-        console.log('No renewal needed at this time');
-        return false;
-      }
-      
-      // Call the renewal endpoint
-      const response = await fetch('https://tfqkwbvusjhcmbkxnpnt.supabase.co/functions/v1/process-renewal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          subscriptionId: `sub_${Date.now()}`,
-          billingCycle: sub.billingCycle,
-          retryAttempt: sub.renewalAttempts || 0
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Renewal failed with status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        // Get the plan details
-        const plan = subscriptionPlans.find(p => p.id === sub.planId);
-        
-        // Update local subscription data
-        const updatedSub: UserSubscription = {
-          ...sub,
-          status: 'active',
-          currentPeriodStart: result.subscription.current_period_start,
-          currentPeriodEnd: result.subscription.current_period_end,
-          renewalAttempts: 0, // Reset renewal attempts
-          gracePeriodEndDate: undefined, // Clear grace period
-        };
-        
-        const userData = await chromeStorage.get('user') || {};
-        await chromeStorage.set('user', {
-          ...(userData as Record<string, any>),
-          subscription: updatedSub
-        });
-        
-        setSubscription(updatedSub);
-        
-        // Save payment to history
-        const paymentHistory = await chromeStorage.get<any[]>('payment_history') || [];
-        const amount = sub.billingCycle === 'yearly' 
-          ? plan?.pricing.yearly || 49.99 
-          : plan?.pricing.monthly || 4.99;
-          
-        paymentHistory.push({
-          id: result.payment.id,
-          orderId: result.payment.id,
-          planId: sub.planId,
-          amount: amount,
-          status: result.payment.status,
-          provider: result.payment.provider,
-          autoRenew: sub.autoRenew,
-          createdAt: result.payment.created_at,
-          type: 'renewal',
-          billingCycle: sub.billingCycle,
-          receiptUrl: result.receipt.receipt_url,
-          invoicePdf: result.receipt.invoice_pdf
-        });
-        
-        await chromeStorage.set('payment_history', paymentHistory);
-        
-        // Notify user of successful renewal
-        toast.success('Your subscription has been automatically renewed', {
-          description: `Your ${sub.billingCycle} subscription has been renewed successfully.`,
-          action: {
-            label: 'View Receipt',
-            onClick: () => window.open(result.receipt.receipt_url, '_blank')
-          }
-        });
-        
-        return true;
-      } else {
-        // Handle failed renewal
-        if (result.errorDetails?.code === 'payment_failed_grace_period') {
-          // Enter grace period
-          const updatedSub = {
-            ...sub,
-            status: 'grace_period' as const,
-            gracePeriodEndDate: result.errorDetails.gracePeriodEnd,
-            renewalAttempts: result.errorDetails.attemptsCount || 1
-          };
-          
-          const userData = await chromeStorage.get('user') || {};
-          await chromeStorage.set('user', {
-            ...(userData as Record<string, any>),
-            subscription: updatedSub
-          });
-          
-          setSubscription(updatedSub);
-          
-          // Notify user
-          toast.error('Your payment method failed. Your subscription is now in a grace period.', {
-            duration: 10000,
-            action: {
-              label: 'Update Payment',
-              onClick: () => window.location.href = '/subscription'
-            }
-          });
-        } else {
-          // Regular payment failure, will retry
-          const updatedSub = {
-            ...sub,
-            renewalAttempts: (sub.renewalAttempts || 0) + 1,
-            lastRenewalAttempt: new Date().toISOString()
-          };
-          
-          const userData = await chromeStorage.get('user') || {};
-          await chromeStorage.set('user', {
-            ...(userData as Record<string, any>),
-            subscription: updatedSub
-          });
-          
-          setSubscription(updatedSub);
-          
-          // Only notify on first attempt
-          if (!sub.renewalAttempts) {
-            toast.error('There was an issue processing your renewal. We will try again.', {
-              duration: 8000,
-              action: {
-                label: 'Update Payment',
-                onClick: () => window.location.href = '/subscription'
-              }
-            });
-          }
+    return withErrorHandling(
+      async () => {
+        const userData = await chromeStorage.get('user');
+        if ((userData as any)?.subscription) {
+          setSubscription((userData as any).subscription);
+          setCurrentPlan((userData as any).subscription.planId);
         }
-        
-        throw new Error(result.error || 'Renewal failed');
+      },
+      {
+        errorMessage: 'Failed to refresh subscription data',
+        showError: false,
+        rethrow: false
       }
-    } catch (err) {
-      console.error('Error processing renewal:', err);
-      throw err;
-    }
+    );
   };
 
   // Set auto-renew status
@@ -596,7 +314,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       return { success: result };
     } catch (err) {
-      console.error('Error setting auto-renew:', err);
+      logger.error('Error setting auto-renew:', err);
       return { success: false, error: err };
     }
   }, [subscription]);
@@ -615,7 +333,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       return { success: result };
     } catch (err) {
-      console.error('Error canceling subscription:', err);
+      logger.error('Error canceling subscription:', err);
       return { success: false, error: err };
     }
   }, [subscription]);
@@ -643,11 +361,13 @@ export const useSubscription = (): UseSubscriptionReturn => {
             // Get fresh subscription data
             const userData = await chromeStorage.get('user');
             if ((userData as any)?.subscription) {
-              await processRenewal((userData as any).subscription);
-              toast.success('Subscription renewed successfully with your new payment method');
+              const { success } = await processRenewal((userData as any).subscription);
+              if (success) {
+                toast.success('Subscription renewed successfully with your new payment method');
+              }
             }
           } catch (error) {
-            console.error('Failed to renew with new payment method:', error);
+            logger.error('Failed to renew with new payment method:', error);
             toast.error('Failed to renew subscription with new payment method. We will try again later.');
           }
         }
@@ -655,7 +375,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       return { success: result };
     } catch (err) {
-      console.error('Error updating payment method:', err);
+      logger.error('Error updating payment method:', err);
       return { success: false, error: err };
     }
   }, [subscription]);
@@ -674,7 +394,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       return { success: result };
     } catch (err) {
-      console.error('Error changing billing cycle:', err);
+      logger.error('Error changing billing cycle:', err);
       return { success: false, error: err };
     }
   }, [subscription]);
@@ -686,13 +406,18 @@ export const useSubscription = (): UseSubscriptionReturn => {
 
   // Get payment history
   const getPaymentHistory = useCallback(async () => {
-    try {
-      const history = await chromeStorage.get<any[]>('payment_history') || [];
-      return history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } catch (err) {
-      console.error('Error fetching payment history:', err);
-      return [];
-    }
+    return withErrorHandling(
+      async () => {
+        const history = await chromeStorage.get<any[]>('payment_history') || [];
+        return history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      },
+      {
+        errorMessage: 'Failed to fetch payment history',
+        showError: false,
+        rethrow: false,
+        log: true
+      }
+    );
   }, []);
 
   // Get remaining usage
