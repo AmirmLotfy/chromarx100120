@@ -198,21 +198,35 @@ export async function processWithStreams<T, R>(
     if (onProgress) {
       progressStream.writable.getWriter().releaseLock();
       
-      const originalTransform = progressStream.transformer.transform;
-      progressStream.transformer.transform = function(chunk, controller) {
+      // Create a custom transform function that tracks progress
+      const originalTransform = progressStream.transform;
+      
+      // Custom transform function that tracks progress
+      const trackProgressTransform = function(chunk: R, controller: TransformStreamDefaultController<R>) {
         processedCount++;
         const percentage = Math.min(100, Math.round((processedCount / totalItems) * 100));
         
         onProgress(processedCount, totalItems, percentage);
-        return originalTransform.call(this, chunk, controller);
+        // Pass the chunk through
+        controller.enqueue(chunk);
       };
+      
+      // Replace the transform function
+      const customTransformStream = new TransformStream<R, R>({
+        transform: trackProgressTransform
+      });
+      
+      // Set up the pipeline with our custom transform stream
+      await readableStream
+        .pipeThrough(transformStream)
+        .pipeThrough(customTransformStream)
+        .pipeTo(resultStream);
+    } else {
+      // Set up the pipeline without progress tracking
+      await readableStream
+        .pipeThrough(transformStream)
+        .pipeTo(resultStream);
     }
-    
-    // Set up the pipeline
-    await readableStream
-      .pipeThrough(transformStream)
-      .pipeThrough(progressStream)
-      .pipeTo(resultStream);
     
     // Wait for all results
     const results = await resultsPromise;
