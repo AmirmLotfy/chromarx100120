@@ -14,7 +14,10 @@ serve(async (req) => {
   }
 
   try {
-    // For demo purposes, we'll return mock data
+    // In our new approach, we're using local storage instead of Supabase
+    // This is a mock implementation that returns configuration values
+    // In a real implementation, this would retrieve values from local storage
+    
     return new Response(
       JSON.stringify({
         success: true,

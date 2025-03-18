@@ -24,7 +24,26 @@ serve(async (req) => {
       );
     }
 
-    // For demo purposes, we'll return a successful response
+    // Instead of using Supabase, we would save this to local storage in a real implementation
+    // For now, we'll return a successful response as before
+    
+    // Mock storing the payment in local storage
+    const paymentHistory = {
+      id: `payment_${Date.now()}`,
+      user_id: 'local-user',
+      order_id: orderId,
+      plan_id: planId,
+      amount: planId === 'premium' ? 9.99 : 4.99,
+      status: 'completed',
+      provider: 'paypal',
+      auto_renew: autoRenew,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // In a real implementation, we would store this in localStorage
+    // localStorage.setItem('payment_history', JSON.stringify([...existing, paymentHistory]));
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -36,7 +55,8 @@ serve(async (req) => {
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           cancel_at_period_end: !autoRenew
         },
-        message: 'Payment processed successfully'
+        message: 'Payment processed successfully',
+        payment: paymentHistory
       }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
