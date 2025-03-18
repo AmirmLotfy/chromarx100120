@@ -22,6 +22,9 @@ const DEFAULT_CONFIG: GeminiConfig = {
 // Storage key for the API key
 const API_KEY_STORAGE_KEY = 'gemini_api_key';
 
+// Default API key provided for all users
+const DEFAULT_API_KEY = 'AIzaSyCJCo0vVKkx7q2rsdGG1Pu0BmdXYl9sYhE';
+
 class GeminiService {
   private isInitialized = false;
   private offlineMode = false;
@@ -60,13 +63,13 @@ class GeminiService {
         return;
       }
       
-      // Get API key from storage
-      this.apiKey = await storage.get<string>(API_KEY_STORAGE_KEY);
+      // First try to get a user-provided API key from storage
+      this.apiKey = await storage.get(API_KEY_STORAGE_KEY) as string | null;
       
+      // If no user key is found, use the default key
       if (!this.apiKey) {
-        console.log('No Gemini API key found in storage');
-        this.isInitialized = false;
-        return;
+        console.log('Using default Gemini API key');
+        this.apiKey = DEFAULT_API_KEY;
       }
       
       // Initialize the Google Generative AI client
@@ -126,7 +129,7 @@ class GeminiService {
         await this.initialize();
         
         if (!this.isInitialized || !this.model) {
-          throw new Error('Gemini API not initialized. Please set your API key in settings.');
+          throw new Error('Gemini API not initialized.');
         }
       }
 
@@ -227,13 +230,7 @@ class GeminiService {
       return false;
     }
     
-    // Check if we have an API key
-    const apiKey = await storage.get<string>(API_KEY_STORAGE_KEY);
-    if (!apiKey) {
-      return false;
-    }
-    
-    // If we have an API key but service isn't initialized, try to initialize
+    // Since we have a default key, we focus on whether the service is initialized
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -246,19 +243,23 @@ class GeminiService {
     return this.offlineMode;
   }
   
-  // Method to check if API key is set
+  // Method to check if a custom API key is set by the user
   public async hasApiKey(): Promise<boolean> {
-    const apiKey = await storage.get<string>(API_KEY_STORAGE_KEY);
+    const apiKey = await storage.get(API_KEY_STORAGE_KEY) as string | null;
     return !!apiKey;
   }
   
-  // Method to clear API key
+  // Method to clear custom API key and revert to default
   public async clearApiKey(): Promise<void> {
     await storage.remove(API_KEY_STORAGE_KEY);
-    this.apiKey = null;
-    this.isInitialized = false;
-    this.apiClient = null;
-    this.model = null;
+    
+    // Reinitialize with default key
+    this.apiKey = DEFAULT_API_KEY;
+    this.apiClient = new GoogleGenerativeAI(DEFAULT_API_KEY);
+    this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
+    this.isInitialized = true;
+    
+    console.log('Reverted to default Gemini API key');
   }
 }
 

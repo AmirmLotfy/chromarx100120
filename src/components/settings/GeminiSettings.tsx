@@ -71,7 +71,7 @@ export default function GeminiSettings() {
       </CardHeader>
       <CardContent className="space-y-4">
         {hasExistingKey ? (
-          <Alert variant="success" className="bg-green-50 border-green-200 text-green-800">
+          <Alert className="bg-green-50 border-green-200 text-green-800">
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>API Key Configured</AlertTitle>
             <AlertDescription>
@@ -79,7 +79,7 @@ export default function GeminiSettings() {
             </AlertDescription>
           </Alert>
         ) : (
-          <Alert variant="default" className="bg-yellow-50 border-yellow-200 text-yellow-800">
+          <Alert className="bg-yellow-50 border-yellow-200 text-yellow-800">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>API Key Required</AlertTitle>
             <AlertDescription>
