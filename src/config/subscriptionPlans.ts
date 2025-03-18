@@ -1,3 +1,4 @@
+
 import { chromeDb } from '@/lib/chrome-storage';
 import { toast } from 'sonner';
 
@@ -37,6 +38,7 @@ export interface Plan {
 
 export interface UserSubscription {
   planId: string;
+  id?: string; // Added id field for compatibility
   status: 'active' | 'inactive' | 'canceled' | 'expired' | 'past_due' | 'grace_period';
   createdAt: string;
   endDate: string;
@@ -55,6 +57,7 @@ export interface UserSubscription {
   gracePeriodEndDate?: string;
   renewalAttempts?: number;
   lastRenewalAttempt?: string;
+  updatedAt?: string; // Added updatedAt field for compatibility
   usage: {
     bookmarks: number;
     bookmarkImports: number;

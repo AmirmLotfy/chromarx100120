@@ -47,7 +47,7 @@ export const processRenewal = async (
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              subscriptionId: subscription.id || `sub_${Date.now()}`,
+              subscriptionId: subscription.planId || `sub_${Date.now()}`,
               billingCycle: subscription.billingCycle,
               retryAttempt: retryCount
             })
@@ -121,7 +121,7 @@ export const processRenewal = async (
               currentPeriodEnd: periodEnd.toISOString(),
               renewalAttempts: 0,
               gracePeriodEndDate: undefined,
-              lastRenewal: now.toISOString()
+              updatedAt: now.toISOString()
             });
             
             if (showNotifications) {
@@ -165,7 +165,7 @@ export const processRenewal = async (
               };
             } else {
               // Regular payment failure, update attempts count
-              const updatedSubscription = await updateSubscriptionStatus(subscription, subscription.status, {
+              const updatedSubscription = await updateSubscriptionStatus(subscription, subscription.status as "active" | "expired" | "canceled" | "grace_period", {
                 renewalAttempts: (subscription.renewalAttempts || 0) + 1,
                 lastRenewalAttempt: new Date().toISOString()
               });
@@ -206,7 +206,7 @@ export const processRenewal = async (
           
           // Store the failure locally for retry later
           await chromeStorage.set('failed_renewal_attempt', {
-            subscriptionId: subscription.id,
+            subscriptionId: subscription.planId,
             attemptTime: new Date().toISOString(),
             error: error instanceof Error ? error.message : String(error)
           });
@@ -232,7 +232,7 @@ export const processRenewal = async (
       errorMessage: 'Failed to process subscription renewal',
       showError: false,
       rethrow: false,
-      logMetadata: { operation: 'processRenewal', subscriptionId: subscription.id }
+      logMetadata: { operation: 'processRenewal', subscriptionId: subscription.planId }
     }
   );
 };
@@ -247,7 +247,7 @@ export const retryFailedRenewals = async (): Promise<void> => {
       if (!failedRenewal) return;
       
       // Check if it's been at least 1 hour since the last failure
-      const lastAttempt = new Date(failedRenewal.attemptTime);
+      const lastAttempt = new Date((failedRenewal as {attemptTime: string}).attemptTime);
       const now = new Date();
       const hoursSinceLastAttempt = (now.getTime() - lastAttempt.getTime()) / (1000 * 60 * 60);
       

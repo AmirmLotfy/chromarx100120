@@ -1,4 +1,3 @@
-
 import { chromeStorage } from "@/services/chromeStorageService";
 import { createNamespacedLogger } from "@/utils/loggerUtils";
 import { withErrorHandling } from "@/utils/errorUtils";
