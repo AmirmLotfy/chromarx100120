@@ -7,18 +7,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Plan definitions
+// Plan definitions - must match the client-side definitions
 const PLAN_LIMITS = {
   free: {
     bookmarks: 50,
+    bookmarkImports: 50,
+    bookmarkCategorization: 20,
+    bookmarkSummaries: 10,
+    keywordExtraction: 15,
     tasks: 30,
-    notes: 30,
+    taskEstimation: 5,
+    notes: 20,
+    noteSentimentAnalysis: 5,
     aiRequests: 10
   },
   pro: {
     bookmarks: -1, // Unlimited
+    bookmarkImports: -1, // Unlimited
+    bookmarkCategorization: -1, // Unlimited
+    bookmarkSummaries: -1, // Unlimited
+    keywordExtraction: -1, // Unlimited
     tasks: -1, // Unlimited
+    taskEstimation: -1, // Unlimited
     notes: -1, // Unlimited
+    noteSentimentAnalysis: -1, // Unlimited
     aiRequests: -1 // Unlimited
   }
 };
@@ -47,8 +59,30 @@ serve(async (req) => {
     const subscriptionStatus = userId.includes('pro') ? 'pro' : 'free';
     const isActive = !userId.includes('expired');
     const shouldCancel = userId.includes('cancel');
-    const renewalDate = new Date();
-    renewalDate.setDate(renewalDate.getDate() + 3); // 3 days from now
+    const isInGracePeriod = userId.includes('grace');
+    
+    // Calculate renewal date based on subscription
+    const now = new Date();
+    let renewalDate = new Date(now);
+    
+    // Add proper time based on billing cycle (monthly or yearly)
+    if (userId.includes('yearly')) {
+      renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+    } else {
+      renewalDate.setMonth(renewalDate.getMonth() + 1);
+    }
+    
+    // If we're simulating an upcoming renewal, set the date closer
+    if (userId.includes('renew_soon')) {
+      renewalDate = new Date(now);
+      renewalDate.setDate(renewalDate.getDate() + 2); // 2 days from now
+    }
+    
+    // Calculate grace period end date if applicable
+    const gracePeriodEndDate = isInGracePeriod ? new Date(now) : null;
+    if (gracePeriodEndDate) {
+      gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + 7); // 7-day grace period
+    }
     
     // If checkRenewal is true, we need to check if the subscription needs renewal
     // and process the renewal if needed
@@ -57,9 +91,11 @@ serve(async (req) => {
     
     // Check if subscription needs renewal (within 3 days and is active)
     if (subscriptionStatus === 'pro' && isActive) {
-      renewalNeeded = true;
+      // Calculate days until renewal
+      const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      renewalNeeded = daysUntilRenewal <= 3;
       
-      if (checkRenewal) {
+      if (checkRenewal && renewalNeeded) {
         renewalProcessed = await checkAndProcessRenewal(userId);
       }
     }
@@ -67,54 +103,60 @@ serve(async (req) => {
     // Calculate usage percentages based on provided usage data or use defaults
     const userUsage = usage || {
       bookmarks: 0,
+      bookmarkImports: 0,
+      bookmarkCategorization: 0,
+      bookmarkSummaries: 0,
+      keywordExtraction: 0,
       tasks: 0,
+      taskEstimation: 0,
       notes: 0,
+      noteSentimentAnalysis: 0,
       aiRequests: 0
     };
     
     const planLimits = PLAN_LIMITS[subscriptionStatus === 'pro' ? 'pro' : 'free'];
     
-    const usageLimits = {
-      aiRequests: { 
-        limit: planLimits.aiRequests, 
-        used: userUsage.aiRequests || 0,
-        percentage: planLimits.aiRequests > 0 ? 
-          Math.min(100, Math.round((userUsage.aiRequests || 0) / planLimits.aiRequests * 100)) : 0
-      },
-      bookmarks: { 
-        limit: planLimits.bookmarks, 
-        used: userUsage.bookmarks || 0,
-        percentage: planLimits.bookmarks > 0 ? 
-          Math.min(100, Math.round((userUsage.bookmarks || 0) / planLimits.bookmarks * 100)) : 0
-      },
-      tasks: { 
-        limit: planLimits.tasks, 
-        used: userUsage.tasks || 0,
-        percentage: planLimits.tasks > 0 ? 
-          Math.min(100, Math.round((userUsage.tasks || 0) / planLimits.tasks * 100)) : 0
-      },
-      notes: { 
-        limit: planLimits.notes, 
-        used: userUsage.notes || 0,
-        percentage: planLimits.notes > 0 ? 
-          Math.min(100, Math.round((userUsage.notes || 0) / planLimits.notes * 100)) : 0
-      }
-    };
+    // Build usage limits object
+    const usageLimits = {};
     
-    // Check if user is approaching limits (over 80% usage)
-    const needsUpgrade = subscriptionStatus === 'free' && (
-      (planLimits.aiRequests > 0 && userUsage.aiRequests >= planLimits.aiRequests * 0.8) ||
-      (planLimits.bookmarks > 0 && userUsage.bookmarks >= planLimits.bookmarks * 0.8) ||
-      (planLimits.tasks > 0 && userUsage.tasks >= planLimits.tasks * 0.8) ||
-      (planLimits.notes > 0 && userUsage.notes >= planLimits.notes * 0.8)
-    );
+    // Loop through all limit types
+    Object.keys(planLimits).forEach(limitType => {
+      const limit = planLimits[limitType];
+      const used = userUsage[limitType] || 0;
+      
+      usageLimits[limitType] = {
+        limit,
+        used,
+        percentage: limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+      };
+    });
+    
+    // Check if user is approaching limits (over 80% usage on any metric)
+    const needsUpgrade = subscriptionStatus === 'free' && Object.keys(usageLimits).some(key => {
+      const item = usageLimits[key];
+      return item.limit > 0 && item.percentage >= 80;
+    });
 
+    // Return detailed subscription status information
+    const status = isInGracePeriod ? 'grace_period' : (isActive ? 'active' : 'expired');
+    
     const response = {
       subscription: { 
+        id: `sub_${userId}_${Date.now()}`,
         plan_id: subscriptionStatus, 
-        status: isActive ? 'active' : 'expired',
+        status,
         renewal_date: renewalDate.toISOString(),
-        cancel_at_period_end: shouldCancel
+        cancel_at_period_end: shouldCancel,
+        grace_period_end_date: gracePeriodEndDate ? gracePeriodEndDate.toISOString() : null,
+        billing_cycle: userId.includes('yearly') ? 'yearly' : 'monthly',
+        auto_renew: !shouldCancel,
+        payment_method: {
+          type: userId.includes('paypal') ? 'paypal' : 'card',
+          last_four: '4242',
+          brand: 'visa',
+          expiry_month: 12,
+          expiry_year: 2025
+        }
       },
       renewalNeeded,
       renewalProcessed,
@@ -125,9 +167,18 @@ serve(async (req) => {
         premium_content: subscriptionStatus === 'pro',
         advanced_analytics: subscriptionStatus === 'pro',
         unlimited_storage: subscriptionStatus === 'pro',
-        priority_support: subscriptionStatus === 'pro',
-        offline_access: true, // Available to all users
+        unlimited_ai: subscriptionStatus === 'pro',
+        advanced_task_management: subscriptionStatus === 'pro',
+        custom_pomodoro: subscriptionStatus === 'pro',
+        domain_insights: subscriptionStatus === 'pro',
+        time_tracking: subscriptionStatus === 'pro',
+        advanced_bookmark_cleanup: subscriptionStatus === 'pro',
+        unlimited_notes: subscriptionStatus === 'pro',
         basic_bookmarks: true, // Available to all users
+        basic_tasks: true, // Available to all users
+        basic_notes: true, // Available to all users
+        basic_ai: true, // Available to all users with limits
+        basic_pomodoro: true // Available to all users
       }
     };
 
@@ -139,7 +190,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: 'Internal server error',
+        errorDetails: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   }
@@ -162,7 +217,8 @@ async function checkAndProcessRenewal(userId: string): Promise<boolean> {
       },
       body: JSON.stringify({
         subscriptionId,
-        userId
+        userId,
+        retryAttempt: false // First attempt
       })
     });
     

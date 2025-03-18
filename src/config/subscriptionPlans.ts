@@ -1,4 +1,3 @@
-
 import { chromeDb } from '@/lib/chrome-storage';
 import { toast } from 'sonner';
 

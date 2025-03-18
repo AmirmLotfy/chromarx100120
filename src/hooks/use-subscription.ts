@@ -3,18 +3,49 @@ import { useState, useEffect, useCallback } from 'react';
 import { chromeStorage } from "@/services/chromeStorageService";
 import { toast } from 'sonner';
 import { 
-  UserSubscription, 
+  UserSubscription,
   subscriptionPlans,
   updatePaymentMethod as updatePaymentMethodUtils,
   setAutoRenew as setAutoRenewUtils,
   cancelSubscription as cancelSubscriptionUtils,
-  changeBillingCycle as changeBillingCycleUtils
+  changeBillingCycle as changeBillingCycleUtils,
+  resetMonthlyUsage,
+  checkNeedsRenewal,
+  getPlanById
 } from "@/config/subscriptionPlans";
 
-export const useSubscription = () => {
+interface UseSubscriptionReturn {
+  subscription: UserSubscription | null;
+  currentPlan: string;
+  loading: boolean;
+  error: Error | null;
+  cancelSubscription: (immediate?: boolean) => Promise<{success: boolean; error?: any}>;
+  updatePaymentMethod: (paymentMethod: {
+    type: 'card' | 'paypal';
+    lastFour?: string;
+    brand?: string;
+    expiryMonth?: number;
+    expiryYear?: number;
+  }) => Promise<{success: boolean; error?: any}>;
+  setAutoRenew: (autoRenew: boolean) => Promise<{success: boolean; error?: any}>;
+  changeBillingCycle: (cycle: 'monthly' | 'yearly') => Promise<{success: boolean; error?: any}>;
+  getInvoiceUrl: (paymentId: string) => string;
+  getPaymentHistory: () => Promise<any[]>;
+  getRemainingUsage: () => Promise<Record<string, number> | null>;
+  getUsagePercentages: () => Promise<Record<string, number> | null>;
+  isSubscriptionActive: () => boolean;
+  isInGracePeriod: () => boolean;
+  daysUntilExpiration: () => number | null;
+  isProPlan: () => boolean;
+  isTrialActive: () => boolean;
+  checkSubscriptionStatus: (subscription?: UserSubscription) => Promise<void>;
+  refreshSubscription: () => Promise<void>;
+}
+
+export const useSubscription = (): UseSubscriptionReturn => {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>("free"); // For compatibility
 
   useEffect(() => {
@@ -32,9 +63,13 @@ export const useSubscription = () => {
           
           // Check subscription status and handle renewals if needed
           await checkSubscriptionStatus(sub);
+          
+          // Check if we need to reset monthly usage (first day of month)
+          await checkMonthlyReset(sub);
         } else {
           // Default to free plan if no subscription found
           const defaultSub: UserSubscription = {
+            id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             planId: 'free',
             status: 'active',
             createdAt: new Date().toISOString(),
@@ -46,8 +81,14 @@ export const useSubscription = () => {
             billingCycle: 'monthly',
             usage: {
               bookmarks: 0,
+              bookmarkImports: 0,
+              bookmarkCategorization: 0,
+              bookmarkSummaries: 0,
+              keywordExtraction: 0,
               tasks: 0,
+              taskEstimation: 0,
               notes: 0,
+              noteSentimentAnalysis: 0,
               aiRequests: 0
             }
           };
@@ -59,7 +100,7 @@ export const useSubscription = () => {
         }
       } catch (err) {
         console.error('Error fetching subscription:', err);
-        setError(err);
+        setError(err instanceof Error ? err : new Error('Unknown error'));
       } finally {
         setLoading(false);
       }
@@ -67,15 +108,42 @@ export const useSubscription = () => {
     
     fetchSubscription();
     
-    // Set up a periodic check for subscription status (every hour)
+    // Set up a periodic check for subscription status
+    // Every hour for active subscriptions to catch auto-renewals
+    // Every day for free users to check for resets
     const checkInterval = setInterval(() => {
       if (subscription) {
         checkSubscriptionStatus(subscription);
+        checkMonthlyReset(subscription);
       }
     }, 60 * 60 * 1000); // 1 hour
     
     return () => clearInterval(checkInterval);
   }, []);
+
+  // Check if we need to reset monthly usage (first day of month)
+  const checkMonthlyReset = async (sub: UserSubscription) => {
+    if (!sub) return;
+    
+    try {
+      // Get the last reset date from storage
+      const lastReset = await chromeStorage.get<string>('last_monthly_reset');
+      const now = new Date();
+      
+      // If no last reset or it was a different month, reset the counters
+      if (!lastReset || new Date(lastReset).getMonth() !== now.getMonth()) {
+        await resetMonthlyUsage();
+        await chromeStorage.set('last_monthly_reset', now.toISOString());
+        
+        // Refresh the subscription to get updated usage values
+        await refreshSubscription();
+        
+        console.log('Monthly usage counters reset');
+      }
+    } catch (error) {
+      console.error('Error checking monthly reset:', error);
+    }
+  };
 
   // Check subscription status and handle expiration, renewals, etc.
   const checkSubscriptionStatus = async (sub: UserSubscription) => {
@@ -89,7 +157,7 @@ export const useSubscription = () => {
     
     // Check if subscription is expired
     if (currentPeriodEnd < now) {
-      if (sub.autoRenew) {
+      if (sub.autoRenew && !sub.cancelAtPeriodEnd) {
         // Try to renew the subscription
         try {
           await processRenewal(sub);
@@ -98,7 +166,7 @@ export const useSubscription = () => {
           
           // If renewal failed, put subscription in grace period
           const gracePeriod = new Date(now);
-          gracePeriod.setDate(gracePeriod.getDate() + 3); // 3-day grace period
+          gracePeriod.setDate(gracePeriod.getDate() + 7); // 7-day grace period
           
           const updatedSub = {
             ...sub,
@@ -194,10 +262,23 @@ export const useSubscription = () => {
              !sub.cancelAtPeriodEnd && 
              currentPeriodEnd.getTime() - now.getTime() < 3 * 24 * 60 * 60 * 1000) {
       
-      // Notify user of upcoming renewal
-      toast.info(`Your Pro subscription will renew in ${Math.ceil((currentPeriodEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))} days`, {
-        duration: 8000
-      });
+      // Notify user of upcoming renewal if we're within 3 days but more than 1 day away
+      const daysRemaining = Math.ceil((currentPeriodEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      
+      if (daysRemaining > 1) {
+        // Show notification only once per day - check if we've already notified today
+        const lastNotificationKey = `renewal_notification_${sub.id}_${daysRemaining}`;
+        const lastNotification = await chromeStorage.get<string>(lastNotificationKey);
+        
+        if (!lastNotification) {
+          toast.info(`Your Pro subscription will renew in ${daysRemaining} days`, {
+            duration: 8000
+          });
+          
+          // Mark as notified
+          await chromeStorage.set(lastNotificationKey, now.toISOString());
+        }
+      }
       
       // If within 24 hours of expiration, process the renewal
       if (currentPeriodEnd.getTime() - now.getTime() < 24 * 60 * 60 * 1000) {
@@ -211,9 +292,29 @@ export const useSubscription = () => {
     }
   };
   
+  // Refresh subscription data from storage
+  const refreshSubscription = async () => {
+    try {
+      const userData = await chromeStorage.get('user');
+      if (userData?.subscription) {
+        setSubscription(userData.subscription);
+        setCurrentPlan(userData.subscription.planId);
+      }
+    } catch (error) {
+      console.error('Error refreshing subscription:', error);
+    }
+  };
+  
   // Process subscription renewal
   const processRenewal = async (sub: UserSubscription) => {
     try {
+      // Check if a renewal is actually needed
+      const needsRenewal = await checkNeedsRenewal();
+      if (!needsRenewal) {
+        console.log('No renewal needed at this time');
+        return false;
+      }
+      
       // Call the renewal endpoint
       const response = await fetch('https://tfqkwbvusjhcmbkxnpnt.supabase.co/functions/v1/process-renewal', {
         method: 'POST',
@@ -221,12 +322,15 @@ export const useSubscription = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          subscriptionId: sub.id || `sub_${Date.now()}`
+          subscriptionId: sub.id || `sub_${Date.now()}`,
+          billingCycle: sub.billingCycle,
+          retryAttempt: sub.renewalAttempts || 0
         })
       });
       
       if (!response.ok) {
-        throw new Error(`Renewal failed with status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Renewal failed with status: ${response.status}`);
       }
       
       const result = await response.json();
@@ -264,16 +368,68 @@ export const useSubscription = () => {
           autoRenew: sub.autoRenew,
           createdAt: result.payment.created_at,
           type: 'renewal',
-          billingCycle: sub.billingCycle
+          billingCycle: sub.billingCycle,
+          receiptUrl: result.receipt.receipt_url,
+          invoicePdf: result.receipt.invoice_pdf
         });
         
         await chromeStorage.set('payment_history', paymentHistory);
         
         // Notify user of successful renewal
-        toast.success('Your subscription has been automatically renewed');
+        toast.success('Your subscription has been automatically renewed', {
+          description: `Your ${sub.billingCycle} subscription has been renewed successfully.`,
+          action: {
+            label: 'View Receipt',
+            onClick: () => window.open(result.receipt.receipt_url, '_blank')
+          }
+        });
         
         return true;
       } else {
+        // Handle failed renewal
+        if (result.errorDetails?.code === 'payment_failed_grace_period') {
+          // Enter grace period
+          const updatedSub = {
+            ...sub,
+            status: 'grace_period' as const,
+            gracePeriodEndDate: result.errorDetails.gracePeriodEnd,
+            renewalAttempts: result.errorDetails.attemptsCount || 1
+          };
+          
+          await chromeStorage.update('user', { subscription: updatedSub });
+          setSubscription(updatedSub);
+          
+          // Notify user
+          toast.error('Your payment method failed. Your subscription is now in a grace period.', {
+            duration: 10000,
+            action: {
+              label: 'Update Payment',
+              onClick: () => window.location.href = '/subscription'
+            }
+          });
+        } else {
+          // Regular payment failure, will retry
+          const updatedSub = {
+            ...sub,
+            renewalAttempts: (sub.renewalAttempts || 0) + 1,
+            lastRenewalAttempt: new Date().toISOString()
+          };
+          
+          await chromeStorage.update('user', { subscription: updatedSub });
+          setSubscription(updatedSub);
+          
+          // Only notify on first attempt
+          if (!sub.renewalAttempts) {
+            toast.error('There was an issue processing your renewal. We will try again.', {
+              duration: 8000,
+              action: {
+                label: 'Update Payment',
+                onClick: () => window.location.href = '/subscription'
+              }
+            });
+          }
+        }
+        
         throw new Error(result.error || 'Renewal failed');
       }
     } catch (err) {
@@ -290,13 +446,8 @@ export const useSubscription = () => {
       const result = await setAutoRenewUtils(autoRenew);
       
       if (result) {
-        const updatedSub = {
-          ...subscription,
-          autoRenew,
-          cancelAtPeriodEnd: !autoRenew
-        };
-        
-        setSubscription(updatedSub);
+        // Refresh subscription data
+        await refreshSubscription();
       }
       
       return { success: result };
@@ -314,26 +465,8 @@ export const useSubscription = () => {
       const result = await cancelSubscriptionUtils(immediate);
       
       if (result) {
-        if (immediate) {
-          const updatedSub = {
-            ...subscription,
-            planId: 'free',
-            status: 'canceled',
-            cancelAtPeriodEnd: true,
-            autoRenew: false
-          };
-          
-          setSubscription(updatedSub);
-          setCurrentPlan('free');
-        } else {
-          const updatedSub = {
-            ...subscription,
-            cancelAtPeriodEnd: true,
-            autoRenew: false
-          };
-          
-          setSubscription(updatedSub);
-        }
+        // Refresh subscription data
+        await refreshSubscription();
       }
       
       return { success: result };
@@ -357,18 +490,18 @@ export const useSubscription = () => {
       const result = await updatePaymentMethodUtils(paymentMethod);
       
       if (result) {
-        const updatedSub = {
-          ...subscription,
-          paymentMethod
-        };
-        
-        setSubscription(updatedSub);
+        // Refresh subscription data
+        await refreshSubscription();
         
         // If in grace period, try renewal again
         if (subscription.status === 'grace_period') {
           try {
-            await processRenewal(updatedSub);
-            toast.success('Subscription renewed successfully with your new payment method');
+            // Get fresh subscription data
+            const userData = await chromeStorage.get('user');
+            if (userData?.subscription) {
+              await processRenewal(userData.subscription);
+              toast.success('Subscription renewed successfully with your new payment method');
+            }
           } catch (error) {
             console.error('Failed to renew with new payment method:', error);
             toast.error('Failed to renew subscription with new payment method. We will try again later.');
@@ -391,11 +524,8 @@ export const useSubscription = () => {
       const result = await changeBillingCycleUtils(cycle);
       
       if (result) {
-        // Get updated subscription from storage since it has new dates
-        const userData = await chromeStorage.get('user') || {};
-        if (userData.subscription) {
-          setSubscription(userData.subscription);
-        }
+        // Refresh subscription data
+        await refreshSubscription();
       }
       
       return { success: result };
@@ -425,15 +555,81 @@ export const useSubscription = () => {
   const getRemainingUsage = useCallback(async () => {
     if (!subscription) return null;
     
-    const planLimits = subscriptionPlans.find(p => p.id === subscription.planId)?.limits;
+    const planLimits = getPlanById(subscription.planId)?.limits;
     if (!planLimits) return null;
     
-    return {
-      bookmarks: planLimits.bookmarks === -1 ? -1 : planLimits.bookmarks - (subscription.usage?.bookmarks || 0),
-      tasks: planLimits.tasks === -1 ? -1 : planLimits.tasks - (subscription.usage?.tasks || 0),
-      notes: planLimits.notes === -1 ? -1 : planLimits.notes - (subscription.usage?.notes || 0),
-      aiRequests: planLimits.aiRequests === -1 ? -1 : planLimits.aiRequests - (subscription.usage?.aiRequests || 0)
-    };
+    const remaining: Record<string, number> = {};
+    
+    Object.keys(planLimits).forEach(key => {
+      const limitKey = key as keyof typeof planLimits;
+      const limit = planLimits[limitKey];
+      const used = subscription.usage[limitKey] || 0;
+      
+      remaining[key] = limit === -1 ? -1 : Math.max(0, limit - used);
+    });
+    
+    return remaining;
+  }, [subscription]);
+
+  // Get usage percentages for each limit type
+  const getUsagePercentages = useCallback(async () => {
+    if (!subscription) return null;
+    
+    const planLimits = getPlanById(subscription.planId)?.limits;
+    if (!planLimits) return null;
+    
+    const percentages: Record<string, number> = {};
+    
+    Object.keys(planLimits).forEach(key => {
+      const limitKey = key as keyof typeof planLimits;
+      const limit = planLimits[limitKey];
+      const used = subscription.usage[limitKey] || 0;
+      
+      percentages[key] = limit === -1 ? 0 : Math.min(100, Math.round((used / limit) * 100));
+    });
+    
+    return percentages;
+  }, [subscription]);
+
+  // Check if subscription is currently active
+  const isSubscriptionActive = useCallback(() => {
+    if (!subscription) return false;
+    
+    return ['active', 'grace_period'].includes(subscription.status);
+  }, [subscription]);
+
+  // Check if subscription is in grace period
+  const isInGracePeriod = useCallback(() => {
+    if (!subscription) return false;
+    
+    return subscription.status === 'grace_period';
+  }, [subscription]);
+
+  // Calculate days until subscription expires
+  const daysUntilExpiration = useCallback(() => {
+    if (!subscription) return null;
+    
+    const now = new Date();
+    const endDate = subscription.status === 'grace_period' && subscription.gracePeriodEndDate
+      ? new Date(subscription.gracePeriodEndDate)
+      : new Date(subscription.currentPeriodEnd);
+    
+    if (endDate < now) return 0;
+    
+    return Math.ceil((endDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+  }, [subscription]);
+
+  // Check if current plan is Pro
+  const isProPlan = useCallback(() => {
+    if (!subscription) return false;
+    
+    return subscription.planId === 'pro' && isSubscriptionActive();
+  }, [subscription]);
+
+  // Check if subscription is in trial period (if implemented)
+  const isTrialActive = useCallback(() => {
+    // We don't have trials in our current implementation
+    return false;
   }, [subscription]);
 
   return {
@@ -448,7 +644,14 @@ export const useSubscription = () => {
     getInvoiceUrl,
     getPaymentHistory,
     getRemainingUsage,
-    checkSubscriptionStatus
+    getUsagePercentages,
+    checkSubscriptionStatus,
+    refreshSubscription,
+    isSubscriptionActive,
+    isInGracePeriod,
+    daysUntilExpiration,
+    isProPlan,
+    isTrialActive
   };
 };
 

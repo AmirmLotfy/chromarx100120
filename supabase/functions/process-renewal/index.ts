@@ -20,6 +20,12 @@ const PLAN_PRICING = {
   yearly: 49.99
 };
 
+// Maximum number of retries for failed payments
+const MAX_RETRY_ATTEMPTS = 3;
+
+// Grace period duration in days
+const GRACE_PERIOD_DAYS = 7;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -27,7 +33,7 @@ serve(async (req) => {
   }
 
   try {
-    const { subscriptionId, retryAttempt } = await req.json();
+    const { subscriptionId, userId, retryAttempt, billingCycle = 'monthly' } = await req.json();
     
     if (!subscriptionId) {
       return new Response(
@@ -53,32 +59,68 @@ serve(async (req) => {
       paymentSuccess = Math.random() > 0.1; // 90% success rate on first attempts
     }
     
-    if (!paymentSuccess) {
-      console.log(`Payment failed for subscription ${subscriptionId}`);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Payment processing failed', 
-          // Return the details for the client to handle
-          errorDetails: {
-            code: 'payment_failed',
-            message: 'We were unable to process your payment. Please update your payment details.',
-            recoverable: true
-          }
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
-      );
+    // For testing specific scenarios: If the subscription ID contains "fail", always fail
+    if (subscriptionId.includes('fail')) {
+      paymentSuccess = false;
     }
     
-    // For demonstration purposes, we'll simulate a successful renewal
+    // For testing grace periods: If the ID contains "grace", set to enter grace period
+    const enterGracePeriod = subscriptionId.includes('grace');
+    
+    if (!paymentSuccess) {
+      console.log(`Payment failed for subscription ${subscriptionId}`);
+      
+      // In a real implementation, check retry attempts and determine if we should enter grace period
+      const attemptsCount = retryAttempt ? parseInt(retryAttempt.toString()) : 0;
+      
+      if (attemptsCount >= MAX_RETRY_ATTEMPTS || enterGracePeriod) {
+        // Enter grace period
+        const gracePeriodEnd = new Date();
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + GRACE_PERIOD_DAYS);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Payment processing failed', 
+            // Return the details for the client to handle
+            errorDetails: {
+              code: 'payment_failed_grace_period',
+              message: 'We were unable to process your payment. Your subscription has entered a grace period.',
+              recoverable: true,
+              gracePeriodEnd: gracePeriodEnd.toISOString(),
+              attemptsCount: attemptsCount + 1
+            }
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      } else {
+        // Schedule retry
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Payment processing failed', 
+            // Return the details for the client to handle
+            errorDetails: {
+              code: 'payment_failed',
+              message: 'We were unable to process your payment. We will retry again soon.',
+              recoverable: true,
+              retryAttempt: attemptsCount + 1,
+              nextRetryDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Retry in 24 hours
+            }
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+    }
+    
+    // For successful payment processing
     
     // Calculate next period dates
     const startDate = new Date();
     const endDate = new Date(startDate);
     
-    // Check if it's monthly or yearly (for demo we'll assume monthly for simplicity)
-    // In a real implementation this would come from the subscription record
-    const isYearly = subscriptionId.includes('yearly');
+    // Check if it's monthly or yearly
+    const isYearly = billingCycle === 'yearly' || subscriptionId.includes('yearly');
     
     if (isYearly) {
       endDate.setFullYear(endDate.getFullYear() + 1);
@@ -88,6 +130,9 @@ serve(async (req) => {
     
     const amount = isYearly ? PLAN_PRICING.yearly : PLAN_PRICING.monthly;
     
+    // Generate a unique receipt number
+    const receiptNumber = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    
     const renewalResult = {
       success: true,
       subscription: {
@@ -96,7 +141,10 @@ serve(async (req) => {
         current_period_start: startDate.toISOString(),
         current_period_end: endDate.toISOString(),
         renewal_processed: true,
-        renewal_date: startDate.toISOString()
+        renewal_date: startDate.toISOString(),
+        billing_cycle: isYearly ? 'yearly' : 'monthly',
+        grace_period: false,
+        grace_period_end: null
       },
       payment: {
         id: `payment_${Date.now()}`,
@@ -107,13 +155,13 @@ serve(async (req) => {
       },
       // Include receipt/invoice data
       receipt: {
-        receipt_number: `INV-${Date.now()}`,
-        receipt_url: `/api/receipts/${Date.now()}`,
-        invoice_pdf: `/api/invoices/${Date.now()}.pdf`
+        receipt_number: receiptNumber,
+        receipt_url: `/api/receipts/${receiptNumber}`,
+        invoice_pdf: `/api/invoices/${receiptNumber}.pdf`
       }
     };
 
-    // In a real implementation, would send an email receipt
+    // In a real implementation, would send an email receipt with payment confirmation
     console.log(`Successfully processed renewal for subscription ${subscriptionId}`);
 
     return new Response(
