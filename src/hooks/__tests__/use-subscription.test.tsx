@@ -178,12 +178,18 @@ describe('useSubscription', () => {
     // Mock current date to a fixed point
     const originalDate = global.Date;
     const mockDate = new Date('2023-01-15T00:00:00Z');
-    global.Date = class extends Date {
-      constructor(date) {
+    
+    // Fix: Properly mock the Date constructor
+    global.Date = class extends originalDate {
+      constructor(date: string | number | Date) {
         if (date) {
           return super(date);
         }
         return mockDate;
+      }
+      
+      static now() {
+        return mockDate.getTime();
       }
     } as unknown as DateConstructor;
     
