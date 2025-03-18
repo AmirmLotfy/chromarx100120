@@ -1,410 +1,229 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog, 
-  DialogTrigger, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { 
-  getAllAlarms, 
-  clearAlarm, 
-  scheduleTask, 
-  parseAlarmData,
-  scheduleBookmarkSync,
-  scheduleCacheCleanup
-} from '@/utils/chromeAlarmUtils';
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { toast } from 'sonner';
-
-interface AlarmDetails {
-  name: string;
-  scheduledTime: number;
-  periodInMinutes?: number;
-  data?: any;
-}
+import { alarmManager } from '@/utils/alarmManager';
+import { Clock, Trash2, RefreshCw } from 'lucide-react';
 
 export function AlarmManager() {
-  const [alarms, setAlarms] = useState<AlarmDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedAlarm, setSelectedAlarm] = useState<AlarmDetails | null>(null);
-  const [isOpenDialog, setIsOpenDialog] = useState(false);
+  const [scheduledTasks, setScheduledTasks] = useState<any[]>([]);
+  const [taskType, setTaskType] = useState("BOOKMARK_SYNC");
+  const [taskInterval, setTaskInterval] = useState(30);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // New alarm form state
-  const [newAlarmType, setNewAlarmType] = useState<string>('SYNC_BOOKMARKS');
-  const [newAlarmDelay, setNewAlarmDelay] = useState<number>(5);
-  const [newAlarmPeriodic, setNewAlarmPeriodic] = useState<boolean>(false);
-  const [newAlarmPeriod, setNewAlarmPeriod] = useState<number>(24);
-  
-  // Load alarms
-  const loadAlarms = async () => {
+  // Load scheduled tasks
+  const loadScheduledTasks = async () => {
     setIsLoading(true);
     try {
-      if (typeof chrome === 'undefined' || !chrome.alarms) {
-        setAlarms([]);
-        toast.error('Chrome alarms API not available');
-        return;
-      }
-      
-      const allAlarms = await getAllAlarms();
-      
-      const alarmDetails: AlarmDetails[] = allAlarms.map(alarm => {
-        const data = parseAlarmData(alarm.name);
-        
-        return {
-          name: alarm.name,
-          scheduledTime: alarm.scheduledTime || 0,
-          periodInMinutes: alarm.periodInMinutes,
-          data
-        };
-      });
-      
-      setAlarms(alarmDetails);
+      const tasks = await alarmManager.getAllTasks();
+      setScheduledTasks(tasks);
     } catch (error) {
-      console.error('Error loading alarms:', error);
-      toast.error('Failed to load alarms');
+      console.error('Error loading scheduled tasks:', error);
+      toast.error('Failed to load scheduled tasks');
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Load alarms on mount
+  // Schedule a recurring task
+  const handleScheduleTask = async () => {
+    try {
+      const success = await alarmManager.scheduleRecurringTask(
+        taskType,
+        taskInterval,
+        { description: `${taskType} task scheduled every ${taskInterval} minutes` }
+      );
+      
+      if (success) {
+        toast.success(`Scheduled ${taskType} task`);
+        await loadScheduledTasks();
+      } else {
+        toast.error('Failed to schedule task');
+      }
+    } catch (error) {
+      console.error('Error scheduling task:', error);
+      toast.error('Error scheduling task');
+    }
+  };
+  
+  // Schedule background cleanup task
+  const handleScheduleCleanup = async () => {
+    try {
+      const success = await alarmManager.scheduleOneTimeTask(
+        'CLEANUP',
+        2, // Run in 2 minutes
+        { 
+          targets: ['expired_data', 'temp_files', 'old_cache'],
+          description: 'One-time cleanup of expired data' 
+        }
+      );
+      
+      if (success) {
+        toast.success('Scheduled one-time cleanup task');
+        await loadScheduledTasks();
+      } else {
+        toast.error('Failed to schedule cleanup');
+      }
+    } catch (error) {
+      console.error('Error scheduling cleanup:', error);
+      toast.error('Error scheduling cleanup');
+    }
+  };
+  
+  // Cancel a scheduled task
+  const handleCancelTask = async (task: any) => {
+    try {
+      const success = await alarmManager.cancelTask(task.type);
+      
+      if (success) {
+        toast.success(`Canceled ${task.type} task`);
+        await loadScheduledTasks();
+      } else {
+        toast.error('Failed to cancel task');
+      }
+    } catch (error) {
+      console.error('Error canceling task:', error);
+      toast.error('Error canceling task');
+    }
+  };
+  
+  // Format date from timestamp
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString();
+  };
+  
+  // Load tasks on component mount
   useEffect(() => {
-    loadAlarms();
+    loadScheduledTasks();
     
-    // Set up a refresh interval
-    const intervalId = setInterval(loadAlarms, 30000); // Refresh every 30 seconds
+    // Refresh tasks every 30 seconds
+    const intervalId = setInterval(loadScheduledTasks, 30000);
     
     return () => clearInterval(intervalId);
   }, []);
   
-  // Cancel an alarm
-  const handleCancelAlarm = async (name: string) => {
-    try {
-      const success = await clearAlarm(name);
-      
-      if (success) {
-        toast.success('Alarm cancelled successfully');
-        loadAlarms();
-      } else {
-        toast.error('Failed to cancel alarm');
-      }
-    } catch (error) {
-      console.error('Error cancelling alarm:', error);
-      toast.error('Failed to cancel alarm');
-    }
-  };
-  
-  // View alarm details
-  const handleViewAlarmDetails = (alarm: AlarmDetails) => {
-    setSelectedAlarm(alarm);
-    setIsOpenDialog(true);
-  };
-  
-  // Create a new alarm
-  const handleCreateAlarm = async () => {
-    try {
-      let task;
-      const delayMs = newAlarmDelay * 60000; // Convert minutes to ms
-      
-      switch (newAlarmType) {
-        case 'SYNC_BOOKMARKS':
-          task = await scheduleBookmarkSync({
-            fullSync: true,
-            delay: delayMs,
-            periodic: newAlarmPeriodic,
-            periodInHours: newAlarmPeriod
-          });
-          break;
-          
-        case 'CLEANUP':
-          task = await scheduleCacheCleanup({
-            delay: delayMs,
-            periodic: newAlarmPeriodic,
-            periodInDays: newAlarmPeriod / 24 // Convert hours to days
-          });
-          break;
-          
-        case 'CUSTOM_TASK':
-          task = await scheduleTask('CUSTOM_TASK', {
-            timestamp: Date.now()
-          }, {
-            delay: delayMs,
-            period: newAlarmPeriodic ? newAlarmPeriod * 60 * 60 * 1000 : undefined // Convert hours to ms
-          });
-          break;
-          
-        default:
-          toast.error('Invalid alarm type');
-          return;
-      }
-      
-      if (task) {
-        toast.success('Alarm scheduled successfully');
-        loadAlarms();
-      } else {
-        toast.error('Failed to schedule alarm');
-      }
-    } catch (error) {
-      console.error('Error creating alarm:', error);
-      toast.error('Failed to create alarm');
-    }
-  };
-  
-  // Format date and time
-  const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-  
-  // Get time remaining until alarm fires
-  const getTimeRemaining = (scheduledTime: number) => {
-    const now = Date.now();
-    const remaining = scheduledTime - now;
-    
-    if (remaining <= 0) {
-      return 'Due now';
-    }
-    
-    const minutes = Math.floor(remaining / 60000);
-    
-    if (minutes < 60) {
-      return `${minutes} min${minutes !== 1 ? 's' : ''}`;
-    }
-    
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    
-    if (hours < 24) {
-      return `${hours} hr${hours !== 1 ? 's' : ''} ${remainingMinutes} min${remainingMinutes !== 1 ? 's' : ''}`;
-    }
-    
-    const days = Math.floor(hours / 24);
-    const remainingHours = hours % 24;
-    
-    return `${days} day${days !== 1 ? 's' : ''} ${remainingHours} hr${remainingHours !== 1 ? 's' : ''}`;
-  };
-  
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Scheduled Tasks</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Scheduled Tasks Manager
+        </CardTitle>
         <CardDescription>
-          Manage chrome.alarms for background processing
+          Schedule recurring background tasks using chrome.alarms
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        <div className="flex flex-col space-y-4">
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Create New Task</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="task-type">Task Type</Label>
-                <Select 
-                  value={newAlarmType} 
-                  onValueChange={setNewAlarmType}
-                >
-                  <SelectTrigger id="task-type">
-                    <SelectValue placeholder="Select task type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SYNC_BOOKMARKS">Sync Bookmarks</SelectItem>
-                    <SelectItem value="CLEANUP">Cache Cleanup</SelectItem>
-                    <SelectItem value="CUSTOM_TASK">Custom Task</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="task-delay">Delay (minutes)</Label>
-                <Input 
-                  id="task-delay"
-                  type="number"
-                  min="1"
-                  value={newAlarmDelay}
-                  onChange={(e) => setNewAlarmDelay(parseInt(e.target.value) || 5)}
-                />
-              </div>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="task-type">Task Type</Label>
+              <Select value={taskType} onValueChange={setTaskType}>
+                <SelectTrigger id="task-type">
+                  <SelectValue placeholder="Select task type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BOOKMARK_SYNC">Bookmark Sync</SelectItem>
+                  <SelectItem value="DATA_BACKUP">Data Backup</SelectItem>
+                  <SelectItem value="NOTIFICATIONS_CHECK">Notifications Check</SelectItem>
+                  <SelectItem value="STORAGE_CLEANUP">Storage Cleanup</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
-            <div className="flex items-center space-x-2 mt-2">
-              <input
-                type="checkbox"
-                id="task-periodic"
-                checked={newAlarmPeriodic}
-                onChange={(e) => setNewAlarmPeriodic(e.target.checked)}
-                className="rounded border-gray-300"
+            <div className="space-y-2">
+              <Label htmlFor="task-interval">Interval (minutes)</Label>
+              <Input
+                id="task-interval"
+                type="number"
+                min={1}
+                value={taskInterval}
+                onChange={(e) => setTaskInterval(parseInt(e.target.value) || 30)}
               />
-              <Label htmlFor="task-periodic">Recurring Task</Label>
             </div>
             
-            {newAlarmPeriodic && (
-              <div className="space-y-2 mt-2">
-                <Label htmlFor="task-period">Period (hours)</Label>
-                <Input 
-                  id="task-period"
-                  type="number"
-                  min="1"
-                  value={newAlarmPeriod}
-                  onChange={(e) => setNewAlarmPeriod(parseInt(e.target.value) || 24)}
-                />
-              </div>
-            )}
-            
-            <Button 
-              onClick={handleCreateAlarm} 
-              className="mt-2"
-            >
-              Schedule Task
+            <Button onClick={handleScheduleTask}>
+              Schedule Recurring Task
             </Button>
           </div>
           
-          <Separator />
-          
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Active Tasks ({alarms.length})</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={loadAlarms}
-                disabled={isLoading}
-              >
-                Refresh
-              </Button>
-            </div>
+          <div className="flex justify-between items-center">
+            <Button variant="outline" onClick={handleScheduleCleanup}>
+              Schedule One-time Cleanup
+            </Button>
             
-            {isLoading ? (
-              <div className="text-center py-4 text-muted-foreground">
-                Loading tasks...
-              </div>
-            ) : alarms.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground border rounded-md">
-                No scheduled tasks found
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto border rounded-md p-2">
-                {alarms.map((alarm, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 border rounded hover:bg-muted">
-                    <div className="space-y-1">
-                      <div className="font-medium">
-                        {alarm.data?.type || 'Unknown Task'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Scheduled: {formatDateTime(alarm.scheduledTime)}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className="text-xs">
-                          {getTimeRemaining(alarm.scheduledTime)}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={loadScheduledTasks} 
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+        
+        <Separator />
+        
+        <div>
+          <h3 className="font-medium mb-3">Scheduled Tasks ({scheduledTasks.length})</h3>
+          
+          {scheduledTasks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border rounded-md">
+              No scheduled tasks found
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {scheduledTasks.map((task, index) => (
+                <div key={index} className="border rounded-md p-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{task.type}</span>
+                        <Badge variant={task.periodInMinutes ? 'secondary' : 'outline'}>
+                          {task.periodInMinutes ? 'Recurring' : 'One-time'}
                         </Badge>
-                        {alarm.periodInMinutes && (
-                          <Badge variant="secondary" className="text-xs">
-                            Repeats every {alarm.periodInMinutes >= 60 
-                              ? `${Math.floor(alarm.periodInMinutes / 60)} hr(s)` 
-                              : `${alarm.periodInMinutes} min(s)`}
-                          </Badge>
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {task.data?.description || 'No description'}
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground mt-2">
+                        {task.periodInMinutes ? (
+                          <span>Runs every {task.periodInMinutes} minutes</span>
+                        ) : (
+                          <span>Runs once at {formatDate(task.scheduledTime)}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleViewAlarmDetails(alarm)}
-                      >
-                        Details
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={() => handleCancelAlarm(alarm.name)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleCancelTask(task)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-end">
-        <Button variant="outline" onClick={loadAlarms}>
-          Refresh All
-        </Button>
+      <CardFooter className="flex-col items-start text-xs text-muted-foreground">
+        <p>Tasks continue to run in the background even when the extension is closed</p>
+        <p className="mt-1">Chrome allows alarms to run at minimum once per minute</p>
       </CardFooter>
-      
-      {/* Alarm Details Dialog */}
-      <Dialog open={isOpenDialog} onOpenChange={setIsOpenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Task Details</DialogTitle>
-            <DialogDescription>
-              Details about the scheduled task
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedAlarm && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-[100px_1fr] gap-2">
-                <div className="font-medium">Type:</div>
-                <div>{selectedAlarm.data?.type || 'Unknown'}</div>
-                
-                <div className="font-medium">Scheduled:</div>
-                <div>{formatDateTime(selectedAlarm.scheduledTime)}</div>
-                
-                <div className="font-medium">Remaining:</div>
-                <div>{getTimeRemaining(selectedAlarm.scheduledTime)}</div>
-                
-                {selectedAlarm.periodInMinutes && (
-                  <>
-                    <div className="font-medium">Repeats:</div>
-                    <div>
-                      Every {selectedAlarm.periodInMinutes >= 60 
-                        ? `${Math.floor(selectedAlarm.periodInMinutes / 60)} hour(s)` 
-                        : `${selectedAlarm.periodInMinutes} minute(s)`}
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-2">
-                <div className="font-medium">Raw Data:</div>
-                <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-40">
-                  {JSON.stringify(selectedAlarm.data, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="destructive" onClick={() => selectedAlarm && handleCancelAlarm(selectedAlarm.name)}>
-              Cancel Task
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
