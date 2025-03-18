@@ -13,7 +13,7 @@ interface AlarmOptions {
 interface ScheduledTask {
   id: string;
   type: string;
-  data?: any;
+  data: any; // Changed from optional to required to match the filter predicate
   alarmName: string;
 }
 
@@ -334,7 +334,7 @@ export async function getAllScheduledTasks(): Promise<ScheduledTask[]> {
       return {
         id: data.taskId || `task_${Date.now()}`,
         type: data.type,
-        data: data.data,
+        data: data.data || {}, // Ensure data is always defined (empty object as fallback)
         alarmName: alarm.name
       };
     })
