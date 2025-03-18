@@ -1,365 +1,326 @@
-
-import { cache } from "./cacheUtils";
-import { toast } from "sonner";
 import { chromeStorage } from "@/services/chromeStorageService";
-import { usageTracker } from "./usageTracker";
+import { toast } from "sonner";
+import { PlanLimits, subscriptionPlans } from "@/config/subscriptionPlans";
 
-interface RequestQuota {
-  count: number;
-  resetTime: number;
-  lastRequestTime: number;
+interface AIRequestOptions {
+  requestType: keyof PlanLimits;
+  showToasts?: boolean;
+  isBackground?: boolean;
+  context?: string;
 }
 
-interface AIResponse {
-  result: string;
+interface AIRequestResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  limitExceeded?: boolean;
+  remainingRequests?: number;
+}
+
+interface AIRequestMetadata {
   timestamp: number;
+  requestType: string;
+  success: boolean;
+  duration: number;
+  context?: string;
+  error?: string;
 }
 
-interface UserSubscription {
-  planId: string;
-  status: string;
-}
-
-// Cache for AI responses
-const aiResponseCache = new Map<string, AIResponse>();
-
-// Constants
-const MIN_REQUEST_INTERVAL_MS = 1000; // Minimum time between requests (1 second)
-const quotaKey = 'ai_request_quota';
-
+/**
+ * Manages and tracks AI requests with respect to user limits
+ */
 class AIRequestManager {
-  private static instance: AIRequestManager;
-  private quota: RequestQuota | null = null;
-  private currentPlan: string = 'free';
-  private subscription: UserSubscription | null = null;
+  /**
+   * Execute an AI request with limit checking and usage tracking
+   */
+  async executeRequest<T>(
+    requestFn: () => Promise<T>,
+    options: AIRequestOptions
+  ): Promise<AIRequestResult<T>> {
+    const startTime = Date.now();
+    const { requestType, showToasts = true, isBackground = false } = options;
+    const metadata: AIRequestMetadata = {
+      timestamp: startTime,
+      requestType: requestType,
+      success: false,
+      duration: 0,
+      context: options.context
+    };
 
-  private constructor() {
-    // Load current plan asynchronously
-    this.loadCurrentPlan();
-  }
-
-  static getInstance(): AIRequestManager {
-    if (!AIRequestManager.instance) {
-      AIRequestManager.instance = new AIRequestManager();
-    }
-    return AIRequestManager.instance;
-  }
-
-  private async loadCurrentPlan(): Promise<void> {
     try {
-      const userData = await chromeStorage.get('user') || {};
-      const subscription = userData.subscription;
+      // Check if user has remaining requests
+      const hasRemaining = await this.checkRemainingRequests(requestType);
       
-      if (subscription) {
-        this.currentPlan = subscription.planId;
-        this.subscription = subscription;
+      if (!hasRemaining) {
+        if (showToasts && !isBackground) {
+          toast.error(`You've reached your monthly limit for this AI feature.`, {
+            description: "Upgrade to Pro for unlimited access.",
+            action: {
+              label: "Upgrade",
+              onClick: () => window.location.href = '/plans'
+            },
+            duration: 8000
+          });
+        }
+        
+        metadata.success = false;
+        metadata.error = "Usage limit exceeded";
+        await this.logRequestMetadata(metadata);
+        
+        return {
+          success: false,
+          error: "Usage limit exceeded",
+          limitExceeded: true
+        };
       }
-    } catch (error) {
-      console.error('Error loading current plan:', error);
-    }
-  }
-
-  private getPlanLimits(): { daily: number; hourly: number } {
-    // These should align with our subscription plans
-    switch (this.currentPlan) {
-      case 'pro':
-        return { daily: -1, hourly: -1 }; // Unlimited
-      case 'free':
-      default:
-        return { daily: 10, hourly: 5 };
-    }
-  }
-
-  private async getQuota(): Promise<RequestQuota> {
-    if (this.quota) {
-      return this.quota;
-    }
-
-    const storedQuota = await cache.get<RequestQuota>(quotaKey);
-
-    if (!storedQuota) {
-      return { 
-        count: 0, 
-        resetTime: Date.now() + 24 * 60 * 60 * 1000,
-        lastRequestTime: 0
+      
+      // Execute the request
+      const result = await requestFn();
+      
+      // Track the usage
+      await this.incrementUsage(requestType);
+      
+      // Get remaining requests after increment
+      const remaining = await this.getRemainingRequests(requestType);
+      
+      // Complete metadata
+      metadata.success = true;
+      metadata.duration = Date.now() - startTime;
+      await this.logRequestMetadata(metadata);
+      
+      return {
+        success: true,
+        data: result,
+        remainingRequests: remaining
       };
-    }
-
-    this.quota = storedQuota;
-    return storedQuota;
-  }
-
-  private async updateQuota(): Promise<{success: boolean; message?: string}> {
-    // Reload the current plan and subscription before checking
-    await this.loadCurrentPlan();
-    
-    // Check if user has reached their monthly AI request limit
-    const canUseAI = await usageTracker.checkLimit('aiRequests');
-    if (!canUseAI) {
+    } catch (error) {
+      console.error(`Error in AI request (${requestType}):`, error);
+      
+      // Complete metadata with error
+      metadata.success = false;
+      metadata.error = error instanceof Error ? error.message : String(error);
+      metadata.duration = Date.now() - startTime;
+      await this.logRequestMetadata(metadata);
+      
+      if (showToasts && !isBackground) {
+        toast.error("Failed to process AI request", {
+          description: error instanceof Error ? error.message : "Unknown error occurred"
+        });
+      }
+      
       return {
         success: false,
-        message: "You've reached your monthly AI request limit. Upgrade to Pro for unlimited AI requests."
+        error: error instanceof Error ? error.message : String(error)
       };
     }
-    
-    const limits = this.getPlanLimits();
-    let quota = await this.getQuota();
-    const now = Date.now();
-
-    // Unlimited plan handling
-    if (limits.daily === -1) {
-      // Just update the last request time but don't increment count
-      this.quota = {
-        ...quota,
-        lastRequestTime: now
-      };
-      await cache.set(quotaKey, this.quota);
-      
-      return { success: true };
-    }
-
-    // Check if we've passed the reset time
-    if (now > quota.resetTime) {
-      quota = { 
-        count: 1, 
-        resetTime: now + 24 * 60 * 60 * 1000,
-        lastRequestTime: now 
-      };
-    } else {
-      // Check for rate limiting
-      if (quota.count >= limits.daily) {
-        return {
-          success: false,
-          message: "Daily AI request quota exceeded. Please try again tomorrow or upgrade your plan."
-        };
-      }
-
-      // Check for hourly quota
-      if (limits.hourly > 0) {
-        const hourlyRequests = quota.count % limits.hourly;
-        if (hourlyRequests >= limits.hourly && 
-            now - quota.lastRequestTime < 60 * 60 * 1000) {
-          return {
-            success: false,
-            message: "Hourly AI request quota exceeded. Please try again later or upgrade your plan."
-          };
-        }
-      }
-
-      // Check for request throttling
-      if (now - quota.lastRequestTime < MIN_REQUEST_INTERVAL_MS) {
-        return {
-          success: false,
-          message: "Please wait a moment before sending another request."
-        };
-      }
-
-      quota = { 
-        ...quota, 
-        count: quota.count + 1,
-        lastRequestTime: now 
-      };
-    }
-
-    this.quota = quota;
-    await cache.set(quotaKey, quota);
-    
-    // Increment usage counter in subscription
-    await usageTracker.incrementUsage('aiRequests');
-    
-    return { success: true };
   }
-
-  async getCachedResponse(key: string): Promise<string | null> {
-    const cachedResponse = aiResponseCache.get(key);
-    if (cachedResponse) {
-      const { result, timestamp } = cachedResponse;
-      // Cache valid for 24 hours
-      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-        return result;
-      } else {
-        aiResponseCache.delete(key); // Remove expired cache
-        return null;
-      }
-    }
-    return null;
-  }
-
-  async cacheResponse(key: string, result: string): Promise<void> {
-    aiResponseCache.set(key, { result, timestamp: Date.now() });
-  }
-
-  async makeRequest<T>(
-    requestFn: () => Promise<T>,
-    cacheKey?: string,
-    fallbackValue?: T,
-    usageType: keyof PlanLimits = 'aiRequests' 
-  ): Promise<T> {
+  
+  /**
+   * Check if user has remaining requests for a specific type
+   */
+  async checkRemainingRequests(requestType: keyof PlanLimits): Promise<boolean> {
     try {
-      // Reload current plan before making request
-      await this.loadCurrentPlan();
+      const userData = await chromeStorage.get<any>('user');
+      if (!userData?.subscription) return false;
       
-      // Check cache first if a cache key is provided
-      if (cacheKey) {
-        const cached = await this.getCachedResponse(cacheKey);
-        if (cached) {
-          return JSON.parse(cached) as T;
-        }
+      // Pro users have unlimited requests
+      if (userData.subscription.planId === 'pro' && 
+          (userData.subscription.status === 'active' || userData.subscription.status === 'grace_period')) {
+        return true;
       }
-
-      // Check if user has reached their limit for this specific usage type
-      const canUseFeature = await usageTracker.checkLimit(usageType);
-      if (!canUseFeature) {
-        throw new Error(`You've reached your ${formatUsageType(usageType)} limit. Upgrade to Pro for unlimited access.`);
-      }
-
-      // Update quota and check for rate limiting
-      const quotaCheck = await this.updateQuota();
-      if (!quotaCheck.success) {
-        toast.error(quotaCheck.message || "Rate limit exceeded", {
-          action: {
-            label: "Upgrade",
-            onClick: () => window.location.href = "/plans"
-          }
-        });
-        throw new Error(quotaCheck.message || "Quota exceeded");
-      }
-
-      // Increment usage counter for this specific feature
-      await usageTracker.incrementUsage(usageType);
-
-      // Make the actual request
-      const result = await requestFn();
-
-      // Cache the result if a cache key is provided
-      if (cacheKey && result) {
-        await this.cacheResponse(cacheKey, JSON.stringify(result));
-      }
-
-      return result;
+      
+      // Get plan limits
+      const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
+      if (!plan) return false;
+      
+      const limit = plan.limits[requestType];
+      if (limit === -1) return true; // Unlimited
+      
+      const usage = userData.subscription.usage[requestType] || 0;
+      return usage < limit;
     } catch (error) {
-      console.error("AI request failed:", error);
+      console.error('Error checking remaining requests:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Get number of remaining requests for a specific type
+   */
+  async getRemainingRequests(requestType: keyof PlanLimits): Promise<number> {
+    try {
+      const userData = await chromeStorage.get<any>('user');
+      if (!userData?.subscription) return 0;
       
-      // Show error message to user
-      toast.error(error instanceof Error ? error.message : "Failed to process request", {
-        action: {
-          label: "Upgrade",
-          onClick: () => window.location.href = "/plans"
+      // Pro users have unlimited requests
+      if (userData.subscription.planId === 'pro' &&
+          (userData.subscription.status === 'active' || userData.subscription.status === 'grace_period')) {
+        return -1; // -1 indicates unlimited
+      }
+      
+      // Get plan limits
+      const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
+      if (!plan) return 0;
+      
+      const limit = plan.limits[requestType];
+      if (limit === -1) return -1; // Unlimited
+      
+      const usage = userData.subscription.usage[requestType] || 0;
+      return Math.max(0, limit - usage);
+    } catch (error) {
+      console.error('Error getting remaining requests:', error);
+      return 0;
+    }
+  }
+  
+  /**
+   * Increment usage counter for a specific request type
+   */
+  private async incrementUsage(requestType: keyof PlanLimits): Promise<boolean> {
+    try {
+      const userData = await chromeStorage.get<any>('user');
+      if (!userData?.subscription) return false;
+      
+      // Skip for Pro users (they have unlimited usage)
+      if (userData.subscription.planId === 'pro' &&
+          (userData.subscription.status === 'active' || userData.subscription.status === 'grace_period')) {
+        // Still increment aiRequests for analytics purposes, but don't check limits
+        if (requestType !== 'aiRequests') {
+          const currentAIRequests = userData.subscription.usage.aiRequests || 0;
+          await chromeStorage.set('user', {
+            ...userData,
+            subscription: {
+              ...userData.subscription,
+              usage: {
+                ...userData.subscription.usage,
+                aiRequests: currentAIRequests + 1
+              }
+            }
+          });
+        }
+        return true;
+      }
+      
+      // Get plan limits
+      const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
+      if (!plan) return false;
+      
+      // Update the specific request type counter
+      const currentUsage = userData.subscription.usage[requestType] || 0;
+      
+      // Also increment general AI requests counter if this is a specific AI feature
+      // and not the general aiRequests counter itself
+      let updatedUsage = {
+        ...userData.subscription.usage,
+        [requestType]: currentUsage + 1
+      };
+      
+      if (requestType !== 'aiRequests') {
+        updatedUsage = {
+          ...updatedUsage,
+          aiRequests: (userData.subscription.usage.aiRequests || 0) + 1
+        };
+      }
+      
+      await chromeStorage.set('user', {
+        ...userData,
+        subscription: {
+          ...userData.subscription,
+          usage: updatedUsage
         }
       });
       
-      // Use fallback value if provided
-      if (fallbackValue !== undefined) {
-        console.log("Using fallback value");
-        return fallbackValue;
-      }
-      
-      throw error;
+      return true;
+    } catch (error) {
+      console.error('Error incrementing usage:', error);
+      return false;
     }
   }
-
-  getRemainingQuota = async (): Promise<{ daily: number; hourly: number; monthly: number }> => {
-    // Reload current plan
-    await this.loadCurrentPlan();
-    
-    const limits = this.getPlanLimits();
-    
-    // If user has unlimited quota, return that info
-    if (limits.daily === -1) {
-      return { daily: -1, hourly: -1, monthly: -1 };
+  
+  /**
+   * Log request metadata for analytics
+   */
+  private async logRequestMetadata(metadata: AIRequestMetadata): Promise<void> {
+    try {
+      // Get existing logs
+      const logs = await chromeStorage.get<AIRequestMetadata[]>('ai_request_logs') || [];
+      
+      // Add new log entry
+      logs.push(metadata);
+      
+      // Only keep the last 100 logs
+      const trimmedLogs = logs.slice(-100);
+      
+      // Save logs
+      await chromeStorage.set('ai_request_logs', trimmedLogs);
+    } catch (error) {
+      console.error('Error logging request metadata:', error);
     }
-    
-    const quota = await this.getQuota();
-    
-    // Calculate daily and hourly remaining quota
-    const hourlyRequests = quota.count % limits.hourly;
-    const hoursSinceLastRequest = (Date.now() - quota.lastRequestTime) / (60 * 60 * 1000);
-    
-    // Get monthly remaining from usage tracker
-    const monthlyRemaining = await usageTracker.getRemainingUsage('aiRequests');
-    
-    // If it's been more than an hour, reset hourly quota
-    const hourlyRemaining = hoursSinceLastRequest > 1 ? 
-      limits.hourly : 
-      Math.max(0, limits.hourly - hourlyRequests);
-    
-    return {
-      daily: Math.max(0, limits.daily - quota.count),
-      hourly: hourlyRemaining,
-      monthly: monthlyRemaining
-    };
-  };
-
-  // Method to check if we're throttled without incrementing counter
-  async isThrottled(): Promise<{throttled: boolean; reason?: string}> {
-    // Reload current plan
-    await this.loadCurrentPlan();
-    
-    // Check if user has reached monthly limit
-    const canUseAI = await usageTracker.checkLimit('aiRequests');
-    if (!canUseAI) {
-      return {
-        throttled: true,
-        reason: "Monthly AI request limit reached, upgrade to Pro for unlimited access"
-      };
-    }
-    
-    const limits = this.getPlanLimits();
-    
-    // Unlimited plan is never throttled
-    if (limits.daily === -1) {
-      return { throttled: false };
-    }
-    
-    const quota = await this.getQuota();
-    const now = Date.now();
-    
-    if (quota.count >= limits.daily) {
-      return {
-        throttled: true,
-        reason: "Daily quota exceeded"
-      };
-    }
-    
-    if (limits.hourly > 0) {
-      const hourlyRequests = quota.count % limits.hourly;
-      if (hourlyRequests >= limits.hourly && 
-          now - quota.lastRequestTime < 60 * 60 * 1000) {
+  }
+  
+  /**
+   * Get usage statistics for AI requests
+   */
+  async getUsageStats(): Promise<{
+    totalRequests: number;
+    successRate: number;
+    averageDuration: number;
+    requestsByType: Record<string, number>;
+  }> {
+    try {
+      const logs = await chromeStorage.get<AIRequestMetadata[]>('ai_request_logs') || [];
+      
+      if (logs.length === 0) {
         return {
-          throttled: true,
-          reason: "Hourly quota exceeded"
+          totalRequests: 0,
+          successRate: 0,
+          averageDuration: 0,
+          requestsByType: {}
         };
       }
-    }
-    
-    if (now - quota.lastRequestTime < MIN_REQUEST_INTERVAL_MS) {
+      
+      const successfulRequests = logs.filter(log => log.success).length;
+      const totalDuration = logs.reduce((sum, log) => sum + log.duration, 0);
+      
+      // Count requests by type
+      const requestsByType: Record<string, number> = {};
+      for (const log of logs) {
+        requestsByType[log.requestType] = (requestsByType[log.requestType] || 0) + 1;
+      }
+      
       return {
-        throttled: true,
-        reason: "Request too frequent"
+        totalRequests: logs.length,
+        successRate: (successfulRequests / logs.length) * 100,
+        averageDuration: totalDuration / logs.length,
+        requestsByType
+      };
+    } catch (error) {
+      console.error('Error getting usage stats:', error);
+      return {
+        totalRequests: 0,
+        successRate: 0,
+        averageDuration: 0,
+        requestsByType: {}
       };
     }
+  }
+  
+  /**
+   * Formats an AI request type to a user-friendly string
+   */
+  formatRequestType(type: keyof PlanLimits): string {
+    const formatMap: Record<string, string> = {
+      bookmarkCategorization: "Bookmark Categorization",
+      bookmarkSummaries: "Page Summary",
+      keywordExtraction: "Keyword Extraction",
+      taskEstimation: "Task Duration Estimation",
+      noteSentimentAnalysis: "Note Sentiment Analysis",
+      aiRequests: "AI Request"
+    };
     
-    return { throttled: false };
+    return formatMap[type] || type;
   }
 }
 
-// Helper function to format usage type for display
-function formatUsageType(usageType: keyof PlanLimits): string {
-  const formatMap: Record<string, string> = {
-    bookmarks: 'bookmark storage',
-    bookmarkImports: 'bookmark import',
-    bookmarkCategorization: 'bookmark categorization',
-    bookmarkSummaries: 'page summary',
-    keywordExtraction: 'keyword extraction',
-    tasks: 'task',
-    taskEstimation: 'task estimation',
-    notes: 'note',
-    noteSentimentAnalysis: 'sentiment analysis',
-    aiRequests: 'AI request'
-  };
-  
-  return formatMap[usageType] || usageType;
-}
-
-export type { PlanLimits };
-export const aiRequestManager = AIRequestManager.getInstance();
+// Export a singleton instance
+export const aiRequestManager = new AIRequestManager();

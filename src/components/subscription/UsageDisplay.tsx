@@ -147,7 +147,7 @@ export function UsageDisplay({ showUpgradeButton = true }: UsageDisplayProps) {
       </CardHeader>
       <CardContent>
         {!isProPlan() && nearLimitResources.length > 0 && (
-          <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
+          <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200 text-amber-800">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>You're approaching your usage limits</AlertTitle>
             <AlertDescription>
@@ -158,7 +158,7 @@ export function UsageDisplay({ showUpgradeButton = true }: UsageDisplayProps) {
         )}
         
         <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-4">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="bookmarks">Bookmarks</TabsTrigger>
             <TabsTrigger value="tasks">Tasks</TabsTrigger>

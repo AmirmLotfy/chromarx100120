@@ -1,4 +1,3 @@
-
 import { chromeDb } from '@/lib/chrome-storage';
 import { toast } from 'sonner';
 
@@ -285,6 +284,67 @@ export const getPlanById = (planId: string): Plan | undefined => {
   return subscriptionPlans.find(p => p.id === planId);
 };
 
+// Check if subscription needs renewal
+export const checkNeedsRenewal = async (): Promise<boolean> => {
+  try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData?.subscription) return false;
+    
+    // Check if it's pro, active, and not canceled
+    if (userData.subscription.planId !== 'pro' || 
+        userData.subscription.status !== 'active' ||
+        userData.subscription.cancelAtPeriodEnd) {
+      return false;
+    }
+    
+    // Check if within 3 days of expiration
+    const now = new Date();
+    const endDate = new Date(userData.subscription.currentPeriodEnd);
+    const daysDiff = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return daysDiff <= 3;
+  } catch (error) {
+    console.error('Error checking renewal need:', error);
+    return false;
+  }
+};
+
+// Reset monthly usage counters
+export const resetMonthlyUsage = async (): Promise<boolean> => {
+  try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData?.subscription) return false;
+    
+    // Keep total resource counters, reset monthly limits
+    const updatedUsage = {
+      bookmarks: userData.subscription.usage.bookmarks, // Keep total
+      bookmarkImports: 0, // Reset monthly
+      bookmarkCategorization: 0, // Reset monthly
+      bookmarkSummaries: 0, // Reset monthly
+      keywordExtraction: 0, // Reset monthly
+      tasks: userData.subscription.usage.tasks, // Keep total
+      taskEstimation: 0, // Reset monthly
+      notes: userData.subscription.usage.notes, // Keep total
+      noteSentimentAnalysis: 0, // Reset monthly
+      aiRequests: 0 // Reset monthly
+    };
+    
+    await retryWithBackoff(() => 
+      chromeDb.update('user', {
+        subscription: {
+          ...userData.subscription,
+          usage: updatedUsage
+        }
+      })
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error resetting monthly usage:', error);
+    return false;
+  }
+};
+
 // Upgrade/downgrade subscription
 export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'yearly' = 'monthly'): Promise<boolean> => {
   try {
@@ -323,8 +383,14 @@ export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'y
           billingCycle,
           usage: {
             bookmarks: userData.subscription?.usage?.bookmarks || 0,
+            bookmarkImports: userData.subscription?.usage?.bookmarkImports || 0,
+            bookmarkCategorization: userData.subscription?.usage?.bookmarkCategorization || 0,
+            bookmarkSummaries: userData.subscription?.usage?.bookmarkSummaries || 0,
+            keywordExtraction: userData.subscription?.usage?.keywordExtraction || 0,
             tasks: userData.subscription?.usage?.tasks || 0,
+            taskEstimation: userData.subscription?.usage?.taskEstimation || 0,
             notes: userData.subscription?.usage?.notes || 0,
+            noteSentimentAnalysis: userData.subscription?.usage?.noteSentimentAnalysis || 0,
             aiRequests: userData.subscription?.usage?.aiRequests || 0
           }
         }

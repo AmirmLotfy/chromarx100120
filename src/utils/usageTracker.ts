@@ -1,6 +1,7 @@
+
 import { chromeStorage } from "@/services/chromeStorageService";
 import { toast } from "sonner";
-import { PlanLimits } from "@/config/subscriptionPlans";
+import { PlanLimits, subscriptionPlans } from "@/config/subscriptionPlans";
 
 interface Usage {
   bookmarks: number;
@@ -89,7 +90,8 @@ class UsageTracker {
         [limitType]: usage + 1
       };
       
-      await chromeStorage.update('user', {
+      await chromeStorage.set('user', {
+        ...userData,
         subscription: {
           ...userData.subscription,
           usage: updatedUsage
@@ -233,7 +235,8 @@ class UsageTracker {
         aiRequests: 0
       };
       
-      await chromeStorage.update('user', {
+      await chromeStorage.set('user', {
+        ...userData,
         subscription: {
           ...userData.subscription,
           usage: resetUsage
@@ -251,8 +254,7 @@ class UsageTracker {
   // Helper method to get plan limits
   private async getPlanLimits(planId: string): Promise<PlanLimits | null> {
     try {
-      // Dynamically import to avoid circular dependencies
-      const { subscriptionPlans } = await import('@/config/subscriptionPlans');
+      // Get plan from subscription plans
       const plan = subscriptionPlans.find(p => p.id === planId);
       return plan?.limits || null;
     } catch (error) {

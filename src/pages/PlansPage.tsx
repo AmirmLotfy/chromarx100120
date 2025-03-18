@@ -155,7 +155,7 @@ const PlansPage = () => {
         </div>
 
         {subscription?.status === 'grace_period' && (
-          <Alert variant="warning" className="mb-6 bg-yellow-50 border-yellow-200 text-yellow-800">
+          <Alert className="mb-6 bg-yellow-50 border-yellow-200 text-yellow-800">
             <AlertTitle>Your subscription requires attention</AlertTitle>
             <AlertDescription>
               Your payment method needs to be updated. Please visit the subscription page to update your payment details.

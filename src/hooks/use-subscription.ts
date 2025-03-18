@@ -9,8 +9,8 @@ import {
   setAutoRenew as setAutoRenewUtils,
   cancelSubscription as cancelSubscriptionUtils,
   changeBillingCycle as changeBillingCycleUtils,
-  resetMonthlyUsage,
-  checkNeedsRenewal,
+  resetMonthlyUsage as resetMonthlyUsageUtils,
+  checkNeedsRenewal as checkNeedsRenewalUtils,
   getPlanById
 } from "@/config/subscriptionPlans";
 
@@ -55,21 +55,20 @@ export const useSubscription = (): UseSubscriptionReturn => {
         
         // Get user data including subscription details
         const userData = await chromeStorage.get('user') || {};
-        const sub = userData.subscription;
+        const sub = (userData as any)?.subscription;
         
         if (sub) {
-          setSubscription(sub);
+          setSubscription(sub as UserSubscription);
           setCurrentPlan(sub.planId);
           
           // Check subscription status and handle renewals if needed
-          await checkSubscriptionStatus(sub);
+          await checkSubscriptionStatus(sub as UserSubscription);
           
           // Check if we need to reset monthly usage (first day of month)
-          await checkMonthlyReset(sub);
+          await checkMonthlyReset(sub as UserSubscription);
         } else {
           // Default to free plan if no subscription found
           const defaultSub: UserSubscription = {
-            id: `sub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             planId: 'free',
             status: 'active',
             createdAt: new Date().toISOString(),
@@ -94,7 +93,10 @@ export const useSubscription = (): UseSubscriptionReturn => {
           };
           
           // Save the default subscription
-          await chromeStorage.update('user', { subscription: defaultSub });
+          await chromeStorage.set('user', {
+            ...userData,
+            subscription: defaultSub
+          });
           setSubscription(defaultSub);
           setCurrentPlan('free');
         }
@@ -132,7 +134,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       // If no last reset or it was a different month, reset the counters
       if (!lastReset || new Date(lastReset).getMonth() !== now.getMonth()) {
-        await resetMonthlyUsage();
+        await resetMonthlyUsageUtils();
         await chromeStorage.set('last_monthly_reset', now.toISOString());
         
         // Refresh the subscription to get updated usage values
@@ -176,7 +178,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
             lastRenewalAttempt: now.toISOString()
           };
           
-          await chromeStorage.update('user', { subscription: updatedSub });
+          const userData = await chromeStorage.get('user') || {};
+          await chromeStorage.set('user', {
+            ...userData,
+            subscription: updatedSub
+          });
+          
           setSubscription(updatedSub);
           
           // Notify user
@@ -193,11 +200,16 @@ export const useSubscription = (): UseSubscriptionReturn => {
         const updatedSub = {
           ...sub,
           planId: 'free',
-          status: 'expired',
+          status: 'expired' as const,
           usage: sub.usage
         };
         
-        await chromeStorage.update('user', { subscription: updatedSub });
+        const userData = await chromeStorage.get('user') || {};
+        await chromeStorage.set('user', {
+          ...userData,
+          subscription: updatedSub
+        });
+        
         setSubscription(updatedSub);
         setCurrentPlan('free');
         
@@ -220,11 +232,16 @@ export const useSubscription = (): UseSubscriptionReturn => {
         const updatedSub = {
           ...sub,
           planId: 'free',
-          status: 'expired',
+          status: 'expired' as const,
           usage: sub.usage
         };
         
-        await chromeStorage.update('user', { subscription: updatedSub });
+        const userData = await chromeStorage.get('user') || {};
+        await chromeStorage.set('user', {
+          ...userData,
+          subscription: updatedSub
+        });
+        
         setSubscription(updatedSub);
         setCurrentPlan('free');
         
@@ -251,7 +268,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
               lastRenewalAttempt: now.toISOString()
             };
             
-            await chromeStorage.update('user', { subscription: updatedSub });
+            const userData = await chromeStorage.get('user') || {};
+            await chromeStorage.set('user', {
+              ...userData,
+              subscription: updatedSub
+            });
+            
             setSubscription(updatedSub);
           }
         }
@@ -267,7 +289,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       if (daysRemaining > 1) {
         // Show notification only once per day - check if we've already notified today
-        const lastNotificationKey = `renewal_notification_${sub.id}_${daysRemaining}`;
+        const lastNotificationKey = `renewal_notification_${daysRemaining}`;
         const lastNotification = await chromeStorage.get<string>(lastNotificationKey);
         
         if (!lastNotification) {
@@ -296,9 +318,9 @@ export const useSubscription = (): UseSubscriptionReturn => {
   const refreshSubscription = async () => {
     try {
       const userData = await chromeStorage.get('user');
-      if (userData?.subscription) {
-        setSubscription(userData.subscription);
-        setCurrentPlan(userData.subscription.planId);
+      if ((userData as any)?.subscription) {
+        setSubscription((userData as any).subscription);
+        setCurrentPlan((userData as any).subscription.planId);
       }
     } catch (error) {
       console.error('Error refreshing subscription:', error);
@@ -309,7 +331,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
   const processRenewal = async (sub: UserSubscription) => {
     try {
       // Check if a renewal is actually needed
-      const needsRenewal = await checkNeedsRenewal();
+      const needsRenewal = await checkNeedsRenewalUtils();
       if (!needsRenewal) {
         console.log('No renewal needed at this time');
         return false;
@@ -322,7 +344,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          subscriptionId: sub.id || `sub_${Date.now()}`,
+          subscriptionId: `sub_${Date.now()}`,
           billingCycle: sub.billingCycle,
           retryAttempt: sub.renewalAttempts || 0
         })
@@ -349,7 +371,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
           gracePeriodEndDate: undefined, // Clear grace period
         };
         
-        await chromeStorage.update('user', { subscription: updatedSub });
+        const userData = await chromeStorage.get('user') || {};
+        await chromeStorage.set('user', {
+          ...userData,
+          subscription: updatedSub
+        });
+        
         setSubscription(updatedSub);
         
         // Save payment to history
@@ -396,7 +423,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
             renewalAttempts: result.errorDetails.attemptsCount || 1
           };
           
-          await chromeStorage.update('user', { subscription: updatedSub });
+          const userData = await chromeStorage.get('user') || {};
+          await chromeStorage.set('user', {
+            ...userData,
+            subscription: updatedSub
+          });
+          
           setSubscription(updatedSub);
           
           // Notify user
@@ -415,7 +447,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
             lastRenewalAttempt: new Date().toISOString()
           };
           
-          await chromeStorage.update('user', { subscription: updatedSub });
+          const userData = await chromeStorage.get('user') || {};
+          await chromeStorage.set('user', {
+            ...userData,
+            subscription: updatedSub
+          });
+          
           setSubscription(updatedSub);
           
           // Only notify on first attempt
@@ -498,8 +535,8 @@ export const useSubscription = (): UseSubscriptionReturn => {
           try {
             // Get fresh subscription data
             const userData = await chromeStorage.get('user');
-            if (userData?.subscription) {
-              await processRenewal(userData.subscription);
+            if ((userData as any)?.subscription) {
+              await processRenewal((userData as any).subscription);
               toast.success('Subscription renewed successfully with your new payment method');
             }
           } catch (error) {
