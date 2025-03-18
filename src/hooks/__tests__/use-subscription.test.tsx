@@ -1,4 +1,3 @@
-
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSubscription } from '../use-subscription';
@@ -179,29 +178,23 @@ describe('useSubscription', () => {
     const originalDate = global.Date;
     const mockDate = new Date('2023-01-15T00:00:00Z');
     
-    // Create a proper constructor function that returns a Date
-    function MockDateClass(this: Date, ...args: any[]) {
-      if (!(this instanceof MockDateClass)) {
-        return new MockDateClass(...args);
-      }
-      
+    // Create a proper mock constructor for Date
+    const MockDate = function(...args: any[]) {
       if (args.length === 0) {
         return mockDate;
       }
-      
-      // @ts-ignore - pass through to the original Date constructor
       return new originalDate(...args);
-    }
+    } as unknown as DateConstructor;
     
-    // Copy static methods from original Date
-    Object.setPrototypeOf(MockDateClass, originalDate);
-    MockDateClass.prototype = originalDate.prototype;
+    // Copy properties from original Date
+    Object.setPrototypeOf(MockDate, originalDate);
+    MockDate.prototype = originalDate.prototype;
     
-    // Add now() method
-    MockDateClass.now = () => mockDate.getTime();
+    // Define now() method
+    MockDate.now = () => mockDate.getTime();
     
     // Apply the mock
-    global.Date = MockDateClass as unknown as DateConstructor;
+    global.Date = MockDate;
     
     const { result } = renderHook(() => useSubscription());
     

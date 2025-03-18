@@ -217,10 +217,11 @@ describe('subscriptionAnalytics', () => {
   describe('getChurnReductionRecommendations', () => {
     it('should provide recommendations based on churn risk', async () => {
       // Mock predictChurnRisk to return high risk
-      vi.mock('../subscriptionAnalytics', async (importOriginal) => {
-        const actual = await importOriginal();
+      const originalModule = await vi.importOriginal('../subscriptionAnalytics');
+      
+      vi.mock('../subscriptionAnalytics', async () => {
         return {
-          ...actual,
+          ...originalModule,
           predictChurnRisk: vi.fn().mockResolvedValue(0.8)
         };
       });
