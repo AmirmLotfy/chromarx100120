@@ -22,8 +22,7 @@ const PayPalConfigForm = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const paypalConfig = await configurationService.getPayPalConfig() as PayPalConfig;
-        // Now the type is properly asserted
+        const paypalConfig = await configurationService.getPayPalConfig();
         setConfig({
           clientId: paypalConfig.clientId || '',
           mode: paypalConfig.mode === 'live' ? 'live' : 'sandbox'
@@ -61,7 +60,7 @@ const PayPalConfigForm = () => {
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Status</span>
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              {isLoading ? 'Checking...' : 'Configured'}
+              {isLoading ? 'Checking...' : (config.clientId ? 'Configured' : 'Not Configured')}
             </Badge>
           </div>
         </div>
