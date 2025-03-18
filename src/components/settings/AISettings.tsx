@@ -2,7 +2,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GeminiSettings from "./GeminiSettings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Sparkles } from "lucide-react";
+import { Brain, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function AISettings() {
@@ -13,17 +13,17 @@ export default function AISettings() {
         <h2 className="text-2xl font-bold">AI Settings</h2>
       </div>
       
-      <Alert className="bg-green-50 border-green-200 text-green-800">
-        <Sparkles className="h-4 w-4" />
-        <AlertTitle>AI Features Ready to Use</AlertTitle>
+      <Alert className="bg-yellow-50 border-yellow-200 text-yellow-800">
+        <Info className="h-4 w-4" />
+        <AlertTitle>API Key Required</AlertTitle>
         <AlertDescription>
-          AI features are already enabled with our shared API key. You can optionally add your own key for increased usage limits.
+          To use AI features, you need to add your own Google Gemini API key. You can get one from the Google AI Studio.
         </AlertDescription>
       </Alert>
       
       <Tabs defaultValue="apikey" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="apikey">API Key (Optional)</TabsTrigger>
+          <TabsTrigger value="apikey">API Key</TabsTrigger>
           <TabsTrigger value="preferences">AI Preferences</TabsTrigger>
         </TabsList>
         

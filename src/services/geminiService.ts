@@ -1,4 +1,3 @@
-
 import { storage } from './storage/unifiedStorage';
 import { toast } from 'sonner';
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
@@ -21,9 +20,6 @@ const DEFAULT_CONFIG: GeminiConfig = {
 
 // Storage key for the API key
 const API_KEY_STORAGE_KEY = 'gemini_api_key';
-
-// Default API key provided for all users
-const DEFAULT_API_KEY = 'AIzaSyCJCo0vVKkx7q2rsdGG1Pu0BmdXYl9sYhE';
 
 class GeminiService {
   private isInitialized = false;
@@ -63,21 +59,20 @@ class GeminiService {
         return;
       }
       
-      // First try to get a user-provided API key from storage
+      // Get user-provided API key from storage
       this.apiKey = await storage.get(API_KEY_STORAGE_KEY) as string | null;
       
-      // If no user key is found, use the default key
-      if (!this.apiKey) {
-        console.log('Using default Gemini API key');
-        this.apiKey = DEFAULT_API_KEY;
+      // Only initialize if we have an API key
+      if (this.apiKey) {
+        // Initialize the Google Generative AI client
+        this.apiClient = new GoogleGenerativeAI(this.apiKey);
+        this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
+        this.isInitialized = true;
+        console.log('Gemini API initialized successfully');
+      } else {
+        console.log('No Gemini API key found, features requiring AI will be disabled');
+        this.isInitialized = false;
       }
-      
-      // Initialize the Google Generative AI client
-      this.apiClient = new GoogleGenerativeAI(this.apiKey);
-      this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
-      this.isInitialized = true;
-      
-      console.log('Gemini API initialized successfully');
     } catch (error) {
       console.error('Error initializing Gemini service:', error);
       this.isInitialized = false;
@@ -129,7 +124,7 @@ class GeminiService {
         await this.initialize();
         
         if (!this.isInitialized || !this.model) {
-          throw new Error('Gemini API not initialized.');
+          throw new Error('Gemini API not initialized. Please add an API key in settings.');
         }
       }
 
@@ -157,14 +152,13 @@ class GeminiService {
       
       const errorMessage = this.offlineMode
         ? 'AI features are unavailable while offline'
-        : 'Failed to get response from Gemini AI';
+        : 'Failed to get response from Gemini AI. Have you added an API key in settings?';
       
       toast.error(errorMessage);
       throw error; // Propagate error for retry handling
     }
   }
 
-  // Specialized methods for different AI operations
   public async summarize(content: string, language: string = 'en'): Promise<string> {
     try {
       if (this.offlineMode) {
@@ -224,13 +218,12 @@ class GeminiService {
     }
   }
 
-  // Method to check if service is available
   public async isAvailable(): Promise<boolean> {
     if (this.offlineMode) {
       return false;
     }
     
-    // Since we have a default key, we focus on whether the service is initialized
+    // We need a user-provided API key
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -238,28 +231,25 @@ class GeminiService {
     return this.isInitialized;
   }
   
-  // Public method to get offline status
   public isOffline(): boolean {
     return this.offlineMode;
   }
   
-  // Method to check if a custom API key is set by the user
   public async hasApiKey(): Promise<boolean> {
     const apiKey = await storage.get(API_KEY_STORAGE_KEY) as string | null;
     return !!apiKey;
   }
   
-  // Method to clear custom API key and revert to default
   public async clearApiKey(): Promise<void> {
     await storage.remove(API_KEY_STORAGE_KEY);
     
-    // Reinitialize with default key
-    this.apiKey = DEFAULT_API_KEY;
-    this.apiClient = new GoogleGenerativeAI(DEFAULT_API_KEY);
-    this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
-    this.isInitialized = true;
+    // Reset the service
+    this.apiKey = null;
+    this.apiClient = null;
+    this.model = null;
+    this.isInitialized = false;
     
-    console.log('Reverted to default Gemini API key');
+    console.log('Gemini API key removed');
   }
 }
 

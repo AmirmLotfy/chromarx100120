@@ -38,6 +38,7 @@ export default function GeminiSettings() {
         setHasExistingKey(true);
         setApiKey("");
         setIsKeyHidden(true);
+        toast.success("API key saved successfully");
       }
     } catch (error) {
       console.error("Error saving API key:", error);
@@ -66,7 +67,7 @@ export default function GeminiSettings() {
           Gemini API Settings
         </CardTitle>
         <CardDescription>
-          Configure your Google Gemini API key to enable AI features
+          Add your Google Gemini API key to enable AI features
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -83,12 +84,12 @@ export default function GeminiSettings() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>API Key Required</AlertTitle>
             <AlertDescription>
-              To use AI features, you need to add your Gemini API key. You can get one from the
+              To use AI features, you need to add your Gemini API key. You can get one from the{" "}
               <a 
                 href="https://aistudio.google.com/app/apikey" 
                 target="_blank" 
                 rel="noreferrer"
-                className="underline ml-1"
+                className="underline font-medium"
               >
                 Google AI Studio
               </a>.
