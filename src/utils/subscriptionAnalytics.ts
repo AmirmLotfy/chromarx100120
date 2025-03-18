@@ -11,7 +11,10 @@ export type SubscriptionEvent =
   | 'payment_succeeded'
   | 'viewed_pricing_page'
   | 'plan_upgraded'
-  | 'plan_downgraded';
+  | 'plan_downgraded'
+  | 'changed_billing_cycle'
+  | 'viewed_recommendations'
+  | 'change_auto_renew';
 
 type EventMetadata = Record<string, any>;
 
@@ -170,7 +173,10 @@ export const predictChurnRisk = async (): Promise<number> => {
     // Factor 4: Low usage relative to plan limits
     // A user who doesn't use the product much is more likely to churn
     if (subscription.usage) {
-      const totalUsage = Object.values(subscription.usage).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0);
+      const totalUsage = Object.values(subscription.usage).reduce((sum, val) => {
+        return sum + (typeof val === 'number' ? val : 0);
+      }, 0);
+      
       if (totalUsage < 10) {
         riskScore += 0.2; // Low usage increases churn risk
       }
@@ -245,7 +251,10 @@ export const getChurnReductionRecommendations = async (): Promise<string[]> => {
     
     // If they're not using the product much
     if (subscription.usage) {
-      const totalUsage = Object.values(subscription.usage).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0);
+      const totalUsage = Object.values(subscription.usage).reduce((sum, val) => {
+        return sum + (typeof val === 'number' ? val : 0);
+      }, 0);
+      
       if (totalUsage < 10) {
         recommendations.push('Send tutorial emails to increase engagement');
         recommendations.push('Highlight seasonal use cases for the product');

@@ -57,6 +57,9 @@ interface UseSubscriptionReturn {
   isOffline: boolean;
 }
 
+// Define the allowed offline action types
+type OfflineActionType = 'cancel' | 'renew' | 'change_plan' | 'change_billing_cycle' | 'change_auto_renew';
+
 export const useSubscription = (): UseSubscriptionReturn => {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -321,7 +324,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       // If offline, queue the action for later
       if (isOffline) {
-        const queued = await queueOfflineAction('change_auto_renew', { autoRenew });
+        const queued = await queueOfflineAction('change_auto_renew' as OfflineActionType, { autoRenew });
         return { success: queued, error: queued ? undefined : 'Failed to queue offline action' };
       }
       

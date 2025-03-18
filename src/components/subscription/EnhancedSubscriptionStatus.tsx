@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Badge } from "@/components/ui/badge";
@@ -233,7 +234,7 @@ export function EnhancedSubscriptionStatus({
                       onClick={() => {
                         setAutoRenew(true).then(() => {
                           toast.success("Auto-renewal turned on");
-                          trackSubscriptionEvent('changed_billing_cycle', {
+                          trackSubscriptionEvent('change_auto_renew', {
                             autoRenew: true
                           });
                         });
@@ -248,7 +249,7 @@ export function EnhancedSubscriptionStatus({
                       onClick={() => {
                         setAutoRenew(false).then(() => {
                           toast.success("Auto-renewal turned off");
-                          trackSubscriptionEvent('changed_billing_cycle', {
+                          trackSubscriptionEvent('change_auto_renew', {
                             autoRenew: false
                           });
                         });
@@ -357,7 +358,7 @@ export function EnhancedSubscriptionStatus({
                   className="mt-1 h-auto p-0 text-blue-600"
                   onClick={() => {
                     navigate('/subscription');
-                    trackSubscriptionEvent('viewed_recommendations', {
+                    trackSubscriptionEvent('subscription_viewed', {
                       count: recommendations.length
                     });
                   }}
