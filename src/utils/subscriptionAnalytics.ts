@@ -174,11 +174,15 @@ export const predictChurnRisk = async (): Promise<number> => {
     // Factor 4: Low usage relative to plan limits
     // A user who doesn't use the product much is more likely to churn
     if (subscription.usage) {
-      const totalUsage = Object.values(subscription.usage).reduce((sum, val) => {
-        // Ensure val is a number before adding to sum
-        const numVal = typeof val === 'number' ? val : 0;
-        return sum + numVal;
-      }, 0);
+      // Use type-safe approach to calculate total usage
+      let totalUsage = 0;
+      
+      // Process each value with proper type checking
+      Object.values(subscription.usage).forEach(val => {
+        if (typeof val === 'number') {
+          totalUsage += val;
+        }
+      });
       
       if (totalUsage < 10) {
         riskScore += 0.2; // Low usage increases churn risk
@@ -254,12 +258,15 @@ export const getChurnReductionRecommendations = async (): Promise<string[]> => {
     
     // If they're not using the product much
     if (subscription.usage) {
-      // Safely get total usage with type checking
-      const totalUsage = Object.values(subscription.usage).reduce((sum, val) => {
-        // Ensure val is a number before adding to sum
-        const numVal = typeof val === 'number' ? val : 0;
-        return sum + numVal;
-      }, 0);
+      // Use type-safe approach to calculate total usage
+      let totalUsage = 0;
+      
+      // Process each value with proper type checking
+      Object.values(subscription.usage).forEach(val => {
+        if (typeof val === 'number') {
+          totalUsage += val;
+        }
+      });
       
       if (totalUsage < 10) {
         recommendations.push('Send tutorial emails to increase engagement');

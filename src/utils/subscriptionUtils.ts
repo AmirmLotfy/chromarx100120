@@ -535,7 +535,7 @@ export const setPreferredCurrency = async (currency: string): Promise<boolean> =
  * Handle offline subscription actions by queuing them
  */
 export const queueOfflineAction = async (
-  action: 'renew' | 'change_plan' | 'change_billing_cycle' | 'cancel',
+  action: 'renew' | 'change_plan' | 'change_billing_cycle' | 'cancel' | 'change_auto_renew',
   data: any
 ): Promise<boolean> => {
   try {
@@ -597,6 +597,10 @@ export const processOfflineActions = async (): Promise<void> => {
             
           case 'cancel':
             await cancelSubscription(item.data.immediate);
+            break;
+            
+          case 'change_auto_renew':
+            await setAutoRenew(item.data.autoRenew);
             break;
             
           default:
