@@ -9,18 +9,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
   });
 
-  // Initialize PayPal configuration
-  chrome.storage.sync.get(['paypal_config'], (result) => {
-    if (!result.paypal_config) {
-      chrome.storage.sync.set({ 
-        paypal_config: { 
-          clientId: '', 
-          mode: 'sandbox' 
-        } 
-      });
-    }
-  });
-
   // Initialize context menu
   chrome.contextMenus.create({
     id: "add-to-chromarx",
@@ -72,15 +60,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       });
     });
   }
-
-  // Notify about PayPal config changes
-  if (areaName === 'sync' && changes.paypal_config) {
-    console.log('PayPal configuration updated');
-    chrome.runtime.sendMessage({
-      type: 'PAYPAL_CONFIG_UPDATED',
-      config: changes.paypal_config.newValue
-    });
-  }
 });
 
 // Handle messages from content scripts
@@ -91,26 +70,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;  // Required for asynchronous responses
   }
-
-  // Handle PayPal config requests
-  if (request.type === "GET_PAYPAL_CONFIG") {
-    chrome.storage.sync.get(['paypal_config'], (result) => {
-      sendResponse({ config: result.paypal_config || { clientId: '', mode: 'sandbox' } });
-    });
-    return true;
-  }
-
-  if (request.type === "SAVE_PAYPAL_CONFIG") {
-    try {
-      chrome.storage.sync.set({ 'paypal_config': request.config }, () => {
-        sendResponse({ success: true });
-      });
-    } catch (error) {
-      console.error("Error saving PayPal config:", error);
-      sendResponse({ success: false, error: error.message });
-    }
-    return true;
-  }
 });
-
-// Remove references to Gemini API and Supabase

@@ -8,10 +8,10 @@ const PayPalConfigPage = () => {
       <div className="container max-w-3xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold tracking-tight mb-3">
-            PayPal Configuration
+            Extension Information
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Configure your PayPal integration for payment processing
+            About how ChroMarx works with your browser
           </p>
         </div>
         
@@ -19,8 +19,8 @@ const PayPalConfigPage = () => {
         
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>
-            This configuration will be securely stored in your local browser storage
-            and used for processing payments in your application.
+            This extension operates completely within your browser's local storage.
+            No external payment processing or credentials are required.
           </p>
         </div>
       </div>

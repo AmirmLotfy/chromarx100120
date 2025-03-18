@@ -3,10 +3,8 @@
   "manifest_version": 3,
   "name": "ChroMarx",
   "version": "1.1.0",
-  "description": "Your Gemini-Powered Bookmark Manager – Organize, Optimize, Excel! Enhance your browsing experience with AI-powered bookmarking.",
+  "description": "Your AI-Powered Bookmark Manager – Organize, Optimize, Excel! Enhance your browsing experience with AI-powered bookmarking.",
   "permissions": [
-    "identity",
-    "identity.email",
     "storage",
     "bookmarks",
     "sidePanel",
@@ -18,23 +16,11 @@
     "offline"
   ],
   "background": {
-    "service_worker": "service-worker.js",
-    "type": "module"
-  },
-  "oauth2": {
-    "client_id": "46339279287-egph5d4pqcvv116drdh1tsvfjq5db81o.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile"
-    ]
+    "service_worker": "background.js"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.googleapis.com https://*.google.com"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
-  "host_permissions": [
-    "https://*.googleapis.com/*",
-    "https://*.google.com/*"
-  ],
   "commands": {
     "_execute_action": {
       "suggested_key": {
@@ -86,15 +72,10 @@
   "author": "ChroMarx Team",
   "homepage_url": "https://chromarx.it.com",
   "incognito": "split",
-  "update_url": "https://clients2.google.com/service/update2/crx",
-  "version_name": "1.1.0 (Stable)",
-  "short_name": "ChroMarx",
-  "externally_connectable": {
-    "matches": ["https://chromarx.it.com/*"]
-  },
   "web_accessible_resources": [{
     "resources": ["notification.mp3", "icons/*.png"],
     "matches": ["<all_urls>"]
   }],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4JGy/TtDGUE5f42vHUBkvwWY/tVo+U/FKnAFdJ+1iBN0LzVmx+qnJtVh9AGwZjAKgTJc+l7GyJEMqKOj9P04qO8+rHGHRjBLuV5j21lD4dzjVUJzfCwUmIZjpVkZ1djGWOMyK7rY+DEnFA/4yv3KNKBbxRt06j0QGxweeggJJSiWcRS7F8gWBd5sCQ7jRJ+9cJgxQq0iQEZuUxKxAFfGAVmKzG0a5s/R6jdnPvT6n2LI0MaRfFKSK6MGQ6EJjgPmLqbNKh8UUQ9kzERm0hSQjsDVX7AWuMgG1hZ4M1F4d2QB4iPFWDLPjAS5IeWYvuwEJqpVrJc/t1XSFKtlBH0xRwIDAQAB"
+  "version_name": "1.1.0 (Stable)",
+  "short_name": "ChroMarx"
 }
