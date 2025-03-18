@@ -153,7 +153,7 @@ class TimerService {
       });
       
       // Fix for line 158 error: Explicitly declare the type as number and ensure it is a number
-      const averageProductivity: number = countWithScores > 0 ? Number(sumProductivity / countWithScores) : 0;
+      const averageProductivity = countWithScores > 0 ? Number(sumProductivity / countWithScores) : 0;
 
       return {
         totalFocusTime,
