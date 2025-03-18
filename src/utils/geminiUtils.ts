@@ -1,55 +1,15 @@
 
-import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 import { ChromeBookmark } from '@/types/bookmark';
-import { configurationService } from '@/services/configurationService';
-import { storage } from '@/services/storage/unifiedStorage';
+import { geminiService } from '@/services/geminiService';
 
-// Default configuration for generation
-const defaultConfig: GenerationConfig = {
-  temperature: 0.7,
-  topK: 40,
-  topP: 0.95,
-  maxOutputTokens: 1024,
-};
-
-interface ApiResponse {
-  content: string;
-  model: string;
-  prompt: string;
-}
-
+// Use geminiService for all AI interactions to leverage the default API key
 export const getGeminiResponse = async (
   prompt: string,
   systemPrompt?: string,
-  config?: Partial<GenerationConfig>
+  config?: any
 ): Promise<string> => {
   try {
-    // Retrieve API key from secure storage
-    const apiKey = await fetchGeminiApiKey();
-    
-    if (!apiKey) {
-      console.error("Gemini API key not found");
-      return "Error: API key not configured. Please set up your API key in settings.";
-    }
-    
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const generationConfig = { ...defaultConfig, ...config };
-    
-    // For system prompt, prepend to user prompt with proper formatting
-    const fullPrompt = systemPrompt 
-      ? `${systemPrompt}\n\nUser: ${prompt}` 
-      : prompt;
-    
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro",
-      generationConfig
-    });
-    
-    const result = await model.generateContent(fullPrompt);
-    const response = result.response;
-    const text = response.text();
-    
-    return text;
+    return await geminiService.getResponse(prompt, systemPrompt, config);
   } catch (error) {
     console.error("Error getting Gemini response:", error);
     return "Sorry, I encountered an error while processing your request.";
@@ -160,15 +120,5 @@ export const testAIReliability = async (): Promise<boolean> => {
   } catch (error) {
     console.error("AI reliability test failed:", error);
     return false;
-  }
-};
-
-const fetchGeminiApiKey = async (): Promise<string> => {
-  try {
-    // Use the configurationService for centralized access to the API key
-    return await configurationService.getGeminiApiKey();
-  } catch (error) {
-    console.error("Error fetching Gemini API key:", error);
-    return '';
   }
 };

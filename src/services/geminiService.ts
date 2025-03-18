@@ -11,6 +11,10 @@ export interface GeminiConfig {
   maxOutputTokens: number;
 }
 
+// Default API key that will be used if user doesn't provide their own
+// This is a publishable key that can be included in client-side code
+const DEFAULT_API_KEY = 'AIzaSyA7WGDYZwPP02EoBPbzq8LAS-iGzRoKZuQ';
+
 const DEFAULT_CONFIG: Omit<GeminiConfig, 'apiKey'> = {
   temperature: 0.7,
   topK: 40,
@@ -29,22 +33,32 @@ class GeminiService {
 
   private async initializeApiKey() {
     try {
+      // First try to get user's custom API key
       const config = await storage.get('gemini_config');
       if (config && config.apiKey) {
         this.apiKey = config.apiKey;
         this.setupModel(config);
         this.isInitialized = true;
+      } else {
+        // If no custom key, use the default one
+        this.apiKey = DEFAULT_API_KEY;
+        this.setupModel({ apiKey: DEFAULT_API_KEY, ...DEFAULT_CONFIG });
+        this.isInitialized = true;
       }
     } catch (error) {
       console.error('Error initializing Gemini API key:', error);
+      // Even if there's an error, still use the default key
+      this.apiKey = DEFAULT_API_KEY;
+      this.setupModel({ apiKey: DEFAULT_API_KEY, ...DEFAULT_CONFIG });
+      this.isInitialized = true;
     }
   }
 
   private setupModel(config: Partial<GeminiConfig>) {
     try {
-      if (!config.apiKey) return;
+      const apiKey = config.apiKey || DEFAULT_API_KEY;
       
-      const genAI = new GoogleGenerativeAI(config.apiKey);
+      const genAI = new GoogleGenerativeAI(apiKey);
       this.model = genAI.getGenerativeModel({ 
         model: "gemini-pro",
         generationConfig: {
@@ -69,14 +83,19 @@ class GeminiService {
         await this.initializeApiKey();
       }
 
+      // If model is still not initialized, initialize with default key
       if (!this.apiKey) {
-        toast.error('Gemini API key is not configured. Please set it in the settings.');
-        return 'API key not configured. Please set up your API key in settings.';
+        this.apiKey = DEFAULT_API_KEY;
+        this.setupModel({ apiKey: DEFAULT_API_KEY, ...DEFAULT_CONFIG });
       }
 
       // If custom config is provided, set up a new model instance
       if (config) {
-        const mergedConfig = { ...DEFAULT_CONFIG, apiKey: this.apiKey, ...config };
+        const mergedConfig = { 
+          ...DEFAULT_CONFIG, 
+          apiKey: config.apiKey || this.apiKey || DEFAULT_API_KEY, 
+          ...config 
+        };
         this.setupModel(mergedConfig);
       }
 
@@ -121,6 +140,11 @@ class GeminiService {
       console.error('Error configuring Gemini API:', error);
       return false;
     }
+  }
+
+  // Method to check if a valid API key is available (either user's or default)
+  public hasValidApiKey(): boolean {
+    return this.isInitialized && !!this.model;
   }
 }
 
