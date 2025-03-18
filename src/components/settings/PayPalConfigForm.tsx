@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InfoCircle } from "lucide-react";
+import { Info } from "lucide-react";
 
 const PayPalConfigForm = () => {
   return (
@@ -14,7 +14,7 @@ const PayPalConfigForm = () => {
       <CardContent className="space-y-4">
         <div className="rounded-md bg-blue-50 p-4 mt-4">
           <div className="flex">
-            <InfoCircle className="h-5 w-5 text-blue-400" />
+            <Info className="h-5 w-5 text-blue-400" />
             <div className="ml-3">
               <p className="text-sm text-blue-700">
                 This extension works completely offline and does not require any payment credentials. 
