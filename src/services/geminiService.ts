@@ -1,8 +1,8 @@
 
-import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 import { storage } from './storage/unifiedStorage';
 import { toast } from 'sonner';
 
+// Configuration options for Gemini API requests
 export interface GeminiConfig {
   temperature: number;
   topK: number;
@@ -10,10 +10,7 @@ export interface GeminiConfig {
   maxOutputTokens: number;
 }
 
-// Default API key that will be used for all users
-// This is a publishable key that can be included in client-side code
-const API_KEY = 'AIzaSyA7WGDYZwPP02EoBPbzq8LAS-iGzRoKZuQ';
-
+// Default configuration
 const DEFAULT_CONFIG: GeminiConfig = {
   temperature: 0.7,
   topK: 40,
@@ -22,8 +19,8 @@ const DEFAULT_CONFIG: GeminiConfig = {
 };
 
 class GeminiService {
-  private model: GenerativeModel | null = null;
   private isInitialized = false;
+  private supabaseUrl = 'https://yhxjzjyqlnizccswcpwq.supabase.co/functions/v1/gemini-api';
 
   constructor() {
     this.initialize();
@@ -31,27 +28,31 @@ class GeminiService {
 
   private async initialize() {
     try {
-      this.setupModel(DEFAULT_CONFIG);
       this.isInitialized = true;
+      // Verify API availability
+      await this.checkApiAvailability();
     } catch (error) {
-      console.error('Error initializing Gemini model:', error);
+      console.error('Error initializing Gemini service:', error);
     }
   }
 
-  private setupModel(config: Partial<GeminiConfig>) {
+  private async checkApiAvailability(): Promise<boolean> {
     try {
-      const genAI = new GoogleGenerativeAI(API_KEY);
-      this.model = genAI.getGenerativeModel({ 
-        model: "gemini-pro",
-        generationConfig: {
-          temperature: config.temperature || DEFAULT_CONFIG.temperature,
-          topK: config.topK || DEFAULT_CONFIG.topK,
-          topP: config.topP || DEFAULT_CONFIG.topP,
-          maxOutputTokens: config.maxOutputTokens || DEFAULT_CONFIG.maxOutputTokens,
-        }
+      const response = await fetch(this.supabaseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: 'check-api-key' })
       });
+      
+      if (!response.ok) {
+        return false;
+      }
+      
+      const data = await response.json();
+      return data.exists === true;
     } catch (error) {
-      console.error('Error setting up Gemini model:', error);
+      console.error('Error checking API availability:', error);
+      return false;
     }
   }
 
@@ -65,29 +66,33 @@ class GeminiService {
         await this.initialize();
       }
 
-      // If model is still not initialized, initialize with default config
-      if (!this.model) {
-        this.setupModel(DEFAULT_CONFIG);
-      }
-
-      // If custom config is provided, set up a new model instance
-      if (config) {
-        this.setupModel(config);
-      }
-
-      if (!this.model) {
-        throw new Error('Gemini model is not initialized');
-      }
-
       // For system prompt, we need to format it properly
       const fullPrompt = systemPrompt 
         ? `${systemPrompt}\n\nUser: ${prompt}` 
         : prompt;
 
-      const result = await this.model.generateContent(fullPrompt);
-      const text = result.response.text();
+      const params = {
+        ...DEFAULT_CONFIG,
+        ...config
+      };
 
-      return text;
+      const response = await fetch(this.supabaseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'chat',
+          content: fullPrompt,
+          options: params
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get response from Gemini AI');
+      }
+
+      const data = await response.json();
+      return data.result;
     } catch (error) {
       console.error('Error getting Gemini response:', error);
       toast.error('Failed to get response from Gemini AI');
@@ -95,9 +100,97 @@ class GeminiService {
     }
   }
 
-  // Method to check if model is available
-  public hasValidModel(): boolean {
-    return this.isInitialized && !!this.model;
+  // Specialized methods for different AI operations
+  public async summarize(content: string, language: string = 'en'): Promise<string> {
+    try {
+      const response = await fetch(this.supabaseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'summarize',
+          content,
+          language
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to summarize content');
+      }
+
+      const data = await response.json();
+      return data.result;
+    } catch (error) {
+      console.error('Error summarizing content:', error);
+      return 'Failed to summarize content';
+    }
+  }
+
+  public async categorize(content: string, language: string = 'en'): Promise<string> {
+    try {
+      const response = await fetch(this.supabaseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'categorize',
+          content,
+          language
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to categorize content');
+      }
+
+      const data = await response.json();
+      return data.result;
+    } catch (error) {
+      console.error('Error categorizing content:', error);
+      return 'Uncategorized';
+    }
+  }
+
+  public async suggestTimer(taskDescription: string, language: string = 'en'): Promise<number> {
+    try {
+      const response = await fetch(this.supabaseUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'suggest-timer',
+          content: taskDescription,
+          language
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to suggest timer duration');
+      }
+
+      const data = await response.json();
+      const minutes = parseInt(data.result.replace(/\D/g, ''), 10);
+      
+      if (isNaN(minutes) || minutes < 5) {
+        return 25; // Default Pomodoro duration
+      }
+      
+      if (minutes > 120) {
+        return 120; // Cap at 2 hours
+      }
+      
+      return minutes;
+    } catch (error) {
+      console.error('Error suggesting timer duration:', error);
+      return 25; // Default to standard Pomodoro duration
+    }
+  }
+
+  // Method to check if service is available
+  public async isAvailable(): Promise<boolean> {
+    try {
+      return await this.checkApiAvailability();
+    } catch (error) {
+      console.error('Error checking Gemini availability:', error);
+      return false;
+    }
   }
 }
 

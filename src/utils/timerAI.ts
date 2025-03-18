@@ -2,6 +2,7 @@
 import { retryWithBackoff } from "./retryUtils";
 import { aiRequestManager } from "./aiRequestManager";
 import { TimerSession } from "@/types/timer";
+import { geminiService } from "@/services/geminiService";
 
 interface SuggestionContext {
   taskContext: string;
@@ -10,22 +11,8 @@ interface SuggestionContext {
 }
 
 export const getTimerSuggestion = async (context: SuggestionContext): Promise<number> => {
-  const prompt = buildSuggestionPrompt(context);
-  
   try {
-    const suggestion = await retryWithBackoff(
-      () => aiRequestManager.makeRequest(
-        async () => {
-          const response = await suggestDuration(prompt);
-          return validateSuggestion(response);
-        },
-        `timer_suggestion_${context.taskContext}`,
-        25
-      ),
-      { maxRetries: 3 }
-    );
-
-    return suggestion;
+    return await geminiService.suggestTimer(buildSuggestionPrompt(context));
   } catch (error) {
     console.error('Error getting timer suggestion:', error);
     return 25; // Default fallback
@@ -61,20 +48,6 @@ const buildSuggestionPrompt = (context: SuggestionContext): string => {
   }
 
   return prompt;
-};
-
-const suggestDuration = async (prompt: string): Promise<string> => {
-  const response = await aiRequestManager.makeRequest(
-    async () => {
-      // Mock API call for timer suggestion
-      console.log("Suggesting duration for prompt:", prompt);
-      return "25"; // Mock response
-    },
-    `timer_${prompt}`,
-    '25'
-  );
-
-  return response;
 };
 
 const validateSuggestion = (suggestion: string): number => {

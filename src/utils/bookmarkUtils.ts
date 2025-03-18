@@ -1,6 +1,6 @@
 
 import { localStorageClient } from '@/lib/chrome-storage-client';
-import { getGeminiResponse } from './geminiUtils';
+import { geminiService } from '@/services/geminiService';
 import { ChromeBookmark } from '@/types/bookmark';
 
 export const getBookmarksByDomain = async (domain: string) => {
@@ -20,12 +20,10 @@ export const getBookmarksByDomain = async (domain: string) => {
 
 export const summarizeBookmark = async (url: string, content: string) => {
   try {
-    const prompt = `Please summarize the content of this webpage in three concise bullet points:
-    
-URL: ${url}
+    const bookmarkContent = `URL: ${url}
 Content: ${content.substring(0, 1500)}...`;
     
-    return await getGeminiResponse(prompt);
+    return await geminiService.summarize(bookmarkContent);
   } catch (error) {
     console.error('Error summarizing bookmark:', error);
     return 'Failed to generate summary.';
@@ -34,15 +32,10 @@ Content: ${content.substring(0, 1500)}...`;
 
 export const categorizeBookmark = async (title: string, description: string) => {
   try {
-    const prompt = `Categorize this content into one of these categories: Work, Personal, Research, Shopping, Travel, Finance, Technology, Entertainment, Education, Health.
+    const content = `Title: ${title}
+Description: ${description || 'No description available'}`;
     
-Title: ${title}
-Description: ${description || 'No description available'}
-
-Return only the category name, nothing else.`;
-    
-    const response = await getGeminiResponse(prompt);
-    return response.trim();
+    return await geminiService.categorize(content);
   } catch (error) {
     console.error('Error categorizing bookmark:', error);
     return 'Uncategorized';

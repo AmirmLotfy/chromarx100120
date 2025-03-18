@@ -1,41 +1,25 @@
 
 import { storage } from './storage/unifiedStorage';
 
-export interface PayPalConfig {
-  clientId: string;
-  mode: 'sandbox' | 'live';
-}
-
+// Simple configuration service that could be expanded in the future
 export const configurationService = {
-  async getPayPalConfig(): Promise<PayPalConfig> {
+  // General settings
+  async getSettings<T>(key: string, defaultValue: T): Promise<T> {
     try {
-      const config = await storage.get('paypal_config') as PayPalConfig | null;
-      
-      if (!config) {
-        // Return default config if none found
-        return {
-          clientId: '',
-          mode: 'sandbox'
-        };
-      }
-      
-      return config;
+      const value = await storage.get(key) as T | null;
+      return value !== null ? value : defaultValue;
     } catch (error) {
-      console.error('Error getting PayPal config:', error);
-      // Return default config on error
-      return {
-        clientId: '',
-        mode: 'sandbox'
-      };
+      console.error(`Error getting ${key} settings:`, error);
+      return defaultValue;
     }
   },
   
-  async savePayPalConfig(config: PayPalConfig): Promise<boolean> {
+  async saveSettings<T>(key: string, value: T): Promise<boolean> {
     try {
-      await storage.set('paypal_config', config);
+      await storage.set(key, value);
       return true;
     } catch (error) {
-      console.error('Error saving PayPal config:', error);
+      console.error(`Error saving ${key} settings:`, error);
       return false;
     }
   }

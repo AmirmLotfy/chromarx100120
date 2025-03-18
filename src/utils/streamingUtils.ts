@@ -1,13 +1,11 @@
 
 import { geminiService } from '@/services/geminiService';
-import { getGeminiResponse } from './geminiUtils';
 
 export const streamingAnimationFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 export const processStreamingData = async (text: string): Promise<string> => {
   try {
-    const prompt = `Summarize this text in 3 concise bullet points: ${text}`;
-    return await getGeminiResponse(prompt);
+    return await geminiService.summarize(text);
   } catch (error) {
     console.error('Error processing streaming data:', error);
     return 'Failed to process streaming data';
@@ -30,7 +28,7 @@ export const analyzeStreamContent = async (content: string, type: 'sentiment' | 
         break;
     }
     
-    return await getGeminiResponse(prompt);
+    return await geminiService.getResponse(prompt);
   } catch (error) {
     console.error(`Error analyzing stream content (${type}):`, error);
     return '';
