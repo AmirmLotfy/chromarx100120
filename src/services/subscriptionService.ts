@@ -2,53 +2,66 @@
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { toast } from "sonner";
 
-export interface SubscriptionInfo {
-  plan_id: string;
+export interface UserSubscription {
+  id: string;
+  userId: string | null;
+  planId: string;
   status: string;
-  current_period_start: string;
-  current_period_end: string;
-  cancel_at_period_end: boolean;
-  user_id: string;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
 }
 
-export interface SubscriptionResult {
-  subscription: SubscriptionInfo;
-  renewalNeeded: boolean;
-  usageLimits: {
-    aiRequests: { limit: number; used: number; percentage: number };
-    bookmarks: { limit: number; used: number; percentage: number };
-    tasks: { limit: number; used: number; percentage: number };
-    notes: { limit: number; used: number; percentage: number };
+export interface UsageLimits {
+  aiRequests: { limit: number; used: number; percentage: number };
+  bookmarks: { limit: number; used: number; percentage: number };
+  tasks: { limit: number; used: number; percentage: number };
+  notes: { limit: number; used: number; percentage: number };
+}
+
+export interface SubscriptionStatus {
+  subscription: {
+    planId: string;
+    status: string;
   };
+  renewalNeeded: boolean;
+  usageLimits: UsageLimits;
   needsUpgrade: boolean;
 }
 
-export const SubscriptionService = {
-  // Check subscription status
-  async checkSubscription(userId: string): Promise<SubscriptionResult> {
+interface UsageStatistics {
+  id: string;
+  user_id: string;
+  api_calls: number;
+  summaries_used: number;
+  storage_used: number;
+  last_reset: string;
+}
+
+export const subscriptionService = {
+  async getSubscriptionStatus(userId: string = 'local-user'): Promise<SubscriptionStatus> {
     try {
-      // Get user's subscription
+      // Get the user's subscription
       const result = await localStorageClient
         .from('subscriptions')
         .select()
         .eq('user_id', userId)
         .execute();
 
-      if (result.error) throw result.error;
-      
-      // In the localStorageClient, we need to find an item manually instead of using maybeSingle
-      const subscription = Array.isArray(result.data) && result.data.length > 0 
-        ? result.data[0] as SubscriptionInfo
-        : {
-            plan_id: 'free',
-            status: 'active',
-            user_id: userId,
-            current_period_start: new Date().toISOString(),
-            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            cancel_at_period_end: false
-          };
+      const subscriptions = result.data as any[];
+      const subscription = subscriptions && subscriptions.length > 0 ? subscriptions[0] : null;
 
-      let renewalNeeded = false;
+      let response: SubscriptionStatus = {
+        subscription: subscription || { planId: 'free', status: 'active' },
+        renewalNeeded: false,
+        usageLimits: {
+          aiRequests: { limit: 10, used: 0, percentage: 0 },
+          bookmarks: { limit: 50, used: 0, percentage: 0 },
+          tasks: { limit: 30, used: 0, percentage: 0 },
+          notes: { limit: 30, used: 0, percentage: 0 }
+        },
+        needsUpgrade: false
+      };
 
       // Check if subscription needs renewal
       if (subscription && subscription.status === 'active') {
@@ -56,7 +69,7 @@ export const SubscriptionService = {
         const now = new Date();
         const daysUntilExpiration = Math.floor((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         
-        renewalNeeded = daysUntilExpiration <= 3 && !subscription.cancel_at_period_end;
+        response.renewalNeeded = daysUntilExpiration <= 3 && !subscription.cancel_at_period_end;
         
         // If subscription is expired, downgrade to free
         if (currentPeriodEnd < now) {
@@ -66,47 +79,46 @@ export const SubscriptionService = {
               status: 'expired', 
               plan_id: 'free' 
             })
-            .eq('id', subscription.user_id)
+            .eq('id', subscription.id)
             .execute();
             
-          subscription.status = 'expired';
-          subscription.plan_id = 'free';
+          response.subscription.status = 'expired';
+          response.subscription.planId = 'free';
         }
       }
 
       // Get usage statistics
-      const usageResult = await localStorageClient
+      const usageStatsResult = await localStorageClient
         .from('usage_statistics')
         .select()
         .eq('user_id', userId)
         .execute();
 
-      const usageStats = Array.isArray(usageResult.data) && usageResult.data.length > 0 
-        ? usageResult.data[0] 
-        : { api_calls: 0 };
+      const usageStats = usageStatsResult.data && usageStatsResult.data.length > 0 
+        ? usageStatsResult.data[0] as UsageStatistics 
+        : null;
 
-      // Get counts from various tables using custom counting logic since we don't have count method
-      const bookmarkResult = await localStorageClient
+      // Get counts from various tables
+      const bookmarkCountResult = await localStorageClient
         .from('bookmark_metadata')
         .select()
         .eq('user_id', userId)
         .execute();
+      const bookmarkCount = bookmarkCountResult.data?.length || 0;
 
-      const taskResult = await localStorageClient
+      const taskCountResult = await localStorageClient
         .from('tasks')
         .select()
         .eq('user_id', userId)
         .execute();
+      const taskCount = taskCountResult.data?.length || 0;
 
-      const noteResult = await localStorageClient
+      const noteCountResult = await localStorageClient
         .from('notes')
         .select()
         .eq('user_id', userId)
         .execute();
-
-      const bookmarkCount = Array.isArray(bookmarkResult.data) ? bookmarkResult.data.length : 0;
-      const taskCount = Array.isArray(taskResult.data) ? taskResult.data.length : 0;
-      const noteCount = Array.isArray(noteResult.data) ? noteResult.data.length : 0;
+      const noteCount = noteCountResult.data?.length || 0;
 
       // Define limits based on plan
       const limits = {
@@ -115,133 +127,109 @@ export const SubscriptionService = {
         premium: { bookmarks: -1, tasks: -1, notes: -1, aiRequests: -1 }, // -1 means unlimited
       };
 
-      const planId = subscription.plan_id || 'free';
-      const planLimits = limits[planId as keyof typeof limits] || limits.free;
+      const planId = response.subscription.planId || 'free';
+      const planLimits: any = limits[planId as keyof typeof limits] || limits.free;
 
       // Calculate percentages
-      const usageLimits = {
+      response.usageLimits = {
         aiRequests: {
           limit: planLimits.aiRequests,
-          used: usageStats.api_calls || 0,
+          used: usageStats?.api_calls || 0,
           percentage: planLimits.aiRequests > 0 ? 
-            Math.min(100, Math.round((usageStats.api_calls || 0) / planLimits.aiRequests * 100)) : 0
+            Math.min(100, Math.round((usageStats?.api_calls || 0) / planLimits.aiRequests * 100)) : 0
         },
         bookmarks: {
           limit: planLimits.bookmarks,
-          used: bookmarkCount,
+          used: bookmarkCount || 0,
           percentage: planLimits.bookmarks > 0 ? 
-            Math.min(100, Math.round(bookmarkCount / planLimits.bookmarks * 100)) : 0
+            Math.min(100, Math.round((bookmarkCount || 0) / planLimits.bookmarks * 100)) : 0
         },
         tasks: {
           limit: planLimits.tasks,
-          used: taskCount,
+          used: taskCount || 0,
           percentage: planLimits.tasks > 0 ? 
-            Math.min(100, Math.round(taskCount / planLimits.tasks * 100)) : 0
+            Math.min(100, Math.round((taskCount || 0) / planLimits.tasks * 100)) : 0
         },
         notes: {
           limit: planLimits.notes,
-          used: noteCount,
+          used: noteCount || 0,
           percentage: planLimits.notes > 0 ? 
-            Math.min(100, Math.round(noteCount / planLimits.notes * 100)) : 0
+            Math.min(100, Math.round((noteCount || 0) / planLimits.notes * 100)) : 0
         }
       };
 
       // Check if user needs to upgrade (if using >80% of any limit)
-      const needsUpgrade = planId === 'free' && (
-        usageLimits.aiRequests.percentage >= 80 ||
-        usageLimits.bookmarks.percentage >= 80 ||
-        usageLimits.tasks.percentage >= 80 ||
-        usageLimits.notes.percentage >= 80
+      response.needsUpgrade = planId === 'free' && (
+        response.usageLimits.aiRequests.percentage >= 80 ||
+        response.usageLimits.bookmarks.percentage >= 80 ||
+        response.usageLimits.tasks.percentage >= 80 ||
+        response.usageLimits.notes.percentage >= 80
       );
 
-      return {
-        subscription,
-        renewalNeeded,
-        usageLimits,
-        needsUpgrade
-      };
+      return response;
     } catch (error) {
-      console.error('Error checking subscription:', error);
-      toast.error('Failed to check subscription status');
-      throw error;
+      console.error('Error fetching subscription status:', error);
+      // Return default values in case of error
+      return {
+        subscription: { planId: 'free', status: 'active' },
+        renewalNeeded: false,
+        usageLimits: {
+          aiRequests: { limit: 10, used: 0, percentage: 0 },
+          bookmarks: { limit: 50, used: 0, percentage: 0 },
+          tasks: { limit: 30, used: 0, percentage: 0 },
+          notes: { limit: 30, used: 0, percentage: 0 }
+        },
+        needsUpgrade: false
+      };
     }
   },
 
-  // Process payment
-  async processPayment(orderId: string, planId: string, autoRenew: boolean = true): Promise<{ success: boolean, subscription?: SubscriptionInfo }> {
+  async upgradeSubscription(planId: string, orderId: string): Promise<boolean> {
     try {
-      const userId = 'local-user'; // In a real app, get this from authentication
+      const userId = 'local-user'; // For local storage approach
       
-      // Get plan information
-      const subscriptionPlans = {
-        basic: { 
-          monthly: 4.99, 
-          yearly: 49.99,
-          durationMonths: 1
-        },
-        premium: { 
-          monthly: 9.99, 
-          yearly: 99.99,
-          durationMonths: 1
-        }
-      };
-      
-      const plan = subscriptionPlans[planId as keyof typeof subscriptionPlans];
-      if (!plan) {
-        throw new Error('Invalid plan ID');
-      }
-
-      // Calculate end date based on plan duration
+      // Calculate plan duration
       const startDate = new Date();
       const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + plan.durationMonths);
+      
+      // Set duration based on plan type
+      if (planId.includes('yearly')) {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
 
-      // Update the subscription record
-      const subscriptionData = {
-        plan_id: planId,
-        status: 'active',
-        current_period_start: startDate.toISOString(),
-        current_period_end: endDate.toISOString(),
-        cancel_at_period_end: !autoRenew,
-        user_id: userId,
-      };
-
-      // Check if subscription already exists for this user
-      const existingResult = await localStorageClient
+      // Check if subscription already exists
+      const subscriptionResult = await localStorageClient
         .from('subscriptions')
         .select()
         .eq('user_id', userId)
         .execute();
 
-      const existingSubscription = Array.isArray(existingResult.data) && existingResult.data.length > 0 
-        ? existingResult.data[0] 
-        : null;
+      const subscriptions = subscriptionResult.data as any[];
+      const existingSubscription = subscriptions && subscriptions.length > 0 ? subscriptions[0] : null;
+
+      const subscriptionData = {
+        plan_id: planId,
+        status: 'active',
+        current_period_start: startDate.toISOString(),
+        current_period_end: endDate.toISOString(),
+        cancel_at_period_end: false,
+        user_id: userId,
+      };
 
       // Either update or insert the subscription record
-      let subscriptionResult;
       if (existingSubscription) {
-        subscriptionResult = await localStorageClient
+        await localStorageClient
           .from('subscriptions')
           .update(subscriptionData)
           .eq('id', existingSubscription.id)
           .execute();
-        
-        if (subscriptionResult.error) throw subscriptionResult.error;
-        
-        // We don't have .single() in local client, so construct the data ourselves
-        subscriptionResult.data = subscriptionResult.data && Array.isArray(subscriptionResult.data) && subscriptionResult.data.length > 0 
-          ? subscriptionResult.data[0] 
-          : subscriptionData;
       } else {
-        subscriptionResult = await localStorageClient
+        await localStorageClient
           .from('subscriptions')
           .insert(subscriptionData)
           .execute();
-          
-        if (subscriptionResult.error) throw subscriptionResult.error;
-        
-        // We don't have .single() in local client, so construct the data ourselves
-        subscriptionResult.data = subscriptionData;
       }
 
       // Log the transaction
@@ -251,27 +239,28 @@ export const SubscriptionService = {
           user_id: userId,
           order_id: orderId,
           plan_id: planId,
-          amount: plan.monthly, // Assuming monthly plan for simplicity
+          amount: planId.includes('premium') ? 
+            (planId.includes('yearly') ? 99.99 : 9.99) : 
+            (planId.includes('yearly') ? 49.99 : 4.99),
           status: 'completed',
           provider: 'paypal',
-          auto_renew: autoRenew,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          auto_renew: true,
+          created_at: new Date().toISOString()
         })
         .execute();
 
       // Reset usage statistics
-      const statsResult = await localStorageClient
+      const usageStatsResult = await localStorageClient
         .from('usage_statistics')
         .select()
         .eq('user_id', userId)
         .execute();
-      
-      const existingStats = Array.isArray(statsResult.data) && statsResult.data.length > 0 
-        ? statsResult.data[0] 
+
+      const usageStats = usageStatsResult.data && usageStatsResult.data.length > 0 
+        ? usageStatsResult.data[0] 
         : null;
       
-      if (existingStats) {
+      if (usageStats) {
         await localStorageClient
           .from('usage_statistics')
           .update({
@@ -279,7 +268,7 @@ export const SubscriptionService = {
             summaries_used: 0,
             api_calls: 0,
           })
-          .eq('id', existingStats.id)
+          .eq('id', usageStats.id)
           .execute();
       } else {
         await localStorageClient
@@ -294,36 +283,90 @@ export const SubscriptionService = {
           .execute();
       }
 
-      toast.success('Payment processed successfully');
-      return { 
-        success: true, 
-        subscription: subscriptionResult.data
-      };
+      return true;
     } catch (error) {
-      console.error('Error processing payment:', error);
-      toast.error('Failed to process payment');
-      return { success: false };
+      console.error('Error upgrading subscription:', error);
+      return false;
     }
   },
 
-  // Get PayPal configuration (simplified local version)
-  async getPayPalConfig(): Promise<{ configured: boolean, clientId: string, mode: string }> {
+  async cancelSubscription(renewAtEnd: boolean = false): Promise<boolean> {
     try {
-      const configResult = await localStorageClient
+      const userId = 'local-user'; // For local storage approach
+
+      // Get current subscription
+      const subscriptionResult = await localStorageClient
+        .from('subscriptions')
+        .select()
+        .eq('user_id', userId)
+        .execute();
+
+      const subscriptions = subscriptionResult.data as any[];
+      const existingSubscription = subscriptions && subscriptions.length > 0 ? subscriptions[0] : null;
+
+      if (!existingSubscription) {
+        return false;
+      }
+
+      if (renewAtEnd) {
+        // Just mark to cancel at period end
+        await localStorageClient
+          .from('subscriptions')
+          .update({ cancel_at_period_end: true })
+          .eq('id', existingSubscription.id)
+          .execute();
+      } else {
+        // Cancel immediately
+        await localStorageClient
+          .from('subscriptions')
+          .update({ 
+            status: 'cancelled',
+            plan_id: 'free',
+            cancel_at_period_end: true 
+          })
+          .eq('id', existingSubscription.id)
+          .execute();
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      return false;
+    }
+  },
+
+  async getPaymentHistory(userId: string = 'local-user'): Promise<any[]> {
+    try {
+      const result = await localStorageClient
+        .from('payment_history')
+        .select()
+        .eq('user_id', userId)
+        .execute();
+
+      return result.data as any[] || [];
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
+  },
+
+  async getPayPalConfig(): Promise<{configured: boolean, clientId: string, mode: string}> {
+    try {
+      const result = await localStorageClient
         .from('app_configuration')
         .select()
         .eq('key', 'paypal')
         .execute();
 
-      if (configResult.error) throw configResult.error;
+      const configs = result.data as any[];
+      const configData = configs && configs.length > 0 ? configs[0] : null;
 
       let configured = false;
       let clientId = '';
       let mode = 'sandbox';
 
-      if (configResult.data && Array.isArray(configResult.data) && configResult.data.length > 0) {
-        // Data exists, check if it has required fields
-        const config = configResult.data[0].value;
+      if (configData && configData.value) {
+        const config = configData.value;
         const hasClientId = config.client_id && config.client_id.length > 10;
         const hasClientSecret = config.client_secret && config.client_secret.length > 10;
         
@@ -332,19 +375,10 @@ export const SubscriptionService = {
         mode = config.mode || 'sandbox';
       }
 
-      return {
-        configured,
-        clientId,
-        mode
-      };
+      return { configured, clientId, mode };
     } catch (error) {
-      console.error('Error checking PayPal configuration:', error);
-      toast.error('Failed to check PayPal configuration');
-      return {
-        configured: false,
-        clientId: '',
-        mode: 'sandbox'
-      };
+      console.error('Error fetching PayPal config:', error);
+      return { configured: false, clientId: '', mode: 'sandbox' };
     }
   }
 };

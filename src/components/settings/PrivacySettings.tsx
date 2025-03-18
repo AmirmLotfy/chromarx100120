@@ -1,403 +1,330 @@
-import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { useSettings } from "@/stores/settingsStore";
-import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
-import { Link } from "react-router-dom";
-import {
-  Shield,
-  Lock,
-  Cloud,
-  BarChart,
-  Tag,
-  RefreshCw,
-  Download,
-  Loader2,
-  Clock,
-  Database
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Trash2, Download, Upload, Shield } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { localBackup } from "@/services/localBackupService";
-import { useFeatureAccess } from "@/hooks/use-feature-access";
-import DataSecuritySettings from "./DataSecuritySettings";
-
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "info" | "warning";
-
-interface SettingBadge {
-  text: string;
-  variant: BadgeVariant;
-}
-
-interface SettingProps {
-  id: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  isChecked: boolean;
-  onChange: (checked: boolean) => void;
-  badge?: SettingBadge;
-  disabled?: boolean;
-}
 
 const PrivacySettings = () => {
-  const settings = useSettings();
-  const { user, loading } = useAuth();
-  const { checkAccess } = useFeatureAccess();
-  const [confirmDisableBackup, setConfirmDisableBackup] = useState(false);
-  const [confirmDisableDataCollection, setConfirmDisableDataCollection] = useState(false);
-  const [syncInProgress, setSyncInProgress] = useState(false);
-
-  const handleDataCollection = async (enabled: boolean) => {
-    if (!enabled && !confirmDisableDataCollection) {
-      setConfirmDisableDataCollection(true);
-      return;
-    }
-    
-    setConfirmDisableDataCollection(false);
-    await settings.setDataCollection(enabled, user?.id);
-    toast.success(`Data collection ${enabled ? 'enabled' : 'disabled'}`);
-  };
-
-  const handleExperimentalFeatures = async (enabled: boolean) => {
-    if (enabled && !(await checkAccess('experimental'))) {
-      return;
-    }
-    
-    settings.setExperimentalFeatures(enabled);
-    toast.success(`Experimental features ${enabled ? 'enabled' : 'disabled'}`);
-  };
-
-  const handleAffiliateBannersEnabled = (enabled: boolean) => {
-    settings.setAffiliateBannersEnabled(enabled);
-    toast.success(`Affiliate content ${enabled ? 'enabled' : 'disabled'}`);
-  };
-
-  const handleCloudBackup = async (enabled: boolean) => {
-    if (!enabled && !confirmDisableBackup) {
-      setConfirmDisableBackup(true);
-      return;
-    }
-    
-    setConfirmDisableBackup(false);
-    
-    if (enabled && !user) {
-      toast.error("You must be logged in to enable cloud backup");
-      return;
-    }
-    
-    if (enabled && !(await checkAccess('cloud_backup'))) {
-      return;
-    }
-    
-    await settings.setCloudBackupEnabled(enabled);
-    
-    if (enabled && user) {
-      try {
-        setSyncInProgress(true);
-        await localBackup.syncAll();
-        toast.success("Settings backed up to cloud");
-      } catch (error) {
-        console.error("Error syncing to cloud:", error);
-        toast.error("Failed to sync settings to cloud");
-      } finally {
-        setSyncInProgress(false);
-      }
-    } else {
-      toast.success(`Cloud backup ${enabled ? 'enabled' : 'disabled'}`);
-    }
-  };
-
-  const syncNow = async () => {
-    if (!user || !settings.cloudBackupEnabled) {
-      toast.error("Cloud backup must be enabled and you must be logged in");
-      return;
-    }
-    
-    try {
-      setSyncInProgress(true);
-      await localBackup.syncAll();
-      settings.syncSettingsWithServer(user.id);
-      toast.success("Settings synced to cloud");
-    } catch (error) {
-      console.error("Error syncing to cloud:", error);
-      toast.error("Failed to sync settings to cloud");
-    } finally {
-      setSyncInProgress(false);
-    }
-  };
-
-  const restoreFromCloud = async () => {
-    if (!user || !settings.cloudBackupEnabled) {
-      toast.error("Cloud backup must be enabled and you must be logged in");
-      return;
-    }
-    
-    try {
-      setSyncInProgress(true);
-      await localBackup.restoreFromBackup();
-      await settings.fetchSettingsFromServer(user.id);
-      toast.success("Settings restored from cloud");
-    } catch (error) {
-      console.error("Error restoring from cloud:", error);
-      toast.error("Failed to restore settings from cloud");
-    } finally {
-      setSyncInProgress(false);
-    }
-  };
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0 }
-  };
-
-  const Setting = ({ id, icon, title, description, isChecked, onChange, badge, disabled = false }: SettingProps) => (
-    <div className="flex items-center justify-between py-4 border-b border-border/20 last:border-none">
-      <div className="flex gap-3">
-        <div className="mt-0.5 text-primary flex-shrink-0" aria-hidden="true">{icon}</div>
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <Label htmlFor={id} className="text-sm font-medium cursor-pointer">
-              {title}
-            </Label>
-            {badge && (
-              <Badge 
-                variant={badge.variant}
-                className="text-[10px] h-4"
-              >
-                {badge.text}
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground" id={`${id}-description`}>
-            {description}
-          </p>
-        </div>
-      </div>
-      <Switch
-        id={id}
-        checked={isChecked}
-        onCheckedChange={onChange}
-        aria-label={`${title} ${isChecked ? 'enabled' : 'disabled'}`}
-        aria-describedby={`${id}-description`}
-        disabled={disabled}
-      />
-    </div>
+  const [isDataCollectionEnabled, setIsDataCollectionEnabled] = useState(
+    localStorage.getItem('enableDataCollection') !== 'false'
   );
+  const [isAnalyticsEnabled, setIsAnalyticsEnabled] = useState(
+    localStorage.getItem('enableAnalytics') !== 'false'
+  );
+  const [isEraseDialogOpen, setIsEraseDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [exportData, setExportData] = useState<string | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleDataCollectionToggle = () => {
+    const newValue = !isDataCollectionEnabled;
+    setIsDataCollectionEnabled(newValue);
+    localStorage.setItem('enableDataCollection', newValue.toString());
+    toast.success(`Data collection ${newValue ? 'enabled' : 'disabled'}`);
+  };
+
+  const handleAnalyticsToggle = () => {
+    const newValue = !isAnalyticsEnabled;
+    setIsAnalyticsEnabled(newValue);
+    localStorage.setItem('enableAnalytics', newValue.toString());
+    toast.success(`Analytics ${newValue ? 'enabled' : 'disabled'}`);
+  };
+
+  const handleEraseAllData = () => {
+    setIsProcessing(true);
+    
+    // Simulate processing delay
+    setTimeout(() => {
+      // Clear all local storage
+      localStorage.clear();
+      
+      // Close dialog and show success message
+      setIsEraseDialogOpen(false);
+      setIsProcessing(false);
+      toast.success('All data has been erased');
+      
+      // Reset toggles
+      setIsDataCollectionEnabled(true);
+      setIsAnalyticsEnabled(true);
+    }, 1500);
+  };
+
+  const handleExportData = () => {
+    setIsProcessing(true);
+    
+    // Collect all data from localStorage
+    const data: Record<string, any> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        try {
+          data[key] = JSON.parse(localStorage.getItem(key) || 'null');
+        } catch (e) {
+          data[key] = localStorage.getItem(key);
+        }
+      }
+    }
+    
+    // Convert to JSON and create a downloadable data URL
+    const jsonData = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const dataUrl = URL.createObjectURL(blob);
+    
+    setExportData(dataUrl);
+    setIsProcessing(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setImportFile(e.target.files[0]);
+    }
+  };
+
+  const handleImportData = () => {
+    if (!importFile) {
+      toast.error('Please select a file to import');
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        
+        // Clear existing data first
+        localStorage.clear();
+        
+        // Import all key-value pairs
+        Object.entries(data).forEach(([key, value]) => {
+          if (typeof value === 'object') {
+            localStorage.setItem(key, JSON.stringify(value));
+          } else {
+            localStorage.setItem(key, String(value));
+          }
+        });
+        
+        setIsImportDialogOpen(false);
+        setIsProcessing(false);
+        toast.success('Data imported successfully');
+        
+        // Reset file input
+        setImportFile(null);
+      } catch (error) {
+        toast.error('Failed to import data: Invalid format');
+        setIsProcessing(false);
+      }
+    };
+    
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+      setIsProcessing(false);
+    };
+    
+    reader.readAsText(importFile);
+  };
+
+  const handleRestoreBackup = async () => {
+    setIsProcessing(true);
+    try {
+      const success = await localBackup.restore();
+      if (success) {
+        toast.success('Data restored successfully from backup');
+      } else {
+        toast.error('Failed to restore data from backup');
+      }
+    } catch (error) {
+      console.error('Error restoring from backup:', error);
+      toast.error('An error occurred during restoration');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="space-y-6"
-      key="privacy-settings-container"
-    >
-      <Dialog open={confirmDisableDataCollection} onOpenChange={setConfirmDisableDataCollection}>
-        <DialogContent className="sm:max-w-[425px] rounded-xl">
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Privacy & Data
+        </CardTitle>
+        <CardDescription>
+          Manage your data privacy settings and export or delete your data
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Toggle settings */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="data-collection" className="font-medium">Data Collection</Label>
+              <p className="text-sm text-muted-foreground">Allow app to collect usage data to improve features</p>
+            </div>
+            <Switch
+              id="data-collection"
+              checked={isDataCollectionEnabled}
+              onCheckedChange={handleDataCollectionToggle}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="analytics" className="font-medium">Analytics</Label>
+              <p className="text-sm text-muted-foreground">Enable analytics for personalized insights</p>
+            </div>
+            <Switch
+              id="analytics"
+              checked={isAnalyticsEnabled}
+              onCheckedChange={handleAnalyticsToggle}
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4">
+          {/* Export data button */}
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setIsExportDialogOpen(true)}
+          >
+            <Download className="h-4 w-4" />
+            Export Data
+          </Button>
+          
+          {/* Import data button */}
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setIsImportDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Import Data
+          </Button>
+          
+          {/* Restore from backup button */}
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleRestoreBackup}
+            disabled={isProcessing}
+          >
+            <Download className="h-4 w-4" />
+            Restore Backup
+          </Button>
+          
+          {/* Erase data button */}
+          <Button
+            variant="destructive"
+            className="flex items-center gap-2 col-span-full mt-4"
+            onClick={() => setIsEraseDialogOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Erase All Data
+          </Button>
+        </div>
+      </CardContent>
+      
+      {/* Erase data confirmation dialog */}
+      <Dialog open={isEraseDialogOpen} onOpenChange={setIsEraseDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Disable Data Collection?</DialogTitle>
+            <DialogTitle>Erase All Data</DialogTitle>
             <DialogDescription>
-              Disabling data collection will prevent us from gathering anonymous usage data that helps improve the application. This may affect certain features that rely on this data.
+              This action cannot be undone. All your bookmarks, notes, tasks, and settings will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setConfirmDisableDataCollection(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => handleDataCollection(false)}>Disable Data Collection</Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEraseDialogOpen(false)} disabled={isProcessing}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleEraseAllData} disabled={isProcessing}>
+              {isProcessing ? 'Erasing...' : 'Erase All Data'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      <Dialog open={confirmDisableBackup} onOpenChange={setConfirmDisableBackup}>
-        <DialogContent className="sm:max-w-[425px] rounded-xl">
+      {/* Export data dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Disable Cloud Backup?</DialogTitle>
+            <DialogTitle>Export Your Data</DialogTitle>
             <DialogDescription>
-              Disabling cloud backup will stop syncing your settings across devices. Your existing data will remain in the cloud but won't be updated. You can re-enable this feature anytime.
+              Download all your data in JSON format for backup or transfer to another device.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setConfirmDisableBackup(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => handleCloudBackup(false)}>Disable Cloud Backup</Button>
+          <div className="py-4">
+            {isProcessing ? (
+              <p className="text-center">Preparing your data for export...</p>
+            ) : exportData ? (
+              <div className="flex justify-center">
+                <a
+                  href={exportData}
+                  download="my-app-data.json"
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Data
+                </a>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsExportDialogOpen(false);
+              setExportData(null);
+            }}>
+              Close
+            </Button>
+            {!exportData && !isProcessing && (
+              <Button onClick={handleExportData}>
+                Prepare Download
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <motion.div variants={item} className="mb-3" key="privacy-heading">
-        <h2 className="text-lg font-medium">Privacy & Data</h2>
-        <p className="text-sm text-muted-foreground">Manage how your data is used</p>
-      </motion.div>
-
-      <motion.div variants={item} key="privacy-settings-card">
-        <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
-          <CardContent className="p-0 divide-y divide-border/10">
-            <Setting
-              id="data-collection"
-              icon={<BarChart className="h-4 w-4" />}
-              title="Usage Analytics"
-              description="Help us improve with anonymous usage data"
-              isChecked={settings.dataCollection}
-              onChange={handleDataCollection}
+      
+      {/* Import data dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Data</DialogTitle>
+            <DialogDescription>
+              Import previously exported data. This will replace all current data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="w-full"
+              disabled={isProcessing}
             />
-            
-            <Setting
-              id="affiliate-content"
-              icon={<Tag className="h-4 w-4" />}
-              title="Affiliate Content"
-              description="Show relevant product recommendations"
-              isChecked={settings.affiliateBannersEnabled}
-              onChange={handleAffiliateBannersEnabled}
-              badge={{ text: "Sponsored", variant: "outline" }}
-            />
-            
-            <Setting
-              id="auto-detect-bookmarks"
-              icon={<RefreshCw className="h-4 w-4" />}
-              title="Auto-detect Bookmarks"
-              description="Automatically scan for bookmark changes"
-              isChecked={settings.autoDetectBookmarks}
-              onChange={settings.setAutoDetectBookmarks}
-            />
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      <motion.div variants={item} className="mb-3 mt-8" key="experimental-heading">
-        <h2 className="text-lg font-medium">Experimental Features</h2>
-        <p className="text-sm text-muted-foreground">Access to pre-release functionality</p>
-      </motion.div>
-
-      <motion.div variants={item} key="experimental-card">
-        <Card className="overflow-hidden border border-border/40 shadow-sm rounded-xl bg-card/30 backdrop-blur-sm">
-          <CardContent className="p-0">
-            <div className="divide-y divide-border/10">
-              <Setting
-                id="beta-features"
-                icon={<Shield className="h-4 w-4" />}
-                title="Beta Features"
-                description="Enable experimental features and improvements"
-                isChecked={settings.experimentalFeatures}
-                onChange={handleExperimentalFeatures}
-                badge={{ text: "Beta", variant: "secondary" }}
-              />
-              
-              <Setting
-                id="cloud-backup"
-                icon={<Cloud className="h-4 w-4" />}
-                title="Cloud Backup"
-                description="Sync your data across devices"
-                isChecked={settings.cloudBackupEnabled}
-                onChange={handleCloudBackup}
-                badge={{ text: "New", variant: "secondary" }}
-              />
-            </div>
-            
-            {user && settings.cloudBackupEnabled && (
-              <div className="p-4 space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-xs h-8 rounded-lg shadow-sm"
-                    onClick={syncNow}
-                    disabled={syncInProgress}
-                    aria-label="Sync settings to cloud now"
-                  >
-                    {syncInProgress ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-1.5 animate-spin" aria-hidden="true" />
-                        <span>Syncing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-3 w-3 mr-1.5" aria-hidden="true" />
-                        <span>Sync Now</span>
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-xs h-8 rounded-lg shadow-sm"
-                    onClick={restoreFromCloud}
-                    disabled={syncInProgress}
-                    aria-label="Restore settings from cloud"
-                  >
-                    <Download className="h-3 w-3 mr-1.5" aria-hidden="true" />
-                    <span>Restore</span>
-                  </Button>
-                </div>
-                
-                {settings.lastSynced && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 mr-1.5" aria-hidden="true" />
-                    <span>Last synced: {new Date(settings.lastSynced).toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {!user && settings.cloudBackupEnabled === false && (
-              <div className="px-4 pb-4">
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="text-xs h-auto p-0" 
-                  asChild
-                  aria-label="Login for cloud backup"
-                >
-                  <Link to="/auth">
-                    <Lock className="h-3 w-3 mr-1.5" aria-hidden="true" />
-                    <span>Login required for cloud backup</span>
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      <motion.div variants={item} className="mb-3 mt-8" key="data-security-heading">
-        <h2 className="text-lg font-medium flex items-center gap-2">
-          <Database className="h-4 w-4 text-primary" />
-          Data Security
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Manage your data protection and privacy controls
-        </p>
-      </motion.div>
-
-      <motion.div variants={item} key="data-security-settings">
-        <DataSecuritySettings />
-      </motion.div>
-    </motion.div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsImportDialogOpen(false);
+              setImportFile(null);
+            }} disabled={isProcessing}>
+              Cancel
+            </Button>
+            <Button onClick={handleImportData} disabled={!importFile || isProcessing}>
+              {isProcessing ? 'Importing...' : 'Import Data'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 };
 

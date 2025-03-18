@@ -2,6 +2,21 @@
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import { toast } from "sonner";
 
+export interface BackupData {
+  bookmarks: any[];
+  notes: any[];
+  tasks: any[];
+  timestamp: string;
+}
+
+export interface BackupRecord {
+  id: string;
+  key: string;
+  value: BackupData;
+  user_id: string;
+  created_at: string;
+}
+
 export const localBackup = {
   async syncAll(): Promise<boolean> {
     try {
@@ -57,7 +72,8 @@ export const localBackup = {
       }
       
       // Sort by timestamp to get the latest
-      const latestBackup = result.data.sort((a, b) => {
+      const backupRecords = result.data as BackupRecord[];
+      const latestBackup = backupRecords.sort((a, b) => {
         const dateA = new Date(a.created_at || 0);
         const dateB = new Date(b.created_at || 0);
         return dateB.getTime() - dateA.getTime();
