@@ -15,6 +15,10 @@ interface AuthContextType {
   login: () => Promise<boolean>;
   logout: () => Promise<boolean>;
   refreshUserInfo: () => Promise<any>;
+  // Adding aliases for backward compatibility with existing code
+  user: any;
+  loading: boolean;
+  signInWithGoogle: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,7 +27,11 @@ const AuthContext = createContext<AuthContextType>({
   userInfo: null,
   login: async () => false,
   logout: async () => false,
-  refreshUserInfo: async () => null
+  refreshUserInfo: async () => null,
+  // Adding aliases for backward compatibility
+  user: null,
+  loading: true,
+  signInWithGoogle: async () => false
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -118,6 +126,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Creating alias functions for backward compatibility
+  const signInWithGoogle = login;
+  
   return (
     <AuthContext.Provider
       value={{
@@ -126,7 +137,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userInfo,
         login,
         logout,
-        refreshUserInfo
+        refreshUserInfo,
+        // Aliases for backward compatibility
+        user: userInfo,
+        loading: isLoading,
+        signInWithGoogle
       }}
     >
       {children}

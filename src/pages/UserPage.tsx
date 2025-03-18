@@ -1,16 +1,17 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageTitle } from '@/components/PageTitle';
+import PageTitle from '@/components/PageTitle';
 import { EnhancedAuthPanel } from '@/components/auth/EnhancedAuthPanel';
 import { useAuth } from '@/hooks/useAuth';
+import { BookmarkStreamProcessingDemo } from '@/components/data-processing';
 
 export function UserPage() {
   const { isLoggedIn, userInfo } = useAuth();
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <PageTitle>User Account</PageTitle>
+      <PageTitle title="User Account" />
       
       <Tabs defaultValue="profile">
         <TabsList className="grid w-full grid-cols-3">
@@ -44,6 +45,11 @@ export function UserPage() {
           <p className="text-muted-foreground mt-2">
             Manage your account security and privacy settings.
           </p>
+          
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-4">Data Processing</h3>
+            <BookmarkStreamProcessingDemo />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
