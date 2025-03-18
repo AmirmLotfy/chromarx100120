@@ -17,7 +17,7 @@ class ServiceWorkerController {
   private registration: ServiceWorkerRegistration | null = null;
   private messageListeners: Map<string, Set<MessageCallback>> = new Map();
   private status: ServiceWorkerStatus = 'unregistered';
-  private readonly serviceWorkerPath: string;
+  private serviceWorkerPath: string;
 
   constructor() {
     // Use the appropriate service worker based on environment
@@ -29,7 +29,7 @@ class ServiceWorkerController {
   /**
    * Initialize and register the service worker
    */
-  async initialize(): Promise<boolean> {
+  async initialize(customPath?: string): Promise<boolean> {
     if (!isBrowserEnvironment() || !('serviceWorker' in navigator)) {
       console.warn('Service Workers are not supported in this environment');
       this.status = 'error';
@@ -37,8 +37,10 @@ class ServiceWorkerController {
     }
 
     try {
-      console.log(`Registering service worker from: ${this.serviceWorkerPath}`);
-      this.registration = await navigator.serviceWorker.register(this.serviceWorkerPath);
+      // Use custom path if provided
+      const swPath = customPath || this.serviceWorkerPath;
+      console.log(`Registering service worker from: ${swPath}`);
+      this.registration = await navigator.serviceWorker.register(swPath);
       
       this.status = this.registration.active ? 'active' : 'registered';
       console.log('Service worker registered successfully:', this.registration.scope);
@@ -47,7 +49,7 @@ class ServiceWorkerController {
       navigator.serviceWorker.addEventListener('message', this.handleMessage);
       
       // Store registration information
-      await storage.set('serviceWorkerRegistration', {
+      await storage.storage.set('serviceWorkerRegistration', {
         timestamp: Date.now(),
         scope: this.registration.scope,
         status: this.status
@@ -164,6 +166,24 @@ class ServiceWorkerController {
       return true;
     } catch (error) {
       console.error('Service worker update failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Skip waiting and activate new service worker
+   */
+  async skipWaiting(): Promise<boolean> {
+    if (!this.registration || !this.registration.waiting) {
+      return false;
+    }
+
+    try {
+      // Send skip waiting message to the waiting service worker
+      this.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      return true;
+    } catch (error) {
+      console.error('Service worker skip waiting failed:', error);
       return false;
     }
   }

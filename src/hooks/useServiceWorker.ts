@@ -7,19 +7,21 @@ interface UseServiceWorkerOptions {
   showToasts?: boolean;
   onStatusChange?: (status: string) => void;
   onMessage?: (type: string, data: any) => void;
+  path?: string; // Added path property to support ChatOfflineNotice
 }
 
 /**
  * Hook for interacting with the service worker controller
  */
 export function useServiceWorker(options: UseServiceWorkerOptions = {}) {
-  const { showToasts = true, onStatusChange, onMessage } = options;
+  const { showToasts = true, onStatusChange, onMessage, path } = options;
   
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState(serviceWorkerController.getStatus());
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cacheInfo, setCacheInfo] = useState<any>(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false); // Added updateAvailable state
 
   // Initialize and get status
   useEffect(() => {
@@ -33,7 +35,7 @@ export function useServiceWorker(options: UseServiceWorkerOptions = {}) {
       
       if (currentStatus === 'unregistered') {
         // Try to initialize
-        const success = await serviceWorkerController.initialize();
+        const success = await serviceWorkerController.initialize(path);
         
         if (mounted) {
           setIsActive(success);
@@ -92,6 +94,17 @@ export function useServiceWorker(options: UseServiceWorkerOptions = {}) {
       }
     });
     
+    // Set up service worker update listener
+    const unsubscribeUpdateFound = serviceWorkerController.subscribe('UPDATE_FOUND', (data) => {
+      if (mounted) {
+        setUpdateAvailable(true);
+        
+        if (showToasts) {
+          toast.info('Service worker update available');
+        }
+      }
+    });
+    
     // Set up a general message handler
     const unsubscribeMessage = serviceWorkerController.subscribe('*', (data) => {
       if (mounted && onMessage) {
@@ -104,9 +117,10 @@ export function useServiceWorker(options: UseServiceWorkerOptions = {}) {
       unsubscribeTaskUpdate();
       unsubscribeTaskCompleted();
       unsubscribeTaskFailed();
+      unsubscribeUpdateFound();
       unsubscribeMessage();
     };
-  }, [showToasts, onStatusChange, onMessage]);
+  }, [showToasts, onStatusChange, onMessage, path]);
 
   // Update status when it changes
   useEffect(() => {
@@ -226,19 +240,37 @@ export function useServiceWorker(options: UseServiceWorkerOptions = {}) {
     return success;
   }, [showToasts]);
 
+  // Skip waiting and activate the new service worker
+  const skipWaiting = useCallback(async () => {
+    if (!serviceWorkerController.isReady()) {
+      return false;
+    }
+    
+    const success = await serviceWorkerController.skipWaiting();
+    
+    if (success && showToasts) {
+      toast.success('Service worker activated');
+      setUpdateAvailable(false);
+    }
+    
+    return success;
+  }, [showToasts]);
+
   return {
     isActive,
     status,
     isLoading,
     pendingTasks,
     cacheInfo,
+    updateAvailable, // Export the updateAvailable state
     scheduleTask,
     processTasks,
     refreshTasks,
     refreshCacheInfo,
     clearCache,
     unregister,
-    update
+    update,
+    skipWaiting // Export the skipWaiting function
   };
 }
 

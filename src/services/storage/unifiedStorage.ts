@@ -23,6 +23,38 @@ class UnifiedStorage implements IUnifiedStorage {
     // Any initialization logic can go here
     console.log('Unified storage system initialized');
   }
+
+  /**
+   * Proxy method for chromeStorageProvider.set
+   * This allows direct usage of storage.set
+   */
+  async set(key: string, value: any): Promise<void> {
+    return this.storage.set(key, value);
+  }
+
+  /**
+   * Proxy method for chromeStorageProvider.get
+   * This allows direct usage of storage.get
+   */
+  async get(key: string): Promise<any> {
+    return this.storage.get(key);
+  }
+
+  /**
+   * Proxy method for chromeStorageProvider.remove
+   * This allows direct usage of storage.remove
+   */
+  async remove(key: string): Promise<void> {
+    return this.storage.remove(key);
+  }
+
+  /**
+   * Proxy method for chromeStorageProvider.clear
+   * This allows direct usage of storage.clear
+   */
+  async clear(): Promise<void> {
+    return this.storage.clear();
+  }
 }
 
 /**
