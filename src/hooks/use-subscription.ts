@@ -15,9 +15,14 @@ import {
   updatePaymentMethod as updatePaymentMethodUtils,
   changeBillingCycle as changeBillingCycleUtils,
   resetMonthlyUsage,
-  createDefaultUsage
+  createDefaultUsage,
+  queueOfflineAction,
+  processOfflineActions,
+  changePlan as changePlanUtils
 } from "@/utils/subscriptionUtils";
 import { processRenewal, retryFailedRenewals } from "@/utils/subscriptionRenewal";
+import { t, formatCurrency } from "@/utils/i18n";
+import { useOfflineDetector } from "./use-offline-detector";
 
 // Set up a namespaced logger
 const logger = createNamespacedLogger("useSubscription");
@@ -37,6 +42,7 @@ interface UseSubscriptionReturn {
   }) => Promise<{success: boolean; error?: any}>;
   setAutoRenew: (autoRenew: boolean) => Promise<{success: boolean; error?: any}>;
   changeBillingCycle: (cycle: 'monthly' | 'yearly') => Promise<{success: boolean; error?: any}>;
+  changePlan: (planId: string) => Promise<{success: boolean; error?: any; proratedAmount?: number}>;
   getInvoiceUrl: (paymentId: string) => string;
   getPaymentHistory: () => Promise<any[]>;
   getRemainingUsage: () => Promise<Record<string, number> | null>;
@@ -48,6 +54,7 @@ interface UseSubscriptionReturn {
   isTrialActive: () => boolean;
   checkSubscriptionStatus: (subscription?: UserSubscription) => Promise<void>;
   refreshSubscription: () => Promise<void>;
+  isOffline: boolean;
 }
 
 export const useSubscription = (): UseSubscriptionReturn => {
@@ -55,6 +62,14 @@ export const useSubscription = (): UseSubscriptionReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>("free"); // For compatibility
+  const { isOffline, reconnected } = useOfflineDetector();
+  
+  // Refresh subscription data when coming back online
+  useEffect(() => {
+    if (reconnected) {
+      processOfflineActions().then(() => refreshSubscription());
+    }
+  }, [reconnected]);
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -70,13 +85,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
           setCurrentPlan(sub.planId);
           
           // Check subscription status and handle renewals if needed
-          await checkSubscriptionStatus(sub as UserSubscription);
-          
-          // Check if we need to reset monthly usage (first day of month)
-          await checkMonthlyReset(sub as UserSubscription);
-          
-          // Try to retry any failed renewals
-          await retryFailedRenewals();
+          // Only perform online operations if we're actually online
+          if (!isOffline) {
+            await checkSubscriptionStatus(sub as UserSubscription);
+            await checkMonthlyReset(sub as UserSubscription);
+            await retryFailedRenewals();
+          }
         } else {
           // Default to free plan if no subscription found
           const defaultSub: UserSubscription = {
@@ -114,14 +128,14 @@ export const useSubscription = (): UseSubscriptionReturn => {
     // Every hour for active subscriptions to catch auto-renewals
     // Every day for free users to check for resets
     const checkInterval = setInterval(() => {
-      if (subscription) {
+      if (subscription && !isOffline) {
         checkSubscriptionStatus(subscription);
         checkMonthlyReset(subscription);
       }
     }, 60 * 60 * 1000); // 1 hour
     
     return () => clearInterval(checkInterval);
-  }, []);
+  }, [isOffline]);
 
   // Check if we need to reset monthly usage (first day of month)
   const checkMonthlyReset = async (sub: UserSubscription) => {
@@ -305,6 +319,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
     try {
       if (!subscription) return { success: false, error: 'No subscription found' };
       
+      // If offline, queue the action for later
+      if (isOffline) {
+        const queued = await queueOfflineAction('change_auto_renew', { autoRenew });
+        return { success: queued, error: queued ? undefined : 'Failed to queue offline action' };
+      }
+      
       const result = await setAutoRenewUtils(autoRenew);
       
       if (result) {
@@ -317,12 +337,18 @@ export const useSubscription = (): UseSubscriptionReturn => {
       logger.error('Error setting auto-renew:', err);
       return { success: false, error: err };
     }
-  }, [subscription]);
+  }, [subscription, isOffline]);
 
   // Cancel subscription
   const cancelSubscription = useCallback(async (immediate: boolean = false) => {
     try {
       if (!subscription) return { success: false, error: 'No subscription found' };
+      
+      // If offline, queue the action for later
+      if (isOffline) {
+        const queued = await queueOfflineAction('cancel', { immediate });
+        return { success: queued, error: queued ? undefined : 'Failed to queue offline action' };
+      }
       
       const result = await cancelSubscriptionUtils(immediate);
       
@@ -336,7 +362,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
       logger.error('Error canceling subscription:', err);
       return { success: false, error: err };
     }
-  }, [subscription]);
+  }, [subscription, isOffline]);
 
   // Update payment method
   const updatePaymentMethod = useCallback(async (paymentMethod: {
@@ -348,6 +374,13 @@ export const useSubscription = (): UseSubscriptionReturn => {
   }) => {
     try {
       if (!subscription) return { success: false, error: 'No subscription found' };
+      
+      // Payment method updates should not be queued when offline
+      // as they typically require direct online verification
+      if (isOffline) {
+        toast.error("Cannot update payment method while offline");
+        return { success: false, error: 'Device is offline' };
+      }
       
       const result = await updatePaymentMethodUtils(paymentMethod);
       
@@ -363,7 +396,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
             if ((userData as any)?.subscription) {
               const { success } = await processRenewal((userData as any).subscription);
               if (success) {
-                toast.success('Subscription renewed successfully with your new payment method');
+                toast.success(t('subscription.billing.renewal_success'));
               }
             }
           } catch (error) {
@@ -378,12 +411,18 @@ export const useSubscription = (): UseSubscriptionReturn => {
       logger.error('Error updating payment method:', err);
       return { success: false, error: err };
     }
-  }, [subscription]);
+  }, [subscription, isOffline]);
 
   // Change billing cycle
   const changeBillingCycle = useCallback(async (cycle: 'monthly' | 'yearly') => {
     try {
       if (!subscription) return { success: false, error: 'No subscription found' };
+      
+      // If offline, queue the action for later
+      if (isOffline) {
+        const queued = await queueOfflineAction('change_billing_cycle', { cycle });
+        return { success: queued, error: queued ? undefined : 'Failed to queue offline action' };
+      }
       
       const result = await changeBillingCycleUtils(cycle);
       
@@ -397,7 +436,32 @@ export const useSubscription = (): UseSubscriptionReturn => {
       logger.error('Error changing billing cycle:', err);
       return { success: false, error: err };
     }
-  }, [subscription]);
+  }, [subscription, isOffline]);
+  
+  // Change plan with proration support
+  const changePlan = useCallback(async (planId: string) => {
+    try {
+      if (!subscription) return { success: false, error: 'No subscription found' };
+      
+      // If offline, queue the action for later
+      if (isOffline) {
+        const queued = await queueOfflineAction('change_plan', { planId });
+        return { success: queued, error: queued ? undefined : 'Failed to queue offline action' };
+      }
+      
+      const result = await changePlanUtils(planId);
+      
+      if (result.success) {
+        // Refresh subscription data
+        await refreshSubscription();
+      }
+      
+      return result;
+    } catch (err) {
+      logger.error('Error changing plan:', err);
+      return { success: false, error: err };
+    }
+  }, [subscription, isOffline]);
 
   // Get invoice/receipt PDF URL
   const getInvoiceUrl = useCallback((paymentId: string) => {
@@ -510,6 +574,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
     updatePaymentMethod,
     setAutoRenew,
     changeBillingCycle,
+    changePlan,
     getInvoiceUrl,
     getPaymentHistory,
     getRemainingUsage,
@@ -520,7 +585,8 @@ export const useSubscription = (): UseSubscriptionReturn => {
     isInGracePeriod,
     daysUntilExpiration,
     isProPlan,
-    isTrialActive
+    isTrialActive,
+    isOffline
   };
 };
 

@@ -3,6 +3,8 @@ import { createNamespacedLogger } from "@/utils/loggerUtils";
 import { withErrorHandling } from "@/utils/errorUtils";
 import { UserSubscription } from "@/config/subscriptionPlans";
 import { toast } from "sonner";
+import { t, formatCurrency } from "@/utils/i18n";
+import { calculateProratedAmount } from "@/utils/subscriptionRenewal";
 
 // Set up a namespaced logger for subscription functions
 const logger = createNamespacedLogger("subscriptionUtils");
@@ -150,9 +152,11 @@ export const setAutoRenew = async (autoRenew: boolean): Promise<boolean> => {
         subscription: updatedSub
       });
       
-      toast.success(autoRenew 
-        ? 'Auto-renewal turned on' 
-        : 'Auto-renewal turned off. Your subscription will end on the expiration date.');
+      toast.success(
+        autoRenew 
+          ? t('subscription.billing.auto_renew_on')
+          : t('subscription.billing.auto_renew_off')
+      );
       
       logger.info(`Auto-renew set to ${autoRenew}`);
       return true;
@@ -244,7 +248,7 @@ export const updatePaymentMethod = async (paymentMethod: {
         subscription: updatedSub
       });
       
-      toast.success('Payment method updated successfully');
+      toast.success(t('subscription.billing.payment_method_updated'));
       logger.info("Payment method updated", { type: paymentMethod.type });
       return true;
     },
@@ -258,7 +262,7 @@ export const updatePaymentMethod = async (paymentMethod: {
 };
 
 /**
- * Change billing cycle (monthly/yearly)
+ * Change billing cycle (monthly/yearly) with proration support
  */
 export const changeBillingCycle = async (cycle: 'monthly' | 'yearly'): Promise<boolean> => {
   return withErrorHandling(
@@ -266,10 +270,57 @@ export const changeBillingCycle = async (cycle: 'monthly' | 'yearly'): Promise<b
       const userData = await chromeStorage.get('user') || {};
       if (!((userData as any)?.subscription)) return false;
       
+      const currentSub = (userData as any).subscription as UserSubscription;
+      
+      // Skip if already on this cycle
+      if (currentSub.billingCycle === cycle) {
+        return true;
+      }
+      
+      // Calculate days left in current cycle
+      const now = new Date();
+      const currentPeriodEnd = new Date(currentSub.currentPeriodEnd);
+      const daysLeft = Math.max(0, Math.ceil((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      // Calculate total days in cycle
+      const currentPeriodStart = new Date(currentSub.currentPeriodStart);
+      const totalDays = Math.ceil((currentPeriodEnd.getTime() - currentPeriodStart.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Get the new end date based on the new billing cycle
+      const newPeriodEnd = new Date(now);
+      if (cycle === 'yearly') {
+        newPeriodEnd.setFullYear(newPeriodEnd.getFullYear() + 1);
+      } else {
+        newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+      }
+      
+      // Calculate if there's any proration
+      const proration = calculateProratedAmount(
+        currentSub.planId,
+        currentSub.planId,
+        currentSub.billingCycle,
+        daysLeft,
+        totalDays
+      );
+      
+      // If there's a proration amount, show it to the user
+      if (proration.amount > 0) {
+        const action = proration.isCredit ? 'credited' : 'charged';
+        toast.info(t('subscription.billing.prorate_message', {
+          action,
+          amount: proration.amount.toString(),
+          currency: proration.currency,
+          days: daysLeft.toString()
+        }));
+      }
+      
+      // Update the subscription
       const updatedSub = {
-        ...((userData as any).subscription),
+        ...currentSub,
         billingCycle: cycle,
-        updatedAt: new Date().toISOString()
+        currentPeriodStart: now.toISOString(),
+        currentPeriodEnd: newPeriodEnd.toISOString(),
+        updatedAt: now.toISOString()
       };
       
       await chromeStorage.set('user', {
@@ -286,6 +337,104 @@ export const changeBillingCycle = async (cycle: 'monthly' | 'yearly'): Promise<b
       showError: true,
       rethrow: false,
       logMetadata: { operation: 'changeBillingCycle', cycle }
+    }
+  );
+};
+
+/**
+ * Change subscription plan with proration support
+ */
+export const changePlan = async (newPlanId: string): Promise<{
+  success: boolean;
+  proratedAmount?: number;
+  currency?: string;
+  isCredit?: boolean;
+}> => {
+  return withErrorHandling(
+    async () => {
+      const userData = await chromeStorage.get('user') || {};
+      if (!((userData as any)?.subscription)) return { success: false };
+      
+      const currentSub = (userData as any).subscription as UserSubscription;
+      
+      // Skip if already on this plan
+      if (currentSub.planId === newPlanId) {
+        return { success: true };
+      }
+      
+      // Calculate days left in current cycle
+      const now = new Date();
+      const currentPeriodEnd = new Date(currentSub.currentPeriodEnd);
+      const daysLeft = Math.max(0, Math.ceil((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      // Calculate total days in cycle
+      const currentPeriodStart = new Date(currentSub.currentPeriodStart);
+      const totalDays = Math.ceil((currentPeriodEnd.getTime() - currentPeriodStart.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Calculate proration
+      const proration = calculateProratedAmount(
+        currentSub.planId,
+        newPlanId,
+        currentSub.billingCycle,
+        daysLeft,
+        totalDays
+      );
+      
+      // Process the payment/credit if there's a proration
+      if (proration.amount > 0) {
+        // In a real implementation, we would charge or credit the customer here
+        
+        // For demonstration, we just log it
+        logger.info("Processing proration for plan change", {
+          fromPlan: currentSub.planId,
+          toPlan: newPlanId,
+          amount: proration.amount,
+          isCredit: proration.isCredit
+        });
+        
+        // Show proration info to user
+        const action = proration.isCredit ? 'credited' : 'charged';
+        toast.info(t('subscription.billing.prorate_message', {
+          action,
+          amount: proration.amount.toString(),
+          currency: proration.currency,
+          days: daysLeft.toString()
+        }));
+      }
+      
+      // Update the subscription
+      const updatedSub = {
+        ...currentSub,
+        planId: newPlanId,
+        updatedAt: now.toISOString()
+      };
+      
+      await chromeStorage.set('user', {
+        ...(userData as Record<string, any>),
+        subscription: updatedSub
+      });
+      
+      // Show success message based on whether this was an upgrade or downgrade
+      const isUpgrade = newPlanId === 'pro' && currentSub.planId === 'free';
+      toast.success(isUpgrade 
+        ? t('subscription.billing.upgrade_success')
+        : t('subscription.billing.downgrade_success')
+      );
+      
+      logger.info(`Plan changed from ${currentSub.planId} to ${newPlanId}`);
+      
+      return { 
+        success: true,
+        proratedAmount: proration.amount,
+        currency: proration.currency,
+        isCredit: proration.isCredit
+      };
+    },
+    { 
+      errorMessage: 'Failed to change subscription plan',
+      showError: true,
+      rethrow: false,
+      logMetadata: { operation: 'changePlan', newPlanId }
     }
   );
 };
@@ -349,3 +498,132 @@ export const updateSubscriptionStatus = async (
     }
   );
 };
+
+/**
+ * Get preferred currency for the user
+ */
+export const getPreferredCurrency = async (): Promise<string> => {
+  try {
+    const currency = await chromeStorage.get<string>('preferred_currency');
+    return currency || 'USD';
+  } catch (error) {
+    logger.error("Error getting preferred currency", error);
+    return 'USD';
+  }
+};
+
+/**
+ * Set preferred currency for the user
+ */
+export const setPreferredCurrency = async (currency: string): Promise<boolean> => {
+  return withErrorHandling(
+    async () => {
+      await chromeStorage.set('preferred_currency', currency);
+      logger.info(`Preferred currency set to ${currency}`);
+      return true;
+    },
+    { 
+      errorMessage: 'Failed to set preferred currency',
+      showError: false,
+      rethrow: false,
+      logMetadata: { operation: 'setPreferredCurrency', currency }
+    }
+  );
+};
+
+/**
+ * Handle offline subscription actions by queuing them
+ */
+export const queueOfflineAction = async (
+  action: 'renew' | 'change_plan' | 'change_billing_cycle' | 'cancel',
+  data: any
+): Promise<boolean> => {
+  try {
+    if (navigator.onLine) {
+      return false; // Don't queue if online
+    }
+    
+    const offlineActions = await chromeStorage.get<any[]>('offline_subscription_actions') || [];
+    
+    offlineActions.push({
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      action,
+      data,
+      timestamp: new Date().toISOString()
+    });
+    
+    await chromeStorage.set('offline_subscription_actions', offlineActions);
+    
+    logger.info(`Queued offline action: ${action}`);
+    toast.info("You're offline. This action will be processed when you're back online.");
+    
+    return true;
+  } catch (error) {
+    logger.error("Error queueing offline action", error);
+    return false;
+  }
+};
+
+/**
+ * Process queued offline actions when online
+ */
+export const processOfflineActions = async (): Promise<void> => {
+  if (!navigator.onLine) return;
+  
+  try {
+    const offlineActions = await chromeStorage.get<any[]>('offline_subscription_actions') || [];
+    
+    if (offlineActions.length === 0) return;
+    
+    logger.info(`Processing ${offlineActions.length} offline subscription actions`);
+    
+    const remainingActions = [];
+    
+    for (const item of offlineActions) {
+      try {
+        switch (item.action) {
+          case 'renew':
+            // Process renewal
+            // Implementation would depend on other functions
+            break;
+            
+          case 'change_plan':
+            await changePlan(item.data.planId);
+            break;
+            
+          case 'change_billing_cycle':
+            await changeBillingCycle(item.data.cycle);
+            break;
+            
+          case 'cancel':
+            await cancelSubscription(item.data.immediate);
+            break;
+            
+          default:
+            logger.warn(`Unknown offline action: ${item.action}`);
+            remainingActions.push(item);
+        }
+      } catch (error) {
+        logger.error(`Error processing offline action: ${item.action}`, error);
+        remainingActions.push(item);
+      }
+    }
+    
+    await chromeStorage.set('offline_subscription_actions', remainingActions);
+    
+    if (remainingActions.length === 0) {
+      logger.info("All offline actions processed successfully");
+    } else {
+      logger.warn(`${remainingActions.length} offline actions failed to process`);
+    }
+  } catch (error) {
+    logger.error("Error processing offline actions", error);
+  }
+};
+
+// Listen for online events to process queued actions
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    processOfflineActions();
+  });
+}

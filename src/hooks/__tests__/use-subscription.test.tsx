@@ -179,25 +179,27 @@ describe('useSubscription', () => {
     const originalDate = global.Date;
     const mockDate = new Date('2023-01-15T00:00:00Z');
     
-    // Fix the Date mock implementation
-    const MockDate = function(this: any, ...args: any[]) {
-      if (args.length === 0) {
-        return new originalDate(mockDate);
+    // Create a class-based mock for Date
+    class MockDate extends Date {
+      constructor(...args: any[]) {
+        if (args.length === 0) {
+          super(mockDate);
+        } else {
+          super(...args);
+        }
       }
-      // @ts-ignore - This is a constructor function that properly passes individual args
-      return new originalDate(...args);
-    } as unknown as DateConstructor;
+      
+      static now() {
+        return mockDate.getTime();
+      }
+    }
     
-    // Copy prototype
-    Object.setPrototypeOf(MockDate.prototype, originalDate.prototype);
-    
-    // Add static methods
-    MockDate.now = () => mockDate.getTime();
+    // Set static methods that are present on the Date constructor
     MockDate.parse = originalDate.parse;
     MockDate.UTC = originalDate.UTC;
     
-    // Apply mock
-    global.Date = MockDate;
+    // Apply the mock
+    global.Date = MockDate as any;
     
     const { result } = renderHook(() => useSubscription());
     
