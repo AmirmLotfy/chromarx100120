@@ -1,6 +1,8 @@
+
 import { cache } from "./cacheUtils";
 import { toast } from "sonner";
-import { chromeDb } from "@/lib/chrome-storage";
+import { chromeStorage } from "@/services/chromeStorageService";
+import { incrementUsage, checkUsageLimit } from "@/config/subscriptionPlans";
 
 interface RequestQuota {
   count: number;
@@ -16,23 +18,12 @@ interface AIResponse {
 interface UserSubscription {
   planId: string;
   status: string;
-  createdAt: string;
-  endDate: string;
-}
-
-interface UsageData {
-  bookmarks: number;
-  tasks: number;
-  notes: number;
-  aiRequests: number;
 }
 
 // Cache for AI responses
 const aiResponseCache = new Map<string, AIResponse>();
 
-// Quota management
-const DAILY_QUOTA = 100;
-const HOURLY_QUOTA = 20;
+// Constants
 const MIN_REQUEST_INTERVAL_MS = 1000; // Minimum time between requests (1 second)
 const quotaKey = 'ai_request_quota';
 
@@ -40,6 +31,7 @@ class AIRequestManager {
   private static instance: AIRequestManager;
   private quota: RequestQuota | null = null;
   private currentPlan: string = 'free';
+  private subscription: UserSubscription | null = null;
 
   private constructor() {
     // Load current plan asynchronously
@@ -55,9 +47,12 @@ class AIRequestManager {
 
   private async loadCurrentPlan(): Promise<void> {
     try {
-      const subscription = await chromeDb.get<UserSubscription>('user_subscription');
-      if (subscription && subscription.planId) {
+      const userData = await chromeStorage.get('user') || {};
+      const subscription = userData.subscription;
+      
+      if (subscription) {
         this.currentPlan = subscription.planId;
+        this.subscription = subscription;
       }
     } catch (error) {
       console.error('Error loading current plan:', error);
@@ -65,12 +60,10 @@ class AIRequestManager {
   }
 
   private getPlanLimits(): { daily: number; hourly: number } {
-    // These should ideally come from subscription plan configuration
+    // These should align with our subscription plans
     switch (this.currentPlan) {
-      case 'premium':
+      case 'pro':
         return { daily: -1, hourly: -1 }; // Unlimited
-      case 'basic': // Pro plan
-        return { daily: 100, hourly: 20 };
       case 'free':
       default:
         return { daily: 10, hourly: 5 };
@@ -97,6 +90,18 @@ class AIRequestManager {
   }
 
   private async updateQuota(): Promise<{success: boolean; message?: string}> {
+    // Reload the current plan and subscription before checking
+    await this.loadCurrentPlan();
+    
+    // Check if we have usage limits based on our subscription
+    const canUseAI = await checkUsageLimit('aiRequests');
+    if (!canUseAI) {
+      return {
+        success: false,
+        message: "You've reached your AI request limit. Upgrade to Pro for unlimited AI requests."
+      };
+    }
+    
     const limits = this.getPlanLimits();
     let quota = await this.getQuota();
     const now = Date.now();
@@ -109,6 +114,10 @@ class AIRequestManager {
         lastRequestTime: now
       };
       await cache.set(quotaKey, this.quota);
+      
+      // Still increment usage counter in subscription
+      await incrementUsage('aiRequests');
+      
       return { success: true };
     }
 
@@ -158,31 +167,10 @@ class AIRequestManager {
     this.quota = quota;
     await cache.set(quotaKey, quota);
     
-    // Update usage statistics in the subscription system
-    try {
-      await this.incrementUsageCounter();
-    } catch (error) {
-      console.error('Error incrementing AI usage counter:', error);
-      // Don't fail the request if this update fails
-    }
+    // Increment usage counter in subscription
+    await incrementUsage('aiRequests');
     
     return { success: true };
-  }
-
-  private async incrementUsageCounter(): Promise<void> {
-    try {
-      const currentUsage = await chromeDb.get<UsageData>('usage') || { 
-        bookmarks: 0, 
-        tasks: 0, 
-        notes: 0, 
-        aiRequests: 0 
-      };
-      
-      currentUsage.aiRequests = (currentUsage.aiRequests || 0) + 1;
-      await chromeDb.set('usage', currentUsage);
-    } catch (error) {
-      console.error('Error updating AI usage statistics:', error);
-    }
   }
 
   async getCachedResponse(key: string): Promise<string | null> {
@@ -227,7 +215,7 @@ class AIRequestManager {
         toast.error(quotaCheck.message || "Rate limit exceeded", {
           action: {
             label: "Upgrade",
-            onClick: () => window.location.href = "/subscription"
+            onClick: () => window.location.href = "/plans"
           }
         });
         throw new Error(quotaCheck.message || "Quota exceeded");
@@ -256,6 +244,9 @@ class AIRequestManager {
   }
 
   getRemainingQuota = async (): Promise<{ daily: number; hourly: number }> => {
+    // Reload current plan
+    await this.loadCurrentPlan();
+    
     const limits = this.getPlanLimits();
     
     // If user has unlimited quota, return that info
@@ -284,6 +275,15 @@ class AIRequestManager {
   async isThrottled(): Promise<{throttled: boolean; reason?: string}> {
     // Reload current plan
     await this.loadCurrentPlan();
+    
+    // Check if we have usage limits based on our subscription
+    const canUseAI = await checkUsageLimit('aiRequests');
+    if (!canUseAI) {
+      return {
+        throttled: true,
+        reason: "AI request limit reached, upgrade to Pro for unlimited access"
+      };
+    }
     
     const limits = this.getPlanLimits();
     

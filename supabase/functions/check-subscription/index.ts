@@ -7,6 +7,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Plan definitions
+const PLAN_LIMITS = {
+  free: {
+    bookmarks: 50,
+    tasks: 30,
+    notes: 30,
+    aiRequests: 10
+  },
+  pro: {
+    bookmarks: -1, // Unlimited
+    tasks: -1, // Unlimited
+    notes: -1, // Unlimited
+    aiRequests: -1 // Unlimited
+  }
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -14,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, checkRenewal } = await req.json();
+    const { userId, checkRenewal, usage } = await req.json();
     
     if (!userId) {
       return new Response(
@@ -24,26 +40,95 @@ serve(async (req) => {
     }
 
     // In a production environment, we would retrieve subscription data from database
-    // For demonstration purposes, we'll continue returning mock data
+    // For demonstration purposes, we'll simulate this with some logic
+    
+    // Simulate subscription lookup based on userId (demo only)
+    // In real implementation, would query the database
+    const subscriptionStatus = userId.includes('pro') ? 'pro' : 'free';
+    const isActive = !userId.includes('expired');
+    const shouldCancel = userId.includes('cancel');
+    const renewalDate = new Date();
+    renewalDate.setDate(renewalDate.getDate() + 3); // 3 days from now
     
     // If checkRenewal is true, we need to check if the subscription needs renewal
     // and process the renewal if needed
     let renewalProcessed = false;
-    if (checkRenewal) {
-      renewalProcessed = await checkAndProcessRenewal(userId);
+    let renewalNeeded = false;
+    
+    // Check if subscription needs renewal (within 3 days and is active)
+    if (subscriptionStatus === 'pro' && isActive) {
+      renewalNeeded = true;
+      
+      if (checkRenewal) {
+        renewalProcessed = await checkAndProcessRenewal(userId);
+      }
     }
 
-    const response = {
-      subscription: { plan_id: 'free', status: 'active' },
-      renewalNeeded: false,
-      renewalProcessed,
-      usageLimits: {
-        aiRequests: { limit: 10, used: 0, percentage: 0 },
-        bookmarks: { limit: 50, used: 0, percentage: 0 },
-        tasks: { limit: 30, used: 0, percentage: 0 },
-        notes: { limit: 30, used: 0, percentage: 0 }
+    // Calculate usage percentages based on provided usage data or use defaults
+    const userUsage = usage || {
+      bookmarks: 0,
+      tasks: 0,
+      notes: 0,
+      aiRequests: 0
+    };
+    
+    const planLimits = PLAN_LIMITS[subscriptionStatus === 'pro' ? 'pro' : 'free'];
+    
+    const usageLimits = {
+      aiRequests: { 
+        limit: planLimits.aiRequests, 
+        used: userUsage.aiRequests || 0,
+        percentage: planLimits.aiRequests > 0 ? 
+          Math.min(100, Math.round((userUsage.aiRequests || 0) / planLimits.aiRequests * 100)) : 0
       },
-      needsUpgrade: false
+      bookmarks: { 
+        limit: planLimits.bookmarks, 
+        used: userUsage.bookmarks || 0,
+        percentage: planLimits.bookmarks > 0 ? 
+          Math.min(100, Math.round((userUsage.bookmarks || 0) / planLimits.bookmarks * 100)) : 0
+      },
+      tasks: { 
+        limit: planLimits.tasks, 
+        used: userUsage.tasks || 0,
+        percentage: planLimits.tasks > 0 ? 
+          Math.min(100, Math.round((userUsage.tasks || 0) / planLimits.tasks * 100)) : 0
+      },
+      notes: { 
+        limit: planLimits.notes, 
+        used: userUsage.notes || 0,
+        percentage: planLimits.notes > 0 ? 
+          Math.min(100, Math.round((userUsage.notes || 0) / planLimits.notes * 100)) : 0
+      }
+    };
+    
+    // Check if user is approaching limits (over 80% usage)
+    const needsUpgrade = subscriptionStatus === 'free' && (
+      (planLimits.aiRequests > 0 && userUsage.aiRequests >= planLimits.aiRequests * 0.8) ||
+      (planLimits.bookmarks > 0 && userUsage.bookmarks >= planLimits.bookmarks * 0.8) ||
+      (planLimits.tasks > 0 && userUsage.tasks >= planLimits.tasks * 0.8) ||
+      (planLimits.notes > 0 && userUsage.notes >= planLimits.notes * 0.8)
+    );
+
+    const response = {
+      subscription: { 
+        plan_id: subscriptionStatus, 
+        status: isActive ? 'active' : 'expired',
+        renewal_date: renewalDate.toISOString(),
+        cancel_at_period_end: shouldCancel
+      },
+      renewalNeeded,
+      renewalProcessed,
+      usageLimits,
+      needsUpgrade,
+      // Return feature access info
+      features: {
+        premium_content: subscriptionStatus === 'pro',
+        advanced_analytics: subscriptionStatus === 'pro',
+        unlimited_storage: subscriptionStatus === 'pro',
+        priority_support: subscriptionStatus === 'pro',
+        offline_access: true, // Available to all users
+        basic_bookmarks: true, // Available to all users
+      }
     };
 
     return new Response(
@@ -62,17 +147,33 @@ serve(async (req) => {
 
 /**
  * Check if a subscription needs renewal and process it if needed
- * This is a mock implementation, in a real system this would check the database
- * and process payment through PayPal API
+ * This implementation calls the process-renewal endpoint
  */
 async function checkAndProcessRenewal(userId: string): Promise<boolean> {
-  // In a real implementation, this would:
-  // 1. Get the subscription from the database
-  // 2. Check if it's due for renewal (within next 24 hours)
-  // 3. Check if autoRenew is true
-  // 4. Process the renewal payment using saved payment method
-  // 5. Update subscription period
-  
-  // For now we'll simulate success
-  return true;
+  try {
+    // Generate a subscription ID (in real system would be retrieved from DB)
+    const subscriptionId = `sub_${userId}_${Date.now()}`;
+    
+    // Call the renewal processing endpoint
+    const response = await fetch('https://tfqkwbvusjhcmbkxnpnt.supabase.co/functions/v1/process-renewal', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        subscriptionId,
+        userId
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Renewal request failed with status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return result.success;
+  } catch (error) {
+    console.error('Error processing renewal:', error);
+    return false;
+  }
 }

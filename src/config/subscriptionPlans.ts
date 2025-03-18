@@ -32,9 +32,24 @@ export interface Plan {
 
 export interface UserSubscription {
   planId: string;
-  status: string;
+  status: 'active' | 'inactive' | 'canceled' | 'expired' | 'past_due' | 'grace_period';
   createdAt: string;
   endDate: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  paymentMethod?: {
+    type: 'card' | 'paypal';
+    lastFour?: string;
+    brand?: string;
+    expiryMonth?: number;
+    expiryYear?: number;
+  };
+  billingCycle: 'monthly' | 'yearly';
+  autoRenew: boolean;
+  gracePeriodEndDate?: string;
+  renewalAttempts?: number;
+  lastRenewalAttempt?: string;
   usage: {
     bookmarks: number;
     tasks: number;
@@ -48,6 +63,13 @@ export interface UserData {
   email?: string;
   displayName?: string;
   photoURL?: string;
+  locale?: string;
+  currency?: string;
+  notifications?: {
+    renewalReminders: boolean;
+    usageLimits: boolean;
+    paymentReceipts: boolean;
+  };
 }
 
 export const subscriptionPlans: Plan[] = [
@@ -81,18 +103,18 @@ export const subscriptionPlans: Plan[] = [
     }
   },
   {
-    id: "basic",
+    id: "pro",
     name: "Pro",
     pricing: {
       monthly: 4.99,
       yearly: 49.99
     },
-    description: "Advanced features for power users",
+    description: "Enhanced productivity for power users",
     features: [
-      { name: "Enhanced bookmark management", included: true, description: "Organize up to 500 bookmarks" },
+      { name: "Enhanced bookmark management", included: true, description: "Unlimited bookmarks" },
       { name: "Advanced search & filters", included: true },
-      { name: "AI summarization & content analysis", included: true, description: "100 AI operations per month" },
-      { name: "Advanced notes & tasks", included: true, description: "Up to 200 each" },
+      { name: "AI summarization & content analysis", included: true, description: "Unlimited AI operations" },
+      { name: "Advanced notes & tasks", included: true, description: "Unlimited notes and tasks" },
       { name: "Customizable productivity timer", included: true },
       { name: "Advanced analytics dashboard", included: true },
       { name: "Custom bookmark collections", included: true },
@@ -104,31 +126,6 @@ export const subscriptionPlans: Plan[] = [
     ],
     isPopular: true,
     limits: {
-      bookmarks: 500,
-      tasks: 200,
-      notes: 200,
-      aiRequests: 100
-    }
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    pricing: {
-      monthly: 9.99,
-      yearly: 99.99
-    },
-    description: "Ultimate productivity suite",
-    features: [
-      { name: "Unlimited bookmark management", included: true },
-      { name: "Advanced analytics & insights", included: true },
-      { name: "Full AI capabilities", included: true },
-      { name: "24/7 priority support", included: true },
-      { name: "Custom integrations", included: true },
-      { name: "Team collaboration", included: true },
-      { name: "API access", included: true },
-      { name: "White-label options", included: true },
-    ],
-    limits: {
       bookmarks: -1, // Unlimited
       tasks: -1, // Unlimited
       notes: -1, // Unlimited
@@ -137,7 +134,7 @@ export const subscriptionPlans: Plan[] = [
   }
 ];
 
-// Utility functions for subscription management
+// Subscription management functions
 export const getFeatureAvailability = async (feature: string): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(async () => {
@@ -151,7 +148,7 @@ export const getFeatureAvailability = async (feature: string): Promise<boolean> 
       return false;
     }
     
-    const plan = subscriptionPlans.find(p => p.id === userData.subscription.planId);
+    const plan = subscriptionPlans.find(p => p.id === userData.subscription?.planId);
     if (!plan) {
       console.error('Invalid plan ID:', userData.subscription.planId);
       return false;
@@ -191,8 +188,14 @@ export const checkUsageLimit = async (type: keyof PlanLimits): Promise<boolean> 
     const usage = userData.subscription.usage?.[type] || 0;
     
     // Alert user when approaching limit
-    if (usage >= limit * 0.8) {
-      toast.warning(`You're approaching your ${type} limit. Consider upgrading your plan.`);
+    if (usage >= limit * 0.8 && userData.subscription.status === 'active') {
+      toast.warning(`You're approaching your ${type} limit (${usage}/${limit}). Consider upgrading to Pro.`, {
+        action: {
+          label: 'Upgrade',
+          onClick: () => window.location.href = '/subscription'
+        },
+        duration: 10000
+      });
     }
     
     return usage < limit;
@@ -218,12 +221,27 @@ export const incrementUsage = async (type: keyof PlanLimits): Promise<boolean> =
     
     const currentUsage = userData.subscription.usage?.[type] || 0;
     
+    // Check if already at limit for free plan users
+    if (userData.subscription.planId === 'free') {
+      const plan = subscriptionPlans.find(p => p.id === 'free');
+      if (plan && currentUsage >= plan.limits[type]) {
+        toast.error(`You've reached your ${type} limit. Upgrade to Pro for unlimited access.`, {
+          action: {
+            label: 'Upgrade',
+            onClick: () => window.location.href = '/subscription'
+          },
+          duration: 8000
+        });
+        return false;
+      }
+    }
+    
     await retryWithBackoff(() => 
       chromeDb.update('user', {
         subscription: {
           ...userData.subscription,
           usage: {
-            ...userData.subscription.usage,
+            ...userData.subscription?.usage,
             [type]: currentUsage + 1
           }
         }
@@ -238,68 +256,242 @@ export const incrementUsage = async (type: keyof PlanLimits): Promise<boolean> =
   }
 };
 
+// Subscription plan management
 export const getPlanById = (planId: string): Plan | undefined => {
   return subscriptionPlans.find(p => p.id === planId);
 };
 
-// Add new subscription management functions
-export const upgradePlan = async (userId: string, newPlanId: string): Promise<boolean> => {
+// Upgrade/downgrade subscription
+export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'yearly' = 'monthly'): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
     if (!userData) throw new Error('User data not found');
 
     const newPlan = subscriptionPlans.find(p => p.id === newPlanId);
     if (!newPlan) throw new Error('Invalid plan ID');
-
+    
+    const oldPlanId = userData.subscription?.planId || 'free';
+    const isUpgrade = oldPlanId === 'free' && newPlanId === 'pro';
+    const isDowngrade = oldPlanId === 'pro' && newPlanId === 'free';
+    
+    // Generate dates based on billing cycle
+    const now = new Date();
+    const startDate = now.toISOString();
+    const endDate = new Date(now);
+    
+    if (billingCycle === 'yearly') {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+    
     await retryWithBackoff(() => 
       chromeDb.update('user', {
         subscription: {
           planId: newPlanId,
           status: 'active',
-          createdAt: new Date().toISOString(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          createdAt: userData.subscription?.createdAt || startDate,
+          currentPeriodStart: startDate,
+          currentPeriodEnd: endDate.toISOString(),
+          endDate: endDate.toISOString(),
+          cancelAtPeriodEnd: false,
+          autoRenew: true,
+          billingCycle,
           usage: {
-            bookmarks: 0,
-            tasks: 0,
-            notes: 0,
-            aiRequests: 0
+            bookmarks: userData.subscription?.usage?.bookmarks || 0,
+            tasks: userData.subscription?.usage?.tasks || 0,
+            notes: userData.subscription?.usage?.notes || 0,
+            aiRequests: userData.subscription?.usage?.aiRequests || 0
           }
         }
       })
     );
 
-    toast.success(`Successfully upgraded to ${newPlan.name} plan`);
+    // Log the transaction for history
+    const paymentHistory = await chromeDb.get<any[]>('payment_history') || [];
+    if (isUpgrade) {
+      const price = billingCycle === 'yearly' ? newPlan.pricing.yearly : newPlan.pricing.monthly;
+      paymentHistory.push({
+        id: `payment_${Date.now()}`,
+        orderId: `order_${Date.now()}`,
+        planId: newPlanId,
+        amount: price,
+        status: 'completed',
+        provider: 'paypal',
+        autoRenew: true,
+        createdAt: startDate,
+        type: 'upgrade',
+        billingCycle
+      });
+      await chromeDb.set('payment_history', paymentHistory);
+    }
+
+    toast.success(isUpgrade 
+      ? `Successfully upgraded to ${newPlan.name} plan!` 
+      : isDowngrade 
+        ? 'Successfully downgraded to Free plan' 
+        : `Successfully changed to ${newPlan.name} plan`);
     return true;
   } catch (error) {
-    console.error('Error upgrading plan:', error);
-    toast.error('Failed to upgrade plan');
+    console.error('Error changing plan:', error);
+    toast.error('Failed to change plan');
     return false;
   }
 };
 
-export const cancelSubscription = async (userId: string): Promise<boolean> => {
+// Cancel subscription
+export const cancelSubscription = async (immediate: boolean = false): Promise<boolean> => {
   try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData?.subscription) throw new Error('No subscription found');
+    
+    if (immediate) {
+      // Immediate cancellation
+      await retryWithBackoff(() => 
+        chromeDb.update('user', {
+          subscription: {
+            ...userData.subscription,
+            planId: 'free',
+            status: 'canceled',
+            cancelAtPeriodEnd: true,
+            autoRenew: false
+          }
+        })
+      );
+      
+      toast.success('Your subscription has been canceled immediately');
+    } else {
+      // Cancel at period end
+      await retryWithBackoff(() => 
+        chromeDb.update('user', {
+          subscription: {
+            ...userData.subscription,
+            cancelAtPeriodEnd: true,
+            autoRenew: false
+          }
+        })
+      );
+      
+      toast.success('Your subscription will be canceled at the end of the billing period');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error canceling subscription:', error);
+    toast.error('Failed to cancel subscription');
+    return false;
+  }
+};
+
+// Update payment method
+export const updatePaymentMethod = async (paymentMethod: {
+  type: 'card' | 'paypal';
+  lastFour?: string;
+  brand?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+}): Promise<boolean> => {
+  try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData?.subscription) throw new Error('No subscription found');
+    
     await retryWithBackoff(() => 
       chromeDb.update('user', {
         subscription: {
-          planId: 'free',
-          status: 'cancelled',
-          endDate: new Date().toISOString(),
-          usage: {
-            bookmarks: 0,
-            tasks: 0,
-            notes: 0,
-            aiRequests: 0
-          }
+          ...userData.subscription,
+          paymentMethod
         }
       })
     );
-
-    toast.success('Subscription cancelled successfully');
+    
+    toast.success('Payment method updated successfully');
     return true;
   } catch (error) {
-    console.error('Error cancelling subscription:', error);
-    toast.error('Failed to cancel subscription');
+    console.error('Error updating payment method:', error);
+    toast.error('Failed to update payment method');
+    return false;
+  }
+};
+
+// Toggle auto-renewal
+export const setAutoRenew = async (autoRenew: boolean): Promise<boolean> => {
+  try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData?.subscription) throw new Error('No subscription found');
+    
+    await retryWithBackoff(() => 
+      chromeDb.update('user', {
+        subscription: {
+          ...userData.subscription,
+          autoRenew,
+          cancelAtPeriodEnd: !autoRenew
+        }
+      })
+    );
+    
+    toast.success(autoRenew 
+      ? 'Auto-renewal has been enabled' 
+      : 'Auto-renewal has been disabled');
+    return true;
+  } catch (error) {
+    console.error('Error setting auto-renew:', error);
+    toast.error('Failed to update auto-renewal settings');
+    return false;
+  }
+};
+
+// Change billing cycle
+export const changeBillingCycle = async (billingCycle: 'monthly' | 'yearly'): Promise<boolean> => {
+  try {
+    const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
+    if (!userData?.subscription) throw new Error('No subscription found');
+    
+    // Calculate new end date based on billing cycle
+    const now = new Date();
+    const endDate = new Date(now);
+    
+    if (billingCycle === 'yearly') {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+    
+    await retryWithBackoff(() => 
+      chromeDb.update('user', {
+        subscription: {
+          ...userData.subscription,
+          billingCycle,
+          currentPeriodStart: now.toISOString(),
+          currentPeriodEnd: endDate.toISOString()
+        }
+      })
+    );
+    
+    // Add payment record for the change
+    const plan = subscriptionPlans.find(p => p.id === userData.subscription?.planId);
+    if (plan && plan.id === 'pro') {
+      const price = billingCycle === 'yearly' ? plan.pricing.yearly : plan.pricing.monthly;
+      const paymentHistory = await chromeDb.get<any[]>('payment_history') || [];
+      paymentHistory.push({
+        id: `payment_${Date.now()}`,
+        orderId: `order_${Date.now()}`,
+        planId: plan.id,
+        amount: price,
+        status: 'completed',
+        provider: 'paypal',
+        autoRenew: userData.subscription.autoRenew,
+        createdAt: now.toISOString(),
+        type: 'billing_change',
+        billingCycle
+      });
+      await chromeDb.set('payment_history', paymentHistory);
+    }
+    
+    toast.success(`Billing cycle changed to ${billingCycle}`);
+    return true;
+  } catch (error) {
+    console.error('Error changing billing cycle:', error);
+    toast.error('Failed to update billing cycle');
     return false;
   }
 };

@@ -10,8 +10,14 @@ const corsHeaders = {
 // PayPal API configuration
 const PAYPAL_CONFIG = {
   clientId: 'AVgQsC5HEYPsUFRZaWkyCGRa-FxBDulKF6t5Cl_CpxnZ_f1W5ks8qDM',
-  secret: '******', // This would be stored securely in Supabase's secrets in production
+  secret: Deno.env.get('PAYPAL_SECRET') || '******', // Securely stored in environment variables
   mode: 'sandbox', // Change to 'live' for production
+};
+
+// Plan pricing for Pro plan
+const PLAN_PRICING = {
+  monthly: 4.99,
+  yearly: 49.99
 };
 
 serve(async (req) => {
@@ -21,7 +27,7 @@ serve(async (req) => {
   }
 
   try {
-    const { subscriptionId } = await req.json();
+    const { subscriptionId, retryAttempt } = await req.json();
     
     if (!subscriptionId) {
       return new Response(
@@ -36,14 +42,51 @@ serve(async (req) => {
     // 3. Process the payment through PayPal API
     // 4. Update the subscription with new period dates
     
+    // Simulate payment processing outcome (success most of the time, but occasional failures)
+    // This allows us to test the retry and grace period mechanism
+    let paymentSuccess = true;
+    
+    // If it's a retry attempt, we'll fail less often
+    if (retryAttempt) {
+      paymentSuccess = Math.random() > 0.2; // 80% success rate on retries
+    } else {
+      paymentSuccess = Math.random() > 0.1; // 90% success rate on first attempts
+    }
+    
+    if (!paymentSuccess) {
+      console.log(`Payment failed for subscription ${subscriptionId}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Payment processing failed', 
+          // Return the details for the client to handle
+          errorDetails: {
+            code: 'payment_failed',
+            message: 'We were unable to process your payment. Please update your payment details.',
+            recoverable: true
+          }
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+    
     // For demonstration purposes, we'll simulate a successful renewal
     
     // Calculate next period dates
     const startDate = new Date();
     const endDate = new Date(startDate);
     
-    // Assume it's a monthly subscription, in real implementation would check billing cycle
-    endDate.setMonth(endDate.getMonth() + 1);
+    // Check if it's monthly or yearly (for demo we'll assume monthly for simplicity)
+    // In a real implementation this would come from the subscription record
+    const isYearly = subscriptionId.includes('yearly');
+    
+    if (isYearly) {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+    
+    const amount = isYearly ? PLAN_PRICING.yearly : PLAN_PRICING.monthly;
     
     const renewalResult = {
       success: true,
@@ -57,12 +100,21 @@ serve(async (req) => {
       },
       payment: {
         id: `payment_${Date.now()}`,
-        amount: 9.99, // In real implementation, would use actual plan price
+        amount: amount,
         status: 'completed',
         provider: 'paypal',
         created_at: startDate.toISOString()
+      },
+      // Include receipt/invoice data
+      receipt: {
+        receipt_number: `INV-${Date.now()}`,
+        receipt_url: `/api/receipts/${Date.now()}`,
+        invoice_pdf: `/api/invoices/${Date.now()}.pdf`
       }
     };
+
+    // In a real implementation, would send an email receipt
+    console.log(`Successfully processed renewal for subscription ${subscriptionId}`);
 
     return new Response(
       JSON.stringify(renewalResult),
@@ -72,7 +124,14 @@ serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: 'Internal server error',
+        errorDetails: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        } 
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   }

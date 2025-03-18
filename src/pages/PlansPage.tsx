@@ -1,20 +1,30 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, CreditCard } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { CreditCard, Check } from "lucide-react";
 import { toast } from "sonner";
-import { subscriptionPlans } from "@/config/subscriptionPlans";
+import { subscriptionPlans, changePlan } from "@/config/subscriptionPlans";
 import PlanCard from "@/components/subscription/PlanCard";
 import { Button } from "@/components/ui/button";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useNavigate } from "react-router-dom";
 
 const PlansPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { currentPlan, subscription } = useSubscription();
+  const { subscription, currentPlan } = useSubscription();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Set the billing cycle based on current subscription
+    if (subscription?.billingCycle) {
+      setBillingCycle(subscription.billingCycle);
+    }
+  }, [subscription]);
 
   const isCurrentPlan = (planId: string) => {
     return currentPlan === planId && subscription?.status === 'active';
@@ -29,26 +39,44 @@ const PlansPage = () => {
   };
 
   const handleSubscribe = async () => {
-    if (!selectedPlan || selectedPlan === 'free') {
-      if (selectedPlan === 'free') {
-        toast.success("You're now on the Free plan!");
+    if (!selectedPlan) {
+      toast.error("Please select a plan first");
+      return;
+    }
+    
+    if (selectedPlan === 'free') {
+      // If current plan is already free, do nothing
+      if (isCurrentPlan('free')) {
+        toast.info("You're already on the Free plan");
+        return;
+      }
+      
+      // Downgrade to free plan
+      try {
+        setIsProcessing(true);
+        const result = await changePlan('free');
+        
+        if (result) {
+          toast.success("Successfully downgraded to Free plan");
+          navigate('/subscription');
+        } else {
+          toast.error("Failed to downgrade plan");
+        }
+      } catch (error) {
+        console.error("Error downgrading to free plan:", error);
+        toast.error("Failed to downgrade plan");
+      } finally {
+        setIsProcessing(false);
       }
       return;
     }
-
+    
+    // Handle upgrade to Pro
     try {
       setIsProcessing(true);
-      const selectedPlanDetails = subscriptionPlans.find(p => p.id === selectedPlan);
-      
-      if (!selectedPlanDetails) {
-        toast.error("Invalid plan selected");
-        return;
-      }
-
-      // Generate a mock order ID (in real implementation this would come from PayPal)
       const orderId = generateOrderId();
       
-      // Process the payment through our Supabase function
+      // First, process payment through Supabase function
       const response = await fetch('https://tfqkwbvusjhcmbkxnpnt.supabase.co/functions/v1/process-payment', {
         method: 'POST',
         headers: {
@@ -58,17 +86,24 @@ const PlansPage = () => {
           orderId,
           planId: selectedPlan,
           autoRenew: true,
+          billingCycle
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        toast.success(`Successfully subscribed to ${selectedPlanDetails.name} plan!`);
-        // In a real app, we would update the local subscription state here
-        // and reload the current user's subscription data
+        // Update local subscription with the result
+        const updateResult = await changePlan(selectedPlan, billingCycle);
+        
+        if (updateResult) {
+          toast.success(`Successfully subscribed to ${selectedPlan === 'pro' ? 'Pro' : 'Premium'} plan!`);
+          navigate('/subscription');
+        } else {
+          toast.error("Payment processed, but failed to update subscription");
+        }
       } else {
-        toast.error(result.error || "Failed to process subscription");
+        toast.error(result.error || "Failed to process payment");
       }
     } catch (error) {
       console.error("Error subscribing to plan:", error);
@@ -78,13 +113,13 @@ const PlansPage = () => {
     }
   };
 
-  const getPlanPrice = (plan) => {
+  const getPlanPrice = (plan: any) => {
     return billingCycle === "yearly" 
       ? `$${plan.pricing.yearly.toFixed(2)}/year` 
       : `$${plan.pricing.monthly.toFixed(2)}/month`;
   };
 
-  const getSavingsText = (plan) => {
+  const getSavingsText = (plan: any) => {
     if (billingCycle === "yearly" && plan.pricing.yearly < plan.pricing.monthly * 12) {
       const savings = (plan.pricing.monthly * 12) - plan.pricing.yearly;
       const savingsPercentage = Math.round((savings / (plan.pricing.monthly * 12)) * 100);
@@ -108,7 +143,6 @@ const PlansPage = () => {
 
         <div className="mb-8 flex justify-center">
           <Tabs 
-            defaultValue="monthly" 
             value={billingCycle}
             onValueChange={(value) => setBillingCycle(value as "monthly" | "yearly")}
             className="w-[300px]"
@@ -120,19 +154,30 @@ const PlansPage = () => {
           </Tabs>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {subscriptionPlans.map((plan) => (
+        {subscription?.status === 'grace_period' && (
+          <Alert variant="warning" className="mb-6 bg-yellow-50 border-yellow-200 text-yellow-800">
+            <AlertTitle>Your subscription requires attention</AlertTitle>
+            <AlertDescription>
+              Your payment method needs to be updated. Please visit the subscription page to update your payment details.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Only show Free and Pro plans */}
+          {subscriptionPlans.filter(plan => plan.id === 'free' || plan.id === 'pro').map((plan) => (
             <PlanCard
               key={plan.id}
               {...plan}
               onSelect={handleSelectPlan}
               isSelected={selectedPlan === plan.id}
               isCurrentPlan={isCurrentPlan(plan.id)}
+              billingCycle={billingCycle}
             />
           ))}
         </div>
 
-        {selectedPlan && selectedPlan !== 'free' && !isCurrentPlan(selectedPlan) && (
+        {selectedPlan && !isCurrentPlan(selectedPlan) && (
           <div className="mt-10 text-center">
             <Button
               className="px-8 py-6 text-lg" 
@@ -142,9 +187,11 @@ const PlansPage = () => {
               <CreditCard className="mr-2 h-5 w-5" />
               {isProcessing 
                 ? "Processing..." 
-                : `Subscribe for ${getPlanPrice(subscriptionPlans.find(p => p.id === selectedPlan))}`}
+                : selectedPlan === 'free'
+                  ? 'Downgrade to Free Plan'
+                  : `Subscribe for ${getPlanPrice(subscriptionPlans.find(p => p.id === selectedPlan))}`}
             </Button>
-            {getSavingsText(subscriptionPlans.find(p => p.id === selectedPlan)) && (
+            {selectedPlan !== 'free' && getSavingsText(subscriptionPlans.find(p => p.id === selectedPlan)) && (
               <p className="mt-2 text-sm text-green-600 font-medium">
                 {getSavingsText(subscriptionPlans.find(p => p.id === selectedPlan))}
               </p>
