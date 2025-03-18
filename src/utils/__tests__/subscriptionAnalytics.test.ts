@@ -218,11 +218,14 @@ describe('subscriptionAnalytics', () => {
       // Create a spy on the original module to mock just the predictChurnRisk function
       const predictChurnRiskSpy = vi.fn().mockResolvedValue(0.8);
       
-      // Mock the module with the spy
+      // Get the actual implementation
+      const actualImplementation = await vi.importActual('../subscriptionAnalytics');
+      
+      // Mock the module with the spy while keeping original function
       vi.mock('../subscriptionAnalytics', () => ({
         predictChurnRisk: predictChurnRiskSpy,
         // We're keeping the original implementation for the function we're testing
-        getChurnReductionRecommendations: vi.importActual('../subscriptionAnalytics').getChurnReductionRecommendations
+        getChurnReductionRecommendations: (actualImplementation as any).getChurnReductionRecommendations
       }));
       
       // Execute
