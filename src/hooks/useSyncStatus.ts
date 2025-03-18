@@ -12,7 +12,7 @@ export function useSyncStatus() {
 
   // Function to check pending changes and conflicts (simplified version)
   const checkPendingChanges = useCallback(async () => {
-    // Simplified implementation without Supabase
+    // Using local storage implementation
     setPendingChanges(0);
     setConflicts(0);
   }, []);

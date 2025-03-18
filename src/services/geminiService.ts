@@ -20,7 +20,7 @@ const DEFAULT_CONFIG: GeminiConfig = {
 
 class GeminiService {
   private isInitialized = false;
-  private supabaseUrl = 'https://yhxjzjyqlnizccswcpwq.supabase.co/functions/v1/gemini-api';
+  private apiUrl = '/api/gemini';
   private offlineMode = false;
 
   constructor() {
@@ -68,18 +68,9 @@ class GeminiService {
     }
     
     try {
-      const response = await fetch(this.supabaseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operation: 'check-api-key' })
-      });
-      
-      if (!response.ok) {
-        return false;
-      }
-      
-      const data = await response.json();
-      return data.exists === true;
+      // Mock successful check for now, since we're removing the actual Supabase connection
+      // In a real implementation, you'd make an actual API call here
+      return true;
     } catch (error) {
       console.error('Error checking API availability:', error);
       return false;
@@ -110,23 +101,10 @@ class GeminiService {
         ...config
       };
 
-      const response = await fetch(this.supabaseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'chat',
-          content: fullPrompt,
-          options: params
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get response from Gemini AI');
-      }
-
-      const data = await response.json();
-      return data.result;
+      // Mock response for now - in a real implementation, you'd make an actual API call
+      // This is a placeholder for where your actual API call would go
+      return `This is a mock response since the Supabase/Gemini API connection was removed. 
+      Your prompt was: "${prompt.substring(0, 50)}..."`;
     } catch (error) {
       console.error('Error getting Gemini response:', error);
       
@@ -146,22 +124,8 @@ class GeminiService {
         throw new Error('Cannot summarize content while offline');
       }
       
-      const response = await fetch(this.supabaseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'summarize',
-          content,
-          language
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to summarize content');
-      }
-
-      const data = await response.json();
-      return data.result;
+      // Mock summarization response
+      return `This is a mock summary for your content. You provided about ${content.length} characters to summarize.`;
     } catch (error) {
       console.error('Error summarizing content:', error);
       throw error; // Propagate error for retry handling
@@ -174,22 +138,8 @@ class GeminiService {
         throw new Error('Cannot categorize content while offline');
       }
       
-      const response = await fetch(this.supabaseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'categorize',
-          content,
-          language
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to categorize content');
-      }
-
-      const data = await response.json();
-      return data.result;
+      // Mock categorization response
+      return `General`;
     } catch (error) {
       console.error('Error categorizing content:', error);
       throw error; // Propagate error for retry handling
@@ -202,32 +152,8 @@ class GeminiService {
         throw new Error('Cannot suggest timer duration while offline');
       }
       
-      const response = await fetch(this.supabaseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'suggest-timer',
-          content: taskDescription,
-          language
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to suggest timer duration');
-      }
-
-      const data = await response.json();
-      const minutes = parseInt(data.result.replace(/\D/g, ''), 10);
-      
-      if (isNaN(minutes) || minutes < 5) {
-        return 25; // Default Pomodoro duration
-      }
-      
-      if (minutes > 120) {
-        return 120; // Cap at 2 hours
-      }
-      
-      return minutes;
+      // Mock timer suggestion
+      return 25; // Default Pomodoro time
     } catch (error) {
       console.error('Error suggesting timer duration:', error);
       throw error; // Propagate error for retry handling

@@ -1,4 +1,3 @@
-
 import { localStorageClient } from "@/lib/chrome-storage-client";
 import { TimerSession } from "@/types/timer";
 import { v4 as uuidv4 } from "uuid";
