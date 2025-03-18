@@ -1,109 +1,132 @@
 
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { auth, ChromeUser } from '../lib/chrome-utils';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  isAuthenticated, 
+  signIn, 
+  signOut, 
+  getUserInfo, 
+  setupAutoTokenRefresh 
+} from '../services/authService';
 
 interface AuthContextType {
-  user: ChromeUser | null;
-  loading: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
-  hasPremiumAccess: () => Promise<boolean>;
-  getAuthToken: () => Promise<string | null>;
+  isLoggedIn: boolean;
+  isLoading: boolean;
+  userInfo: any;
+  login: () => Promise<boolean>;
+  logout: () => Promise<boolean>;
+  refreshUserInfo: () => Promise<any>;
 }
 
-// Create a context with default values
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: false,
-  signInWithGoogle: async () => {},
-  signOut: async () => {},
-  hasPremiumAccess: async () => false,
-  getAuthToken: async () => null,
+  isLoggedIn: false,
+  isLoading: true,
+  userInfo: null,
+  login: async () => false,
+  logout: async () => false,
+  refreshUserInfo: async () => null
 });
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<ChromeUser | null>(null);
-  const [loading, setLoading] = useState(true);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
-  // Load user on initial render
+  // Check authentication status when component mounts
   useEffect(() => {
-    const loadUser = async () => {
+    const checkAuth = async () => {
       try {
-        const currentUser = await auth.getCurrentUser();
-        setUser(currentUser);
+        const authenticated = await isAuthenticated();
+        setIsLoggedIn(authenticated);
+        
+        if (authenticated) {
+          const info = await getUserInfo();
+          setUserInfo(info);
+        }
       } catch (error) {
-        console.error('Error loading user:', error);
+        console.error('Error checking authentication:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    loadUser();
+    checkAuth();
+  }, []);
+
+  // Set up automatic token refresh when logged in
+  useEffect(() => {
+    let cleanupFn = () => {};
     
-    // Set up a listener for authentication state changes if available
-    // In Chrome extensions, this could be handled via messages from background script
-    const handleAuthChange = (message: any) => {
-      if (message.type === 'AUTH_STATE_CHANGED') {
-        loadUser();
-      }
-    };
-    
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.onMessage.addListener(handleAuthChange);
+    if (isLoggedIn) {
+      cleanupFn = setupAutoTokenRefresh();
     }
     
     return () => {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.onMessage.removeListener(handleAuthChange);
-      }
+      cleanupFn();
     };
-  }, []);
+  }, [isLoggedIn]);
 
-  const signInWithGoogle = async () => {
-    setLoading(true);
+  // Login function
+  const login = async (): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      const signedInUser = await auth.signIn();
-      setUser(signedInUser);
+      const success = await signIn();
+      
+      if (success) {
+        setIsLoggedIn(true);
+        const info = await getUserInfo(true); // Force refresh
+        setUserInfo(info);
+      }
+      
+      return success;
     } catch (error) {
-      console.error('Error signing in:', error);
-      toast.error('Failed to sign in with Google.');
-      throw error;
+      console.error('Login error:', error);
+      return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const signOut = async () => {
-    setLoading(true);
+  // Logout function
+  const logout = async (): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      await auth.signOut();
-      setUser(null);
+      const success = await signOut();
+      
+      if (success) {
+        setIsLoggedIn(false);
+        setUserInfo(null);
+      }
+      
+      return success;
     } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('Error signing out. Please try again.');
+      console.error('Logout error:', error);
+      return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
-  const hasPremiumAccess = async (): Promise<boolean> => {
-    return await auth.hasPremiumAccess();
-  };
-  
-  const getAuthToken = async (): Promise<string | null> => {
-    return await auth.getIdToken();
+
+  // Refresh user info function
+  const refreshUserInfo = async (): Promise<any> => {
+    try {
+      const info = await getUserInfo(true); // Force refresh
+      setUserInfo(info);
+      return info;
+    } catch (error) {
+      console.error('Error refreshing user info:', error);
+      return null;
+    }
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user,
-        loading,
-        signInWithGoogle,
-        signOut,
-        hasPremiumAccess,
-        getAuthToken
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        isLoading,
+        userInfo,
+        login,
+        logout,
+        refreshUserInfo
       }}
     >
       {children}
@@ -111,10 +134,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
+
+export default useAuth;
