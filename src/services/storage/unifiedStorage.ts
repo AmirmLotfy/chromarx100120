@@ -29,7 +29,7 @@ class UnifiedStorage implements IUnifiedStorage {
    * This allows direct usage of storage.set
    */
   async set(key: string, value: any): Promise<void> {
-    return this.storage.set(key, value);
+    await this.storage.set(key, value);
   }
 
   /**
@@ -45,7 +45,7 @@ class UnifiedStorage implements IUnifiedStorage {
    * This allows direct usage of storage.remove
    */
   async remove(key: string): Promise<void> {
-    return this.storage.remove(key);
+    await this.storage.remove(key);
   }
 
   /**
@@ -53,7 +53,7 @@ class UnifiedStorage implements IUnifiedStorage {
    * This allows direct usage of storage.clear
    */
   async clear(): Promise<void> {
-    return this.storage.clear();
+    await this.storage.clear();
   }
 }
 
