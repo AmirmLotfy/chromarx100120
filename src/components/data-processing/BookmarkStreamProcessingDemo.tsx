@@ -15,6 +15,10 @@ interface Bookmark {
   title: string;
   url: string;
   tags?: string[];
+  processed?: boolean;
+  processedAt?: string;
+  transformedAt?: string;
+  transformedBy?: string;
 }
 
 export function BookmarkStreamProcessingDemo() {
