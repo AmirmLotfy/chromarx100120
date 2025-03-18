@@ -1,10 +1,23 @@
+
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('ChroMarx installed!');
 
-  // Example: Set a default value in storage
+  // Initialize default settings
   chrome.storage.sync.get(['theme'], (result) => {
     if (result.theme === undefined) {
       chrome.storage.sync.set({ theme: 'light' });
+    }
+  });
+
+  // Initialize PayPal configuration
+  chrome.storage.sync.get(['paypal_config'], (result) => {
+    if (!result.paypal_config) {
+      chrome.storage.sync.set({ 
+        paypal_config: { 
+          clientId: '', 
+          mode: 'sandbox' 
+        } 
+      });
     }
   });
 
@@ -59,6 +72,15 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       });
     });
   }
+
+  // Notify about PayPal config changes
+  if (areaName === 'sync' && changes.paypal_config) {
+    console.log('PayPal configuration updated');
+    chrome.runtime.sendMessage({
+      type: 'PAYPAL_CONFIG_UPDATED',
+      config: changes.paypal_config.newValue
+    });
+  }
 });
 
 // Handle messages from content scripts
@@ -69,42 +91,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;  // Required for asynchronous responses
   }
-});
 
-// Handle Gemini API requests
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'GEMINI_REQUEST') {
-    handleGeminiRequest(request.data)
-      .then(response => sendResponse({ success: true, data: response }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // Will respond asynchronously
+  // Handle PayPal config requests
+  if (request.type === "GET_PAYPAL_CONFIG") {
+    chrome.storage.sync.get(['paypal_config'], (result) => {
+      sendResponse({ config: result.paypal_config || { clientId: '', mode: 'sandbox' } });
+    });
+    return true;
+  }
+
+  if (request.type === "SAVE_PAYPAL_CONFIG") {
+    try {
+      chrome.storage.sync.set({ 'paypal_config': request.config }, () => {
+        sendResponse({ success: true });
+      });
+    } catch (error) {
+      console.error("Error saving PayPal config:", error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
   }
 });
 
-async function handleGeminiRequest(data) {
-  try {
-    // Ensure geminiService is available in the background script context
-    const { geminiService } = await import(chrome.runtime.getURL('src/services/geminiService.ts'));
-    const response = await geminiService.generateContent(data.prompt);
-    return response;
-  } catch (error) {
-    console.error("Gemini request failed:", error);
-    throw new Error(error.message || "Failed to generate content");
-  }
-}
-
-// Add settings initialization
-chrome.runtime.onInstalled.addListener(async () => {
-  // Initialize context menu
-  chrome.contextMenus.create({
-    id: "add-to-chromarx",
-    title: "Add to ChroMarx",
-    contexts: ["page", "selection"]
-  });
-
-  // Initialize Gemini API settings
-  const apiKey = await chrome.storage.sync.get('gemini_api_key');
-  if (!apiKey.gemini_api_key) {
-    chrome.runtime.openOptionsPage();
-  }
-});
+// Remove references to Gemini API and Supabase
