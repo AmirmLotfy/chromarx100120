@@ -180,23 +180,23 @@ describe('useSubscription', () => {
     const mockDate = new Date('2023-01-15T00:00:00Z');
     
     // Create a mock Date constructor
-    class MockDate extends Date {
-      constructor(...args: any[]) {
-        if (args.length === 0) {
-          super(mockDate);
-          return mockDate;
-        }
-        super(...args);
+    const MockDate = function(this: Date, ...args: any[]): void {
+      if (args.length === 0) {
+        return mockDate;
       }
-    }
+      return new originalDate(...args);
+    } as unknown as DateConstructor;
     
-    // Add static now method
-    MockDate.now = function() {
-      return mockDate.getTime();
-    };
+    // Copy prototype methods from Date
+    MockDate.prototype = originalDate.prototype;
+    
+    // Add static methods
+    MockDate.now = () => mockDate.getTime();
+    MockDate.parse = originalDate.parse;
+    MockDate.UTC = originalDate.UTC;
     
     // Apply the mock
-    global.Date = MockDate as unknown as DateConstructor;
+    global.Date = MockDate;
     
     const { result } = renderHook(() => useSubscription());
     
