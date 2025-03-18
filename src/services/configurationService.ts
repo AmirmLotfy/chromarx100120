@@ -9,7 +9,7 @@ export interface PayPalConfig {
 export const configurationService = {
   async getPayPalConfig(): Promise<PayPalConfig> {
     try {
-      const config = await storage.get<PayPalConfig>('paypal_config');
+      const config = await storage.get('paypal_config') as PayPalConfig | null;
       
       if (!config) {
         // Return default config if none found
@@ -42,7 +42,7 @@ export const configurationService = {
   
   async getGeminiApiKey(): Promise<string> {
     try {
-      const config = await storage.get<{apiKey: string}>('gemini_config');
+      const config = await storage.get('gemini_config') as {apiKey: string} | null;
       return config?.apiKey || '';
     } catch (error) {
       console.error('Error getting Gemini API key:', error);
@@ -52,7 +52,7 @@ export const configurationService = {
   
   async saveGeminiApiKey(apiKey: string): Promise<boolean> {
     try {
-      const existingConfig = await storage.get<{apiKey: string}>('gemini_config') || {};
+      const existingConfig = await storage.get('gemini_config') as {apiKey: string} | null || {};
       await storage.set('gemini_config', { ...existingConfig, apiKey });
       return true;
     } catch (error) {
