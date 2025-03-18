@@ -32,19 +32,21 @@ export const SubscriptionService = {
         .from('subscriptions')
         .select()
         .eq('user_id', userId)
-        .maybeSingle()
         .execute();
 
       if (result.error) throw result.error;
       
-      const subscription = result.data as SubscriptionInfo || {
-        plan_id: 'free',
-        status: 'active',
-        user_id: userId,
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        cancel_at_period_end: false
-      };
+      // In the localStorageClient, we need to find an item manually instead of using maybeSingle
+      const subscription = Array.isArray(result.data) && result.data.length > 0 
+        ? result.data[0] as SubscriptionInfo
+        : {
+            plan_id: 'free',
+            status: 'active',
+            user_id: userId,
+            current_period_start: new Date().toISOString(),
+            current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            cancel_at_period_end: false
+          };
 
       let renewalNeeded = false;
 
@@ -77,33 +79,34 @@ export const SubscriptionService = {
         .from('usage_statistics')
         .select()
         .eq('user_id', userId)
-        .maybeSingle()
         .execute();
 
-      const usageStats = usageResult.data || { api_calls: 0 };
+      const usageStats = Array.isArray(usageResult.data) && usageResult.data.length > 0 
+        ? usageResult.data[0] 
+        : { api_calls: 0 };
 
-      // Get counts from various tables
+      // Get counts from various tables using custom counting logic since we don't have count method
       const bookmarkResult = await localStorageClient
         .from('bookmark_metadata')
-        .select('*', { count: true })
+        .select()
         .eq('user_id', userId)
         .execute();
 
       const taskResult = await localStorageClient
         .from('tasks')
-        .select('*', { count: true })
+        .select()
         .eq('user_id', userId)
         .execute();
 
       const noteResult = await localStorageClient
         .from('notes')
-        .select('*', { count: true })
+        .select()
         .eq('user_id', userId)
         .execute();
 
-      const bookmarkCount = bookmarkResult.count || 0;
-      const taskCount = taskResult.count || 0;
-      const noteCount = noteResult.count || 0;
+      const bookmarkCount = Array.isArray(bookmarkResult.data) ? bookmarkResult.data.length : 0;
+      const taskCount = Array.isArray(taskResult.data) ? taskResult.data.length : 0;
+      const noteCount = Array.isArray(noteResult.data) ? noteResult.data.length : 0;
 
       // Define limits based on plan
       const limits = {
@@ -113,7 +116,7 @@ export const SubscriptionService = {
       };
 
       const planId = subscription.plan_id || 'free';
-      const planLimits = limits[planId] || limits.free;
+      const planLimits = limits[planId as keyof typeof limits] || limits.free;
 
       // Calculate percentages
       const usageLimits = {
@@ -183,7 +186,7 @@ export const SubscriptionService = {
         }
       };
       
-      const plan = subscriptionPlans[planId];
+      const plan = subscriptionPlans[planId as keyof typeof subscriptionPlans];
       if (!plan) {
         throw new Error('Invalid plan ID');
       }
@@ -208,10 +211,11 @@ export const SubscriptionService = {
         .from('subscriptions')
         .select()
         .eq('user_id', userId)
-        .maybeSingle()
         .execute();
 
-      const existingSubscription = existingResult.data;
+      const existingSubscription = Array.isArray(existingResult.data) && existingResult.data.length > 0 
+        ? existingResult.data[0] 
+        : null;
 
       // Either update or insert the subscription record
       let subscriptionResult;
@@ -220,19 +224,25 @@ export const SubscriptionService = {
           .from('subscriptions')
           .update(subscriptionData)
           .eq('id', existingSubscription.id)
-          .select()
-          .single()
           .execute();
+        
+        if (subscriptionResult.error) throw subscriptionResult.error;
+        
+        // We don't have .single() in local client, so construct the data ourselves
+        subscriptionResult.data = subscriptionResult.data && Array.isArray(subscriptionResult.data) && subscriptionResult.data.length > 0 
+          ? subscriptionResult.data[0] 
+          : subscriptionData;
       } else {
         subscriptionResult = await localStorageClient
           .from('subscriptions')
           .insert(subscriptionData)
-          .select()
-          .single()
           .execute();
+          
+        if (subscriptionResult.error) throw subscriptionResult.error;
+        
+        // We don't have .single() in local client, so construct the data ourselves
+        subscriptionResult.data = subscriptionData;
       }
-
-      if (subscriptionResult.error) throw subscriptionResult.error;
 
       // Log the transaction
       await localStorageClient
@@ -255,10 +265,11 @@ export const SubscriptionService = {
         .from('usage_statistics')
         .select()
         .eq('user_id', userId)
-        .maybeSingle()
         .execute();
       
-      const existingStats = statsResult.data;
+      const existingStats = Array.isArray(statsResult.data) && statsResult.data.length > 0 
+        ? statsResult.data[0] 
+        : null;
       
       if (existingStats) {
         await localStorageClient
@@ -302,7 +313,6 @@ export const SubscriptionService = {
         .from('app_configuration')
         .select()
         .eq('key', 'paypal')
-        .maybeSingle()
         .execute();
 
       if (configResult.error) throw configResult.error;
@@ -311,9 +321,9 @@ export const SubscriptionService = {
       let clientId = '';
       let mode = 'sandbox';
 
-      if (configResult.data && configResult.data.value) {
+      if (configResult.data && Array.isArray(configResult.data) && configResult.data.length > 0) {
         // Data exists, check if it has required fields
-        const config = configResult.data.value;
+        const config = configResult.data[0].value;
         const hasClientId = config.client_id && config.client_id.length > 10;
         const hasClientSecret = config.client_secret && config.client_secret.length > 10;
         

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import ProductivityScore from "./ProductivityScore";
@@ -15,7 +14,7 @@ import ProductivityNotifications from "./ProductivityNotifications";
 import { withErrorHandling } from "@/utils/errorUtils";
 import { validateAnalyticsData } from "@/utils/validationUtils";
 import { cache } from "@/utils/cacheUtils";
-import { supabaseBackup } from "@/services/supabaseBackupService";
+import { localBackup } from "@/services/localBackupService";
 import { motion } from "framer-motion";
 import { Download, Filter, ChevronDown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,7 @@ const AnalyticsDashboard = () => {
 
         setData(analyticsData);
         
-        supabaseBackup.syncAll().catch(console.error);
+        localBackup.syncAll().catch(console.error);
       } catch (error) {
         console.error("Error loading analytics data:", error);
         toast.error("Failed to load analytics data");

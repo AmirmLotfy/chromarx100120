@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { supabaseBackup } from "@/services/supabaseBackupService";
+import { localBackup } from "@/services/localBackupService";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
 import DataSecuritySettings from "./DataSecuritySettings";
 
@@ -106,7 +106,7 @@ const PrivacySettings = () => {
     if (enabled && user) {
       try {
         setSyncInProgress(true);
-        await supabaseBackup.syncAll();
+        await localBackup.syncAll();
         toast.success("Settings backed up to cloud");
       } catch (error) {
         console.error("Error syncing to cloud:", error);
@@ -127,7 +127,7 @@ const PrivacySettings = () => {
     
     try {
       setSyncInProgress(true);
-      await supabaseBackup.syncAll();
+      await localBackup.syncAll();
       settings.syncSettingsWithServer(user.id);
       toast.success("Settings synced to cloud");
     } catch (error) {
@@ -146,7 +146,7 @@ const PrivacySettings = () => {
     
     try {
       setSyncInProgress(true);
-      await supabaseBackup.restoreFromBackup();
+      await localBackup.restoreFromBackup();
       await settings.fetchSettingsFromServer(user.id);
       toast.success("Settings restored from cloud");
     } catch (error) {
