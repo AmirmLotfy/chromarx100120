@@ -278,11 +278,24 @@ export const useSubscription = (): UseSubscriptionReturn => {
         }
       } else if (sub.cancelAtPeriodEnd) {
         // If auto-renew is off and subscription is expired, downgrade to free
-        const updatedSub = {
+        const defaultUsage = {
+          bookmarks: sub.usage?.bookmarks || 0,
+          bookmarkImports: 0,
+          bookmarkCategorization: 0,
+          bookmarkSummaries: 0,
+          keywordExtraction: 0,
+          tasks: sub.usage?.tasks || 0,
+          taskEstimation: 0,
+          notes: sub.usage?.notes || 0,
+          noteSentimentAnalysis: 0,
+          aiRequests: 0
+        };
+        
+        const updatedSub: UserSubscription = {
           ...sub,
           planId: 'free',
-          status: 'expired' as const,
-          usage: sub.usage || {}
+          status: 'expired',
+          usage: defaultUsage
         };
         
         const userData = await chromeStorage.get('user') || {};
@@ -310,11 +323,24 @@ export const useSubscription = (): UseSubscriptionReturn => {
       
       if (gracePeriodEnd < now) {
         // Grace period over, downgrade to free
-        const updatedSub = {
+        const defaultUsage = {
+          bookmarks: sub.usage?.bookmarks || 0,
+          bookmarkImports: 0,
+          bookmarkCategorization: 0,
+          bookmarkSummaries: 0,
+          keywordExtraction: 0,
+          tasks: sub.usage?.tasks || 0,
+          taskEstimation: 0,
+          notes: sub.usage?.notes || 0,
+          noteSentimentAnalysis: 0,
+          aiRequests: 0
+        };
+        
+        const updatedSub: UserSubscription = {
           ...sub,
           planId: 'free',
-          status: 'expired' as const,
-          usage: sub.usage || {}
+          status: 'expired',
+          usage: defaultUsage
         };
         
         const userData = await chromeStorage.get('user') || {};

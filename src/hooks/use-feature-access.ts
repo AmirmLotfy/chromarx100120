@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { chromeStorage } from "@/services/chromeStorageService";
 import { toast } from "sonner";
@@ -220,8 +219,9 @@ export const useFeatureAccess = (): FeatureAccessHook => {
       const userData = await chromeStorage.get('user') || {};
       if (!((userData as any)?.subscription)) return false;
       
+      // Create a properly typed usage object
       const updatedUsage = {
-        ...((userData as any).subscription.usage || {}),
+        ...(userData as any).subscription.usage || {},
         [limitType]: usage + 1
       };
       
