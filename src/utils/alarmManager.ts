@@ -12,7 +12,7 @@ export const alarmManager = {
     taskName: string, 
     periodInMinutes: number,
     taskData: any = {}
-  ): Promise<boolean> {
+  ): Promise<boolean> => {
     if (!chrome?.alarms) {
       console.warn('chrome.alarms API not available');
       return false;
@@ -47,7 +47,7 @@ export const alarmManager = {
     taskName: string,
     delayInMinutes: number,
     taskData: any = {}
-  ): Promise<boolean> {
+  ): Promise<boolean> => {
     if (!chrome?.alarms) {
       console.warn('chrome.alarms API not available');
       return false;
@@ -78,7 +78,7 @@ export const alarmManager = {
   /**
    * Cancel a scheduled task
    */
-  cancelTask: async (taskName: string): Promise<boolean> {
+  cancelTask: async (taskName: string): Promise<boolean> => {
     if (!chrome?.alarms) {
       console.warn('chrome.alarms API not available');
       return false;
@@ -112,7 +112,7 @@ export const alarmManager = {
   /**
    * Get all scheduled tasks
    */
-  getAllTasks: async (): Promise<any[]> {
+  getAllTasks: async (): Promise<any[]> => {
     if (!chrome?.alarms) {
       console.warn('chrome.alarms API not available');
       return [];
