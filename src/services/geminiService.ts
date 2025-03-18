@@ -1,6 +1,6 @@
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
-import { chromeStorage } from './chromeStorageService';
+import { storage } from './storage/unifiedStorage';
 import { toast } from 'sonner';
 
 export interface GeminiConfig {
@@ -29,7 +29,7 @@ class GeminiService {
 
   private async initializeApiKey() {
     try {
-      const config = await chromeStorage.get<GeminiConfig>('gemini_config');
+      const config = await storage.get('gemini_config');
       if (config && config.apiKey) {
         this.apiKey = config.apiKey;
         this.setupModel(config);
@@ -110,7 +110,7 @@ class GeminiService {
         maxOutputTokens: config?.maxOutputTokens || DEFAULT_CONFIG.maxOutputTokens,
       };
       
-      await chromeStorage.set('gemini_config', newConfig);
+      await storage.set('gemini_config', newConfig);
       
       this.apiKey = apiKey;
       this.setupModel(newConfig);

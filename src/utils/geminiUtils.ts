@@ -1,6 +1,8 @@
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 import { ChromeBookmark } from '@/types/bookmark';
+import { configurationService } from '@/services/configurationService';
+import { storage } from '@/services/storage/unifiedStorage';
 
 // Default configuration for generation
 const defaultConfig: GenerationConfig = {
@@ -22,7 +24,7 @@ export const getGeminiResponse = async (
   config?: Partial<GenerationConfig>
 ): Promise<string> => {
   try {
-    // Retrieve API key from storage
+    // Retrieve API key from secure storage
     const apiKey = await fetchGeminiApiKey();
     
     if (!apiKey) {
@@ -38,7 +40,10 @@ export const getGeminiResponse = async (
       ? `${systemPrompt}\n\nUser: ${prompt}` 
       : prompt;
     
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-pro",
+      generationConfig
+    });
     
     const result = await model.generateContent(fullPrompt);
     const response = result.response;
@@ -160,9 +165,8 @@ export const testAIReliability = async (): Promise<boolean> => {
 
 const fetchGeminiApiKey = async (): Promise<string> => {
   try {
-    // Fetch from chrome storage instead of configuration service for simplicity
-    const keys = await chrome.storage.local.get('gemini_api_key');
-    return keys.gemini_api_key || '';
+    // Use the configurationService for centralized access to the API key
+    return await configurationService.getGeminiApiKey();
   } catch (error) {
     console.error("Error fetching Gemini API key:", error);
     return '';

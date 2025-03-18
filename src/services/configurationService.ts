@@ -1,5 +1,5 @@
 
-import { chromeStorage } from './chromeStorageService';
+import { storage } from './storage/unifiedStorage';
 
 export interface PayPalConfig {
   clientId: string;
@@ -9,7 +9,7 @@ export interface PayPalConfig {
 export const configurationService = {
   async getPayPalConfig(): Promise<PayPalConfig> {
     try {
-      const config = await chromeStorage.get<PayPalConfig>('paypal_config');
+      const config = await storage.get<PayPalConfig>('paypal_config');
       
       if (!config) {
         // Return default config if none found
@@ -32,7 +32,8 @@ export const configurationService = {
   
   async savePayPalConfig(config: PayPalConfig): Promise<boolean> {
     try {
-      return await chromeStorage.set('paypal_config', config);
+      await storage.set('paypal_config', config);
+      return true;
     } catch (error) {
       console.error('Error saving PayPal config:', error);
       return false;
@@ -41,7 +42,7 @@ export const configurationService = {
   
   async getGeminiApiKey(): Promise<string> {
     try {
-      const config = await chromeStorage.get<{apiKey: string}>('gemini_config');
+      const config = await storage.get<{apiKey: string}>('gemini_config');
       return config?.apiKey || '';
     } catch (error) {
       console.error('Error getting Gemini API key:', error);
@@ -51,7 +52,9 @@ export const configurationService = {
   
   async saveGeminiApiKey(apiKey: string): Promise<boolean> {
     try {
-      return await chromeStorage.set('gemini_config', { apiKey });
+      const existingConfig = await storage.get<{apiKey: string}>('gemini_config') || {};
+      await storage.set('gemini_config', { ...existingConfig, apiKey });
+      return true;
     } catch (error) {
       console.error('Error saving Gemini API key:', error);
       return false;
