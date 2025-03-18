@@ -47,7 +47,7 @@ export const useFeatureAccess = (): FeatureAccessHook => {
         const userData = await chromeStorage.get('user') || {};
         
         // Use the subscription from the hook or fallback to storage
-        const sub = subscription || (userData as any)?.subscription || {
+        const sub = subscription || ((userData as any)?.subscription) || {
           planId: 'free',
           status: 'active',
           usage: {
@@ -218,17 +218,17 @@ export const useFeatureAccess = (): FeatureAccessHook => {
       
       // Update the usage counter
       const userData = await chromeStorage.get('user') || {};
-      if (!(userData as any)?.subscription) return false;
+      if (!((userData as any)?.subscription)) return false;
       
       const updatedUsage = {
-        ...(userData as any).subscription.usage,
+        ...((userData as any).subscription.usage),
         [limitType]: usage + 1
       };
       
       await chromeStorage.set('user', {
         ...userData,
         subscription: {
-          ...(userData as any).subscription,
+          ...((userData as any).subscription),
           usage: updatedUsage
         }
       });

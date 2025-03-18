@@ -106,7 +106,7 @@ Based on the user's query and the bookmarks found, please:
     );
 
     // Fix type issue: Ensure response is a string
-    const responseStr = response as string;
+    const responseStr = typeof response === 'string' ? response : JSON.stringify(response);
 
     return {
       response: responseStr,
@@ -180,7 +180,7 @@ export const processQuery = async (
     );
 
     // Fix type issue: Ensure response is a string
-    const responseStr = response as string;
+    const responseStr = typeof response === 'string' ? response : JSON.stringify(response);
 
     return {
       response: responseStr,

@@ -1,3 +1,4 @@
+
 import { chromeStorage } from "@/services/chromeStorageService";
 import { toast } from "sonner";
 import { PlanLimits, subscriptionPlans } from "@/config/subscriptionPlans";
@@ -24,6 +25,12 @@ interface AIRequestMetadata {
   duration: number;
   context?: string;
   error?: string;
+}
+
+interface ThrottleCheckResult {
+  throttled: boolean;
+  reason?: string;
+  nextAllowedTime?: Date;
 }
 
 /**
@@ -319,6 +326,79 @@ class AIRequestManager {
     };
     
     return formatMap[type] || type;
+  }
+
+  /**
+   * Check if requests are being throttled due to rate limits
+   */
+  async isThrottled(): Promise<ThrottleCheckResult> {
+    try {
+      // Get the last request timestamp
+      const lastRequestTime = await chromeStorage.get<string>('last_ai_request_time');
+      
+      if (!lastRequestTime) {
+        // No previous requests, not throttled
+        await chromeStorage.set('last_ai_request_time', new Date().toISOString());
+        return { throttled: false };
+      }
+      
+      const now = new Date();
+      const lastRequest = new Date(lastRequestTime);
+      const timeDiff = now.getTime() - lastRequest.getTime();
+      
+      // Rate limit: max 1 request per second for free users
+      const userData = await chromeStorage.get<any>('user');
+      const isPro = userData?.subscription?.planId === 'pro' && 
+                   (userData?.subscription?.status === 'active' || 
+                    userData?.subscription?.status === 'grace_period');
+      
+      // Pro users get higher rate limits
+      const minTimeBetweenRequests = isPro ? 200 : 1000; // 0.2s for Pro, 1s for Free
+      
+      if (timeDiff < minTimeBetweenRequests) {
+        const nextAllowedTime = new Date(lastRequest.getTime() + minTimeBetweenRequests);
+        return { 
+          throttled: true, 
+          reason: `Rate limited. Please wait ${Math.ceil((minTimeBetweenRequests - timeDiff) / 1000)} seconds`,
+          nextAllowedTime
+        };
+      }
+      
+      // Not throttled, update last request time
+      await chromeStorage.set('last_ai_request_time', now.toISOString());
+      return { throttled: false };
+    } catch (error) {
+      console.error('Error checking throttle:', error);
+      return { throttled: false }; // Default to not throttled on error
+    }
+  }
+
+  /**
+   * Make an AI request with caching
+   */
+  async makeRequest<T>(
+    requestFn: () => Promise<T>,
+    cacheKey: string,
+    fallbackMessage: string = "Sorry, I couldn't process that request"
+  ): Promise<T | string> {
+    try {
+      // Check cache
+      const cachedResponse = await chromeStorage.get<T>(`ai_cache_${cacheKey}`);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      
+      // Execute request
+      const result = await requestFn();
+      
+      // Cache the result (for 24 hours)
+      await chromeStorage.set(`ai_cache_${cacheKey}`, result, 24 * 60 * 60 * 1000);
+      
+      return result;
+    } catch (error) {
+      console.error(`AI request error (${cacheKey}):`, error);
+      return fallbackMessage;
+    }
   }
 }
 

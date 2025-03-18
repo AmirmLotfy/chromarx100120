@@ -148,7 +148,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
   };
 
   // Check subscription status and handle expiration, renewals, etc.
-  const checkSubscriptionStatus = async (sub: UserSubscription) => {
+  const checkSubscriptionStatus = async (sub?: UserSubscription) => {
     if (!sub) return;
     
     const now = new Date();
