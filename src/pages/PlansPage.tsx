@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
-import { Card } from "@/components/ui/card";
 import { CreditCard, Check } from "lucide-react";
 import { toast } from "sonner";
 import { subscriptionPlans, changePlan } from "@/config/subscriptionPlans";
@@ -11,6 +10,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
 
 const PlansPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -128,6 +128,63 @@ const PlansPage = () => {
     return null;
   };
 
+  const freeFeatures = [
+    { title: "Bookmark Management", items: [
+      "50 bookmarks storage limit",
+      "Import up to 50 bookmarks at once",
+      "Categorize up to 20 bookmarks/month",
+      "10 page summaries/month",
+      "15 keyword extractions/month"
+    ]},
+    { title: "AI-Powered Tools", items: [
+      "10 chat queries/month",
+      "5 sentiment analyses/month",
+      "5 task duration estimates/month"
+    ]},
+    { title: "Productivity", items: [
+      "Basic task management",
+      "Standard Pomodoro timer (25/5)",
+      "Up to 30 tasks"
+    ]},
+    { title: "Notes & Chat", items: [
+      "Up to 20 notes",
+      "10 AI chat queries/month"
+    ]}
+  ];
+
+  const proFeatures = [
+    { title: "Bookmark Management", items: [
+      "Unlimited bookmark storage",
+      "Unlimited imports",
+      "Unlimited AI categorization",
+      "Unlimited page summaries",
+      "Unlimited keyword extraction",
+      "Advanced bookmark cleanup"
+    ]},
+    { title: "AI-Powered Tools", items: [
+      "Unlimited chat queries",
+      "Unlimited sentiment analysis",
+      "Unlimited task estimates",
+      "Contextual AI responses"
+    ]},
+    { title: "Productivity", items: [
+      "Advanced task management",
+      "Customizable Pomodoro timer",
+      "Time tracking for tasks",
+      "Priority levels and due dates"
+    ]},
+    { title: "Notes & Chat", items: [
+      "Unlimited notes",
+      "Advanced sentiment analysis",
+      "Keyword extraction for notes"
+    ]},
+    { title: "Analytics", items: [
+      "Domain-based insights",
+      "Time distribution charts",
+      "AI productivity recommendations"
+    ]}
+  ];
+
   return (
     <Layout>
       <div className="container max-w-6xl mx-auto px-4 py-8">
@@ -175,6 +232,51 @@ const PlansPage = () => {
               billingCycle={billingCycle}
             />
           ))}
+        </div>
+
+        {/* Detailed features comparison */}
+        <div className="mt-16">
+          <h2 className="text-2xl font-bold text-center mb-8">Detailed Feature Comparison</h2>
+          
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="border rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4">Free Plan</h3>
+              
+              {freeFeatures.map((category, idx) => (
+                <div key={idx} className="mb-6">
+                  <h4 className="font-semibold text-lg mb-2">{category.title}</h4>
+                  <ul className="space-y-2">
+                    {category.items.map((item, itemIdx) => (
+                      <li key={itemIdx} className="flex items-start gap-2">
+                        <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {idx < freeFeatures.length - 1 && <Separator className="mt-4" />}
+                </div>
+              ))}
+            </div>
+            
+            <div className="border rounded-lg p-6 border-primary bg-primary/5">
+              <h3 className="text-xl font-bold mb-4 text-primary">Pro Plan</h3>
+              
+              {proFeatures.map((category, idx) => (
+                <div key={idx} className="mb-6">
+                  <h4 className="font-semibold text-lg mb-2">{category.title}</h4>
+                  <ul className="space-y-2">
+                    {category.items.map((item, itemIdx) => (
+                      <li key={itemIdx} className="flex items-start gap-2">
+                        <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {idx < proFeatures.length - 1 && <Separator className="mt-4" />}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {selectedPlan && !isCurrentPlan(selectedPlan) && (
