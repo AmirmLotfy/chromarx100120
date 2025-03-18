@@ -36,6 +36,7 @@ export const localBackup = {
       await localStorageClient
         .from('backups')
         .insert({
+          id: `backup-${Date.now()}`,
           key: 'full_backup',
           value: {
             bookmarks,

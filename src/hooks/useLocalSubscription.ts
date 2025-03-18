@@ -1,58 +1,113 @@
 
 import { useState, useEffect } from 'react';
-import { SubscriptionService, SubscriptionResult } from '@/services/subscriptionService';
-import { toast } from 'sonner';
+import { subscriptionService, Subscription } from '@/services/subscriptionService';
 
-export const useLocalSubscription = (userId: string = 'local-user') => {
-  const [subscriptionData, setSubscriptionData] = useState<SubscriptionResult | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+interface UseSubscriptionResult {
+  subscription: Subscription | null;
+  isLoading: boolean;
+  error: Error | null;
+  checkStatus: () => Promise<void>;
+  subscribe: (planId: string, durationMonths?: number) => Promise<boolean>;
+  cancel: (immediate?: boolean) => Promise<boolean>;
+  reactivate: () => Promise<boolean>;
+}
 
-  const checkSubscription = async () => {
-    setLoading(true);
-    setError(null);
+export function useLocalSubscription(userId: string = 'local-user'): UseSubscriptionResult {
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const checkStatus = async () => {
     try {
-      const data = await SubscriptionService.checkSubscription(userId);
-      setSubscriptionData(data);
+      setIsLoading(true);
+      const { data, error } = await subscriptionService.getUserSubscription(userId);
+      
+      if (error) {
+        setError(error);
+      } else {
+        setSubscription(data);
+        setError(null);
+      }
     } catch (err) {
-      console.error('Error checking subscription:', err);
-      setError('Failed to check subscription status');
-      toast.error('Failed to check subscription status');
+      setError(err instanceof Error ? err : new Error('Unknown error checking subscription'));
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const processPayment = async (orderId: string, planId: string, autoRenew: boolean = true) => {
+  const subscribe = async (planId: string, durationMonths: number = 1): Promise<boolean> => {
     try {
-      const result = await SubscriptionService.processPayment(orderId, planId, autoRenew);
-      if (result.success) {
-        toast.success('Payment processed successfully');
-        await checkSubscription(); // Refresh subscription data
-        return true;
-      } else {
-        toast.error('Payment processing failed');
+      setIsLoading(true);
+      const { data, error } = await subscriptionService.createOrUpdateSubscription(
+        userId,
+        planId,
+        'active',
+        durationMonths
+      );
+      
+      if (error) {
+        setError(error);
         return false;
       }
+      
+      setSubscription(data);
+      setError(null);
+      return true;
     } catch (err) {
-      console.error('Error processing payment:', err);
-      toast.error('Payment processing failed');
+      setError(err instanceof Error ? err : new Error('Unknown error subscribing'));
       return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const cancel = async (immediate: boolean = false): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const success = await subscriptionService.cancelSubscription(userId, immediate);
+      
+      if (success) {
+        await checkStatus(); // Refresh subscription data
+      }
+      
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error canceling subscription'));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const reactivate = async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const success = await subscriptionService.reactivateSubscription(userId);
+      
+      if (success) {
+        await checkStatus(); // Refresh subscription data
+      }
+      
+      return success;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error reactivating subscription'));
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    checkSubscription();
+    checkStatus();
   }, [userId]);
 
   return {
-    subscription: subscriptionData?.subscription,
-    renewalNeeded: subscriptionData?.renewalNeeded || false,
-    usageLimits: subscriptionData?.usageLimits,
-    needsUpgrade: subscriptionData?.needsUpgrade || false,
-    loading,
+    subscription,
+    isLoading,
     error,
-    refreshSubscription: checkSubscription,
-    processPayment
+    checkStatus,
+    subscribe,
+    cancel,
+    reactivate
   };
-};
+}
