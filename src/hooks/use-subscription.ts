@@ -8,9 +8,6 @@ import {
   updatePaymentMethod as updatePaymentMethodUtils,
   setAutoRenew as setAutoRenewUtils,
   cancelSubscription as cancelSubscriptionUtils,
-  changeBillingCycle as changeBillingCycleUtils,
-  resetMonthlyUsage as resetMonthlyUsageUtils,
-  checkNeedsRenewal as checkNeedsRenewalUtils,
   getPlanById
 } from "@/config/subscriptionPlans";
 
@@ -41,6 +38,90 @@ interface UseSubscriptionReturn {
   checkSubscriptionStatus: (subscription?: UserSubscription) => Promise<void>;
   refreshSubscription: () => Promise<void>;
 }
+
+// Function to change billing cycle (implementation)
+const changeBillingCycleUtils = async (cycle: 'monthly' | 'yearly'): Promise<boolean> => {
+  try {
+    const userData = await chromeStorage.get('user') || {};
+    if (!((userData as any)?.subscription)) return false;
+    
+    const updatedSub = {
+      ...((userData as any).subscription),
+      billingCycle: cycle
+    };
+    
+    await chromeStorage.set('user', {
+      ...(userData as Record<string, any>),
+      subscription: updatedSub
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error changing billing cycle:', error);
+    return false;
+  }
+};
+
+// Function to reset monthly usage
+const resetMonthlyUsageUtils = async (): Promise<boolean> => {
+  try {
+    const userData = await chromeStorage.get('user') || {};
+    if (!((userData as any)?.subscription)) return false;
+    
+    const updatedSub = {
+      ...((userData as any).subscription),
+      usage: {
+        bookmarks: 0,
+        bookmarkImports: 0,
+        bookmarkCategorization: 0,
+        bookmarkSummaries: 0,
+        keywordExtraction: 0,
+        tasks: 0,
+        taskEstimation: 0,
+        notes: 0,
+        noteSentimentAnalysis: 0,
+        aiRequests: 0
+      }
+    };
+    
+    await chromeStorage.set('user', {
+      ...(userData as Record<string, any>),
+      subscription: updatedSub
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error resetting monthly usage:', error);
+    return false;
+  }
+};
+
+// Function to check if subscription needs renewal
+const checkNeedsRenewalUtils = async (): Promise<boolean> => {
+  try {
+    const userData = await chromeStorage.get('user') || {};
+    if (!((userData as any)?.subscription)) return false;
+    
+    const sub = (userData as any).subscription;
+    const now = new Date();
+    const currentPeriodEnd = new Date(sub.currentPeriodEnd);
+    
+    // Needs renewal if:
+    // 1. Subscription is expired
+    // 2. Subscription is in grace period
+    // 3. Within 24 hours of expiration and auto-renew is on
+    return (
+      (currentPeriodEnd < now) ||
+      (sub.status === 'grace_period') ||
+      (sub.autoRenew && 
+      !sub.cancelAtPeriodEnd && 
+      currentPeriodEnd.getTime() - now.getTime() < 24 * 60 * 60 * 1000)
+    );
+  } catch (error) {
+    console.error('Error checking if renewal needed:', error);
+    return false;
+  }
+};
 
 export const useSubscription = (): UseSubscriptionReturn => {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
@@ -94,7 +175,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
           
           // Save the default subscription
           await chromeStorage.set('user', {
-            ...userData,
+            ...(userData as Record<string, any>),
             subscription: defaultSub
           });
           setSubscription(defaultSub);
@@ -180,7 +261,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
           
           const userData = await chromeStorage.get('user') || {};
           await chromeStorage.set('user', {
-            ...userData,
+            ...(userData as Record<string, any>),
             subscription: updatedSub
           });
           
@@ -201,12 +282,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
           ...sub,
           planId: 'free',
           status: 'expired' as const,
-          usage: sub.usage
+          usage: sub.usage || {}
         };
         
         const userData = await chromeStorage.get('user') || {};
         await chromeStorage.set('user', {
-          ...userData,
+          ...(userData as Record<string, any>),
           subscription: updatedSub
         });
         
@@ -233,12 +314,12 @@ export const useSubscription = (): UseSubscriptionReturn => {
           ...sub,
           planId: 'free',
           status: 'expired' as const,
-          usage: sub.usage
+          usage: sub.usage || {}
         };
         
         const userData = await chromeStorage.get('user') || {};
         await chromeStorage.set('user', {
-          ...userData,
+          ...(userData as Record<string, any>),
           subscription: updatedSub
         });
         
@@ -270,7 +351,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
             
             const userData = await chromeStorage.get('user') || {};
             await chromeStorage.set('user', {
-              ...userData,
+              ...(userData as Record<string, any>),
               subscription: updatedSub
             });
             
@@ -373,7 +454,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
         
         const userData = await chromeStorage.get('user') || {};
         await chromeStorage.set('user', {
-          ...userData,
+          ...(userData as Record<string, any>),
           subscription: updatedSub
         });
         
@@ -425,7 +506,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
           
           const userData = await chromeStorage.get('user') || {};
           await chromeStorage.set('user', {
-            ...userData,
+            ...(userData as Record<string, any>),
             subscription: updatedSub
           });
           
@@ -449,7 +530,7 @@ export const useSubscription = (): UseSubscriptionReturn => {
           
           const userData = await chromeStorage.get('user') || {};
           await chromeStorage.set('user', {
-            ...userData,
+            ...(userData as Record<string, any>),
             subscription: updatedSub
           });
           

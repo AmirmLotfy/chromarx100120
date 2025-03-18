@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import PageTitle from "@/components/PageTitle";
@@ -34,6 +33,7 @@ import { Progress } from "@/components/ui/progress";
 import { format, formatDistanceToNow } from "date-fns";
 import { subscriptionPlans } from "@/config/subscriptionPlans";
 import { Link } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function SubscriptionPage() {
   const { 
@@ -63,14 +63,12 @@ export default function SubscriptionPage() {
   const [usageStats, setUsageStats] = useState<any>(null);
   const { user } = useAuth();
   
-  // For admin users only
   const isAdmin = user?.email === "admin@example.com";
   
   useEffect(() => {
     if (subscription) {
       setBillingCycle(subscription.billingCycle || "monthly");
       
-      // Fetch usage stats
       const fetchUsage = async () => {
         const usage = await getRemainingUsage();
         setUsageStats(usage);
@@ -106,7 +104,6 @@ export default function SubscriptionPage() {
           return;
         }
         
-        // Extract expiry month and year
         const [expiryMonth, expiryYear] = cardExpiry.split('/').map(part => parseInt(part.trim(), 10));
         
         if (isNaN(expiryMonth) || isNaN(expiryYear)) {
@@ -114,7 +111,6 @@ export default function SubscriptionPage() {
           return;
         }
         
-        // Get card brand based on first digits
         let brand = "unknown";
         if (cardNumber.startsWith('4')) {
           brand = 'visa';
@@ -134,7 +130,6 @@ export default function SubscriptionPage() {
           brand
         });
         
-        // Update billing cycle if changed
         if (subscription && subscription.billingCycle !== billingCycle) {
           await changeBillingCycle(billingCycle);
         }
@@ -142,11 +137,9 @@ export default function SubscriptionPage() {
         toast.success("Payment method updated successfully!");
         setShowPayPalConfig(false);
       } else {
-        // PayPal flow would be handled by PayPal SDK in a real implementation
         toast.success("PayPal account connected successfully!");
         setShowPayPalConfig(false);
         
-        // Update billing cycle if changed
         if (subscription && subscription.billingCycle !== billingCycle) {
           await changeBillingCycle(billingCycle);
         }
@@ -268,7 +261,6 @@ export default function SubscriptionPage() {
     <div className="container max-w-5xl py-6 space-y-6">
       <PageTitle title="Subscription" description="Manage your subscription and payment details" />
       
-      {/* Admin Controls (only shown for admin users) */}
       {isAdmin && (
         <Card className="mb-8 border-blue-200 bg-blue-50">
           <CardHeader>
@@ -318,7 +310,6 @@ export default function SubscriptionPage() {
         </Card>
       )}
       
-      {/* Loading state */}
       {loading && (
         <Card>
           <CardContent className="py-10">
@@ -330,7 +321,6 @@ export default function SubscriptionPage() {
         </Card>
       )}
       
-      {/* Error state */}
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -341,7 +331,6 @@ export default function SubscriptionPage() {
         </Alert>
       )}
       
-      {/* Subscription Status */}
       {!loading && !error && (
         <>
           <Card>
@@ -378,9 +367,8 @@ export default function SubscriptionPage() {
                     {getStatusBadge(subscription.status)}
                   </div>
                   
-                  {/* Warning message for grace period */}
                   {subscription.status === 'grace_period' && (
-                    <Alert variant="warning" className="bg-yellow-50 text-yellow-800 border-yellow-300">
+                    <Alert variant="destructive" className="bg-yellow-50 text-yellow-800 border-yellow-300">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertTitle>Payment Required</AlertTitle>
                       <AlertDescription>
@@ -456,7 +444,6 @@ export default function SubscriptionPage() {
                     </>
                   )}
                   
-                  {/* Usage limits for Free plan */}
                   {subscription.planId === 'free' && usageStats && (
                     <>
                       <Separator />
@@ -498,7 +485,6 @@ export default function SubscriptionPage() {
                     </>
                   )}
                   
-                  {/* Pro Features */}
                   {subscription.planId === 'pro' && (
                     <>
                       <Separator />
@@ -512,10 +498,16 @@ export default function SubscriptionPage() {
                                 <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
                                 <span>{feature.name}</span>
                                 {feature.description && (
-                                  <HelpCircle 
-                                    className="ml-1 h-3 w-3 text-muted-foreground cursor-help" 
-                                    title={feature.description}
-                                  />
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <HelpCircle className="ml-1 h-3 w-3 text-muted-foreground cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {feature.description}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 )}
                               </li>
                             ))}
@@ -549,7 +541,6 @@ export default function SubscriptionPage() {
             )}
           </Card>
           
-          {/* Cancellation Dialog */}
           <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
             <DialogContent>
               <DialogHeader>
@@ -613,12 +604,10 @@ export default function SubscriptionPage() {
             </DialogContent>
           </Dialog>
           
-          {/* Payment History */}
           {subscription && (
             <PaymentHistory />
           )}
           
-          {/* Payment Update Form */}
           {showPayPalConfig && (
             <Card>
               <CardHeader>

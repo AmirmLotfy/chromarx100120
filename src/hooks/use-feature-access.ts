@@ -221,12 +221,12 @@ export const useFeatureAccess = (): FeatureAccessHook => {
       if (!((userData as any)?.subscription)) return false;
       
       const updatedUsage = {
-        ...((userData as any).subscription.usage),
+        ...((userData as any).subscription.usage || {}),
         [limitType]: usage + 1
       };
       
       await chromeStorage.set('user', {
-        ...userData,
+        ...(userData as Record<string, any>),
         subscription: {
           ...((userData as any).subscription),
           usage: updatedUsage

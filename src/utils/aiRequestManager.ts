@@ -2,6 +2,7 @@
 import { chromeStorage } from "@/services/chromeStorageService";
 import { toast } from "sonner";
 import { PlanLimits, subscriptionPlans } from "@/config/subscriptionPlans";
+import { StorageOptions } from "@/services/storage/types";
 
 interface AIRequestOptions {
   requestType: keyof PlanLimits;
@@ -392,7 +393,8 @@ class AIRequestManager {
       const result = await requestFn();
       
       // Cache the result (for 24 hours)
-      await chromeStorage.set(`ai_cache_${cacheKey}`, result, 24 * 60 * 60 * 1000);
+      const storageOptions: StorageOptions = { ttl: 24 * 60 * 60 * 1000 };
+      await chromeStorage.set(`ai_cache_${cacheKey}`, result, storageOptions);
       
       return result;
     } catch (error) {
