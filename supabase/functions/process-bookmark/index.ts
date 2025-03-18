@@ -1,11 +1,10 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 // Sanitize URL to prevent security issues
 const sanitizeUrl = (url: string): string => {
@@ -38,7 +37,7 @@ serve(async (req) => {
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -65,50 +64,34 @@ serve(async (req) => {
     const sanitizedUrl = sanitizeUrl(url);
     const sanitizedTitle = title ? sanitizeInput(title) : "Untitled";
 
-    // Check environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    // Extract domain from URL
+    const domainMatch = sanitizedUrl.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
+    const domain = domainMatch ? domainMatch[1] : "unknown-domain";
     
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Supabase environment variables are not set");
-    }
+    // Example processing - you can expand this based on your needs
+    const processedData = {
+      url: sanitizedUrl,
+      title: sanitizedTitle,
+      processed_at: new Date().toISOString(),
+      domain
+    };
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('Processing bookmark:', { 
+      url: sanitizedUrl,
+      domain,
+      processed_at: processedData.processed_at 
+    });
 
-    // Process the bookmark with error handling
-    try {
-      // Extract domain from URL
-      const domainMatch = sanitizedUrl.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
-      const domain = domainMatch ? domainMatch[1] : "unknown-domain";
-      
-      // Example processing - you can expand this based on your needs
-      const processedData = {
-        url: sanitizedUrl,
-        title: sanitizedTitle,
-        processed_at: new Date().toISOString(),
-        domain
-      }
-
-      console.log('Processing bookmark:', { 
-        url: sanitizedUrl,
-        domain,
-        processed_at: processedData.processed_at 
-      });
-
-      return new Response(
-        JSON.stringify({
-          status: "success",
-          data: processedData
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      );
-    } catch (processingError) {
-      console.error("Error in bookmark processing:", processingError);
-      throw new Error(`Bookmark processing failed: ${processingError.message}`);
-    }
+    return new Response(
+      JSON.stringify({
+        status: "success",
+        data: processedData
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    );
   } catch (error) {
     console.error('Error processing bookmark:', error);
     
@@ -126,4 +109,4 @@ serve(async (req) => {
       },
     );
   }
-})
+});

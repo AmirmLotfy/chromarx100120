@@ -2,28 +2,27 @@
 export interface TimerSession {
   id: string;
   userId: string;
-  duration: number;
-  mode: 'focus' | 'break';
   startTime: Date;
-  endTime?: Date;
-  completed: boolean;
-  taskContext?: string;
-  productivityScore?: number;
-  aiSuggested: boolean;
-  feedbackRating?: number;
+  endTime: Date | null;
+  duration: number;
+  taskId?: string | null; // Adding taskId to fix the type error
+  notes?: string | null;
+  productivityScore?: number | null;
+  category?: string | null;
+  tags?: string[] | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface TimerState {
-  isRunning: boolean;
-  timeLeft: number;
-  currentSession: TimerSession | null;
-}
+export type TimerMode = 'focus' | 'break';
 
-export interface TimerStats {
-  totalFocusTime: number;
-  totalSessions: number;
-  averageProductivity: number;
-  completionRate: number;
+export interface TimerSettings {
+  focusDuration: number;
+  breakDuration: number;
+  longBreakDuration: number;
+  sessionsBeforeLongBreak: number;
+  autoStartBreaks: boolean;
+  autoStartFocus: boolean;
+  alarmSound: string;
+  alarmVolume: number;
 }
