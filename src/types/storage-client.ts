@@ -20,4 +20,7 @@ export interface ChromeStorageClientInterface {
   set<T>(key: string, value: T): Promise<boolean>;
   remove(key: string): Promise<boolean>;
   from<T>(tableName: string): QueryBuilder<T>;
+  auth: {
+    getUser(): Promise<{ data: { user: any } | null, error: Error | null }>;
+  };
 }

@@ -20,6 +20,15 @@ interface DbTimerSession {
   tags: string[] | null;
 }
 
+// Define interface for timer session creation
+interface TimerSessionCreate {
+  duration: number;
+  mode: 'focus' | 'break';
+  startTime: Date;
+  taskContext?: string;
+  aiSuggested?: boolean; 
+}
+
 // Helper function to convert database timer session to our app model
 const mapDbTimerSession = (session: DbTimerSession): TimerSession => {
   return {
@@ -36,6 +45,16 @@ const mapDbTimerSession = (session: DbTimerSession): TimerSession => {
     createdAt: new Date(session.created_at),
     updatedAt: new Date(session.updated_at),
   };
+};
+
+// Play notification sound
+const playSound = () => {
+  try {
+    const audio = new Audio('/notification.mp3');
+    audio.play();
+  } catch (error) {
+    console.error('Error playing sound:', error);
+  }
 };
 
 export const timerService = {
@@ -232,6 +251,127 @@ export const timerService = {
         averageProductivity: 0,
         mostProductiveDay: null
       };
+    }
+  },
+
+  // New methods to support TimerPage.tsx
+  async startSession(params: TimerSessionCreate): Promise<TimerSession> {
+    try {
+      const userId = 'local-user'; // Use local user ID 
+      const now = new Date();
+      const sessionId = uuidv4();
+      
+      const newSession = {
+        id: sessionId,
+        user_id: userId,
+        start_time: params.startTime.toISOString(),
+        end_time: null,
+        duration: params.duration,
+        task_id: null,
+        notes: params.taskContext || null,
+        productivity_score: null,
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        category: params.mode,
+        tags: []
+      };
+      
+      const { data, error } = await localStorageClient
+        .from('timer_sessions')
+        .insert(newSession)
+        .execute();
+      
+      if (error) {
+        throw error;
+      }
+      
+      const sessions = data as DbTimerSession[] || [];
+      const session = sessions.length > 0 ? sessions[0] : null;
+      
+      if (!session) {
+        throw new Error('Failed to create timer session');
+      }
+      
+      return mapDbTimerSession(session);
+    } catch (error) {
+      console.error('Error starting timer session:', error);
+      toast.error('Failed to start timer');
+      throw error;
+    }
+  },
+  
+  async completeSession(sessionId: string): Promise<void> {
+    try {
+      // Get the current session to calculate accurate duration
+      const { data, error } = await localStorageClient
+        .from('timer_sessions')
+        .select()
+        .eq('id', sessionId)
+        .execute();
+        
+      if (error) throw error;
+      
+      const sessions = data as DbTimerSession[] || [];
+      const session = sessions.length > 0 ? sessions[0] : null;
+      
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      
+      // Calculate actual duration
+      const startTime = new Date(session.start_time);
+      const endTime = new Date();
+      const durationInSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      
+      // Update the session with end time and duration
+      await this.endTimerSession(sessionId, durationInSeconds);
+    } catch (error) {
+      console.error('Error completing session:', error);
+      toast.error('Failed to complete timer session');
+      throw error;
+    }
+  },
+  
+  async provideFeedback(sessionId: string, productivityScore: number): Promise<void> {
+    try {
+      const { data, error } = await localStorageClient
+        .from('timer_sessions')
+        .update({ productivity_score: productivityScore, updated_at: new Date().toISOString() })
+        .eq('id', sessionId)
+        .execute();
+        
+      if (error) throw error;
+      
+      toast.success('Feedback recorded, thank you!');
+    } catch (error) {
+      console.error('Error providing feedback:', error);
+      toast.error('Failed to record feedback');
+      throw error;
+    }
+  },
+  
+  playCompletionSound(): void {
+    playSound();
+  },
+  
+  showNotification(): void {
+    // Check if browser supports notifications
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification('Timer Complete', {
+          body: 'Your timer session has ended.',
+          icon: '/icon128.png'
+        });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification('Timer Complete', {
+              body: 'Your timer session has ended.',
+              icon: '/icon128.png'
+            });
+          }
+        });
+      }
     }
   }
 };

@@ -32,21 +32,24 @@ export const localBackup = {
       const tasks = localStorage.getItem('tasks') ? 
         JSON.parse(localStorage.getItem('tasks') || '[]') : [];
       
+      // Create backup record
+      const backupRecord = {
+        id: `backup-${Date.now()}`,
+        key: 'full_backup',
+        value: {
+          bookmarks,
+          notes,
+          tasks,
+          timestamp: new Date().toISOString()
+        },
+        user_id: 'local-user',
+        created_at: new Date().toISOString()
+      };
+      
       // Save to chrome storage for sync
       const result = await localStorageClient
         .from('backups')
-        .insert({
-          id: `backup-${Date.now()}`,
-          key: 'full_backup',
-          value: {
-            bookmarks,
-            notes,
-            tasks,
-            timestamp: new Date().toISOString()
-          },
-          user_id: 'local-user',
-          created_at: new Date().toISOString()
-        })
+        .insert(backupRecord)
         .execute();
       
       if (result.error) {
