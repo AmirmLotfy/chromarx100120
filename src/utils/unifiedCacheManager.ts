@@ -30,6 +30,7 @@ export interface CacheEntry<T> {
   source: CacheSource;
   version?: string;
   error?: boolean;
+  id?: string;
 }
 
 const DEFAULT_CACHE_OPTIONS: CacheOptions = {
@@ -202,7 +203,7 @@ class UnifiedCacheManager {
     
     // Clear matching items from persistent storage
     try {
-      const allCacheItems = await storage.db.getAll({ storeName: 'cache' });
+      const allCacheItems = await storage.db.getAll({ storeName: 'cache' }) as Array<{ id?: string }>;
       
       for (const item of allCacheItems) {
         if (item.id && item.id.startsWith(`cache_${prefix}`)) {
@@ -231,14 +232,14 @@ class UnifiedCacheManager {
     newestEntry: number | null;
   }> {
     try {
-      const allCacheItems = await storage.db.getAll({ storeName: 'cache' });
+      const allCacheItems = await storage.db.getAll({ storeName: 'cache' }) as Array<{ timestamp?: number }>;
       
       let oldest = Date.now();
       let newest = 0;
       
       for (const item of allCacheItems) {
-        if (item.timestamp < oldest) oldest = item.timestamp;
-        if (item.timestamp > newest) newest = item.timestamp;
+        if (item.timestamp && item.timestamp < oldest) oldest = item.timestamp;
+        if (item.timestamp && item.timestamp > newest) newest = item.timestamp;
       }
       
       return {
@@ -288,7 +289,7 @@ class UnifiedCacheManager {
 
   private async getFromPersistentCache<T>(key: string, options: CacheOptions): Promise<T | null> {
     try {
-      const entry = await storage.db.get(`cache_${key}`, { storeName: 'cache' });
+      const entry = await storage.db.get(`cache_${key}`, { storeName: 'cache' }) as CacheEntry<T> | null;
       
       if (!entry) return null;
       
