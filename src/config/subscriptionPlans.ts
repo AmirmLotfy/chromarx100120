@@ -1,6 +1,6 @@
-
 import { chromeDb } from '@/lib/chrome-storage';
 import { toast } from 'sonner';
+import { Usage } from '@/types/payment';
 
 export interface PlanFeature {
   name: string;
@@ -38,13 +38,17 @@ export interface Plan {
 
 export interface UserSubscription {
   planId: string;
-  id?: string; // Added id field for compatibility
+  id?: string; // For compatibility
   status: 'active' | 'inactive' | 'canceled' | 'expired' | 'past_due' | 'grace_period';
   createdAt: string;
   endDate: string;
   currentPeriodStart: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
+  autoRenew: boolean;
+  billingCycle: 'monthly' | 'yearly';
+  trialEnd?: string;
+  trialStart?: string;
   paymentMethod?: {
     type: 'card' | 'paypal';
     lastFour?: string;
@@ -52,24 +56,11 @@ export interface UserSubscription {
     expiryMonth?: number;
     expiryYear?: number;
   };
-  billingCycle: 'monthly' | 'yearly';
-  autoRenew: boolean;
   gracePeriodEndDate?: string;
   renewalAttempts?: number;
   lastRenewalAttempt?: string;
-  updatedAt?: string; // Added updatedAt field for compatibility
-  usage: {
-    bookmarks: number;
-    bookmarkImports: number;
-    bookmarkCategorization: number;
-    bookmarkSummaries: number;
-    keywordExtraction: number;
-    tasks: number;
-    taskEstimation: number;
-    notes: number;
-    noteSentimentAnalysis: number;
-    aiRequests: number;
-  };
+  updatedAt?: string;
+  usage: Usage;
 }
 
 export interface UserData {
@@ -160,7 +151,6 @@ export const subscriptionPlans: Plan[] = [
   }
 ];
 
-// Subscription management functions
 export const getFeatureAvailability = async (feature: string): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(async () => {
@@ -213,7 +203,6 @@ export const checkUsageLimit = async (type: keyof PlanLimits): Promise<boolean> 
     
     const usage = userData.subscription.usage?.[type] || 0;
     
-    // Alert user when approaching limit
     if (usage >= limit * 0.8 && userData.subscription.status === 'active') {
       toast.warning(`You're approaching your ${type} limit (${usage}/${limit}). Consider upgrading to Pro.`, {
         action: {
@@ -247,7 +236,6 @@ export const incrementUsage = async (type: keyof PlanLimits): Promise<boolean> =
     
     const currentUsage = userData.subscription.usage?.[type] || 0;
     
-    // Check if already at limit for free plan users
     if (userData.subscription.planId === 'free') {
       const plan = subscriptionPlans.find(p => p.id === 'free');
       if (plan && currentUsage >= plan.limits[type]) {
@@ -282,25 +270,21 @@ export const incrementUsage = async (type: keyof PlanLimits): Promise<boolean> =
   }
 };
 
-// Subscription plan management
 export const getPlanById = (planId: string): Plan | undefined => {
   return subscriptionPlans.find(p => p.id === planId);
 };
 
-// Check if subscription needs renewal
 export const checkNeedsRenewal = async (): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
     if (!userData?.subscription) return false;
     
-    // Check if it's pro, active, and not canceled
     if (userData.subscription.planId !== 'pro' || 
         userData.subscription.status !== 'active' ||
         userData.subscription.cancelAtPeriodEnd) {
       return false;
     }
     
-    // Check if within 3 days of expiration
     const now = new Date();
     const endDate = new Date(userData.subscription.currentPeriodEnd);
     const daysDiff = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -312,24 +296,22 @@ export const checkNeedsRenewal = async (): Promise<boolean> => {
   }
 };
 
-// Reset monthly usage counters
 export const resetMonthlyUsage = async (): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
     if (!userData?.subscription) return false;
     
-    // Keep total resource counters, reset monthly limits
     const updatedUsage = {
-      bookmarks: userData.subscription.usage.bookmarks, // Keep total
-      bookmarkImports: 0, // Reset monthly
-      bookmarkCategorization: 0, // Reset monthly
-      bookmarkSummaries: 0, // Reset monthly
-      keywordExtraction: 0, // Reset monthly
-      tasks: userData.subscription.usage.tasks, // Keep total
-      taskEstimation: 0, // Reset monthly
-      notes: userData.subscription.usage.notes, // Keep total
-      noteSentimentAnalysis: 0, // Reset monthly
-      aiRequests: 0 // Reset monthly
+      bookmarks: userData.subscription.usage.bookmarks,
+      bookmarkImports: 0,
+      bookmarkCategorization: 0,
+      bookmarkSummaries: 0,
+      keywordExtraction: 0,
+      tasks: userData.subscription.usage.tasks,
+      taskEstimation: 0,
+      notes: userData.subscription.usage.notes,
+      noteSentimentAnalysis: 0,
+      aiRequests: 0
     };
     
     await retryWithBackoff(() => 
@@ -348,7 +330,6 @@ export const resetMonthlyUsage = async (): Promise<boolean> => {
   }
 };
 
-// Upgrade/downgrade subscription
 export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'yearly' = 'monthly'): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
@@ -361,7 +342,6 @@ export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'y
     const isUpgrade = oldPlanId === 'free' && newPlanId === 'pro';
     const isDowngrade = oldPlanId === 'pro' && newPlanId === 'free';
     
-    // Generate dates based on billing cycle
     const now = new Date();
     const startDate = now.toISOString();
     const endDate = new Date(now);
@@ -400,7 +380,6 @@ export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'y
       })
     );
 
-    // Log the transaction for history
     const paymentHistory = await chromeDb.get<any[]>('payment_history') || [];
     if (isUpgrade) {
       const price = billingCycle === 'yearly' ? newPlan.pricing.yearly : newPlan.pricing.monthly;
@@ -432,14 +411,12 @@ export const changePlan = async (newPlanId: string, billingCycle: 'monthly' | 'y
   }
 };
 
-// Cancel subscription
 export const cancelSubscription = async (immediate: boolean = false): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
     if (!userData?.subscription) throw new Error('No subscription found');
     
     if (immediate) {
-      // Immediate cancellation
       await retryWithBackoff(() => 
         chromeDb.update('user', {
           subscription: {
@@ -454,7 +431,6 @@ export const cancelSubscription = async (immediate: boolean = false): Promise<bo
       
       toast.success('Your subscription has been canceled immediately');
     } else {
-      // Cancel at period end
       await retryWithBackoff(() => 
         chromeDb.update('user', {
           subscription: {
@@ -476,7 +452,6 @@ export const cancelSubscription = async (immediate: boolean = false): Promise<bo
   }
 };
 
-// Update payment method
 export const updatePaymentMethod = async (paymentMethod: {
   type: 'card' | 'paypal';
   lastFour?: string;
@@ -506,7 +481,6 @@ export const updatePaymentMethod = async (paymentMethod: {
   }
 };
 
-// Toggle auto-renewal
 export const setAutoRenew = async (autoRenew: boolean): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
@@ -533,13 +507,11 @@ export const setAutoRenew = async (autoRenew: boolean): Promise<boolean> => {
   }
 };
 
-// Change billing cycle
 export const changeBillingCycle = async (billingCycle: 'monthly' | 'yearly'): Promise<boolean> => {
   try {
     const userData = await retryWithBackoff(() => chromeDb.get<UserData>('user'));
     if (!userData?.subscription) throw new Error('No subscription found');
     
-    // Calculate new end date based on billing cycle
     const now = new Date();
     const endDate = new Date(now);
     
@@ -560,7 +532,6 @@ export const changeBillingCycle = async (billingCycle: 'monthly' | 'yearly'): Pr
       })
     );
     
-    // Add payment record for the change
     const plan = subscriptionPlans.find(p => p.id === userData.subscription?.planId);
     if (plan && plan.id === 'pro') {
       const price = billingCycle === 'yearly' ? plan.pricing.yearly : plan.pricing.monthly;
@@ -589,7 +560,6 @@ export const changeBillingCycle = async (billingCycle: 'monthly' | 'yearly'): Pr
   }
 };
 
-// Helper function for retrying operations
 const retryWithBackoff = async <T>(
   operation: () => Promise<T>,
   maxRetries = 3,
@@ -609,7 +579,7 @@ const retryWithBackoff = async <T>(
 
       console.log(`Retry attempt ${retries} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2; // Exponential backoff
+      delay *= 2;
     }
   }
 };

@@ -1,4 +1,3 @@
-
 export interface PaymentHistory {
   id: string;
   user_id?: string;
@@ -53,6 +52,19 @@ export interface PayPalConfig {
   configured: boolean;
   clientId: string;
   mode: 'sandbox' | 'production';
+}
+
+export interface Usage {
+  bookmarks: number;
+  bookmarkImports: number;
+  bookmarkCategorization: number;
+  bookmarkSummaries: number;
+  keywordExtraction: number;
+  tasks: number;
+  taskEstimation: number;
+  notes: number;
+  noteSentimentAnalysis: number;
+  aiRequests: number;
 }
 
 export interface UsageMetrics {

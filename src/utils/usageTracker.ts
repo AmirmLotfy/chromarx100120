@@ -1,20 +1,7 @@
-
 import { chromeStorage } from "@/services/chromeStorageService";
 import { toast } from "sonner";
 import { PlanLimits, subscriptionPlans } from "@/config/subscriptionPlans";
-
-interface Usage {
-  bookmarks: number;
-  bookmarkImports: number;
-  bookmarkCategorization: number;
-  bookmarkSummaries: number;
-  keywordExtraction: number;
-  tasks: number;
-  taskEstimation: number;
-  notes: number;
-  noteSentimentAnalysis: number;
-  aiRequests: number;
-}
+import { Usage } from "@/types/payment";
 
 interface UserSubscription {
   planId: string;
@@ -222,7 +209,7 @@ class UsageTracker {
       // Keep track of total bookmarks, tasks, and notes (these aren't monthly counters)
       const { bookmarks, tasks, notes } = userData.subscription.usage;
       
-      const resetUsage = {
+      const resetUsage: Usage = {
         bookmarks, // Keep total counts
         bookmarkImports: 0, // Reset monthly counters
         bookmarkCategorization: 0,
