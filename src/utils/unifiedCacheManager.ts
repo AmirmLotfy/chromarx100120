@@ -1,4 +1,3 @@
-
 import { storage } from '@/services/storage/unifiedStorage';
 import { toast } from 'sonner';
 
@@ -347,8 +346,12 @@ class UnifiedCacheManager {
     
     // Cache in persistent storage
     try {
-      // Using the correct method from IndexedDbProvider
-      await storage.db.add(entry, { storeName: 'cache', id: `cache_${key}` });
+      // Using the correct method from IndexedDbProvider - first delete any existing entry
+      await storage.db.delete(`cache_${key}`, { storeName: 'cache' });
+      
+      // Then add the new entry - we need to create the object with ID property
+      const entryWithId = { ...entry, id: `cache_${key}` };
+      await storage.db.add(entryWithId, { storeName: 'cache' });
     } catch (error) {
       console.error(`Error caching data: ${key}`, error);
     }
