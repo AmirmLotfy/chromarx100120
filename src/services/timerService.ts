@@ -1,261 +1,237 @@
 
-import { localStorageClient } from '@/lib/chrome-storage-client';
-import { TimerSession, TimerStats } from "@/types/timer";
+import { localStorageClient } from "@/lib/chrome-storage-client";
+import { TimerSession } from "@/types/timer";
+import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
+// Define a proper interface for database timer sessions
 interface DbTimerSession {
   id: string;
   user_id: string;
-  duration: number;
-  mode: 'focus' | 'break';
   start_time: string;
-  end_time?: string;
-  completed: boolean;
-  task_context?: string;
-  productivity_score?: number;
-  ai_suggested: boolean;
-  feedback_rating?: number;
+  end_time: string | null;
+  duration: number;
+  task_id: string | null;
+  notes: string | null;
+  productivity_score: number | null;
   created_at: string;
   updated_at: string;
+  category: string | null;
+  tags: string[] | null;
 }
 
-class TimerService {
-  private static instance: TimerService;
-  private audioContext: AudioContext | null = null;
+// Helper function to convert database timer session to our app model
+const mapDbTimerSession = (session: DbTimerSession): TimerSession => {
+  return {
+    id: session.id,
+    userId: session.user_id,
+    startTime: new Date(session.start_time),
+    endTime: session.end_time ? new Date(session.end_time) : null,
+    duration: session.duration,
+    taskId: session.task_id,
+    notes: session.notes,
+    productivityScore: session.productivity_score,
+    category: session.category,
+    tags: session.tags || [],
+    createdAt: new Date(session.created_at),
+    updatedAt: new Date(session.updated_at),
+  };
+};
 
-  private constructor() {
-    if (typeof window !== 'undefined') {
-      try {
-        this.audioContext = new AudioContext();
-      } catch (error) {
-        console.error("Could not create audio context:", error);
-      }
-    }
-  }
-
-  static getInstance(): TimerService {
-    if (!this.instance) {
-      this.instance = new TimerService();
-    }
-    return this.instance;
-  }
-
-  async startSession(session: Omit<TimerSession, 'id' | 'userId' | 'completed' | 'createdAt' | 'updatedAt'>): Promise<TimerSession> {
+export const timerService = {
+  async createTimerSession(userId: string): Promise<TimerSession | null> {
     try {
-      const id = 'timer-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-      const userId = 'local-user';
+      const now = new Date();
+      const sessionId = uuidv4();
       
-      const dbSession: DbTimerSession = {
-        id,
+      const newSession = {
+        id: sessionId,
         user_id: userId,
-        duration: session.duration,
-        mode: session.mode,
-        start_time: session.startTime.toISOString(),
-        task_context: session.taskContext,
-        ai_suggested: session.aiSuggested,
-        completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        start_time: now.toISOString(),
+        end_time: null,
+        duration: 0,
+        task_id: null,
+        notes: null,
+        productivity_score: null,
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        category: null,
+        tags: []
       };
       
-      const result = await localStorageClient
+      const { data, error } = await localStorageClient
         .from('timer_sessions')
-        .insert(dbSession)
+        .insert(newSession)
         .execute();
-
-      if (result.error) throw result.error;
       
-      if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-        const data = result.data[0];
-        return this.mapSessionFromDb(data);
+      if (error) {
+        throw error;
       }
       
-      throw new Error('Failed to insert timer session');
+      const sessions = data as DbTimerSession[] || [];
+      const session = sessions.length > 0 ? sessions[0] : null;
+      
+      if (!session) {
+        throw new Error('Failed to create timer session');
+      }
+      
+      return mapDbTimerSession(session);
     } catch (error) {
-      console.error('Error starting timer session:', error);
-      toast.error('Failed to start timer session');
-      throw error;
+      console.error('Error creating timer session:', error);
+      toast.error('Failed to start timer');
+      return null;
     }
-  }
-
-  async completeSession(sessionId: string, productivityScore?: number): Promise<void> {
+  },
+  
+  async endTimerSession(sessionId: string, duration: number, notes?: string, taskId?: string, productivityScore?: number): Promise<TimerSession | null> {
     try {
-      const result = await localStorageClient
+      const now = new Date();
+      const updates = {
+        end_time: now.toISOString(),
+        duration,
+        notes: notes || null,
+        task_id: taskId || null,
+        productivity_score: productivityScore || null,
+        updated_at: now.toISOString()
+      };
+      
+      const { data, error } = await localStorageClient
         .from('timer_sessions')
-        .update({
-          completed: true,
-          end_time: new Date().toISOString(),
-          productivity_score: productivityScore,
-          updated_at: new Date().toISOString()
-        })
+        .update(updates)
         .eq('id', sessionId)
         .execute();
-
-      if (result.error) throw result.error;
       
-      await this.playCompletionSound();
-      this.showNotification();
+      if (error) {
+        throw error;
+      }
+      
+      const sessions = data as DbTimerSession[] || [];
+      const session = sessions.length > 0 ? sessions[0] : null;
+      
+      if (!session) {
+        throw new Error('Failed to update timer session');
+      }
+      
+      return mapDbTimerSession(session);
     } catch (error) {
-      console.error('Error completing timer session:', error);
-      toast.error('Failed to complete timer session');
-      throw error;
+      console.error('Error ending timer session:', error);
+      toast.error('Failed to end timer');
+      return null;
     }
-  }
-
-  async getStats(): Promise<TimerStats> {
+  },
+  
+  async getActiveTimerSession(userId: string): Promise<TimerSession | null> {
     try {
-      const result = await localStorageClient
+      const { data, error } = await localStorageClient
         .from('timer_sessions')
         .select()
+        .eq('user_id', userId)
+        .eq('end_time', null)
         .execute();
-
-      if (result.error) throw result.error;
       
-      // Ensure result.data is an array
-      const sessions = Array.isArray(result.data) ? result.data : [];
-
-      if (sessions.length === 0) return {
-        totalFocusTime: 0,
-        totalSessions: 0,
-        averageProductivity: 0,
-        completionRate: 0
-      };
-
-      const focusSessions = sessions.filter(s => {
-        const sessionObj = s as Record<string, any>;
-        return typeof sessionObj.mode === 'string' && sessionObj.mode === 'focus';
-      });
-      
-      const completedSessions = sessions.filter(s => {
-        const sessionObj = s as Record<string, any>;
-        return typeof sessionObj.completed === 'boolean' && sessionObj.completed === true;
-      });
-      
-      const totalSessions = sessions.length;
-
-      // Fix for error TS2322: Properly type the initial accumulator value and return value
-      const totalFocusTime = focusSessions.reduce((acc: number, s) => {
-        const sessionObj = s as Record<string, any>;
-        const duration = typeof sessionObj.duration === 'number' ? sessionObj.duration : 0;
-        return acc + duration;
-      }, 0);
-
-      let sumProductivity = 0;
-      let countWithScores = 0;
-      
-      completedSessions.forEach(s => {
-        const sessionObj = s as Record<string, any>;
-        const score = typeof sessionObj.productivity_score === 'number' ? sessionObj.productivity_score : 0;
-        if (score > 0) {
-          sumProductivity += score;
-          countWithScores++;
-        }
-      });
-      
-      // Fix for line 158 error: Explicitly declare the type as number and ensure it is a number
-      const averageProductivity: number = countWithScores > 0 ? Number(sumProductivity / countWithScores) : 0;
-
-      return {
-        totalFocusTime,
-        totalSessions,
-        averageProductivity,
-        completionRate: totalSessions > 0 
-          ? (completedSessions.length / totalSessions) * 100 
-          : 0
-      };
-    } catch (error) {
-      console.error('Error fetching timer stats:', error);
-      toast.error('Failed to fetch timer statistics');
-      throw error;
-    }
-  }
-
-  async provideFeedback(sessionId: string, rating: number): Promise<void> {
-    try {
-      const result = await localStorageClient
-        .from('timer_sessions')
-        .update({ 
-          feedback_rating: rating,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', sessionId)
-        .execute();
-
-      if (result.error) throw result.error;
-      toast.success('Thank you for your feedback!');
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-      toast.error('Failed to save feedback');
-      throw error;
-    }
-  }
-
-  async playCompletionSound(): Promise<void> {
-    if (!this.audioContext) {
-      try {
-        this.audioContext = new AudioContext();
-      } catch (error) {
-        console.error("Could not create audio context:", error);
-        return;
+      if (error) {
+        throw error;
       }
-    }
-
-    try {
-      const oscillator = this.audioContext.createOscillator();
-      const gainNode = this.audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(this.audioContext.destination);
-
-      oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.5, this.audioContext.currentTime);
-
-      oscillator.start();
-      oscillator.stop(this.audioContext.currentTime + 0.5);
+      
+      const sessions = data as DbTimerSession[] || [];
+      const session = sessions.length > 0 ? sessions[0] : null;
+      
+      return session ? mapDbTimerSession(session) : null;
     } catch (error) {
-      console.error('Error playing completion sound:', error);
+      console.error('Error getting active timer session:', error);
+      return null;
+    }
+  },
+  
+  async getUserTimerSessions(userId: string, limit: number = 10): Promise<TimerSession[]> {
+    try {
+      const { data, error } = await localStorageClient
+        .from('timer_sessions')
+        .select()
+        .eq('user_id', userId)
+        .order('start_time', { ascending: false })
+        .execute();
+      
+      if (error) {
+        throw error;
+      }
+      
+      const sessions = data as DbTimerSession[] || [];
+      return sessions.slice(0, limit).map(mapDbTimerSession);
+    } catch (error) {
+      console.error('Error getting user timer sessions:', error);
+      return [];
+    }
+  },
+  
+  async getProductivityStats(userId: string): Promise<{ 
+    totalSessions: number; 
+    totalMinutes: number; 
+    averageProductivity: number; 
+    mostProductiveDay: string | null;
+  }> {
+    try {
+      const { data, error } = await localStorageClient
+        .from('timer_sessions')
+        .select()
+        .eq('user_id', userId)
+        .execute();
+      
+      if (error) {
+        throw error;
+      }
+      
+      const sessions = data as DbTimerSession[] || [];
+      
+      // Calculate stats
+      const totalSessions = sessions.length;
+      const totalMinutes = sessions.reduce((sum, session) => sum + (session.duration || 0), 0) / 60;
+      
+      // Calculate average productivity from completed sessions with scores
+      const sessionsWithScores = sessions.filter(s => s.end_time && s.productivity_score !== null);
+      const averageProductivity: number = sessionsWithScores.length > 0 
+        ? sessionsWithScores.reduce((sum, s) => sum + (s.productivity_score || 0), 0) / sessionsWithScores.length 
+        : 0;
+      
+      // Find most productive day
+      const dayStats: Record<string, { count: number; totalScore: number }> = {};
+      
+      for (const session of sessions) {
+        if (session.end_time && session.productivity_score !== null) {
+          const day = new Date(session.start_time).toISOString().split('T')[0];
+          if (!dayStats[day]) {
+            dayStats[day] = { count: 0, totalScore: 0 };
+          }
+          dayStats[day].count += 1;
+          dayStats[day].totalScore += session.productivity_score || 0;
+        }
+      }
+      
+      let mostProductiveDay: string | null = null;
+      let highestAverage = 0;
+      
+      for (const [day, stats] of Object.entries(dayStats)) {
+        const average = stats.totalScore / stats.count;
+        if (average > highestAverage && stats.count >= 2) {
+          highestAverage = average;
+          mostProductiveDay = day;
+        }
+      }
+      
+      return {
+        totalSessions,
+        totalMinutes,
+        averageProductivity,
+        mostProductiveDay
+      };
+    } catch (error) {
+      console.error('Error getting productivity stats:', error);
+      return {
+        totalSessions: 0,
+        totalMinutes: 0,
+        averageProductivity: 0,
+        mostProductiveDay: null
+      };
     }
   }
-
-  showNotification(): void {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Timer Complete!', {
-        body: 'Your timer session has finished.',
-        icon: '/icon128.png'
-      });
-    }
-  }
-
-  private mapSessionFromDb(data: any): TimerSession {
-    if (!data) {
-      return {} as TimerSession;
-    }
-    
-    const mode: 'focus' | 'break' = data.mode === 'break' ? 'break' : 'focus';
-    
-    const duration = typeof data.duration === 'number' ? data.duration : 0;
-    
-    let productivityScore: number | undefined = undefined;
-    if (typeof data.productivity_score === 'number') {
-      productivityScore = data.productivity_score;
-    }
-    
-    return {
-      id: typeof data.id === 'string' ? data.id : '',
-      userId: typeof data.user_id === 'string' ? data.user_id : '',
-      duration,
-      mode,
-      startTime: new Date(data.start_time || new Date()),
-      endTime: data.end_time ? new Date(data.end_time) : undefined,
-      completed: Boolean(data.completed),
-      taskContext: typeof data.task_context === 'string' ? data.task_context : undefined,
-      productivityScore,
-      aiSuggested: Boolean(data.ai_suggested),
-      feedbackRating: typeof data.feedback_rating === 'number' ? data.feedback_rating : undefined,
-      createdAt: new Date(data.created_at || new Date()),
-      updatedAt: new Date(data.updated_at || new Date())
-    };
-  }
-}
-
-export const timerService = TimerService.getInstance();
+};

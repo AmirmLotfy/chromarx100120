@@ -22,6 +22,19 @@ export interface Subscription {
   updatedAt: Date;
 }
 
+// Define a proper type for the database representation of a subscription
+interface DbSubscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: 'active' | 'expired' | 'canceled';
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SubscriptionResult {
   data: Subscription | null;
   error: Error | null;
@@ -45,7 +58,8 @@ class SubscriptionServiceClass {
       }
 
       // Get the first subscription if there are any
-      const subscription = result.data && result.data.length > 0 ? result.data[0] : null;
+      const subscriptions = result.data as DbSubscription[] || [];
+      const subscription = subscriptions.length > 0 ? subscriptions[0] : null;
       
       if (!subscription) {
         return {
@@ -183,7 +197,8 @@ class SubscriptionServiceClass {
         throw result.error;
       }
       
-      const newSubscription = result.data && result.data.length > 0 ? result.data[0] : null;
+      const newSubscriptionArray = result.data as DbSubscription[] || [];
+      const newSubscription = newSubscriptionArray.length > 0 ? newSubscriptionArray[0] : null;
       
       if (!newSubscription) {
         throw new Error('Failed to create or update subscription');

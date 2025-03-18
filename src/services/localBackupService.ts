@@ -33,7 +33,7 @@ export const localBackup = {
         JSON.parse(localStorage.getItem('tasks') || '[]') : [];
       
       // Save to chrome storage for sync
-      await localStorageClient
+      const result = await localStorageClient
         .from('backups')
         .insert({
           id: `backup-${Date.now()}`,
@@ -48,6 +48,11 @@ export const localBackup = {
           created_at: new Date().toISOString()
         })
         .execute();
+      
+      if (result.error) {
+        console.error('Backup failed:', result.error);
+        return false;
+      }
       
       console.log('Backup completed successfully');
       return true;
