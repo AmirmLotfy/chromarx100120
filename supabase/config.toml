@@ -1,6 +1,4 @@
 
-project_id = "hkpgkogqxnamvlptxhat"
-
 [functions.gemini-api]
 verify_jwt = false
 

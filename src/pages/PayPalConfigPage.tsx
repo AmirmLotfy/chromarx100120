@@ -19,7 +19,7 @@ const PayPalConfigPage = () => {
         
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>
-            This configuration will be securely stored in your Supabase database
+            This configuration will be securely stored in your local browser storage
             and used for processing payments in your application.
           </p>
         </div>
