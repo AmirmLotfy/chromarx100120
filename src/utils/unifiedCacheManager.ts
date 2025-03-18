@@ -202,10 +202,10 @@ class UnifiedCacheManager {
     
     // Clear matching items from persistent storage
     try {
-      const allCacheItems = await storage.db.getAll<{ id: string }>({ storeName: 'cache' });
+      const allCacheItems = await storage.db.getAll({ storeName: 'cache' });
       
       for (const item of allCacheItems) {
-        if (item.id.startsWith(`cache_${prefix}`)) {
+        if (item.id && item.id.startsWith(`cache_${prefix}`)) {
           await storage.db.delete(item.id, { storeName: 'cache' });
         }
       }
@@ -231,7 +231,7 @@ class UnifiedCacheManager {
     newestEntry: number | null;
   }> {
     try {
-      const allCacheItems = await storage.db.getAll<CacheEntry<any>>({ storeName: 'cache' });
+      const allCacheItems = await storage.db.getAll({ storeName: 'cache' });
       
       let oldest = Date.now();
       let newest = 0;
@@ -288,7 +288,7 @@ class UnifiedCacheManager {
 
   private async getFromPersistentCache<T>(key: string, options: CacheOptions): Promise<T | null> {
     try {
-      const entry = await storage.db.get<CacheEntry<T>>(`cache_${key}`, { storeName: 'cache' });
+      const entry = await storage.db.get(`cache_${key}`, { storeName: 'cache' });
       
       if (!entry) return null;
       
