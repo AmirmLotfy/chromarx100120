@@ -1,4 +1,3 @@
-
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { 
   trackSubscriptionEvent,
@@ -216,15 +215,15 @@ describe('subscriptionAnalytics', () => {
   
   describe('getChurnReductionRecommendations', () => {
     it('should provide recommendations based on churn risk', async () => {
-      // Mock predictChurnRisk to return high risk
-      const originalModule = await vi.importOriginal('../subscriptionAnalytics');
+      // Create a spy on the original module to mock just the predictChurnRisk function
+      const predictChurnRiskSpy = vi.fn().mockResolvedValue(0.8);
       
-      vi.mock('../subscriptionAnalytics', async () => {
-        return {
-          ...originalModule,
-          predictChurnRisk: vi.fn().mockResolvedValue(0.8)
-        };
-      });
+      // Mock the module with the spy
+      vi.mock('../subscriptionAnalytics', () => ({
+        predictChurnRisk: predictChurnRiskSpy,
+        // We're keeping the original implementation for the function we're testing
+        getChurnReductionRecommendations: vi.importActual('../subscriptionAnalytics').getChurnReductionRecommendations
+      }));
       
       // Execute
       const recommendations = await getChurnReductionRecommendations();
