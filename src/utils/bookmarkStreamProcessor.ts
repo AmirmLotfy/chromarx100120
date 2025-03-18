@@ -1,5 +1,5 @@
 
-import { createReadableStream, createTransformStream, createWritableStream } from './webStreamUtils';
+import { createReadableStream, createTransformStream } from './webStreamUtils';
 import { storage } from '@/services/storage';
 
 /**
@@ -30,10 +30,7 @@ export class BookmarkStreamProcessor {
     const results: R[] = [];
     
     // Create a readable stream from the bookmarks array
-    const readableStream = createReadableStream(bookmarks, {
-      batchSize,
-      onProgress
-    });
+    const readableStream = createReadableStream(bookmarks);
     
     // Create a transform stream to process each bookmark
     const transformStream = createTransformStream(async (bookmark: T) => {
@@ -47,17 +44,19 @@ export class BookmarkStreamProcessor {
     });
     
     // Create a writable stream to collect results and store in IndexedDB
-    const writableStream = createWritableStream(async (result: R) => {
-      results.push(result);
-      
-      // Optionally store each processed result in IndexedDB
-      if (shouldStore) {
-        try {
-          const storedData = await storage.get<R[]>(storageKey) || [];
-          storedData.push(result);
-          await storage.set(storageKey, storedData);
-        } catch (error) {
-          console.error('Error storing in IndexedDB:', error);
+    const writableStream = new WritableStream({
+      write: async (result: R) => {
+        results.push(result);
+        
+        // Optionally store each processed result in IndexedDB
+        if (shouldStore) {
+          try {
+            const storedData = await storage.get(storageKey) || [];
+            storedData.push(result);
+            await storage.set(storageKey, storedData);
+          } catch (error) {
+            console.error('Error storing in IndexedDB:', error);
+          }
         }
       }
     });
@@ -85,7 +84,7 @@ export class BookmarkStreamProcessor {
     const { batchSize = 10, onProgress, filter } = options;
     
     // Get data from IndexedDB
-    const data = await storage.get<T[]>(storageKey) || [];
+    const data = await storage.get(storageKey) || [];
     const filteredData = filter ? data.filter(filter) : data;
     
     return this.processBookmarks(
@@ -113,7 +112,7 @@ export class BookmarkStreamProcessor {
     const { batchSize = 20, onProgress } = options;
     
     // Get all items from storage
-    const allItems = await storage.get<T[]>(storageKey) || [];
+    const allItems = await storage.get(storageKey) || [];
     
     // Process in batches
     const totalBatches = Math.ceil(allItems.length / batchSize);
