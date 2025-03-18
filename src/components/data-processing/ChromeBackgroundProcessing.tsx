@@ -5,21 +5,25 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { useBackgroundProcessing } from "@/hooks/useBackgroundProcessing";
+import { useStreamProcessing } from '@/hooks/useStreamProcessing';
+import { RotateCw, PlayCircle, ArrowUpDown, CloudOff, AlertTriangle } from 'lucide-react';
 
 const ChromeBackgroundProcessing = () => {
   const [items, setItems] = useState<string[]>([]);
   
   const {
-    processItems,
     isProcessing,
     progress,
+    stepLabel,
+    processed,
+    total,
     cancelProcessing,
     backgroundTasks,
     refreshBackgroundTasks,
     scheduleBackgroundTask,
-    triggerBackgroundProcessing
-  } = useBackgroundProcessing<string>();
+    triggerBackgroundProcessing,
+    processItems
+  } = useStreamProcessing<string>();
   
   // Generate some dummy items for processing
   useEffect(() => {
@@ -30,43 +34,64 @@ const ChromeBackgroundProcessing = () => {
   // Refresh background tasks when component mounts
   useEffect(() => {
     refreshBackgroundTasks();
+    
+    // Set up interval to refresh tasks
+    const interval = setInterval(() => {
+      refreshBackgroundTasks();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, [refreshBackgroundTasks]);
   
   const handleProcessInForeground = async () => {
-    await processItems({
-      items,
-      processInBackground: false,
-      processingCallback: async (item, index) => {
-        console.log(`Processing ${item} (${index + 1}/${items.length})`);
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 200));
-      },
-      onComplete: () => {
-        toast.success("Foreground processing completed!");
-      },
-      onError: (error, item) => {
-        toast.error(`Error processing ${item}: ${error.message}`);
-      },
-      stepLabels: ["Starting", "Processing", "Finalizing"]
-    });
+    try {
+      await processItems({
+        items,
+        processInBackground: false,
+        processingCallback: async (item, index) => {
+          console.log(`Processing ${item} (${index + 1}/${items.length})`);
+          // Simulate processing time
+          await new Promise(resolve => setTimeout(resolve, 200));
+          return `Processed: ${item}`;
+        },
+        onComplete: () => {
+          toast.success("Foreground processing completed!");
+        },
+        onError: (error, item) => {
+          toast.error(`Error processing ${item}: ${error.message}`);
+        },
+        stepLabels: ["Starting process", "Processing items", "Finalizing results"]
+      });
+    } catch (error) {
+      console.error('Processing error:', error);
+    }
   };
   
   const handleProcessInBackground = async () => {
-    await processItems({
-      items,
-      processInBackground: true,
-      processingCallback: async (item, index) => {
-        console.log(`Background processing ${item} (${index + 1}/${items.length})`);
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 200));
-      },
-      onComplete: () => {
-        toast.success("Background processing completed!");
-      },
-      onError: (error, item) => {
-        toast.error(`Error processing ${item}: ${error.message}`);
+    try {
+      const taskId = await processItems({
+        items,
+        processInBackground: true,
+        processingCallback: async (item, index) => {
+          console.log(`Background processing ${item} (${index + 1}/${items.length})`);
+          // Simulate processing time
+          await new Promise(resolve => setTimeout(resolve, 200));
+          return `Processed: ${item}`;
+        },
+        onComplete: () => {
+          toast.success("Background processing completed!");
+        },
+        onError: (error, item) => {
+          toast.error(`Error processing ${item}: ${error.message}`);
+        }
+      });
+      
+      if (taskId) {
+        toast.success(`Task scheduled: ${taskId}`);
       }
-    });
+    } catch (error) {
+      console.error('Background processing error:', error);
+    }
   };
   
   const handleScheduleTask = async () => {
@@ -82,6 +107,18 @@ const ChromeBackgroundProcessing = () => {
     if (taskId) {
       toast.success("Task scheduled successfully");
       refreshBackgroundTasks();
+    } else {
+      toast.error("Failed to schedule task");
+    }
+  };
+  
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending': return 'outline';
+      case 'processing': return 'secondary';
+      case 'completed': return 'success';
+      case 'failed': return 'destructive';
+      default: return 'default';
     }
   };
   
@@ -89,17 +126,20 @@ const ChromeBackgroundProcessing = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Chrome Background Processing</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ArrowUpDown className="h-5 w-5" />
+            Stream Processing
+          </CardTitle>
           <CardDescription>
-            Process data in the foreground or background using service workers
+            Process bookmark data efficiently with streams in foreground or background
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {isProcessing && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Processing...</span>
-                <span>{progress}%</span>
+                <span>{stepLabel || 'Processing...'}</span>
+                <span>{processed} of {total} ({progress}%)</span>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
@@ -110,7 +150,9 @@ const ChromeBackgroundProcessing = () => {
               onClick={handleProcessInForeground}
               disabled={isProcessing}
               className="flex-1"
+              variant="default"
             >
+              <PlayCircle className="mr-2 h-4 w-4" />
               Process in Foreground
             </Button>
             
@@ -120,6 +162,7 @@ const ChromeBackgroundProcessing = () => {
               variant="secondary"
               className="flex-1"
             >
+              <CloudOff className="mr-2 h-4 w-4" />
               Process in Background
             </Button>
             
@@ -128,18 +171,29 @@ const ChromeBackgroundProcessing = () => {
                 onClick={cancelProcessing}
                 variant="destructive"
               >
+                <AlertTriangle className="mr-2 h-4 w-4" />
                 Cancel Processing
               </Button>
             )}
+          </div>
+          
+          <div className="text-xs text-muted-foreground mt-4">
+            <p>
+              Stream processing uses the modern Streams API for efficient data handling.
+              Background processing leverages Chrome's service worker capabilities.
+            </p>
           </div>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>Background Tasks</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <PlayCircle className="h-5 w-5" />
+            Background Tasks
+          </CardTitle>
           <CardDescription>
-            Schedule and manage background tasks
+            Schedule and manage background tasks that run in the service worker
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -160,13 +214,13 @@ const ChromeBackgroundProcessing = () => {
               variant="outline"
               size="icon"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+              <RotateCw className="h-4 w-4" />
             </Button>
           </div>
           
           <div className="border rounded-md overflow-hidden">
             <div className="bg-secondary/20 p-3 font-medium text-sm">
-              Pending Tasks ({backgroundTasks.filter(t => t.status === 'pending').length})
+              Tasks ({backgroundTasks.length})
             </div>
             <div className="divide-y max-h-48 overflow-y-auto">
               {backgroundTasks.length === 0 ? (
@@ -176,16 +230,21 @@ const ChromeBackgroundProcessing = () => {
               ) : (
                 backgroundTasks.map(task => (
                   <div key={task.id} className="p-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="font-medium">{task.type}</span>
-                      <Badge variant="outline">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{task.type}</span>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {task.data?.message || 'No message'}
+                        </p>
+                      </div>
+                      <Badge variant={getStatusBadgeVariant(task.status)}>
                         {task.status}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       Added: {new Date(task.added).toLocaleString()}
                     </div>
-                    {task.progress > 0 && (
+                    {task.status === 'processing' && task.progress > 0 && (
                       <Progress value={task.progress} className="h-1 mt-2" />
                     )}
                   </div>
@@ -194,8 +253,9 @@ const ChromeBackgroundProcessing = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="text-xs text-muted-foreground">
-          Background tasks use Chrome's service worker to process data even when the extension UI is closed
+        <CardFooter className="text-xs text-muted-foreground flex flex-col items-start">
+          <p>Background tasks continue to run even when the extension UI is closed</p>
+          <p className="mt-1">Efficient task processing is achieved through Chrome's service worker architecture</p>
         </CardFooter>
       </Card>
     </div>
