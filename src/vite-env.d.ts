@@ -100,3 +100,67 @@ declare var SpeechGrammar: {
   prototype: SpeechGrammar;
   new(): SpeechGrammar;
 };
+
+// Service Worker Types
+interface ExtendableEvent extends Event {
+  waitUntil(promise: Promise<any>): void;
+}
+
+interface FetchEvent extends ExtendableEvent {
+  request: Request;
+  respondWith(response: Response | Promise<Response>): void;
+  clientId: string;
+  resultingClientId: string;
+  isReload: boolean;
+}
+
+interface ServiceWorkerGlobalScope extends WorkerGlobalScope {
+  caches: CacheStorage;
+  clients: Clients;
+  registration: ServiceWorkerRegistration;
+  addEventListener<K extends keyof ServiceWorkerGlobalScopeEventMap>(type: K, listener: (this: ServiceWorkerGlobalScope, ev: ServiceWorkerGlobalScopeEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+  addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+  removeEventListener<K extends keyof ServiceWorkerGlobalScopeEventMap>(type: K, listener: (this: ServiceWorkerGlobalScope, ev: ServiceWorkerGlobalScopeEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+  removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+  skipWaiting(): Promise<void>;
+}
+
+interface ServiceWorkerGlobalScopeEventMap extends WorkerGlobalScopeEventMap {
+  'activate': ExtendableEvent;
+  'fetch': FetchEvent;
+  'install': ExtendableEvent;
+  'message': MessageEvent;
+  'notificationclick': NotificationEvent;
+  'notificationclose': NotificationEvent;
+  'push': PushEvent;
+  'pushsubscriptionchange': PushSubscriptionChangeEvent;
+  'sync': SyncEvent;
+}
+
+interface Clients {
+  claim(): Promise<void>;
+  get(id: string): Promise<Client | undefined>;
+  matchAll(options?: ClientQueryOptions): Promise<Client[]>;
+  openWindow(url: string): Promise<WindowClient | null>;
+}
+
+interface ClientQueryOptions {
+  includeUncontrolled?: boolean;
+  type?: ClientType;
+}
+
+type ClientType = 'window' | 'worker' | 'sharedworker' | 'all';
+
+interface Client {
+  id: string;
+  type: ClientType;
+  url: string;
+  postMessage(message: any, transfer?: Transferable[]): void;
+}
+
+interface WindowClient extends Client {
+  focused: boolean;
+  visibilityState: VisibilityState;
+  focus(): Promise<WindowClient>;
+  navigate(url: string): Promise<WindowClient | null>;
+}

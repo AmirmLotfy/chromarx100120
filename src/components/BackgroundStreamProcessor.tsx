@@ -1,438 +1,354 @@
 
-/**
- * Background Stream Processor Component
- * Handles background processing tasks using the Streams API
- * Communicates with the service worker for processing large datasets
- */
-
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, XCircle, Play, Pause, RotateCcw } from 'lucide-react';
-
-interface BackgroundTask {
-  id: string;
-  type: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress: number;
-  added: number;
-  priority?: 'high' | 'normal' | 'low';
-  error?: string;
-  data?: any;
-}
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { processWithStreams } from "@/utils/webStreamUtils";
 
 export function BackgroundStreamProcessor() {
-  const [tasks, setTasks] = useState<BackgroundTask[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  
-  // Load tasks from service worker
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        const response = await chrome.runtime.sendMessage({ 
-          type: "GET_TASKS"
-        });
-        
-        if (response && response.success) {
-          setTasks(response.tasks || []);
-        }
-      } else {
-        // In development: simulate getting tasks
-        console.log('In development mode: would get background tasks here');
-        
-        // Mock tasks for development
-        setTasks([
-          {
-            id: 'task1',
-            type: 'PROCESS_BOOKMARKS',
-            status: 'pending',
-            progress: 0,
-            added: Date.now() - 60000,
-            priority: 'normal',
-            data: { count: 157 }
-          },
-          {
-            id: 'task2',
-            type: 'SYNC_BOOKMARKS',
-            status: 'processing',
-            progress: 45,
-            added: Date.now() - 30000,
-            priority: 'high',
-            data: { source: 'chrome' }
-          },
-          {
-            id: 'task3',
-            type: 'ANALYZE_BOOKMARKS',
-            status: 'completed',
-            progress: 100,
-            added: Date.now() - 120000,
-            priority: 'normal',
-            data: { bookmarkIds: ['id1', 'id2', 'id3'] }
-          }
-        ]);
+  const [tasks, setTasks] = useState<Array<{
+    id: string;
+    name: string;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress: number;
+    result?: any;
+    error?: string;
+  }>>([]);
+
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+
+  // Create a new processing task
+  const createTask = () => {
+    const items = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      value: Math.random() * 100
+    }));
+
+    const taskId = `task_${Date.now()}`;
+    
+    setTasks(prev => [
+      ...prev,
+      {
+        id: taskId,
+        name: `Data Processing Task ${prev.length + 1}`,
+        status: 'pending',
+        progress: 0
       }
-    } catch (error) {
-      console.error('Error fetching background tasks:', error);
-      toast.error('Could not fetch background tasks');
-    } finally {
-      setLoading(false);
-    }
+    ]);
+    
+    // Auto-select the new task
+    setSelectedTask(taskId);
+    
+    toast.success("New processing task created");
   };
-  
-  // Start processing pending tasks
-  const startProcessing = async () => {
+
+  // Process a specific task
+  const processTask = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.status === 'processing') return;
+    
+    // Create items to process
+    const items = Array.from({ length: 100 }, (_, i) => ({
+      id: i,
+      value: Math.random() * 100
+    }));
+    
+    // Update task status
+    setTasks(prev => prev.map(t => 
+      t.id === taskId ? { ...t, status: 'processing' as const, progress: 0 } : t
+    ));
+    
+    // Create abort controller
+    const controller = new AbortController();
+    setAbortController(controller);
+    setIsProcessing(true);
+    
     try {
-      setProcessing(true);
-      
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        const response = await chrome.runtime.sendMessage({ 
-          type: "PROCESS_TASKS"
-        });
-        
-        if (response && response.success) {
-          toast.success(`Processing ${response.taskCount} tasks`);
-          await fetchTasks();
-        }
-      } else {
-        // In development: simulate processing
-        toast.success('Processing tasks (development mode)');
-        
-        // Simulate progress updates
-        const pendingTasks = tasks.filter(t => t.status === 'pending');
-        
-        for (let i = 0; i < pendingTasks.length; i++) {
-          const taskId = pendingTasks[i].id;
-          
-          setTasks(prev => prev.map(t => 
-            t.id === taskId 
-              ? { ...t, status: 'processing' } 
-              : t
-          ));
-          
-          // Simulate progress
-          for (let progress = 0; progress <= 100; progress += 10) {
-            await new Promise(r => setTimeout(r, 200));
-            
+      // Process the items using streams
+      const results = await processWithStreams(
+        items,
+        async (item) => {
+          // Simulate processing time
+          await new Promise(resolve => setTimeout(resolve, 50));
+          return {
+            id: item.id,
+            result: Math.sqrt(item.value).toFixed(2)
+          };
+        },
+        {
+          onProgress: (processed, total, percentage) => {
+            // Update task progress
             setTasks(prev => prev.map(t => 
-              t.id === taskId 
-                ? { ...t, progress } 
-                : t
+              t.id === taskId ? { ...t, progress: percentage } : t
             ));
-          }
-          
-          // Mark as completed
-          setTasks(prev => prev.map(t => 
-            t.id === taskId 
-              ? { ...t, status: 'completed', progress: 100 } 
-              : t
-          ));
-          
-          await new Promise(r => setTimeout(r, 500));
+          },
+          signal: controller.signal
         }
-      }
+      );
+      
+      // Update task with results
+      setTasks(prev => prev.map(t => 
+        t.id === taskId ? { 
+          ...t, 
+          status: 'completed' as const, 
+          progress: 100,
+          result: results
+        } : t
+      ));
+      
+      toast.success(`Task ${task.name} completed successfully`);
     } catch (error) {
-      console.error('Error starting task processing:', error);
-      toast.error('Failed to start processing tasks');
+      console.error("Processing error:", error);
+      
+      // Check if it was aborted
+      if (error instanceof Error && error.name === 'AbortError') {
+        setTasks(prev => prev.map(t => 
+          t.id === taskId ? { ...t, status: 'failed' as const, error: 'Task was cancelled' } : t
+        ));
+        toast.info(`Task ${task.name} was cancelled`);
+      } else {
+        setTasks(prev => prev.map(t => 
+          t.id === taskId ? { 
+            ...t, 
+            status: 'failed' as const, 
+            error: error instanceof Error ? error.message : 'Unknown error'
+          } : t
+        ));
+        toast.error(`Task ${task.name} failed`);
+      }
     } finally {
-      setProcessing(false);
+      setIsProcessing(false);
+      setAbortController(null);
     }
   };
-  
-  // Cancel a specific task
-  const cancelTask = async (taskId: string) => {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        const response = await chrome.runtime.sendMessage({ 
-          type: "CANCEL_TASK",
-          taskId
-        });
-        
-        if (response && response.success) {
-          toast.success('Task cancelled');
-          await fetchTasks();
-        }
-      } else {
-        // In development: simulate cancelling
-        setTasks(prev => prev.map(t => 
-          t.id === taskId 
-            ? { ...t, status: 'failed', error: 'Cancelled by user' } 
-            : t
-        ));
-        
-        toast.info('Task cancelled (development mode)');
-      }
-    } catch (error) {
-      console.error('Error cancelling task:', error);
-      toast.error('Failed to cancel task');
+
+  // Cancel the current processing task
+  const cancelProcessing = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setIsProcessing(false);
     }
   };
-  
-  // Retry a failed task
-  const retryTask = async (taskId: string) => {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        const response = await chrome.runtime.sendMessage({ 
-          type: "RETRY_TASK",
-          taskId
-        });
-        
-        if (response && response.success) {
-          toast.success('Task requeued');
-          await fetchTasks();
-        }
-      } else {
-        // In development: simulate retry
-        setTasks(prev => prev.map(t => 
-          t.id === taskId 
-            ? { ...t, status: 'pending', progress: 0, error: undefined } 
-            : t
-        ));
-        
-        toast.info('Task requeued (development mode)');
-      }
-    } catch (error) {
-      console.error('Error retrying task:', error);
-      toast.error('Failed to retry task');
-    }
-  };
-  
-  // Clear completed tasks
-  const clearCompletedTasks = async () => {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        const response = await chrome.runtime.sendMessage({ 
-          type: "CLEAR_COMPLETED_TASKS"
-        });
-        
-        if (response && response.success) {
-          toast.success('Completed tasks cleared');
-          await fetchTasks();
-        }
-      } else {
-        // In development: simulate clearing
-        setTasks(prev => prev.filter(t => t.status !== 'completed'));
-        toast.info('Completed tasks cleared (development mode)');
-      }
-    } catch (error) {
-      console.error('Error clearing completed tasks:', error);
-      toast.error('Failed to clear completed tasks');
-    }
-  };
-  
-  // Listen for task updates from service worker
-  useEffect(() => {
-    const handleTaskUpdate = (message: any) => {
-      if (message.type === 'TASK_UPDATED') {
-        setTasks(prev => {
-          const taskIndex = prev.findIndex(t => t.id === message.task.id);
-          
-          if (taskIndex >= 0) {
-            const updatedTasks = [...prev];
-            updatedTasks[taskIndex] = message.task;
-            return updatedTasks;
-          } else {
-            return [...prev, message.task];
-          }
-        });
-      } else if (message.type === 'TASK_ADDED') {
-        setTasks(prev => [...prev, message.task]);
-      }
-    };
-    
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-      chrome.runtime.onMessage.addListener(handleTaskUpdate);
+
+  // Clear all tasks
+  const clearTasks = () => {
+    if (isProcessing) {
+      toast.error("Cannot clear tasks while processing is active");
+      return;
     }
     
-    return () => {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.onMessage.removeListener(handleTaskUpdate);
-      }
-    };
-  }, []);
-  
-  // Fetch tasks on mount
-  useEffect(() => {
-    fetchTasks();
-    
-    // Refresh tasks periodically
-    const intervalId = setInterval(fetchTasks, 10000);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
-  
-  // Count tasks by status
-  const pendingTasks = tasks.filter(t => t.status === 'pending').length;
-  const processingTasks = tasks.filter(t => t.status === 'processing').length;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
-  const failedTasks = tasks.filter(t => t.status === 'failed').length;
-  
-  // Format timestamp
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString();
+    setTasks([]);
+    setSelectedTask(null);
+    toast.success("All tasks cleared");
   };
-  
+
+  // Get the status badge color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'secondary';
+      case 'processing': return 'default';
+      case 'completed': return 'success';
+      case 'failed': return 'destructive';
+      default: return 'outline';
+    }
+  };
+
   return (
-    <Card className="w-full max-w-3xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Background Processing</span>
-          <div className="flex gap-2">
-            <Badge variant="outline">{tasks.length} Tasks</Badge>
-            {processingTasks > 0 && (
-              <Badge variant="secondary" className="animate-pulse">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Processing
-              </Badge>
-            )}
-          </div>
-        </CardTitle>
+        <CardTitle>Background Stream Processor</CardTitle>
         <CardDescription>
-          Stream-based background task processing system
+          Process data efficiently using Web Streams API
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
-        <div className="flex gap-2 mb-4 flex-wrap">
-          <Badge variant="outline">{pendingTasks} Pending</Badge>
-          <Badge variant="secondary">{processingTasks} Processing</Badge>
-          <Badge variant="success">{completedTasks} Completed</Badge>
-          <Badge variant="destructive">{failedTasks} Failed</Badge>
+      <CardContent className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Button onClick={createTask}>Create Task</Button>
+          
+          <div className="space-x-2">
+            {selectedTask && (
+              <>
+                <Button 
+                  variant="default" 
+                  onClick={() => processTask(selectedTask)}
+                  disabled={isProcessing || tasks.find(t => t.id === selectedTask)?.status === 'processing'}
+                >
+                  Process Selected
+                </Button>
+                
+                {isProcessing && (
+                  <Button variant="destructive" onClick={cancelProcessing}>
+                    Cancel
+                  </Button>
+                )}
+              </>
+            )}
+            
+            <Button variant="outline" onClick={clearTasks} disabled={isProcessing}>
+              Clear All
+            </Button>
+          </div>
         </div>
         
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No background tasks in queue
+        {tasks.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="border rounded-md md:col-span-1 overflow-hidden">
+              <div className="bg-muted p-2 font-medium">
+                Tasks ({tasks.length})
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {tasks.map(task => (
+                  <div 
+                    key={task.id}
+                    className={`p-3 border-b cursor-pointer transition-colors ${
+                      selectedTask === task.id ? 'bg-muted/50' : 'hover:bg-muted/30'
+                    }`}
+                    onClick={() => setSelectedTask(task.id)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium truncate">{task.name}</span>
+                      <Badge variant={getStatusColor(task.status)}>
+                        {task.status}
+                      </Badge>
+                    </div>
+                    {task.status === 'processing' && (
+                      <Progress value={task.progress} className="h-1 mt-2" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="border rounded-md md:col-span-3 overflow-hidden">
+              {selectedTask ? (
+                <div>
+                  <div className="bg-muted p-2 font-medium">
+                    Task Details
+                  </div>
+                  <div className="p-4">
+                    {(() => {
+                      const task = tasks.find(t => t.id === selectedTask);
+                      if (!task) return <div>Select a task to view details</div>;
+                      
+                      return (
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="font-semibold">{task.name}</h3>
+                            <div className="flex items-center mt-1 text-sm">
+                              <span className="text-muted-foreground">Status:</span>
+                              <Badge className="ml-2" variant={getStatusColor(task.status)}>
+                                {task.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          {task.status === 'processing' && (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>Progress:</span>
+                                <span>{task.progress}%</span>
+                              </div>
+                              <Progress value={task.progress} />
+                            </div>
+                          )}
+                          
+                          {task.error && (
+                            <div className="text-sm text-destructive border border-destructive/20 bg-destructive/10 p-2 rounded">
+                              Error: {task.error}
+                            </div>
+                          )}
+                          
+                          {task.status === 'completed' && task.result && (
+                            <Tabs defaultValue="summary">
+                              <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="summary">Summary</TabsTrigger>
+                                <TabsTrigger value="data">Data</TabsTrigger>
+                              </TabsList>
+                              
+                              <TabsContent value="summary" className="space-y-2 mt-2">
+                                <div className="text-sm">
+                                  <p>Processed {task.result.length} items successfully</p>
+                                  <p>Completed in {(task.result.length * 50) / 1000} seconds</p>
+                                </div>
+                              </TabsContent>
+                              
+                              <TabsContent value="data" className="mt-2">
+                                <div className="max-h-60 overflow-y-auto border rounded p-2 text-sm">
+                                  {task.result.slice(0, 20).map((item: any) => (
+                                    <div key={item.id} className="py-1 border-b last:border-0">
+                                      Item {item.id}: {item.result}
+                                    </div>
+                                  ))}
+                                  {task.result.length > 20 && (
+                                    <div className="py-1 text-muted-foreground italic">
+                                      ...and {task.result.length - 20} more items
+                                    </div>
+                                  )}
+                                </div>
+                              </TabsContent>
+                            </Tabs>
+                          )}
+                          
+                          <div className="flex justify-end space-x-2 pt-2">
+                            {task.status === 'pending' && (
+                              <Button 
+                                onClick={() => processTask(task.id)} 
+                                disabled={isProcessing}
+                              >
+                                Process
+                              </Button>
+                            )}
+                            
+                            {task.status === 'processing' && (
+                              <Button 
+                                variant="destructive" 
+                                onClick={cancelProcessing}
+                              >
+                                Cancel
+                              </Button>
+                            )}
+                            
+                            <Button 
+                              variant="outline" 
+                              onClick={() => {
+                                setTasks(prev => prev.filter(t => t.id !== task.id));
+                                setSelectedTask(null);
+                              }}
+                              disabled={task.status === 'processing'}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  Select a task from the list to view details
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {tasks.map(task => (
-              <div key={task.id} className="border rounded-md p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h4 className="font-medium">{task.type}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Added at {formatTime(task.added)}
-                    </p>
-                  </div>
-                  
-                  <Badge 
-                    variant={
-                      task.status === 'completed' ? 'success' : 
-                      task.status === 'failed' ? 'destructive' :
-                      task.status === 'processing' ? 'secondary' : 
-                      'outline'
-                    }
-                  >
-                    {task.status === 'processing' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                    {task.status === 'completed' && <Check className="h-3 w-3 mr-1" />}
-                    {task.status === 'failed' && <XCircle className="h-3 w-3 mr-1" />}
-                    {task.status}
-                  </Badge>
-                </div>
-                
-                {task.priority && (
-                  <Badge variant="outline" className="mb-2">
-                    Priority: {task.priority}
-                  </Badge>
-                )}
-                
-                <Progress 
-                  value={task.progress} 
-                  className={`h-2 mb-2 ${
-                    task.status === 'completed' ? 'bg-green-100' : 
-                    task.status === 'failed' ? 'bg-red-100' : ''
-                  }`}
-                />
-                
-                {task.error && (
-                  <p className="text-sm text-destructive mt-1 mb-2">
-                    Error: {task.error}
-                  </p>
-                )}
-                
-                <div className="flex gap-2 mt-2">
-                  {task.status === 'pending' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => startProcessing()}
-                      disabled={processing}
-                    >
-                      <Play className="h-4 w-4 mr-1" />
-                      Process
-                    </Button>
-                  )}
-                  
-                  {(task.status === 'pending' || task.status === 'processing') && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => cancelTask(task.id)}
-                    >
-                      <Pause className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                  )}
-                  
-                  {task.status === 'failed' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => retryTask(task.id)}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-1" />
-                      Retry
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="text-center py-8 text-muted-foreground border rounded-md">
+            No stream processing tasks created yet.
+            <div className="mt-2">
+              <Button onClick={createTask}>Create Your First Task</Button>
+            </div>
           </div>
         )}
       </CardContent>
-      
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={fetchTasks} disabled={loading}>
-          <RotateCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-        
-        <div className="flex gap-2">
-          {completedTasks > 0 && (
-            <Button variant="outline" onClick={clearCompletedTasks}>
-              Clear Completed
-            </Button>
-          )}
-          
-          {pendingTasks > 0 && (
-            <Button onClick={startProcessing} disabled={processing}>
-              {processing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Process Tasks
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </CardFooter>
     </Card>
   );
 }
+
+export default BackgroundStreamProcessor;

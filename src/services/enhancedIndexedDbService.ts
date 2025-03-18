@@ -1,4 +1,3 @@
-
 /**
  * Enhanced IndexedDB Service
  * Provides a more efficient way to interact with IndexedDB using the Streams API
@@ -168,7 +167,7 @@ export class EnhancedIndexedDbService {
           const transaction = this.createTransaction(storeName, "readwrite");
           const store = this.getObjectStore(transaction, storeName);
           
-          return new Promise((resolve, reject) => {
+          return new Promise<any[]>((resolve, reject) => {
             for (const record of batch) {
               store.add(record);
             }
@@ -328,7 +327,7 @@ export class EnhancedIndexedDbService {
           const transaction = this.createTransaction(storeName, "readwrite");
           const store = this.getObjectStore(transaction, storeName);
           
-          return new Promise((resolve, reject) => {
+          return new Promise<any[]>((resolve, reject) => {
             for (const record of batch) {
               store.put(record);
             }
@@ -395,7 +394,7 @@ export class EnhancedIndexedDbService {
           const transaction = this.createTransaction(storeName, "readwrite");
           const store = this.getObjectStore(transaction, storeName);
           
-          return new Promise((resolve, reject) => {
+          return new Promise<any[]>((resolve, reject) => {
             for (const key of batch) {
               store.delete(key);
             }

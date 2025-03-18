@@ -14,7 +14,7 @@ interface ScheduledTask {
   id: string;
   type: string;
   data?: any;
-  alarmName?: string;
+  alarmName: string;
 }
 
 // Store of task IDs to alarm names
@@ -334,7 +334,7 @@ export async function getAllScheduledTasks(): Promise<ScheduledTask[]> {
       return {
         id: data.taskId || `task_${Date.now()}`,
         type: data.type,
-        data: data.data || {},
+        data: data.data,
         alarmName: alarm.name
       };
     })
