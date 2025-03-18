@@ -14,7 +14,8 @@ export type SubscriptionEvent =
   | 'plan_downgraded'
   | 'changed_billing_cycle'
   | 'viewed_recommendations'
-  | 'change_auto_renew';
+  | 'change_auto_renew'
+  | 'subscription_viewed';
 
 type EventMetadata = Record<string, any>;
 
@@ -174,7 +175,9 @@ export const predictChurnRisk = async (): Promise<number> => {
     // A user who doesn't use the product much is more likely to churn
     if (subscription.usage) {
       const totalUsage = Object.values(subscription.usage).reduce((sum, val) => {
-        return sum + (typeof val === 'number' ? val : 0);
+        // Ensure val is a number before adding to sum
+        const numVal = typeof val === 'number' ? val : 0;
+        return sum + numVal;
       }, 0);
       
       if (totalUsage < 10) {
@@ -251,8 +254,11 @@ export const getChurnReductionRecommendations = async (): Promise<string[]> => {
     
     // If they're not using the product much
     if (subscription.usage) {
+      // Safely get total usage with type checking
       const totalUsage = Object.values(subscription.usage).reduce((sum, val) => {
-        return sum + (typeof val === 'number' ? val : 0);
+        // Ensure val is a number before adding to sum
+        const numVal = typeof val === 'number' ? val : 0;
+        return sum + numVal;
       }, 0);
       
       if (totalUsage < 10) {

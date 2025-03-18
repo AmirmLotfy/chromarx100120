@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Badge } from "@/components/ui/badge";
@@ -358,7 +357,7 @@ export function EnhancedSubscriptionStatus({
                   className="mt-1 h-auto p-0 text-blue-600"
                   onClick={() => {
                     navigate('/subscription');
-                    trackSubscriptionEvent('subscription_viewed', {
+                    trackSubscriptionEvent('viewed_recommendations', {
                       count: recommendations.length
                     });
                   }}
