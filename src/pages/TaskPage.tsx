@@ -9,8 +9,8 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TaskAnalytics from '@/components/tasks/TaskAnalytics';
 import TaskTemplates from '@/components/tasks/TaskTemplates';
-import { TimerSession } from '@/types/timer';
 import { useToast } from '@/hooks/use-toast';
+import Layout from '@/components/Layout';
 
 const TaskPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -69,41 +69,43 @@ const TaskPage = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Your Tasks</h1>
-        <Button onClick={() => setShowAddForm(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Task
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <TaskList
-            tasks={tasks}
-            onTaskUpdate={handleTaskUpdate}
-          />
+    <Layout>
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Your Tasks</h1>
+          <Button onClick={() => setShowAddForm(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Task
+          </Button>
         </div>
 
-        <div>
-          <Card className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <TaskList
+              tasks={tasks}
+              onTaskUpdate={handleTaskUpdate}
+            />
+          </div>
+
+          <div>
             <Card className="mb-6">
               <TaskAnalytics />
             </Card>
-            <TaskTemplates onUseTemplate={handleUseTemplate} />
-          </Card>
+            <Card className="mb-6">
+              <TaskTemplates onUseTemplate={handleUseTemplate} />
+            </Card>
+          </div>
         </div>
-      </div>
 
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
-          </DialogHeader>
-          <TaskForm onTaskAdded={handleTaskAdded} onCancel={() => setShowAddForm(false)} />
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Task</DialogTitle>
+            </DialogHeader>
+            <TaskForm onTaskAdded={handleTaskAdded} onCancel={() => setShowAddForm(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Layout>
   );
 };
 
