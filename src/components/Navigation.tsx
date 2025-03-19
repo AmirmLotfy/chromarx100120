@@ -1,5 +1,6 @@
+
 import { Link, useLocation } from "react-router-dom";
-import { Home, Bookmark, User } from "lucide-react";
+import { Home, Bookmark, User, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -9,7 +10,7 @@ const Navigation = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-40 h-20 px-2 py-3 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 border-t border-border/40"
+      className="fixed bottom-0 left-0 right-0 z-40 h-16 px-2 py-2 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 border-t border-border/40"
       role="navigation"
       aria-label="Main navigation"
     >
@@ -26,6 +27,12 @@ const Navigation = () => {
             icon={<Bookmark className="h-5 w-5" />}
             isActive={isActive("/bookmarks")}
             label="Bookmarks"
+          />
+          <NavItem 
+            to="/timer" 
+            icon={<Clock className="h-5 w-5" />}
+            isActive={isActive("/timer")}
+            label="Timer"
           />
           <NavItem 
             to="/user" 
@@ -73,11 +80,13 @@ const ActiveIndicator = ({ location }: { location: string }) => {
     switch (path) {
       case "/": return 0;
       case "/bookmarks": return 1;
-      case "/user": return 2;
+      case "/timer": return 2;
+      case "/user": return 3;
       default: 
         // Try to match the first part of the path
         if (path.startsWith("/bookmarks")) return 1;
-        if (path.startsWith("/user")) return 2;
+        if (path.startsWith("/timer")) return 2;
+        if (path.startsWith("/user")) return 3;
         return 0; // Default to home
     }
   };

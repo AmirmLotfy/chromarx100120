@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
@@ -161,43 +162,43 @@ function TimerPage() {
 
   return (
     <Layout>
-      <div className="px-4 py-6 max-w-md mx-auto">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="pt-4 pb-3">
-            <TimerDisplay 
-              timeLeft={timeLeft} 
-              mode={mode}
-              maxTime={duration}
-            />
-            
-            <TimerControls 
-              isRunning={isRunning}
-              onStart={startTimer}
-              onPause={pauseTimer}
-              onReset={resetTimer}
-              onModeToggle={toggleMode}
-              mode={mode}
-            />
-            
-            <div className="mt-3 px-1">
-              <label className="text-xs font-medium mb-1 block text-muted-foreground">
-                What are you working on?
-              </label>
-              <Input
-                type="text"
-                value={taskContext}
-                onChange={(e) => setTaskContext(e.target.value)}
-                placeholder="e.g., Project research, Writing report..."
-                className="w-full text-sm h-8"
-                disabled={isRunning}
+      <div className="flex flex-col h-full w-full max-w-md mx-auto px-4 py-2 pb-20">
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
+          <Card className="border-0 shadow-sm mb-4">
+            <CardContent className="p-4">
+              <TimerDisplay 
+                timeLeft={timeLeft} 
+                mode={mode}
+                maxTime={duration}
               />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <div className="mt-6 space-y-6">
+              
+              <TimerControls 
+                isRunning={isRunning}
+                onStart={startTimer}
+                onPause={pauseTimer}
+                onReset={resetTimer}
+                onModeToggle={toggleMode}
+                mode={mode}
+              />
+              
+              <div className="mt-3">
+                <label className="text-xs font-medium mb-1 block text-muted-foreground">
+                  What are you working on?
+                </label>
+                <Input
+                  type="text"
+                  value={taskContext}
+                  onChange={(e) => setTaskContext(e.target.value)}
+                  placeholder="e.g., Project research, Writing report..."
+                  className="w-full text-sm h-8"
+                  disabled={isRunning}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
           <Tabs defaultValue="settings" className="w-full">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-2 mb-2">
               <TabsTrigger value="settings" className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 <span>Settings</span>
@@ -208,9 +209,9 @@ function TimerPage() {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="settings" className="mt-4">
-              <Card>
-                <CardContent className="pt-4">
+            <TabsContent value="settings" className="mt-0">
+              <Card className="border shadow-sm mb-4">
+                <CardContent className="p-4">
                   <TimerSettings 
                     duration={duration}
                     onDurationChange={(newDuration) => setDuration(newDuration)}
@@ -220,7 +221,7 @@ function TimerPage() {
                 </CardContent>
               </Card>
               
-              <div className="mt-4">
+              <div className="mb-4">
                 <h3 className="text-sm font-medium mb-2">Suggested Duration</h3>
                 <TimerSuggestions 
                   onSelectDuration={(mins) => setDuration(mins * 60)}
@@ -230,17 +231,17 @@ function TimerPage() {
               </div>
             </TabsContent>
             
-            <TabsContent value="stats" className="mt-4">
-              <Card>
-                <CardContent className="pt-4">
+            <TabsContent value="stats" className="mt-0">
+              <Card className="border shadow-sm">
+                <CardContent className="p-4">
                   <Tabs defaultValue="today" className="w-full">
-                    <TabsList className="w-full grid grid-cols-3">
+                    <TabsList className="w-full grid grid-cols-3 mb-4">
                       <TabsTrigger value="today">Today</TabsTrigger>
                       <TabsTrigger value="week">Week</TabsTrigger>
                       <TabsTrigger value="month">Month</TabsTrigger>
                     </TabsList>
                     
-                    <TabsContent value="today" className="space-y-4 mt-4">
+                    <TabsContent value="today" className="space-y-3 pt-2">
                       <div className="flex justify-between">
                         <span className="text-sm">Focus Sessions</span>
                         <span className="font-medium">3</span>
@@ -255,7 +256,7 @@ function TimerPage() {
                       </div>
                     </TabsContent>
                     
-                    <TabsContent value="week" className="space-y-4 mt-4">
+                    <TabsContent value="week" className="space-y-3 pt-2">
                       <div className="flex justify-between">
                         <span className="text-sm">Focus Sessions</span>
                         <span className="font-medium">12</span>
@@ -270,7 +271,7 @@ function TimerPage() {
                       </div>
                     </TabsContent>
                     
-                    <TabsContent value="month" className="space-y-4 mt-4">
+                    <TabsContent value="month" className="space-y-3 pt-2">
                       <div className="flex justify-between">
                         <span className="text-sm">Focus Sessions</span>
                         <span className="font-medium">42</span>
@@ -295,7 +296,7 @@ function TimerPage() {
       {/* Feedback Dialog */}
       {showFeedback && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-background p-6 rounded-lg max-w-xs w-full shadow-lg">
+          <div className="bg-background p-4 rounded-lg max-w-xs w-full shadow-lg">
             <h3 className="text-lg font-medium mb-4">How productive was your session?</h3>
             <div className="flex justify-between mb-6">
               {[1, 2, 3, 4, 5].map((rating) => (

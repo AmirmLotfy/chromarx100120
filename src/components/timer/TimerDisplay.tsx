@@ -26,7 +26,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   return (
     <div className="flex flex-col items-center justify-center w-full py-2">
       {/* Radial progress indicator */}
-      <div className="relative w-40 h-40 md:w-48 md:h-48">
+      <div className="relative w-36 h-36 md:w-40 md:h-40">
         <svg className="w-full h-full" viewBox="0 0 100 100">
           {/* Background circle */}
           <circle

@@ -1,65 +1,77 @@
 
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RotateCcw, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Play, Pause, RotateCcw, Coffee } from "lucide-react";
 
 interface TimerControlsProps {
   isRunning: boolean;
   onStart: () => void;
   onPause: () => void;
   onReset: () => void;
-  onModeToggle?: () => void;
-  mode?: "focus" | "break";
+  onModeToggle: () => void;
+  mode: 'focus' | 'break';
 }
 
-export const TimerControls = ({
+export const TimerControls: React.FC<TimerControlsProps> = ({
   isRunning,
   onStart,
   onPause,
   onReset,
   onModeToggle,
-  mode = "focus",
-}: TimerControlsProps) => {
+  mode
+}) => {
   return (
-    <div className="flex justify-center items-center gap-3 my-1">
-      <Button
-        size="icon"
-        variant="outline"
-        className="w-9 h-9 rounded-full border-2 hover:bg-accent/50"
-        onClick={onReset}
-      >
-        <RotateCcw className="w-4 h-4" />
-      </Button>
-      
-      <Button
-        size="lg"
-        className={cn(
-          "w-14 h-14 rounded-full shadow-md transition-all duration-300",
-          "bg-gradient-to-br hover:bg-gradient-to-r",
-          isRunning 
-            ? "from-red-500 to-red-600 hover:from-red-600 hover:to-red-500"
-            : mode === "focus"
-              ? "from-primary to-purple-600 hover:from-purple-600 hover:to-primary"
-              : "from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-500"
+    <div className="w-full flex flex-col items-center space-y-2 mt-2">
+      <div className="flex justify-center items-center space-x-3">
+        {isRunning ? (
+          <Button 
+            onClick={onPause}
+            variant="outline"
+            size="icon"
+            className="w-12 h-12 rounded-full"
+          >
+            <Pause className="h-5 w-5" />
+          </Button>
+        ) : (
+          <Button 
+            onClick={onStart}
+            variant="default"
+            size="icon"
+            className="w-12 h-12 rounded-full bg-primary text-primary-foreground"
+          >
+            <Play className="h-5 w-5 ml-0.5" />
+          </Button>
         )}
-        onClick={isRunning ? onPause : onStart}
-      >
-        {isRunning ? 
-          <Pause className="w-5 h-5" /> : 
-          <Play className="w-5 h-5 ml-0.5" />
-        }
-      </Button>
-      
-      {onModeToggle && (
-        <Button
-          size="icon"
+        
+        <Button 
+          onClick={onReset}
           variant="outline"
-          className="w-9 h-9 rounded-full border-2 hover:bg-accent/50"
-          onClick={onModeToggle}
+          size="icon"
+          className="w-10 h-10 rounded-full"
+          disabled={!isRunning && !onReset}
         >
-          <RefreshCw className="w-4 h-4" />
+          <RotateCcw className="h-4 w-4" />
         </Button>
-      )}
+      </div>
+      
+      <Button
+        onClick={onModeToggle}
+        variant="ghost"
+        size="sm"
+        className="text-xs gap-1.5 h-8 mt-2"
+      >
+        {mode === 'focus' ? (
+          <>
+            <Coffee className="h-3.5 w-3.5" />
+            Switch to Break
+          </>
+        ) : (
+          <>
+            <Play className="h-3.5 w-3.5" />
+            Switch to Focus
+          </>
+        )}
+      </Button>
     </div>
   );
 };
