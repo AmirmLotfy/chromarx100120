@@ -13,22 +13,30 @@ export interface TimerSuggestionProps {
   mode: "focus" | "break";
 }
 
+// Console log to ensure this component is loading
+console.log("TimerSuggestions component loaded");
+
 const TimerSuggestions: React.FC<TimerSuggestionProps> = ({ 
   onSelectDuration, 
   taskContext, 
   mode 
 }) => {
+  console.log("TimerSuggestions rendering with props:", { taskContext, mode });
+  
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<{ duration: number; reason: string }[]>([]);
   const [personalSuggestion, setPersonalSuggestion] = useState<number | null>(null);
 
   useEffect(() => {
+    console.log("TimerSuggestions useEffect triggered", { taskContext });
+    
     async function loadSuggestions() {
       try {
         setLoading(true);
         
         // Get task data if context exists
         if (taskContext) {
+          console.log("Getting AI suggestion for task context:", taskContext);
           const suggestedDuration = await suggestTimerDuration(taskContext);
           setPersonalSuggestion(suggestedDuration);
         }
@@ -62,6 +70,8 @@ const TimerSuggestions: React.FC<TimerSuggestionProps> = ({
       </div>
     );
   }
+
+  console.log("TimerSuggestions rendering suggestions:", { personalSuggestion, suggestions });
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

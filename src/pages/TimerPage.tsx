@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import Layout from '@/components/Layout';
 
+console.log("TimerPage component is rendering");
+
 function TimerPage() {
   // Component states
   const [isRunning, setIsRunning] = useState(false);
@@ -22,11 +24,15 @@ function TimerPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [productivityRating, setProductivityRating] = useState<number | null>(null);
 
+  // Console log to debug state values
+  console.log("Timer state:", { isRunning, duration, timeLeft, mode });
+
   // Timer interval reference
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Reset timer when duration changes
   useEffect(() => {
+    console.log("Duration changed effect triggered", { duration, isRunning });
     if (!isRunning) {
       setTimeLeft(duration);
     }
@@ -34,10 +40,14 @@ function TimerPage() {
 
   // Timer logic
   useEffect(() => {
+    console.log("Timer effect triggered", { isRunning, timeLeft });
+    
     if (isRunning && timeLeft > 0) {
+      console.log("Starting timer interval");
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
+            console.log("Timer completed");
             handleTimerComplete();
             return 0;
           }
@@ -45,11 +55,13 @@ function TimerPage() {
         });
       }, 1000);
     } else if (!isRunning && timerRef.current) {
+      console.log("Clearing timer interval");
       clearInterval(timerRef.current);
     }
 
     return () => {
       if (timerRef.current) {
+        console.log("Cleanup: clearing timer interval");
         clearInterval(timerRef.current);
       }
     };
@@ -57,12 +69,15 @@ function TimerPage() {
 
   // Start timer
   const startTimer = async () => {
+    console.log("startTimer called");
+    
     if (timeLeft === 0) {
       setTimeLeft(duration);
     }
 
     try {
       // Create a new timer session in the database
+      console.log("Creating timer session", { duration, mode, taskContext });
       const session = await timerService.startSession({
         duration: duration,
         mode: mode,
@@ -127,6 +142,7 @@ function TimerPage() {
 
   // Switch between focus and break modes
   const toggleMode = () => {
+    console.log("toggleMode called, current mode:", mode);
     const newMode = mode === 'focus' ? 'break' : 'focus';
     setMode(newMode);
     
@@ -140,6 +156,8 @@ function TimerPage() {
     setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60);
     setIsRunning(false);
   };
+
+  console.log("TimerPage rendering with state:", { isRunning, timeLeft, mode });
 
   return (
     <Layout>
