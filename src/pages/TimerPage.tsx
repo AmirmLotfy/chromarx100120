@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { TimerControls } from '@/components/timer/TimerControls';
@@ -68,7 +69,7 @@ const TimerPage: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <PageTitle>Pomodoro Timer</PageTitle>
+        <PageTitle title="Pomodoro Timer" />
         <div className="max-w-md mx-auto">
           <Card className="mb-6">
             <CardContent className="pt-6">

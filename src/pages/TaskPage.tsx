@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import TaskList from '@/components/tasks/TaskList';
@@ -70,7 +71,7 @@ const TaskPage = () => {
     <Layout>
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
-          <PageTitle>Your Tasks</PageTitle>
+          <PageTitle title="Your Tasks" />
           <Button onClick={() => setShowAddForm(true)}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add Task
           </Button>
