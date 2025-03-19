@@ -21,11 +21,11 @@ export const TimerControls = ({
   mode = "focus",
 }: TimerControlsProps) => {
   return (
-    <div className="flex justify-center items-center gap-4 my-2">
+    <div className="flex justify-center items-center gap-3 my-1">
       <Button
         size="icon"
         variant="outline"
-        className="w-10 h-10 rounded-full border-2 hover:bg-accent/50"
+        className="w-9 h-9 rounded-full border-2 hover:bg-accent/50"
         onClick={onReset}
       >
         <RotateCcw className="w-4 h-4" />
@@ -34,7 +34,7 @@ export const TimerControls = ({
       <Button
         size="lg"
         className={cn(
-          "w-16 h-16 rounded-full shadow-md transition-all duration-300",
+          "w-14 h-14 rounded-full shadow-md transition-all duration-300",
           "bg-gradient-to-br hover:bg-gradient-to-r",
           isRunning 
             ? "from-red-500 to-red-600 hover:from-red-600 hover:to-red-500"
@@ -45,8 +45,8 @@ export const TimerControls = ({
         onClick={isRunning ? onPause : onStart}
       >
         {isRunning ? 
-          <Pause className="w-6 h-6" /> : 
-          <Play className="w-6 h-6 ml-1" />
+          <Pause className="w-5 h-5" /> : 
+          <Play className="w-5 h-5 ml-0.5" />
         }
       </Button>
       
@@ -54,7 +54,7 @@ export const TimerControls = ({
         <Button
           size="icon"
           variant="outline"
-          className="w-10 h-10 rounded-full border-2 hover:bg-accent/50"
+          className="w-9 h-9 rounded-full border-2 hover:bg-accent/50"
           onClick={onModeToggle}
         >
           <RefreshCw className="w-4 h-4" />

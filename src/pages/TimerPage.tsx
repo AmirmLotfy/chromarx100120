@@ -1,17 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { TimerControls } from '@/components/timer/TimerControls';
 import { TimerSettings } from '@/components/timer/TimerSettings';
 import TimerSuggestions from '@/components/timer/TimerSuggestions';
 import { timerService } from '@/services/timerService';
-import { TimerSession } from '@/types/timer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { localStorageClient as supabase } from '@/lib/local-storage-client';
-import { toast } from 'sonner';
-import Layout from '@/components/Layout';
 import { AlarmClock, Clock, BarChart4 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import Layout from '@/components/Layout';
 
 function TimerPage() {
   // Component states
@@ -143,24 +141,11 @@ function TimerPage() {
     setIsRunning(false);
   };
 
-  // Handle task context change
-  const handleTaskContextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTaskContext(e.target.value);
-  };
-
   return (
     <Layout>
       <div className="px-4 py-6 max-w-md mx-auto">
         <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-0">
-            <div className="flex items-center gap-2">
-              <AlarmClock className="h-5 w-5 text-primary" />
-              <CardTitle className="text-xl">
-                {mode === 'focus' ? 'Focus Timer' : 'Break Timer'}
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 pb-3">
             <TimerDisplay 
               timeLeft={timeLeft} 
               mode={mode}
@@ -176,16 +161,16 @@ function TimerPage() {
               mode={mode}
             />
             
-            <div className="w-full mt-6">
-              <label className="text-sm font-medium mb-2 block">
+            <div className="mt-3 px-1">
+              <label className="text-xs font-medium mb-1 block text-muted-foreground">
                 What are you working on?
               </label>
-              <input
+              <Input
                 type="text"
                 value={taskContext}
-                onChange={handleTaskContextChange}
+                onChange={(e) => setTaskContext(e.target.value)}
                 placeholder="e.g., Project research, Writing report..."
-                className="w-full p-2 border rounded-md"
+                className="w-full text-sm h-8"
                 disabled={isRunning}
               />
             </div>

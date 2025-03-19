@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { cn } from "@/lib/utils";
+import { TimerDisplay as TimerDisplayType } from '@/types/timer';
 
 export interface TimerDisplayProps {
   timeLeft: number;
@@ -24,9 +25,9 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   const progressPercentage = (timeLeft / maxTime) * 100;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full py-4">
+    <div className="flex flex-col items-center justify-center w-full py-2">
       {/* Radial progress indicator */}
-      <div className="relative w-48 h-48 md:w-56 md:h-56">
+      <div className="relative w-40 h-40 md:w-48 md:h-48">
         <svg className="w-full h-full" viewBox="0 0 100 100">
           {/* Background circle */}
           <circle
@@ -82,7 +83,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
       </div>
       
       <div className={cn(
-        "text-lg font-medium mt-2",
+        "text-lg font-medium mt-1",
         mode === "focus" ? "text-primary" : "text-amber-500"
       )}>
         {mode === "focus" ? "Focus Session" : "Break Time"}
