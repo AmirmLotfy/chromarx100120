@@ -1,6 +1,7 @@
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 import { toast } from 'sonner';
+import { fetchWithCors } from '@/utils/corsUtils';
 
 // Configuration options for Gemini API requests
 export interface GeminiConfig {
@@ -18,8 +19,10 @@ const DEFAULT_CONFIG: GeminiConfig = {
   maxOutputTokens: 1024,
 };
 
-// The fixed API key for all users
-const FIXED_API_KEY = 'AIzaSyDhbGK-nr9qEbGLUPJfYq_Hh-SXtuKfYY8'; // Replace with your actual API key
+// Edge function URL (for proxy API access)
+const AI_FEATURES_URL = import.meta.env.VITE_SUPABASE_URL 
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-features`
+  : 'https://your-project-id.supabase.co/functions/v1/ai-features'; // Fallback URL
 
 class GeminiService {
   private isInitialized = false;
@@ -58,11 +61,24 @@ class GeminiService {
         return;
       }
       
-      // Initialize with the fixed API key
-      this.apiClient = new GoogleGenerativeAI(FIXED_API_KEY);
-      this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
-      this.isInitialized = true;
-      console.log('Gemini API initialized successfully');
+      // Check if the edge function is reachable
+      const response = await fetch(AI_FEATURES_URL, {
+        method: 'OPTIONS',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        console.log('AI edge function is available');
+        this.isInitialized = true;
+      } else {
+        // Fallback to direct API access for development or testing
+        console.log('AI edge function not available, initializing direct client');
+        this.apiClient = new GoogleGenerativeAI('not-used'); // Dummy key - won't be used
+        this.model = this.apiClient.getGenerativeModel({ model: "gemini-1.5-pro" });
+        this.isInitialized = true;
+      }
+      
+      console.log('Gemini service initialized successfully');
     } catch (error) {
       console.error('Error initializing Gemini service:', error);
       this.isInitialized = false;
@@ -79,10 +95,10 @@ class GeminiService {
         throw new Error('Cannot use AI features while offline');
       }
       
-      if (!this.isInitialized || !this.model) {
+      if (!this.isInitialized) {
         await this.initialize();
         
-        if (!this.isInitialized || !this.model) {
+        if (!this.isInitialized) {
           throw new Error('Gemini API not initialized.');
         }
       }
@@ -92,20 +108,27 @@ class GeminiService {
         ? `${systemPrompt}\n\nUser: ${prompt}` 
         : prompt;
 
-      const generationConfig: GenerationConfig = {
-        temperature: config?.temperature ?? DEFAULT_CONFIG.temperature,
-        topK: config?.topK ?? DEFAULT_CONFIG.topK,
-        topP: config?.topP ?? DEFAULT_CONFIG.topP,
-        maxOutputTokens: config?.maxOutputTokens ?? DEFAULT_CONFIG.maxOutputTokens,
-      };
+      try {
+        // Use Edge Function as a proxy
+        const response = await fetchWithCors(AI_FEATURES_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operation: 'chat',
+            content: fullPrompt,
+          }),
+        });
 
-      const result = await this.model.generateContent({
-        contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-        generationConfig,
-      });
+        if (!response.ok) {
+          throw new Error(`Error from proxy: ${response.status}`);
+        }
 
-      const response = await result.response;
-      return response.text();
+        const data = await response.json();
+        return data.result;
+      } catch (error) {
+        console.error('Error using AI proxy:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error getting Gemini response:', error);
       
@@ -124,12 +147,28 @@ class GeminiService {
         throw new Error('Cannot summarize content while offline');
       }
       
-      const prompt = `Summarize the following content in ${language} language. Keep the summary concise but informative.
-      
-      Content to summarize:
-      ${content}`;
-      
-      return await this.getResponse(prompt);
+      try {
+        // Use Edge Function as a proxy
+        const response = await fetchWithCors(AI_FEATURES_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operation: 'summarize',
+            content,
+            language
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error from proxy: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.result;
+      } catch (error) {
+        console.error('Error using AI proxy for summarization:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error summarizing content:', error);
       throw error; // Propagate error for retry handling
@@ -142,12 +181,37 @@ class GeminiService {
         throw new Error('Cannot categorize content while offline');
       }
       
-      const prompt = `Analyze the following content and suggest a single category that best describes it. Respond with ONLY the category name, nothing else.
+      // Extract title and URL if provided in the content
+      const titleMatch = content.match(/Title:\s*(.*?)(\n|$)/);
+      const urlMatch = content.match(/URL:\s*(.*?)(\n|$)/);
       
-      Content to categorize:
-      ${content}`;
+      const title = titleMatch ? titleMatch[1] : '';
+      const url = urlMatch ? urlMatch[1] : '';
       
-      return await this.getResponse(prompt);
+      try {
+        // Use Edge Function as a proxy
+        const response = await fetchWithCors(AI_FEATURES_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operation: 'categorize',
+            content,
+            title,
+            url,
+            language
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error from proxy: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.result;
+      } catch (error) {
+        console.error('Error using AI proxy for categorization:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error categorizing content:', error);
       throw error; // Propagate error for retry handling
@@ -160,17 +224,35 @@ class GeminiService {
         throw new Error('Cannot suggest timer duration while offline');
       }
       
-      const prompt = `Given this task description: "${taskDescription}", suggest an appropriate time in minutes to complete it. Respond with ONLY a number (e.g., 25), nothing else.`;
-      
-      const response = await this.getResponse(prompt);
-      const minutes = parseInt(response.trim(), 10);
-      
-      // If parsing fails or the result is not a reasonable number, return a default
-      if (isNaN(minutes) || minutes <= 0 || minutes > 180) {
-        return 25; // Default to 25 minutes (Pomodoro time)
+      try {
+        // Use Edge Function as a proxy
+        const response = await fetchWithCors(AI_FEATURES_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operation: 'suggest-timer',
+            content: taskDescription,
+            language
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error from proxy: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const minutes = parseInt(data.result, 10);
+        
+        // If parsing fails or the result is not a reasonable number, return a default
+        if (isNaN(minutes) || minutes <= 0 || minutes > 180) {
+          return 25; // Default to 25 minutes (Pomodoro time)
+        }
+        
+        return minutes;
+      } catch (error) {
+        console.error('Error using AI proxy for timer suggestion:', error);
+        return 25; // Default to 25 minutes
       }
-      
-      return minutes;
     } catch (error) {
       console.error('Error suggesting timer duration:', error);
       return 25; // Default to 25 minutes
@@ -186,7 +268,16 @@ class GeminiService {
       await this.initialize();
     }
     
-    return this.isInitialized;
+    try {
+      // Try a simple request to the proxy to see if it's available
+      const response = await fetch(AI_FEATURES_URL, {
+        method: 'OPTIONS'
+      });
+      
+      return response.ok;
+    } catch {
+      return false;
+    }
   }
   
   public isOffline(): boolean {
@@ -198,12 +289,12 @@ class GeminiService {
     return true;
   }
   
-  // No implementation needed - we use a fixed key
+  // No implementation needed - we use a proxy service
   public async setApiKey(): Promise<boolean> {
     return true;
   }
   
-  // No implementation needed - we use a fixed key
+  // No implementation needed - we use a proxy service
   public async clearApiKey(): Promise<void> {
     return;
   }

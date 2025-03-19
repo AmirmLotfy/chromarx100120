@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Shield } from "lucide-react";
 
 export default function GeminiSettings() {
   return (
@@ -17,12 +17,20 @@ export default function GeminiSettings() {
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>API Key Configured</AlertTitle>
           <AlertDescription>
-            Your extension has a built-in Gemini API key. All AI features are ready to use without any additional setup.
+            Your extension uses a secure proxy service to access Gemini AI. All API keys are stored securely on the server.
+          </AlertDescription>
+        </Alert>
+        
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+          <Shield className="h-4 w-4" />
+          <AlertTitle>Enhanced Security</AlertTitle>
+          <AlertDescription>
+            API requests are processed through a secure server-side function, protecting your data and API credentials.
           </AlertDescription>
         </Alert>
         
         <p className="text-sm text-muted-foreground">
-          The built-in API key enables AI-powered features like content summarization, bookmark categorization, and smart timer suggestions.
+          This secure setup enables AI-powered features like content summarization, bookmark categorization, and smart timer suggestions without exposing sensitive API keys.
         </p>
       </CardContent>
     </Card>

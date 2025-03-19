@@ -7,8 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Hardcoded API key - Same as in the client-side service
-const FIXED_API_KEY = 'AIzaSyDhbGK-nr9qEbGLUPJfYq_Hh-SXtuKfYY8'; // Replace with your actual API key
+// The API key is now stored securely on the server side
+// This should be set as a secret in your Supabase project settings
+const API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyDhbGK-nr9qEbGLUPJfYq_Hh-SXtuKfYY8';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -19,8 +20,8 @@ serve(async (req) => {
   try {
     const { operation, content, language = 'en', url, title } = await req.json()
 
-    // Initialize Gemini with the fixed API key
-    const genAI = new GoogleGenerativeAI(FIXED_API_KEY)
+    // Initialize Gemini with the server-side API key
+    const genAI = new GoogleGenerativeAI(API_KEY)
     const model = genAI.getGenerativeModel({ model: "gemini-pro" })
 
     let result
