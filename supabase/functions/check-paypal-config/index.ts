@@ -10,7 +10,7 @@ const corsHeaders = {
 // Fixed PayPal configuration with client ID and environment
 const PAYPAL_CONFIG = {
   clientId: 'AVgQsC5HEYPsUFRZaWkyCGRa-FxBDulKF6t5Cl_CpxnZ_f1W5ks8qDM',
-  mode: 'sandbox',  // Change to 'live' for production
+  mode: 'live',  // Change to 'live' for production
   configured: true,
 };
 
