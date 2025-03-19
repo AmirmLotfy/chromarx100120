@@ -91,8 +91,9 @@ const TimerPage: React.FC = () => {
           </Card>
           
           <TimerSettings 
-            initialTime={Math.floor(originalTime / 60)}
-            onTimeChange={handleTimeChange}
+            duration={originalTime}
+            onDurationChange={handleTimeChange}
+            mode={timerMode}
             disabled={isRunning}
           />
         </div>
