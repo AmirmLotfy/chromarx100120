@@ -1,4 +1,3 @@
-
 import { Routes as RouterRoutes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import BookmarksPage from "@/pages/BookmarksPage";
@@ -19,6 +18,8 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import CollectionsPage from "@/pages/CollectionsPage";
 import ExportImportPage from "@/pages/ExportImportPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
+
+console.log("Routes being loaded, make sure TimerPage is defined");
 
 const Routes = () => {
   return (

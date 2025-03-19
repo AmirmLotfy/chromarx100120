@@ -1,4 +1,3 @@
-
 import { useSubscription } from "@/hooks/use-subscription";
 import { useElementSelector } from "@/hooks/useElementSelector";
 import Layout from "@/components/Layout";
@@ -42,6 +41,10 @@ const Index = () => {
       {showDemo && <StreamProcessingDemo />}
       
       <FeatureGrid />
+      
+      <div className="p-4">
+        <a href="/timer" className="px-4 py-2 bg-primary text-white rounded-md">Go to Timer</a>
+      </div>
     </Layout>
   );
 };
