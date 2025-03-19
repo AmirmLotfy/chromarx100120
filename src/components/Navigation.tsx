@@ -9,6 +9,11 @@ const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Add debug logging to track route changes
+  useEffect(() => {
+    console.log("Current pathname:", location.pathname);
+  }, [location.pathname]);
+
   // Make sure current path is tracked correctly
   const isActive = (path: string) => {
     if (path === "/" && location.pathname === "/") return true;
@@ -16,10 +21,12 @@ const Navigation = () => {
     return false;
   };
 
-  // Handle navigation with proper event prevention
+  // Handle navigation with direct imperative navigation
   const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
     e.preventDefault();
-    navigate(to);
+    console.log("Navigating to:", to);
+    // Use direct navigation instead of react-router for troubleshooting
+    window.location.href = to;
   };
 
   return (
@@ -76,8 +83,8 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, isActive, label, onClick }: NavItemProps) => (
-  <Link 
-    to={to} 
+  <a 
+    href={to}
     className={cn(
       "relative flex flex-col items-center justify-center w-16 h-full z-10",
       isActive ? "text-primary" : "text-muted-foreground"
@@ -90,7 +97,7 @@ const NavItem = ({ to, icon, isActive, label, onClick }: NavItemProps) => (
       {icon}
       <span className="text-[10px] font-medium opacity-90">{label}</span>
     </div>
-  </Link>
+  </a>
 );
 
 // Active tab indicator with animation
