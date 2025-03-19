@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
 import { TimerControls } from '@/components/timer/TimerControls';
 import { TimerSettings } from '@/components/timer/TimerSettings';
 import { Card, CardContent } from '@/components/ui/card';
 import Layout from '@/components/Layout';
-import { PageTitle } from '@/components/PageTitle';
+import PageTitle from '@/components/PageTitle';
 
 const TimerPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60); // 25 minutes in seconds
@@ -91,7 +90,7 @@ const TimerPage: React.FC = () => {
           </Card>
           
           <TimerSettings 
-            duration={originalTime}
+            duration={originalTime / 60}
             onDurationChange={handleTimeChange}
             mode={timerMode}
             disabled={isRunning}

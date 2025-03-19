@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { localStorageClient } from '@/lib/chrome-storage-client';
 import TaskList from '@/components/tasks/TaskList';
@@ -11,7 +10,7 @@ import TaskAnalytics from '@/components/tasks/TaskAnalytics';
 import TaskTemplates from '@/components/tasks/TaskTemplates';
 import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
-import { PageTitle } from '@/components/PageTitle';
+import PageTitle from '@/components/PageTitle';
 
 const TaskPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -23,8 +22,6 @@ const TaskPage = () => {
     fetchTasks();
     console.log("Task page mounted with Layout");
     
-    // We've removed the Supabase realtime subscription
-    // Instead, we'll just poll for changes every minute
     const interval = setInterval(fetchTasks, 60000);
     
     return () => {
@@ -66,7 +63,6 @@ const TaskPage = () => {
   };
 
   const handleUseTemplate = () => {
-    // Implement template usage functionality
     setShowAddForm(true);
   };
 
