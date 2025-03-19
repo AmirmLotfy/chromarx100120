@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { cn } from "@/lib/utils";
-import { TimerDisplay as TimerDisplayType } from '@/types/timer';
 
 export interface TimerDisplayProps {
   timeLeft: number;
