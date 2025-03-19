@@ -1,12 +1,26 @@
 
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Bookmark, User, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 const Navigation = () => {
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
+  const navigate = useNavigate();
+  
+  // Make sure current path is tracked correctly
+  const isActive = (path: string) => {
+    if (path === "/" && location.pathname === "/") return true;
+    if (path !== "/" && location.pathname.startsWith(path)) return true;
+    return false;
+  };
+
+  // Handle navigation with proper event prevention
+  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    e.preventDefault();
+    navigate(to);
+  };
 
   return (
     <nav 
@@ -21,24 +35,28 @@ const Navigation = () => {
             icon={<Home className="h-5 w-5" />}
             isActive={isActive("/")}
             label="Home"
+            onClick={handleNavigation}
           />
           <NavItem 
             to="/bookmarks" 
             icon={<Bookmark className="h-5 w-5" />}
             isActive={isActive("/bookmarks")}
             label="Bookmarks"
+            onClick={handleNavigation}
           />
           <NavItem 
             to="/timer" 
             icon={<Clock className="h-5 w-5" />}
             isActive={isActive("/timer")}
             label="Timer"
+            onClick={handleNavigation}
           />
           <NavItem 
             to="/user" 
             icon={<User className="h-5 w-5" />}
             isActive={isActive("/user")}
             label="Profile"
+            onClick={handleNavigation}
           />
           
           {/* Active indicator pill */}
@@ -54,9 +72,10 @@ interface NavItemProps {
   icon: React.ReactNode;
   isActive: boolean;
   label: string;
+  onClick: (e: React.MouseEvent<HTMLAnchorElement>, to: string) => void;
 }
 
-const NavItem = ({ to, icon, isActive, label }: NavItemProps) => (
+const NavItem = ({ to, icon, isActive, label, onClick }: NavItemProps) => (
   <Link 
     to={to} 
     className={cn(
@@ -65,6 +84,7 @@ const NavItem = ({ to, icon, isActive, label }: NavItemProps) => (
     )}
     aria-label={label}
     aria-current={isActive ? "page" : undefined}
+    onClick={(e) => onClick(e, to)}
   >
     <div className="flex flex-col items-center justify-center gap-1">
       {icon}
