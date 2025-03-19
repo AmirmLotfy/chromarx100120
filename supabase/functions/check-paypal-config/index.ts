@@ -7,10 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Fixed PayPal configuration with client ID and environment
+// Updated PayPal configuration with real client ID and environment
 const PAYPAL_CONFIG = {
-  clientId: 'AVgQsC5HEYPsUFRZaWkyCGRa-FxBDulKF6t5Cl_CpxnZ_f1W5ks8qDM',
-  mode: 'live',  // Change to 'live' for production
+  clientId: 'AYuiHHW8hXq551bXEHVWnOVuwAm0EYCJRwfkA27_5zJ3-t5MJJejrRVSOZZYKo5S3TnWnEphjGo5rWDK',
+  mode: 'sandbox',  // Change to 'live' for production
   configured: true,
 };
 

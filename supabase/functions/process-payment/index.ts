@@ -7,10 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// PayPal API configuration
+// Updated PayPal API configuration with real credentials
 const PAYPAL_CONFIG = {
-  clientId: 'AVgQsC5HEYPsUFRZaWkyCGRa-FxBDulKF6t5Cl_CpxnZ_f1W5ks8qDM',
-  secret: '******', // This would be stored securely in Supabase's secrets in production
+  clientId: 'AYuiHHW8hXq551bXEHVWnOVuwAm0EYCJRwfkA27_5zJ3-t5MJJejrRVSOZZYKo5S3TnWnEphjGo5rWDK',
+  secret: 'EK6A1gjPwp1R5QdVRXjBnKmqlOy8gZ4-s8_QaHIxuS-WFRYCr3o1hLYDuZs0YBKQnWox5Tje2eylvVz0', // This would be stored securely in Supabase's secrets in production
   mode: 'sandbox', // Change to 'live' for production
 };
 
