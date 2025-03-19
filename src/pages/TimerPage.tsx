@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TimerDisplay } from '@/components/timer/TimerDisplay';
@@ -6,10 +7,11 @@ import { TimerSettings } from '@/components/timer/TimerSettings';
 import TimerSuggestions from '@/components/timer/TimerSuggestions';
 import { timerService } from '@/services/timerService';
 import { TimerSession } from '@/types/timer';
-import { create } from 'zustand';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { localStorageClient as supabase } from '@/lib/local-storage-client';
 import { toast } from 'sonner';
+import Layout from '@/components/Layout';
+import { AlarmClock, Clock, BarChart4 } from 'lucide-react';
 
 function TimerPage() {
   // Component states
@@ -147,136 +149,150 @@ function TimerPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">
+    <Layout>
+      <div className="px-4 py-6 max-w-md mx-auto">
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-0">
+            <div className="flex items-center gap-2">
+              <AlarmClock className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl">
                 {mode === 'focus' ? 'Focus Timer' : 'Break Timer'}
               </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <TimerDisplay 
-                timeLeft={timeLeft} 
-                mode={mode}
-              />
-              
-              <TimerControls 
-                isRunning={isRunning}
-                onStart={startTimer}
-                onPause={pauseTimer}
-                onReset={resetTimer}
-                onModeToggle={toggleMode}
-                mode={mode}
-              />
-              
-              <div className="w-full max-w-md mt-6">
-                <label className="text-sm font-medium mb-2 block">
-                  What are you working on? (optional)
-                </label>
-                <input
-                  type="text"
-                  value={taskContext}
-                  onChange={handleTaskContextChange}
-                  placeholder="e.g., Project research, Writing report..."
-                  className="w-full p-2 border rounded-md"
-                  disabled={isRunning}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Timer suggestions */}
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-2">Suggested Duration</h3>
-            <TimerSuggestions 
-              onSelectDuration={(mins) => setDuration(mins * 60)}
-              taskContext={taskContext}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <TimerDisplay 
+              timeLeft={timeLeft} 
+              mode={mode}
+              maxTime={duration}
+            />
+            
+            <TimerControls 
+              isRunning={isRunning}
+              onStart={startTimer}
+              onPause={pauseTimer}
+              onReset={resetTimer}
+              onModeToggle={toggleMode}
               mode={mode}
             />
-          </div>
-        </div>
-        
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Timer Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TimerSettings 
-                duration={duration}
-                onDurationChange={(newDuration) => setDuration(newDuration)}
-                mode={mode}
+            
+            <div className="w-full mt-6">
+              <label className="text-sm font-medium mb-2 block">
+                What are you working on?
+              </label>
+              <input
+                type="text"
+                value={taskContext}
+                onChange={handleTaskContextChange}
+                placeholder="e.g., Project research, Writing report..."
+                className="w-full p-2 border rounded-md"
                 disabled={isRunning}
               />
-            </CardContent>
-          </Card>
-          
-          {/* Stats Card */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Your Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="today">
-                <TabsList className="w-full">
-                  <TabsTrigger value="today" className="flex-1">Today</TabsTrigger>
-                  <TabsTrigger value="week" className="flex-1">This Week</TabsTrigger>
-                  <TabsTrigger value="month" className="flex-1">This Month</TabsTrigger>
-                </TabsList>
-                <TabsContent value="today" className="space-y-4 mt-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Focus Sessions</span>
-                    <span className="font-medium">3</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Total Focus Time</span>
-                    <span className="font-medium">1h 15m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Completion Rate</span>
-                    <span className="font-medium">85%</span>
-                  </div>
-                </TabsContent>
-                <TabsContent value="week" className="space-y-4 mt-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Focus Sessions</span>
-                    <span className="font-medium">12</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Total Focus Time</span>
-                    <span className="font-medium">6h 45m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Completion Rate</span>
-                    <span className="font-medium">78%</span>
-                  </div>
-                </TabsContent>
-                <TabsContent value="month" className="space-y-4 mt-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Focus Sessions</span>
-                    <span className="font-medium">42</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Total Focus Time</span>
-                    <span className="font-medium">24h 30m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Completion Rate</span>
-                    <span className="font-medium">82%</span>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="mt-6 space-y-6">
+          <Tabs defaultValue="settings" className="w-full">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="settings" className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="flex items-center gap-1">
+                <BarChart4 className="h-4 w-4" />
+                <span>Stats</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="settings" className="mt-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <TimerSettings 
+                    duration={duration}
+                    onDurationChange={(newDuration) => setDuration(newDuration)}
+                    mode={mode}
+                    disabled={isRunning}
+                  />
+                </CardContent>
+              </Card>
+              
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Suggested Duration</h3>
+                <TimerSuggestions 
+                  onSelectDuration={(mins) => setDuration(mins * 60)}
+                  taskContext={taskContext}
+                  mode={mode}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="stats" className="mt-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <Tabs defaultValue="today" className="w-full">
+                    <TabsList className="w-full grid grid-cols-3">
+                      <TabsTrigger value="today">Today</TabsTrigger>
+                      <TabsTrigger value="week">Week</TabsTrigger>
+                      <TabsTrigger value="month">Month</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="today" className="space-y-4 mt-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Focus Sessions</span>
+                        <span className="font-medium">3</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Total Focus Time</span>
+                        <span className="font-medium">1h 15m</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Completion Rate</span>
+                        <span className="font-medium">85%</span>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="week" className="space-y-4 mt-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Focus Sessions</span>
+                        <span className="font-medium">12</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Total Focus Time</span>
+                        <span className="font-medium">6h 45m</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Completion Rate</span>
+                        <span className="font-medium">78%</span>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="month" className="space-y-4 mt-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Focus Sessions</span>
+                        <span className="font-medium">42</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Total Focus Time</span>
+                        <span className="font-medium">24h 30m</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Completion Rate</span>
+                        <span className="font-medium">82%</span>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       
       {/* Feedback Dialog */}
       {showFeedback && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-background p-6 rounded-lg max-w-xs w-full shadow-lg">
             <h3 className="text-lg font-medium mb-4">How productive was your session?</h3>
             <div className="flex justify-between mb-6">
               {[1, 2, 3, 4, 5].map((rating) => (
@@ -286,7 +302,7 @@ function TimerPage() {
                   className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     productivityRating === rating 
                       ? 'bg-primary text-white' 
-                      : 'bg-gray-100 hover:bg-gray-200'
+                      : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
                   {rating}
@@ -296,7 +312,7 @@ function TimerPage() {
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowFeedback(false)}
-                className="px-4 py-2 border rounded-md hover:bg-gray-100"
+                className="px-4 py-2 border rounded-md hover:bg-muted/50"
               >
                 Skip
               </button>
@@ -305,8 +321,8 @@ function TimerPage() {
                 disabled={productivityRating === null}
                 className={`px-4 py-2 rounded-md ${
                   productivityRating === null
-                    ? 'bg-gray-300 cursor-not-allowed'
-                    : 'bg-primary text-white hover:bg-primary/90'
+                    ? 'bg-muted/50 cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
                 }`}
               >
                 Submit
@@ -315,7 +331,7 @@ function TimerPage() {
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   );
 }
 
