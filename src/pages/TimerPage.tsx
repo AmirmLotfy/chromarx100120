@@ -5,6 +5,7 @@ import { TimerControls } from '@/components/timer/TimerControls';
 import { TimerSettings } from '@/components/timer/TimerSettings';
 import { Card, CardContent } from '@/components/ui/card';
 import Layout from '@/components/Layout';
+import { PageTitle } from '@/components/PageTitle';
 
 const TimerPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60); // 25 minutes in seconds
@@ -68,9 +69,8 @@ const TimerPage: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        <PageTitle>Pomodoro Timer</PageTitle>
         <div className="max-w-md mx-auto">
-          <h1 className="text-2xl font-bold mb-6 text-center">Pomodoro Timer</h1>
-          
           <Card className="mb-6">
             <CardContent className="pt-6">
               <TimerDisplay 

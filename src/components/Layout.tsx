@@ -2,6 +2,7 @@
 import Navigation from "@/components/Navigation";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import Header from "@/components/Header";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
+      <Header />
       <main className="flex-1 mb-16 pb-4 relative">
         {children}
       </main>

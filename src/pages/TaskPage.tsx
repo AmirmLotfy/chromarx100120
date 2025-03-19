@@ -11,6 +11,7 @@ import TaskAnalytics from '@/components/tasks/TaskAnalytics';
 import TaskTemplates from '@/components/tasks/TaskTemplates';
 import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { PageTitle } from '@/components/PageTitle';
 
 const TaskPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -20,6 +21,7 @@ const TaskPage = () => {
 
   useEffect(() => {
     fetchTasks();
+    console.log("Task page mounted with Layout");
     
     // We've removed the Supabase realtime subscription
     // Instead, we'll just poll for changes every minute
@@ -72,7 +74,7 @@ const TaskPage = () => {
     <Layout>
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Your Tasks</h1>
+          <PageTitle>Your Tasks</PageTitle>
           <Button onClick={() => setShowAddForm(true)}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add Task
           </Button>
